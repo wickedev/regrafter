@@ -1,5 +1,7 @@
 # Claude Code
-.claude/
+.claude/*
+!.claude/specs/
+!.claude/steering/
 
 # Dependencies
 node_modules/
