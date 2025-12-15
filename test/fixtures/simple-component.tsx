@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Simple Component Fixture
  *

@@ -72,6 +72,7 @@ module.exports = {
     '*.mjs',
     '**/__tests__/**',
     '**/*.test.ts',
+    'test/fixtures/**',
   ],
   overrides: [
     {

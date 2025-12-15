@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * List Rendering Fixture
  *

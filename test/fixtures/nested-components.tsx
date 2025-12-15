@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Nested Components Fixture
  *
