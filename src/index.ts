@@ -216,10 +216,13 @@ import { createMoveAnalysisBuilder, DependencyAnalyzer } from './analyzer/index.
 import {
   createConfiguredHoistPlanner,
   createHoistExecutor,
-  type HoistPlan,
   type HoistContext,
   type HoistExecutionContext,
 } from './strategies/index.js';
+import {
+  executeCrossFileTransform,
+  createCrossFileContext,
+} from './strategies/cross-file/index.js';
 import type { NodePath } from '@babel/traverse';
 import traverse from '@babel/traverse';
 
@@ -394,8 +397,86 @@ export function move(
     return codes;
   }
 
-  // Cross-file move (Phase 4 - for now throw not implemented)
-  throw new Error('Cross-file moves not yet implemented (Phase 4)');
+  // Cross-file move - delegate to cross-file handler
+  return executeCrossFileMove(files, from, to, mode);
+}
+
+/**
+ * Execute cross-file move operation
+ */
+function executeCrossFileMove(
+  files: FileInput[],
+  from: Selector,
+  to: Selector,
+  mode: Move
+): Code[] {
+  const parser = createParser();
+  const scopeManager = createScopeManager();
+  const analyzer = new DependencyAnalyzer(scopeManager);
+  const resolver = createSelectorResolver();
+
+  // Parse all files
+  const parsedFiles = new Map<string, import('@babel/types').File>();
+  const originalContents = new Map<string, string>();
+
+  for (const file of files) {
+    const result = parser.parse(file.content, file.path);
+    if (!result.success || !result.ast) {
+      throw new Error(`Failed to parse ${file.path}: ${result.errors[0]?.message || 'Unknown error'}`);
+    }
+    parsedFiles.set(file.path, result.ast);
+    originalContents.set(file.path, file.content);
+  }
+
+  // Get source AST
+  const sourceAst = parsedFiles.get(from.file);
+  if (!sourceAst) {
+    throw new Error(`Source file not found: ${from.file}`);
+  }
+
+  // Build scope tree and analyze
+  scopeManager.buildScopeTree(sourceAst);
+  analyzer.setCurrentFile(from.file);
+
+  // Resolve source element
+  const sourceResult = resolver.resolve(from, sourceAst);
+  if (!sourceResult.node || !sourceResult.path) {
+    throw new Error(`Failed to resolve source: ${sourceResult.error?.message || 'Element not found'}`);
+  }
+
+  // Get target scope for dependency analysis
+  let targetScope = null;
+  if (parsedFiles.has(to.file)) {
+    const targetAst = parsedFiles.get(to.file)!;
+    const targetResult = resolver.resolve(to, targetAst);
+    if (targetResult.path) {
+      targetScope = scopeManager.getScopeForPath(targetResult.path);
+    }
+  }
+
+  // Analyze dependencies
+  const depAnalysis = analyzer.analyzeElement(sourceResult.path, targetScope);
+
+  // Create cross-file context
+  const context = createCrossFileContext(
+    parsedFiles,
+    originalContents,
+    from.file,
+    to.file,
+    depAnalysis.dependencies
+  );
+
+  // Execute cross-file transformation
+  const transformResult = executeCrossFileTransform(context, {
+    createSharedModules: true,
+    resolveCircularDeps: true,
+  });
+
+  if (!transformResult.success) {
+    throw new Error(`Cross-file move failed: ${transformResult.error || 'Unknown error'}`);
+  }
+
+  return transformResult.codes;
 }
 
 /**
@@ -464,14 +545,17 @@ function moveWithHoisting(
   const depAnalysis = analyzer.analyzeElement(sourceResult.path, targetScope);
 
   // If there are dependencies that need hoisting, create and execute a hoisting plan
-  if (depAnalysis.needsHoisting.length > 0) {
+  if (depAnalysis.needsHoisting.length > 0 && sourceScope && targetScope) {
     // Create hoisting context
     const context: HoistContext = {
       sourceFile: from.file,
       targetFile: to.file,
-      sourceScope: sourceScope || undefined,
-      targetScope: targetScope || undefined,
-      targetComponent: targetScope,
+      sourceScope,
+      targetScope,
+      sourceComponent: null, // Not tracking component scopes in this integration
+      targetComponent: null,
+      isCrossFile: from.file !== to.file,
+      asts: parsedFiles,
     };
 
     // Create hoisting plan
@@ -654,18 +738,16 @@ export function analyze(
  * optimal locations, removing unnecessary prop threading.
  *
  * @param files - Array of file inputs with path and content
+ * @param options - Optional optimization options
  * @returns Array of optimized file contents
  */
 export function optimize(
-  files: FileInput[]
+  files: FileInput[],
+  options?: import('./optimizer/types.js').OptimizeOptions
 ): Code[] {
-  // For now, return files unchanged - full optimization is complex
-  // and would be implemented as part of Phase 5
-  return files.map(f => createCode({
-    file: f.path,
-    content: f.content,
-    changed: false,
-  }));
+  const { createOptimizer } = require('./optimizer/Optimizer.js');
+  const optimizer = createOptimizer();
+  return optimizer.optimize(files, options);
 }
 
 // =============================================================================
@@ -772,9 +854,20 @@ function executeTransformation(
       );
     }
 
-    // Use the move function for actual transformation
-    // The move function will now integrate hoisting internally if needed
-    const codes = move(files, from, to, mode);
+    // Use the moveWithHoisting function for transformation with automatic hoisting
+    let codes = moveWithHoisting(files, from, to, mode);
+
+    // Optionally run optimization
+    if (options.optimize) {
+      // Convert codes back to FileInput format for optimizer
+      const optimizeInput: FileInput[] = codes.map(code => ({
+        path: code.file,
+        content: code.content,
+      }));
+
+      // Run optimization
+      codes = optimize(optimizeInput);
+    }
 
     // Return success with the real analysis
     return createSuccessResult(codes, fullAnalysis);
