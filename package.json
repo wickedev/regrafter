@@ -60,7 +60,11 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm run test && npm run typecheck",
     "version": "npm run build",
-    "release": "npm publish --access public"
+    "release": "npm publish --access public",
+    "docs:start": "cd website && yarn start",
+    "docs:build": "cd website && yarn build",
+    "docs:serve": "cd website && yarn serve",
+    "docs:deploy": "cd website && yarn deploy"
   },
   "keywords": [
     "react",

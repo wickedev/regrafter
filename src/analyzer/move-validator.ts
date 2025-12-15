@@ -518,8 +518,9 @@ const targetNotDescendantRule: ValidationRule = (source, target, _mode, _context
   }
 
   // Check if target is a descendant of source
-  let current: NodePath | null = target.path;
+  let current: NodePath | null = target.path.parentPath; // Start from parent to exclude target itself
   while (current) {
+    // If we find the source node while walking up from target, target is a descendant
     if (current.node === source.node) {
       return {
         valid: false,

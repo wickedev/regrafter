@@ -30,8 +30,8 @@ function App() {
 
       const analysis = analyze(
         files,
-        { file: 'App.tsx', line: 5, column: 7 }, // <span>
-        { file: 'App.tsx', line: 6, column: 7 }, // <section>
+        { file: 'App.tsx', line: 6, column: 7 }, // <span>
+        { file: 'App.tsx', line: 7, column: 7 }, // <section>
         Move.Inside
       );
 
@@ -62,8 +62,8 @@ function Counter() {
 
       const analysis = analyze(
         files,
-        { file: 'Counter.tsx', line: 7, column: 7 }, // <span>
-        { file: 'Counter.tsx', line: 9, column: 7 }, // <footer>
+        { file: 'Counter.tsx', line: 8, column: 7 }, // <span>
+        { file: 'Counter.tsx', line: 10, column: 7 }, // <footer>
         Move.Inside
       );
 
@@ -93,8 +93,8 @@ function App() {
 
       const analysis = analyze(
         files,
-        { file: 'App.tsx', line: 6, column: 7 }, // <Button>
-        { file: 'App.tsx', line: 9, column: 7 }, // <section>
+        { file: 'App.tsx', line: 7, column: 7 }, // <Button>
+        { file: 'App.tsx', line: 10, column: 7 }, // <section>
         Move.Inside
       );
 
@@ -122,8 +122,8 @@ function App() {
 
       const analysis = analyze(
         files,
-        { file: 'App.tsx', line: 6, column: 7 }, // <span>
-        { file: 'App.tsx', line: 7, column: 7 }, // <section>
+        { file: 'App.tsx', line: 7, column: 7 }, // <span>
+        { file: 'App.tsx', line: 8, column: 7 }, // <section>
         Move.Inside
       );
 
@@ -156,8 +156,8 @@ function App() {
 
       const analysis = analyze(
         files,
-        { file: 'App.tsx', line: 10, column: 7 }, // <span>
-        { file: 'App.tsx', line: 12, column: 7 }, // <section>
+        { file: 'App.tsx', line: 11, column: 7 }, // <span>
+        { file: 'App.tsx', line: 13, column: 7 }, // <section>
         Move.Inside
       );
 
@@ -226,8 +226,8 @@ function ThemedButton() {
 
       const analysis = analyze(
         files,
-        { file: 'ThemedButton.tsx', line: 8, column: 7 }, // <button>
-        { file: 'ThemedButton.tsx', line: 9, column: 7 }, // <span>
+        { file: 'ThemedButton.tsx', line: 9, column: 7 }, // <button>
+        { file: 'ThemedButton.tsx', line: 10, column: 7 }, // <span>
         Move.Before
       );
 
@@ -256,8 +256,8 @@ function Form() {
 
       const analysis = analyze(
         files,
-        { file: 'Form.tsx', line: 7, column: 7 }, // <input>
-        { file: 'Form.tsx', line: 9, column: 7 }, // <span>
+        { file: 'Form.tsx', line: 8, column: 7 }, // <input>
+        { file: 'Form.tsx', line: 10, column: 7 }, // <span>
         Move.Inside
       );
 
@@ -336,8 +336,8 @@ function Parent() {
 
       const analysis = analyze(
         files,
-        { file: 'Parent.tsx', line: 10, column: 18 }, // <Child />
-        { file: 'Parent.tsx', line: 12, column: 7 }, // <section>
+        { file: 'Parent.tsx', line: 11, column: 19 }, // <Child />
+        { file: 'Parent.tsx', line: 13, column: 7 }, // <section>
         Move.Inside
       );
 
@@ -389,8 +389,8 @@ function App() {
 
       const analysis = analyze(
         files,
-        { file: 'App.tsx', line: 4, column: 7 },
         { file: 'App.tsx', line: 5, column: 7 },
+        { file: 'App.tsx', line: 6, column: 7 },
         Move.Inside
       );
 
@@ -415,8 +415,8 @@ function App() {
 
       const analysis = analyze(
         files,
-        { file: 'App.tsx', line: 4, column: 7 },
         { file: 'App.tsx', line: 5, column: 7 },
+        { file: 'App.tsx', line: 6, column: 7 },
         Move.Before
       );
 
@@ -441,8 +441,8 @@ function App() {
 
       const analysis = analyze(
         files,
-        { file: 'App.tsx', line: 4, column: 7 },
         { file: 'App.tsx', line: 5, column: 7 },
+        { file: 'App.tsx', line: 6, column: 7 },
         Move.After
       );
 
