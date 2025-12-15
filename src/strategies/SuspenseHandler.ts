@@ -10,16 +10,13 @@ import * as t from '@babel/types';
 
 import {
   createHoistOperation,
-  generateId,
 } from '../types/factories.js';
 import {
-  ScopeType,
   HoistStrategy,
 } from '../types/internal.js';
 import type {
   HoistOperation,
   InternalDependency,
-  ScopeInfo,
 } from '../types/internal.js';
 import { DependencyType } from '../types/public.js';
 
@@ -41,7 +38,7 @@ const DEFAULT_FALLBACK_TEXT = 'Loading...';
 /**
  * Pattern for detecting lazy function calls
  */
-const LAZY_PATTERNS = {
+const _LAZY_PATTERNS = {
   /** React.lazy() call */
   reactLazy: /^(React\.)?lazy$/,
   /** next/dynamic import */
@@ -142,7 +139,7 @@ export class SuspenseHandler implements ISuspenseHandler {
     fallback?: t.JSXElement | t.JSXFragment
   ): t.JSXElement {
     // Create fallback element if not provided
-    const fallbackElement = fallback || this.createDefaultFallback();
+    const fallbackElement = fallback ?? this.createDefaultFallback();
 
     // Get the children to wrap
     const children: t.JSXElement['children'] = [];
@@ -204,7 +201,7 @@ export class SuspenseHandler implements ISuspenseHandler {
   /**
    * Execute the hoisting operation
    */
-  execute(operation: HoistOperation, context: HoistContext): void {
+  execute(operation: HoistOperation, _context: HoistContext): void {
     if (!operation.dependencyId) {
       throw new Error('Invalid hoist operation: missing dependency ID');
     }
@@ -494,7 +491,7 @@ export function findSuspenseBoundaries(ast: t.File): NodePath[] {
  */
 export function hasParentSuspense(
   lazyPath: NodePath,
-  ast: t.File
+  _ast: t.File
 ): boolean {
   let current: NodePath | null = lazyPath.parentPath;
 

@@ -11,7 +11,6 @@ import type * as t from '@babel/types';
 
 import type {
   InternalDependency,
-  DependencyOrigin,
 } from '../../types/internal.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════

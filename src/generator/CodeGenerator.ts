@@ -1,4 +1,4 @@
-import generate from '@babel/generator';
+import generateCode from '@babel/generator';
 import type * as t from '@babel/types';
 
 import {
@@ -47,7 +47,7 @@ export class CodeGenerator {
       const babelGeneratorOptions = this.buildBabelGeneratorOptions(mergedOptions);
 
       // Generate code using @babel/generator
-      const result = generate(ast, babelGeneratorOptions);
+      const result = generateCode(ast, babelGeneratorOptions);
 
       return {
         code: result.code,
@@ -96,7 +96,7 @@ export class CodeGenerator {
    */
   private buildBabelGeneratorOptions(
     options: Required<GeneratorOptions>
-  ): Parameters<typeof generate>[1] {
+  ): Parameters<typeof generateCode>[1] {
     return {
       // Task 1.5.2: Comment preservation configuration
       comments: options.preserveComments,
@@ -412,7 +412,7 @@ export class CodeGenerator {
       : Math.floor(baseIndent.spaces / targetIndent.size);
 
     // Target indentation string
-    const targetIndentStr = targetIndent.char.repeat(targetIndent.level);
+    const _targetIndentStr = targetIndent.char.repeat(targetIndent.level);
 
     // Adjust each line
     const adjustedLines = lines.map((line) => {

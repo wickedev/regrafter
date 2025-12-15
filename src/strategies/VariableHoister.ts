@@ -6,16 +6,13 @@
  * converted to prop threading.
  */
 
-import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 
 import {
   createHoistOperation,
   createPropThreadOperation,
-  generateId,
 } from '../types/factories.js';
 import {
-  ScopeType,
   HoistStrategy,
 } from '../types/internal.js';
 import type {
@@ -142,7 +139,7 @@ export class VariableHoister implements IVariableHoister {
   /**
    * Execute the hoisting operation
    */
-  execute(operation: HoistOperation, context: HoistContext): void {
+  execute(operation: HoistOperation, _context: HoistContext): void {
     // Validation
     if (!operation.dependencyId) {
       throw new Error('Invalid hoist operation: missing dependency ID');
@@ -252,8 +249,8 @@ export class VariableHoister implements IVariableHoister {
           isPure: false,
           reason: 'Logical expression contains impure operand',
           impureReferences: [
-            ...(leftPurity.impureReferences || []),
-            ...(rightPurity.impureReferences || []),
+            ...(leftPurity.impureReferences ?? []),
+            ...(rightPurity.impureReferences ?? []),
           ],
         };
       }
@@ -563,7 +560,7 @@ export class VariableHoister implements IVariableHoister {
   private planImpureVariableHoist(
     dependency: InternalDependency,
     context: HoistContext,
-    purityAnalysis: PurityAnalysis
+    _purityAnalysis: PurityAnalysis
   ): HoistPlanItem {
     const operation = createHoistOperation({
       dependencyId: dependency.id,

@@ -189,14 +189,13 @@ export {
   type StrategyRegistry,
 } from './strategies/index.js';
 
-// Internal imports for implementation
 import type { NodePath } from '@babel/traverse';
 import traverse from '@babel/traverse';
 
-import { createOptimizer } from './optimizer/Optimizer.js';
 import { validateMoveOperation, type MoveValidationResult } from './analyzer/index.js';
 import { createMoveAnalysisBuilder, DependencyAnalyzer } from './analyzer/index.js';
 import { CodeGenerator } from './generator/CodeGenerator.js';
+import { createOptimizer } from './optimizer/Optimizer.js';
 import { createParser } from './parser/index.js';
 import { createScopeManager } from './scope/index.js';
 import { createSelectorResolver } from './selector/index.js';
@@ -211,14 +210,16 @@ import {
   type HoistExecutionContext,
 } from './strategies/index.js';
 import { createJSXTransformer } from './transformer/index.js';
-import type {
-  FileInput,
-  Selector,
+// eslint-disable-next-line import/order
+import {
+  type FileInput,
+  type Selector,
   Move,
-  Options,
-  Result,
-  Code,
- SuggestedFix } from './types/index.js';
+  type Options,
+  type Result,
+  type Code,
+  type SuggestedFix,
+} from './types/index.js';
 
 /**
  * Main entry point for the regraft operation.
@@ -264,7 +265,7 @@ export function regraft(
   if (!validation.valid) {
     // Return failure result with reason
     return createFailureResult(
-      validation.reason || 'Move validation failed',
+      validation.reason ?? 'Move validation failed',
       [],
       getSuggestedFixes(validation.errorCode)
     );
@@ -332,7 +333,7 @@ export function move(
   for (const file of files) {
     const result = parser.parse(file.content, file.path);
     if (!result.success || !result.ast) {
-      throw new Error(`Failed to parse ${file.path}: ${result.errors[0]?.message || 'Unknown error'}`);
+      throw new Error(`Failed to parse ${file.path}: ${result.errors[0]?.message ?? 'Unknown error'}`);
     }
     parsedFiles.set(file.path, result.ast);
   }
@@ -351,12 +352,12 @@ export function move(
   // Resolve selectors
   const sourceResult = resolver.resolve(from, sourceAst);
   if (!sourceResult.node || !sourceResult.path) {
-    throw new Error(`Failed to resolve source: ${sourceResult.error?.message || 'Element not found'}`);
+    throw new Error(`Failed to resolve source: ${sourceResult.error?.message ?? 'Element not found'}`);
   }
 
   const targetResult = resolver.resolve(to, targetAst);
   if (!targetResult.node || !targetResult.path) {
-    throw new Error(`Failed to resolve target: ${targetResult.error?.message || 'Element not found'}`);
+    throw new Error(`Failed to resolve target: ${targetResult.error?.message ?? 'Element not found'}`);
   }
 
   // For same-file moves
@@ -370,7 +371,7 @@ export function move(
     );
 
     if (!moveResult.success) {
-      throw new Error(`Move failed: ${moveResult.error || 'Unknown error'}`);
+      throw new Error(`Move failed: ${moveResult.error ?? 'Unknown error'}`);
     }
 
     // Generate code for all files
@@ -402,7 +403,7 @@ function executeCrossFileMove(
   files: FileInput[],
   from: Selector,
   to: Selector,
-  mode: Move
+  _mode: Move
 ): Code[] {
   const parser = createParser();
   const scopeManager = createScopeManager();
@@ -416,7 +417,7 @@ function executeCrossFileMove(
   for (const file of files) {
     const result = parser.parse(file.content, file.path);
     if (!result.success || !result.ast) {
-      throw new Error(`Failed to parse ${file.path}: ${result.errors[0]?.message || 'Unknown error'}`);
+      throw new Error(`Failed to parse ${file.path}: ${result.errors[0]?.message ?? 'Unknown error'}`);
     }
     parsedFiles.set(file.path, result.ast);
     originalContents.set(file.path, file.content);
@@ -435,7 +436,7 @@ function executeCrossFileMove(
   // Resolve source element
   const sourceResult = resolver.resolve(from, sourceAst);
   if (!sourceResult.node || !sourceResult.path) {
-    throw new Error(`Failed to resolve source: ${sourceResult.error?.message || 'Element not found'}`);
+    throw new Error(`Failed to resolve source: ${sourceResult.error?.message ?? 'Element not found'}`);
   }
 
   // Get target scope for dependency analysis
@@ -467,7 +468,7 @@ function executeCrossFileMove(
   });
 
   if (!transformResult.success) {
-    throw new Error(`Cross-file move failed: ${transformResult.error || 'Unknown error'}`);
+    throw new Error(`Cross-file move failed: ${transformResult.error ?? 'Unknown error'}`);
   }
 
   return transformResult.codes;
@@ -500,7 +501,7 @@ function moveWithHoisting(
   for (const file of files) {
     const result = parser.parse(file.content, file.path);
     if (!result.success || !result.ast) {
-      throw new Error(`Failed to parse ${file.path}: ${result.errors[0]?.message || 'Unknown error'}`);
+      throw new Error(`Failed to parse ${file.path}: ${result.errors[0]?.message ?? 'Unknown error'}`);
     }
     parsedFiles.set(file.path, result.ast);
   }
@@ -523,12 +524,12 @@ function moveWithHoisting(
   // Resolve selectors
   const sourceResult = resolver.resolve(from, sourceAst);
   if (!sourceResult.node || !sourceResult.path) {
-    throw new Error(`Failed to resolve source: ${sourceResult.error?.message || 'Element not found'}`);
+    throw new Error(`Failed to resolve source: ${sourceResult.error?.message ?? 'Element not found'}`);
   }
 
   const targetResult = resolver.resolve(to, sourceAst);
   if (!targetResult.node || !targetResult.path) {
-    throw new Error(`Failed to resolve target: ${targetResult.error?.message || 'Element not found'}`);
+    throw new Error(`Failed to resolve target: ${targetResult.error?.message ?? 'Element not found'}`);
   }
 
   // Get scopes
@@ -609,7 +610,7 @@ function moveWithHoisting(
   );
 
   if (!moveResult.success) {
-    throw new Error(`Move failed: ${moveResult.error || 'Unknown error'}`);
+    throw new Error(`Move failed: ${moveResult.error ?? 'Unknown error'}`);
   }
 
   // Generate code for all files
@@ -686,7 +687,7 @@ export function analyze(
   if (!parseResult.success || !parseResult.ast) {
     return createMoveAnalysis({
       canMove: false,
-      reason: `Failed to parse ${from.file}: ${parseResult.errors[0]?.message || 'Unknown error'}`,
+      reason: `Failed to parse ${from.file}: ${parseResult.errors[0]?.message ?? 'Unknown error'}`,
       dependencies: [],
       hoistedDeps: [],
       stats: createAnalysisStats(),
@@ -698,7 +699,7 @@ export function analyze(
   if (!sourceResult.node || !sourceResult.path) {
     return createMoveAnalysis({
       canMove: false,
-      reason: `Failed to resolve source: ${sourceResult.error?.message || 'Element not found'}`,
+      reason: `Failed to resolve source: ${sourceResult.error?.message ?? 'Element not found'}`,
       dependencies: [],
       hoistedDeps: [],
       stats: createAnalysisStats(),
@@ -709,7 +710,7 @@ export function analyze(
   if (!targetResult.node || !targetResult.path) {
     return createMoveAnalysis({
       canMove: false,
-      reason: `Failed to resolve target: ${targetResult.error?.message || 'Element not found'}`,
+      reason: `Failed to resolve target: ${targetResult.error?.message ?? 'Element not found'}`,
       dependencies: [],
       hoistedDeps: [],
       stats: createAnalysisStats(),
@@ -847,7 +848,7 @@ function executeTransformation(
     // If analysis shows the move isn't possible, return failure
     if (!fullAnalysis.canMove) {
       return createFailureResult(
-        fullAnalysis.reason || 'Move is not possible',
+        fullAnalysis.reason ?? 'Move is not possible',
         [],
         fullAnalysis.suggestedFixes
       );

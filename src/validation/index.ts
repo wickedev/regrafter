@@ -14,10 +14,7 @@ import type {
   Move,
 } from '../types/public.js';
 import {
-  isPositionSelector,
-  isPathSelector,
   isValidMove,
-  isValidOptions,
 } from '../types/public.js';
 
 // ===============================================================================

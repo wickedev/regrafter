@@ -9,19 +9,12 @@ import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 
 import {
-  createDependencyGraph,
-  addNodeToDependencyGraph,
-  addEdgeToDependencyGraph,
   createSharedModuleOperation,
   createExportDeclaration,
-  generateId,
 } from '../../types/factories.js';
 import type {
-  InternalDependency,
   SharedModuleOperation,
 } from '../../types/internal.js';
-
-import { computeImportPath } from './detector.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -420,7 +413,7 @@ export function resolveCircularDependencies(
 function resolveSingleCycle(
   cycle: string[],
   graph: ImportGraph,
-  asts: Map<string, t.File>
+  _asts: Map<string, t.File>
 ): CycleResolution | null {
   // Find the edge to break (prefer edges with fewer symbols)
   const edgesToBreak = findEdgesToBreak(cycle, graph);

@@ -7,7 +7,6 @@
 import type { SuggestedFix } from '../types/public.js';
 
 import {
-  ErrorCategory,
   RegraffError,
   CircularError,
   ValidationError,
@@ -66,7 +65,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 10,
       manualAction: 'Move the Hook call to the top level of the component',
-      recover: async () => {
+      recover: () => {
         // In actual implementation, this would:
         // 1. Find the nearest valid ancestor scope
         // 2. Move the hook declaration there
@@ -86,7 +85,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 10,
       manualAction: 'Move the Hook call outside of the loop',
-      recover: async () => {
+      recover: () => {
         return {
           success: true,
           action: 'Moved Hook outside loop scope',
@@ -102,7 +101,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 8,
       manualAction: 'Restructure Hook usage to comply with Rules of Hooks',
-      recover: async () => {
+      recover: () => {
         return {
           success: true,
           action: 'Restructured Hook usage',
@@ -119,7 +118,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 5,
       manualAction: 'Consider using React Context instead of deep prop drilling',
-      recover: async () => {
+      recover: () => {
         return {
           success: true,
           action: 'Created Context Provider for deep prop chain',
@@ -139,7 +138,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 10,
       manualAction: 'Extract shared dependencies to a common module',
-      recover: async () => {
+      recover: () => {
         return {
           success: true,
           action: 'Created shared module to break circular dependency',
@@ -155,7 +154,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 10,
       manualAction: 'Restructure imports to eliminate circular dependency',
-      recover: async () => {
+      recover: () => {
         return {
           success: true,
           action: 'Restructured imports to break cycle',
@@ -185,7 +184,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 8,
       manualAction: 'Add the missing import or define the symbol',
-      recover: async () => {
+      recover: () => {
         return {
           success: true,
           action: 'Added missing import',
@@ -202,7 +201,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 7,
       manualAction: 'Refactor to eliminate circular dependencies',
-      recover: async () => {
+      recover: () => {
         return {
           success: true,
           action: 'Extracted shared dependency to break cycle',
@@ -309,9 +308,9 @@ export function getRecoverySuggestions(error: RegraffError): SuggestedFix[] {
 /**
  * Recovery handler for circular dependency errors.
  */
-export async function recoverFromCircularDependency(
+export function recoverFromCircularDependency(
   error: CircularError
-): Promise<RecoveryResult> {
+): RecoveryResult {
   const cycle = error.cycle;
 
   if (cycle.length < 2) {
@@ -341,9 +340,9 @@ export async function recoverFromCircularDependency(
 /**
  * Recovery handler for Hook validation errors.
  */
-export async function recoverFromHookValidationError(
-  error: ValidationError
-): Promise<RecoveryResult> {
+export function recoverFromHookValidationError(
+  _error: ValidationError
+): RecoveryResult {
   // In actual implementation, this would:
   // 1. Find the hook that violates rules
   // 2. Find the nearest valid scope
@@ -364,9 +363,9 @@ export async function recoverFromHookValidationError(
 /**
  * Recovery handler for missing dependency errors.
  */
-export async function recoverFromMissingDependency(
+export function recoverFromMissingDependency(
   error: DependencyError
-): Promise<RecoveryResult> {
+): RecoveryResult {
   if (!error.dependency) {
     return {
       success: false,

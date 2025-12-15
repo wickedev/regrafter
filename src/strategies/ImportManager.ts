@@ -6,13 +6,11 @@
  */
 
 import traverse from '@babel/traverse';
-import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 
 import {
   createImportOperation,
   createImportSpecifier,
-  generateId,
 } from '../types/factories.js';
 import type {
   ImportOperation,
@@ -22,7 +20,6 @@ import type {
 import { DependencyType } from '../types/public.js';
 
 import type {
-  HoistContext,
   IImportManager,
 } from './types.js';
 

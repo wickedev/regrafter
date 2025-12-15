@@ -12,10 +12,8 @@ import * as t from '@babel/types';
 import {
   createHoistOperation,
   createPropThreadOperation,
-  generateId,
 } from '../types/factories.js';
 import {
-  ScopeType,
   HoistStrategy,
 } from '../types/internal.js';
 import type {
@@ -202,7 +200,7 @@ export class ContextHandler implements IContextHandler {
   /**
    * Execute the hoisting operation
    */
-  execute(operation: HoistOperation, context: HoistContext): void {
+  execute(operation: HoistOperation, _context: HoistContext): void {
     if (!operation.dependencyId) {
       throw new Error('Invalid hoist operation: missing dependency ID');
     }
@@ -352,7 +350,7 @@ export class ContextHandler implements IContextHandler {
   private createExtractToPropsplan(
     dependency: InternalDependency,
     context: HoistContext,
-    providerPath: NodePath
+    _providerPath: NodePath
   ): HoistPlanItem {
     // Context needs to be extracted and passed as props
     const operation = createHoistOperation({

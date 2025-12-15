@@ -37,7 +37,6 @@ import type {
   SinkAnalysisResult,
   LCAResult,
   ScopeTree,
-  HoistedDeclaration,
 } from './types.js';
 
 
@@ -123,7 +122,7 @@ export class SinkAnalyzer implements ISinkAnalyzer {
       if (canSink.sinkable) {
         sinkable.push(candidate);
       } else {
-        unsinkable.push({ candidate, reason: canSink.reason || 'Unknown' });
+        unsinkable.push({ candidate, reason: canSink.reason ?? 'Unknown' });
       }
     }
 
@@ -354,7 +353,7 @@ export class SinkAnalyzer implements ISinkAnalyzer {
           // Only pop if this path matches the current scope's path
           if (topScope && topScope.path === path) {
             scopeStack.pop();
-            currentScope = scopeStack[scopeStack.length - 1] || rootScope;
+            currentScope = scopeStack[scopeStack.length - 1] ?? rootScope;
           }
         }
       },

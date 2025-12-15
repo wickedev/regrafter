@@ -15,11 +15,8 @@ import type {
   PropThreadOperation,
   ImportOperation,
   InternalDependency,
-  ScopeInfo,
-  ImportSpecifier,
 } from '../types/internal.js';
 import { HoistStrategy } from '../types/internal.js';
-import { DependencyType } from '../types/public.js';
 
 /**
  * Context for hoisting execution
@@ -97,6 +94,7 @@ export class HoistExecutor {
     // Find the dependency node to hoist
     const dependencyPath = context.dependencyPaths.get(operation.dependencyId);
     if (!dependencyPath) {
+      // eslint-disable-next-line no-console
       console.warn(
         `Cannot hoist: dependency ${operation.symbol} not found in dependency paths`
       );
@@ -106,6 +104,7 @@ export class HoistExecutor {
     // Find the target scope
     const targetPath = context.scopePaths.get(operation.toScope);
     if (!targetPath) {
+      // eslint-disable-next-line no-console
       console.warn(
         `Cannot hoist: target scope ${operation.toScope} not found in scope paths`
       );
@@ -129,6 +128,7 @@ export class HoistExecutor {
     }
 
     if (!declarationPath?.isStatement()) {
+      // eslint-disable-next-line no-console
       console.warn(
         `Cannot hoist: could not find statement for ${operation.symbol}`
       );
@@ -165,6 +165,7 @@ export class HoistExecutor {
       // Remove the original declaration
       declarationPath.remove();
     } else {
+      // eslint-disable-next-line no-console
       console.warn(
         `Cannot hoist: could not find insertion point for ${operation.symbol}`
       );

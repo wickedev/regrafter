@@ -6,28 +6,19 @@
  * Implements task 4.5.1 from the task list.
  */
 
-import generate from '@babel/generator';
+import generateCode from '@babel/generator';
 import * as t from '@babel/types';
 
 import {
   createCode,
-  createResult,
-  createMoveAnalysis,
-  createTransformPlan,
-  createTransformResult,
-  createTransformStats,
 } from '../../types/factories.js';
 import type {
   InternalDependency,
   ImportOperation,
   SharedModuleOperation,
-  TransformPlan,
-  TransformResult,
 } from '../../types/internal.js';
 import type {
   Code,
-  MoveAnalysis,
-  Result,
   Dependency,
 } from '../../types/public.js';
 
@@ -36,28 +27,18 @@ import {
   buildImportGraph,
   detectCircularDependencies,
   resolveCircularDependencies,
-  wouldCreateCycle,
-  validateImportsWontCycle,
-  type ImportGraph,
-  type CircularDependencyResult,
-  type CircularResolutionResult,
 } from './circular-dependency.js';
 import {
   detectCrossFileMove,
   analyzeDependencyExports,
-  computeImportPath,
   needsSharedModule,
-  type CrossFileDetectionResult,
-  type DependencyExportAnalysis,
 } from './detector.js';
 import {
   isNewFile,
-  detectFileType,
   generateEmptyComponentFile,
   generateEmptyFile,
   isComponentFile,
   validateNewFilePath,
-  type NewFileResult,
   type NewFileConfig,
 } from './new-file-handler.js';
 import {
@@ -66,9 +47,6 @@ import {
   generateTargetImports,
   addImportsToAst,
   addExportsToSourceFile,
-  type SharedModuleResult,
-  type SourceFileUpdateResult,
-  type TargetImportResult,
 } from './shared-module-creator.js';
 
 // Re-export all sub-module types and functions
@@ -306,7 +284,7 @@ export function executeCrossFileTransform(
     // Generate code for modified files
     for (const [filePath, ast] of modifiedAsts) {
       const originalContent = context.originalContents.get(filePath);
-      const generated = generate(ast, { comments: true });
+      const generated = generateCode(ast, { comments: true });
 
       codes.push(
         createCode({
@@ -324,7 +302,7 @@ export function executeCrossFileTransform(
         continue; // Already added
       }
 
-      const generated = generate(ast, { comments: true });
+      const generated = generateCode(ast, { comments: true });
 
       codes.push(
         createCode({
@@ -337,7 +315,7 @@ export function executeCrossFileTransform(
     }
 
     // Add unchanged files
-    for (const [filePath, ast] of context.asts) {
+    for (const [filePath, _ast] of context.asts) {
       if (modifiedAsts.has(filePath) || newFiles.has(filePath)) {
         continue;
       }

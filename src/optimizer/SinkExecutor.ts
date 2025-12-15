@@ -108,7 +108,7 @@ export class SinkExecutor implements ISinkExecutor {
     const removedProps: PropRemoval[] = [];
     const propsSet = new Set(propsToCheck);
 
-    for (const [filePath, ast] of asts) {
+    for (const [_filePath, ast] of asts) {
       // Find used identifiers in this file
       const usedIds = this.collectUsedIdentifiers(ast);
 
@@ -420,7 +420,7 @@ export class SinkExecutor implements ISinkExecutor {
     const used = new Set<string>();
 
     traverse(ast, {
-      Identifier(path: any) {
+      Identifier(path: NodePath) {
         // Skip binding declarations
         if (path.isBindingIdentifier()) return;
 
@@ -494,7 +494,7 @@ function checkAndRemoveOrphanedPropParams(
         toRemove.push(i);
         removedProps.push(
           createPropRemoval({
-            component: getFunctionName(path) || 'Anonymous',
+            component: getFunctionName(path) ?? 'Anonymous',
             propName: key.name,
           })
         );

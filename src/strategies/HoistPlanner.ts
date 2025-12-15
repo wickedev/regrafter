@@ -5,13 +5,9 @@
  * hoisting strategy for each, ensuring compliance with React's Rules of Hooks.
  */
 
-import type { NodePath } from '@babel/traverse';
-import type * as t from '@babel/types';
-
 import {
   createHoistOperation,
   createPropThreadOperation,
-  generateId,
 } from '../types/factories.js';
 import {
   ScopeType,
@@ -33,7 +29,7 @@ import type {
   HoistPlan,
   HoistPlanItem,
 } from './types.js';
-import { isHookName, classifyHook, HookCategory } from './types.js';
+import { isHookName } from './types.js';
 
 // ===============================================================================
 // HoistPlanner Class
@@ -127,7 +123,7 @@ export class HoistPlanner {
     dep: InternalDependency,
     context: HoistContext
   ): HoistPlanItem | null {
-    const { sourceScope, targetScope, targetComponent } = context;
+    const { sourceScope: _sourceScope, targetScope: _targetScope, targetComponent: _targetComponent } = context;
 
     // Determine the strategy based on dependency type
     switch (dep.type) {
@@ -167,7 +163,7 @@ export class HoistPlanner {
     dep: InternalDependency,
     context: HoistContext
   ): HoistPlanItem {
-    const { targetScope, targetComponent } = context;
+    const { targetScope, targetComponent: _targetComponent } = context;
 
     // Find valid hook location
     const validScope = this.findNearestValidHookScope(targetScope);
@@ -665,7 +661,7 @@ export class HoistPlanner {
    */
   private checkNeedsBackwardReference(
     dep: InternalDependency,
-    context: HoistContext
+    _context: HoistContext
   ): boolean {
     // Check if the dependency has consumers in the source scope
     return dep.consumers.length > 0;
@@ -751,7 +747,7 @@ export class HoistPlanner {
   /**
    * Validate the overall hoisting plan
    */
-  private validatePlan(plan: HoistPlan, context: HoistContext): void {
+  private validatePlan(plan: HoistPlan, _context: HoistContext): void {
     // Check for hook rule violations
     for (const op of plan.hoistOperations) {
       if (op.strategy === HoistStrategy.Hoist) {

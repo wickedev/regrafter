@@ -411,10 +411,8 @@ export class PerformanceOptimizer implements IPerformanceOptimizer {
   }
 
   private getMemoryUsage(): number {
-    if (typeof process !== 'undefined' && process.memoryUsage) {
-      return process.memoryUsage().heapUsed;
-    }
-    return 0;
+    const heapUsed = process?.memoryUsage?.()?.heapUsed;
+    return heapUsed ?? 0;
   }
 
   private chunkArray<T>(array: T[], chunkSize: number): T[][] {
@@ -462,7 +460,7 @@ export class PerformanceTracker {
     if (!this.currentPhase) return;
 
     const elapsed = performance.now() - this.phaseStart;
-    const existing = this.phases.get(this.currentPhase) || 0;
+    const existing = this.phases.get(this.currentPhase) ?? 0;
     this.phases.set(this.currentPhase, existing + elapsed);
     this.currentPhase = null;
   }
@@ -472,7 +470,7 @@ export class PerformanceTracker {
   }
 
   getPhaseTime(name: string): number {
-    return this.phases.get(name) || 0;
+    return this.phases.get(name) ?? 0;
   }
 
   getAllPhases(): Map<string, number> {

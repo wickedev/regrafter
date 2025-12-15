@@ -5,18 +5,15 @@
  * intermediate components from source to target.
  */
 
-import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 
 import {
   createPropThreadOperation,
-  generateId,
 } from '../types/factories.js';
 import type {
   ComponentScope,
   InternalDependency,
   PropThreadOperation,
-  ScopeInfo,
 } from '../types/internal.js';
 
 import type {
@@ -112,7 +109,7 @@ export class PropThreader implements IPropThreader {
     }
 
     const operations: PropThreadOperation[] = [];
-    const name = propName || this.generatePropName(dependency);
+    const name = propName ?? this.generatePropName(dependency);
 
     // Create a prop thread operation for each hop in the path
     for (let i = 0; i < componentPath.length - 1; i++) {

@@ -18,9 +18,7 @@
  */
 
 import type { NodePath, Binding } from '@babel/traverse';
-import traverse from '@babel/traverse';
 import * as t from '@babel/types';
-
 
 import { ScopeManager, type ScopeInfo, type ComponentScope, ScopeType } from '../scope/index.js';
 import {
@@ -258,7 +256,7 @@ export class DependencyAnalyzer {
    */
   detectHookDependencies(
     identifiers: IdentifierReference[],
-    elementScope: ScopeInfo | null
+    _elementScope: ScopeInfo | null
   ): HookDependency[] {
     const hookDeps: HookDependency[] = [];
     const processed = new Set<string>();
@@ -302,7 +300,7 @@ export class DependencyAnalyzer {
    */
   detectVariableDependencies(
     identifiers: IdentifierReference[],
-    elementScope: ScopeInfo | null
+    _elementScope: ScopeInfo | null
   ): VariableDependency[] {
     const varDeps: VariableDependency[] = [];
     const processed = new Set<string>();
@@ -332,7 +330,7 @@ export class DependencyAnalyzer {
           path: binding.path,
           type: DependencyType.Variable,
           isConst: binding.kind === 'const',
-          initializer: declarator.init || undefined,
+          initializer: declarator.init ?? undefined,
         });
       } else if (t.isFunctionDeclaration(declarator)) {
         // Function declarations are also variable bindings
@@ -533,7 +531,7 @@ export class DependencyAnalyzer {
 
       for (const trans of transitives) {
         // Mark as transitive
-        const scope = this.scopeManager.getScopeForPath(trans.path) ||
+        const scope = this.scopeManager.getScopeForPath(trans.path) ??
           this.scopeManager.getScopeTree()?.root;
 
         if (scope) {
@@ -576,7 +574,7 @@ export class DependencyAnalyzer {
     }
 
     // If no container found, use element path
-    const scopeToCheck = containerPath || elementPath;
+    const scopeToCheck = containerPath ?? elementPath;
 
     // Traverse looking for unanalyzable patterns
     scopeToCheck.traverse({
@@ -589,8 +587,8 @@ export class DependencyAnalyzer {
           blockers.push({
             type: 'eval',
             location: {
-              start: { line: callPath.node.loc?.start.line || 0, column: callPath.node.loc?.start.column || 0 },
-              end: { line: callPath.node.loc?.end.line || 0, column: callPath.node.loc?.end.column || 0 },
+              start: { line: callPath.node.loc?.start.line ?? 0, column: callPath.node.loc?.start.column ?? 0 },
+              end: { line: callPath.node.loc?.end.line ?? 0, column: callPath.node.loc?.end.column ?? 0 },
             },
             description: 'Use of eval() makes static analysis impossible',
           });
@@ -631,8 +629,8 @@ export class DependencyAnalyzer {
             blockers.push({
               type: 'dynamicCode',
               location: {
-                start: { line: node.loc?.start.line || 0, column: node.loc?.start.column || 0 },
-                end: { line: node.loc?.end.line || 0, column: node.loc?.end.column || 0 },
+                start: { line: node.loc?.start.line ?? 0, column: node.loc?.start.column ?? 0 },
+                end: { line: node.loc?.end.line ?? 0, column: node.loc?.end.column ?? 0 },
               },
               description: 'Dynamic property access with computed key cannot be statically analyzed',
             });
@@ -663,7 +661,7 @@ export class DependencyAnalyzer {
     if (!analyzability.analyzable) {
       return createDependencyAnalysis({
         canResolve: false,
-        unresolvedReason: analyzability.blockers?.[0]?.description ||
+        unresolvedReason: analyzability.blockers?.[0]?.description ??
           'Code contains unanalyzable patterns',
       });
     }
@@ -840,7 +838,7 @@ export class DependencyAnalyzer {
    * Find binding for an identifier
    */
   private findBinding(path: NodePath, name: string): Binding | null {
-    return path.scope.getBinding(name) || null;
+    return path.scope.getBinding(name) ?? null;
   }
 
   /**
@@ -1073,7 +1071,7 @@ export class DependencyAnalyzer {
               t.isStringLiteral(prop.key) ? prop.key.value : binding.identifier.name;
             return {
               name: propName,
-              component: componentScope?.componentName || 'Unknown',
+              component: componentScope?.componentName ?? 'Unknown',
               isDestructured: true,
             };
           }
@@ -1225,8 +1223,8 @@ export class DependencyAnalyzer {
     elementScope: ScopeInfo | null
   ): InternalDependency[] {
     return deps.map((dep) => {
-      const scope = this.scopeManager.getScopeForPath(dep.path) ||
-        elementScope ||
+      const scope = this.scopeManager.getScopeForPath(dep.path) ??
+        elementScope ??
         this.scopeManager.getScopeTree()?.root;
 
       const name = 'name' in dep ? dep.name :
@@ -1270,7 +1268,7 @@ export class DependencyAnalyzer {
    */
   private needsImport(
     dep: InternalDependency,
-    targetScope: ScopeInfo | null
+    _targetScope: ScopeInfo | null
   ): boolean {
     // Only imports need import operations
     return dep.type === DependencyType.Import;

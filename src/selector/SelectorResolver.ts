@@ -12,7 +12,7 @@ import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
 // Handle both ESM and CJS exports
-const traverse = (traverseModule as { default?: typeof traverseModule }).default || traverseModule;
+const traverse = (traverseModule as { default?: typeof traverseModule }).default ?? traverseModule;
 
 import {
   isPositionSelector,

@@ -110,7 +110,7 @@ export class Optimizer implements IOptimizer {
     options?: OptimizeOptions
   ): ExtendedOptimizeResult {
     const opts = this.mergeOptions(options);
-    const startTime = performance.now();
+    const _startTime = performance.now();
 
     // Parse all files
     const parseResults = this.performanceOptimizer.timePhase('parse', () => {
@@ -166,7 +166,7 @@ export class Optimizer implements IOptimizer {
     // Build result
     const result = createOptimizeResult({
       asts,
-      sunkDependencies: sinkAnalysis?.sinkable || [],
+      sunkDependencies: sinkAnalysis?.sinkable ?? [],
       removedProps: [],
       deadCodeRemoved: deadCode.map((d) => d.name),
     });
@@ -232,7 +232,7 @@ export class Optimizer implements IOptimizer {
   private buildDependencyGraph(asts: Map<string, t.File>): DependencyGraph {
     const graph = createDependencyGraph();
 
-    for (const [filePath, ast] of asts) {
+    for (const [_filePath, ast] of asts) {
       // Build scope tree first
       const scopeTree = this.sinkAnalyzer.buildScopeTree(ast);
 

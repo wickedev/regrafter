@@ -7,7 +7,7 @@
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
 
-import type { ScopeInfo, ComponentScope } from '../scope/types.js';
+import type { ScopeInfo } from '../scope/types.js';
 import {
   type InternalDependency,
   type DependencyAnalysis,

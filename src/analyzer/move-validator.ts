@@ -11,21 +11,17 @@ import type * as t from '@babel/types';
 
 // Handle both ESM and CJS exports
 const traverse: typeof traverseModule =
-  (traverseModule as any).default || traverseModule;
+  (traverseModule as { default: typeof traverseModule }).default || traverseModule;
 
 import { Parser, createParser } from '../parser/index.js';
-import { createAtomicUnit, createResolveResult, createSelectorError } from '../types/factories.js';
+import { createResolveResult, createSelectorError } from '../types/factories.js';
 import { AtomicUnitType } from '../types/internal.js';
-import type { AtomicUnit, ResolveResult, AnalyzabilityResult, UnanalyzableCode } from '../types/internal.js';
-import type { FileInput, Selector, Move } from '../types/public.js';
-import { isPositionSelector, isPathSelector } from '../types/public.js';
+import type { ResolveResult, AnalyzabilityResult, UnanalyzableCode } from '../types/internal.js';
+import type { FileInput, Selector } from '../types/public.js';
+import { Move, isPositionSelector, isPathSelector } from '../types/public.js';
 
 import {
   detectAtomicUnit,
-  detectConditionalExpression,
-  detectTernaryExpression,
-  detectMapExpression,
-  detectCompoundComponent,
   isJSXNode,
 } from './atomic-unit-detector.js';
 
@@ -538,7 +534,7 @@ const targetNotDescendantRule: ValidationRule = (source, target, _mode, _context
  * Rule: Source cannot already be a descendant of target (for Inside mode)
  */
 const sourceNotDescendantRule: ValidationRule = (source, target, mode, _context) => {
-  if (mode !== 'inside') {
+  if (mode !== Move.Inside) {
     return { valid: true };
   }
 
@@ -571,7 +567,7 @@ const sourceNotDescendantRule: ValidationRule = (source, target, mode, _context)
  * Rule: Target must support children for Inside mode
  */
 const targetSupportsChildrenRule: ValidationRule = (_source, target, mode, _context) => {
-  if (mode !== 'inside') {
+  if (mode !== Move.Inside) {
     return { valid: true };
   }
 
@@ -843,10 +839,10 @@ export function validateMove(
 
   // Resolve source selector
   let source = resolveSelector(from, sourceParseResult.ast, sourceFile);
-  if (source.error || !source.node) {
+  if (source.error !== undefined || !source.node) {
     return {
       valid: false,
-      reason: source.error?.message || 'Source element not found',
+      reason: source.error?.message ?? 'Source element not found',
       errorCode: MoveValidationError.SOURCE_NOT_FOUND,
       warnings,
       source,
@@ -858,10 +854,10 @@ export function validateMove(
 
   // Resolve target selector
   let target = resolveSelector(to, targetParseResult.ast!, targetFile);
-  if (target.error || !target.node) {
+  if (target.error !== undefined || !target.node) {
     return {
       valid: false,
-      reason: target.error?.message || 'Target element not found',
+      reason: target.error?.message ?? 'Target element not found',
       errorCode: MoveValidationError.TARGET_NOT_FOUND,
       warnings,
       source,

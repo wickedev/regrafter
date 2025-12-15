@@ -6,9 +6,8 @@
  * Implements tasks 4.2.1, 4.2.2, and 4.2.3 from the task list.
  */
 
-import generate from '@babel/generator';
+import generateCode from '@babel/generator';
 import traverse from '@babel/traverse';
-import type { NodePath, Binding } from '@babel/traverse';
 import * as t from '@babel/types';
 
 import {
@@ -16,7 +15,6 @@ import {
   createImportSpecifier,
   createSharedModuleOperation,
   createExportDeclaration,
-  generateId,
 } from '../../types/factories.js';
 import type {
   InternalDependency,
@@ -28,7 +26,6 @@ import type {
 import { DependencyType } from '../../types/public.js';
 
 import {
-  analyzeDependencyExports,
   computeImportPath,
   needsSharedModule,
   type DependencyExportAnalysis,
@@ -147,7 +144,7 @@ export function generateSharedModule(
   const sharedAst = t.file(t.program(statements, [], 'module'));
 
   // Generate code
-  const result = generate(sharedAst, {
+  const result = generateCode(sharedAst, {
     comments: true,
     compact: false,
   });
@@ -240,7 +237,7 @@ function collectNeededImports(
 
   // Add default imports
   for (const [source, name] of defaultImports) {
-    const specifiers: Array<t.ImportDefaultSpecifier | t.ImportSpecifier> = [t.importDefaultSpecifier(t.identifier(name))];
+    const specifiers: Array<t.ImportDefaultSpecifier | t.ImportSpecifier | t.ImportNamespaceSpecifier> = [t.importDefaultSpecifier(t.identifier(name))];
 
     // Merge with named imports if they exist
     const namedImports = neededImports.get(source);
@@ -253,7 +250,7 @@ function collectNeededImports(
       neededImports.delete(source);
     }
 
-    imports.push(t.importDeclaration(specifiers as any, t.stringLiteral(source)));
+    imports.push(t.importDeclaration(specifiers, t.stringLiteral(source)));
   }
 
   // Add namespace imports
@@ -553,7 +550,7 @@ export function generateTargetImports(
 function extractImportSource(dep: InternalDependency): string | null {
   // The origin node should be an ImportSpecifier or similar
   // We need to find the parent ImportDeclaration
-  const node = dep.origin.node;
+  // const node = dep.origin.node;
 
   // This is a simplified approach - in a full implementation,
   // we would traverse up to find the ImportDeclaration

@@ -9,7 +9,6 @@
  */
 
 import type { NodePath } from '@babel/traverse';
-import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 
 import { ScopeManager, type ScopeInfo, ScopeType } from '../scope/index.js';
@@ -79,7 +78,7 @@ export class MoveAnalysisBuilder {
         reason: canMoveResult.reason,
         dependencies: this.convertToPublicDeps(analysis.dependencies, targetScope),
         hoistedDeps: [],
-        suggestedFixes: this.generateSuggestedFixes(analysis, canMoveResult.reason || ''),
+        suggestedFixes: this.generateSuggestedFixes(analysis, canMoveResult.reason ?? ''),
         stats: this.computeStats(analysis),
       });
     }
@@ -113,7 +112,7 @@ export class MoveAnalysisBuilder {
     targetPath: NodePath
   ): MoveAnalysis {
     // Build scope tree if not already built
-    const scopeTree = this.scopeManager.buildScopeTree(ast);
+    const _scopeTree = this.scopeManager.buildScopeTree(ast);
 
     // Get scopes for source and target
     const sourceScope = this.scopeManager.getScopeForPath(sourcePath);
@@ -158,7 +157,7 @@ export class MoveAnalysisBuilder {
     if (!analysis.canResolve) {
       return {
         canMove: false,
-        reason: analysis.unresolvedReason || 'Cannot resolve all dependencies',
+        reason: analysis.unresolvedReason ?? 'Cannot resolve all dependencies',
       };
     }
 
@@ -271,7 +270,7 @@ export class MoveAnalysisBuilder {
    */
   private getScopeName(scope: ScopeInfo): string {
     if (scope.type === ScopeType.Component) {
-      return (scope as any).componentName || 'Component';
+      return (scope as { componentName?: string }).componentName ?? 'Component';
     }
     if (scope.type === ScopeType.Module) {
       return 'module';

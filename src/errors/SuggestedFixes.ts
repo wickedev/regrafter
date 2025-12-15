@@ -4,7 +4,8 @@
  * Provides contextual suggestions for error recovery and resolution.
  */
 
-import type { SuggestedFix, Dependency, DependencyType } from '../types/public.js';
+import type { SuggestedFix, Dependency } from '../types/public.js';
+import { DependencyType } from '../types/public.js';
 
 import { ErrorCategory, RegraffError } from './ErrorCategory.js';
 
@@ -529,7 +530,7 @@ export function getSuggestedFixesForDependency(
   const depType = dependency.type as DependencyType;
 
   switch (depType) {
-    case 'Hook':
+    case DependencyType.Hook:
       fixes.push(
         createSuggestedFix(
           `Hoist "${dependency.symbol}" to common ancestor component`,
@@ -544,7 +545,7 @@ export function getSuggestedFixesForDependency(
       );
       break;
 
-    case 'Variable':
+    case DependencyType.Variable:
       fixes.push(
         createSuggestedFix(
           `Hoist "${dependency.symbol}" to common ancestor scope`,
@@ -559,7 +560,7 @@ export function getSuggestedFixesForDependency(
       );
       break;
 
-    case 'Import':
+    case DependencyType.Import:
       fixes.push(
         createSuggestedFix(
           `Add import for "${dependency.symbol}" in target file`,
@@ -569,7 +570,7 @@ export function getSuggestedFixesForDependency(
       );
       break;
 
-    case 'Prop':
+    case DependencyType.Prop:
       fixes.push(
         createSuggestedFix(
           `Thread "${dependency.symbol}" prop through component tree`,
@@ -584,7 +585,7 @@ export function getSuggestedFixesForDependency(
       );
       break;
 
-    case 'Context':
+    case DependencyType.Context:
       fixes.push(
         createSuggestedFix(
           'Move Context.Provider to common ancestor',
@@ -599,7 +600,7 @@ export function getSuggestedFixesForDependency(
       );
       break;
 
-    case 'Ref':
+    case DependencyType.Ref:
       fixes.push(
         createSuggestedFix(
           `Hoist "${dependency.symbol}" ref to common ancestor`,

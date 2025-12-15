@@ -5,11 +5,11 @@
  * Implements task 4.4.1 from the task list.
  */
 
-import generate from '@babel/generator';
+import generateCode from '@babel/generator';
 import * as t from '@babel/types';
 
 import { createCode } from '../../types/factories.js';
-import type { ImportOperation, ImportSpecifier } from '../../types/internal.js';
+import type { ImportOperation } from '../../types/internal.js';
 import type { Code } from '../../types/public.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -235,7 +235,7 @@ export function generateEmptyComponentFile(
   const ast = t.file(t.program(statements, [], 'module'));
 
   // Generate code
-  const result = generate(ast, {
+  const result = generateCode(ast, {
     comments: true,
     compact: false,
     jsescOption: { quotes: 'single' },
@@ -359,7 +359,7 @@ export function generateEmptyFile(
     } as t.CommentBlock,
   ];
 
-  const result = generate(ast, {
+  const result = generateCode(ast, {
     comments: true,
     compact: false,
     jsescOption: { quotes: 'single' },
@@ -408,7 +408,7 @@ export function generateSharedModuleFile(
   const ast = t.file(t.program(statements, [], 'module'));
   ast.comments = [headerComment];
 
-  const result = generate(ast, {
+  const result = generateCode(ast, {
     comments: true,
     compact: false,
     jsescOption: { quotes: 'single' },

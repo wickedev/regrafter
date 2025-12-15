@@ -192,7 +192,7 @@ export class ScopeManager {
       return null;
     }
 
-    const name = this.getFunctionName(path) || 'Anonymous';
+    const name = this.getFunctionName(path) ?? 'Anonymous';
     const isConditional = this.isInsideConditional(path);
     const isLoop = this.isInsideLoop(path);
     const parentComponent = this.findParentComponent(path, scopeTree);
@@ -208,7 +208,7 @@ export class ScopeManager {
       hooks: hooks.map(h => ({
         name: h.name,
         path: h.path,
-        dependencies: h.dependencies || [],
+        dependencies: h.dependencies ?? [],
       })),
     });
 
@@ -346,7 +346,7 @@ export class ScopeManager {
    */
   getScopeForNode(node: t.Node): ScopeInfo | null {
     if (!this.scopeTree) return null;
-    return this.scopeTree.nodeToScope.get(node) || null;
+    return this.scopeTree.nodeToScope.get(node) ?? null;
   }
 
   /**
@@ -378,7 +378,7 @@ export class ScopeManager {
    */
   getBindingsInScope(scope: ScopeInfo): Map<string, BindingInfo> {
     if (!this.scopeTree) return new Map();
-    return this.scopeTree.bindingsByScope.get(scope.id) || new Map();
+    return this.scopeTree.bindingsByScope.get(scope.id) ?? new Map();
   }
 
   /**
@@ -408,7 +408,7 @@ export class ScopeManager {
    * Get component info by scope ID
    */
   getComponentInfo(scopeId: string): ComponentInfo | null {
-    return this.components.get(scopeId) || null;
+    return this.components.get(scopeId) ?? null;
   }
 
   // ===================================================================
@@ -435,12 +435,12 @@ export class ScopeManager {
    * Process a function scope (FunctionDeclaration, FunctionExpression, ArrowFunction)
    */
   private processFunctionScope(path: NodePath, scopeTree: ScopeTree): void {
-    const parentScope = this.findParentScope(path, scopeTree) || scopeTree.root;
+    const parentScope = this.findParentScope(path, scopeTree) ?? scopeTree.root;
 
     // Check if this is a React component
     const componentScope = this.createComponentScopeFromPath(path, parentScope, scopeTree);
 
-    const scope = componentScope || createScopeInfo({
+    const scope = componentScope ?? createScopeInfo({
       type: ScopeType.Function,
       path,
       parent: parentScope,
@@ -469,7 +469,7 @@ export class ScopeManager {
       return;
     }
 
-    const parentScope = this.findParentScope(path, scopeTree) || scopeTree.root;
+    const parentScope = this.findParentScope(path, scopeTree) ?? scopeTree.root;
 
     const scope = createScopeInfo({
       type: ScopeType.Block,
@@ -485,7 +485,7 @@ export class ScopeManager {
    * Process a loop scope
    */
   private processLoopScope(path: NodePath, scopeTree: ScopeTree): void {
-    const parentScope = this.findParentScope(path, scopeTree) || scopeTree.root;
+    const parentScope = this.findParentScope(path, scopeTree) ?? scopeTree.root;
 
     const scope = createScopeInfo({
       type: ScopeType.Loop,
@@ -501,7 +501,7 @@ export class ScopeManager {
    * Process a conditional scope
    */
   private processConditionalScope(path: NodePath, scopeTree: ScopeTree): void {
-    const parentScope = this.findParentScope(path, scopeTree) || scopeTree.root;
+    const parentScope = this.findParentScope(path, scopeTree) ?? scopeTree.root;
 
     const scope = createScopeInfo({
       type: ScopeType.Conditional,
@@ -517,7 +517,7 @@ export class ScopeManager {
    * Process a class scope
    */
   private processClassScope(path: NodePath, scopeTree: ScopeTree): void {
-    const parentScope = this.findParentScope(path, scopeTree) || scopeTree.root;
+    const parentScope = this.findParentScope(path, scopeTree) ?? scopeTree.root;
 
     const scope = createScopeInfo({
       type: ScopeType.Function, // Classes are similar to function scopes

@@ -11,15 +11,11 @@
 
 import os from 'os';
 
-import type { FileInput } from '../types/public.js';
-
-import { createFastCanMove } from './FastCanMove.js';
 import { createOptimizer } from './Optimizer.js';
 import type {
   BenchmarkCase,
   BenchmarkResult,
   BenchmarkSuite,
-  PerformanceMetrics,
 } from './types.js';
 
 /**
@@ -40,13 +36,13 @@ export class BenchmarkRunner {
    * @param benchmarkCase - The benchmark case to run
    * @returns Benchmark result
    */
-  async run(benchmarkCase: BenchmarkCase): Promise<BenchmarkResult> {
+  run(benchmarkCase: BenchmarkCase): BenchmarkResult {
     const iterations = benchmarkCase.iterations ?? DEFAULT_ITERATIONS;
     const warmupIterations = benchmarkCase.warmupIterations ?? DEFAULT_WARMUP_ITERATIONS;
 
     // Warmup runs
     for (let i = 0; i < warmupIterations; i++) {
-      await this.executeCase(benchmarkCase);
+      this.executeCase(benchmarkCase);
     }
 
     // Force GC if available
@@ -63,7 +59,7 @@ export class BenchmarkRunner {
       const startMemory = this.getMemoryUsage();
       const startTime = performance.now();
 
-      await this.executeCase(benchmarkCase);
+      this.executeCase(benchmarkCase);
 
       const endTime = performance.now();
       const endMemory = this.getMemoryUsage();
@@ -86,12 +82,12 @@ export class BenchmarkRunner {
    * @param cases - Array of benchmark cases
    * @returns Benchmark suite result
    */
-  async runSuite(cases: BenchmarkCase[]): Promise<BenchmarkSuite> {
+  runSuite(cases: BenchmarkCase[]): BenchmarkSuite {
     const startTime = performance.now();
     const results: BenchmarkResult[] = [];
 
     for (const benchmarkCase of cases) {
-      const result = await this.run(benchmarkCase);
+      const result = this.run(benchmarkCase);
       results.push(result);
     }
 
@@ -178,7 +174,7 @@ export class BenchmarkRunner {
   // Private Helper Methods
   // ═══════════════════════════════════════════════════════════════════════════
 
-  private async executeCase(benchmarkCase: BenchmarkCase): Promise<void> {
+  private executeCase(benchmarkCase: BenchmarkCase): void {
     const optimizer = createOptimizer();
     optimizer.optimize(benchmarkCase.files);
   }
@@ -191,7 +187,7 @@ export class BenchmarkRunner {
   ): BenchmarkResult {
     // Sort for percentile calculations
     const sortedTimes = [...runTimesMs].sort((a, b) => a - b);
-    const sortedMemory = [...memoryUsages].sort((a, b) => a - b);
+    const _sortedMemory = [...memoryUsages].sort((a, b) => a - b);
 
     // Mean
     const meanMs = runTimesMs.reduce((a, b) => a + b, 0) / runTimesMs.length;
@@ -254,10 +250,8 @@ export class BenchmarkRunner {
   }
 
   private getMemoryUsage(): number {
-    if (typeof process !== 'undefined' && process.memoryUsage) {
-      return process.memoryUsage().heapUsed;
-    }
-    return 0;
+    const heapUsed = process?.memoryUsage?.()?.heapUsed;
+    return heapUsed ?? 0;
   }
 
   private getEnvironmentInfo(): BenchmarkSuite['environment'] {
@@ -356,10 +350,8 @@ export class MemoryTracker {
   }
 
   private getHeapUsed(): number {
-    if (typeof process !== 'undefined' && process.memoryUsage) {
-      return process.memoryUsage().heapUsed;
-    }
-    return 0;
+    const heapUsed = process?.memoryUsage?.()?.heapUsed;
+    return heapUsed ?? 0;
   }
 }
 
@@ -641,7 +633,7 @@ export function Target() {
 /**
  * Run all predefined benchmarks.
  */
-export async function runAllBenchmarks(): Promise<BenchmarkSuite> {
+export function runAllBenchmarks(): BenchmarkSuite {
   const runner = createBenchmarkRunner();
 
   const cases = [

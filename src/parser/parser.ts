@@ -6,7 +6,7 @@
  */
 
 import { parse as babelParse, ParserOptions, ParserPlugin } from '@babel/parser';
-import type { File as BabelFile } from '@babel/types';
+import type { File as BabelFile, SourceLocation } from '@babel/types';
 
 import { ASTStore } from './ast-store.js';
 import {
@@ -97,7 +97,7 @@ function toBabelParseError(error: unknown, filename: string): ParseError {
       code?: string;
     };
 
-    const message = babelError.message || 'Unknown parse error';
+    const message = babelError.message ?? 'Unknown parse error';
     const code = message.includes('Unexpected token')
       ? ParseErrorCodes.UNEXPECTED_TOKEN
       : ParseErrorCodes.PARSE_ERROR;
@@ -105,7 +105,7 @@ function toBabelParseError(error: unknown, filename: string): ParseError {
     return {
       message: `Failed to parse ${filename}: ${message}`,
       location: babelError.loc
-        ? ({
+        ? {
             start: {
               line: babelError.loc.line,
               column: babelError.loc.column,
@@ -117,7 +117,7 @@ function toBabelParseError(error: unknown, filename: string): ParseError {
               index: 0,
             },
             filename,
-          } as any)
+          }
         : null,
       code,
     };
@@ -147,7 +147,7 @@ function extractRecoveredErrors(ast: BabelFile, filename: string): ParseError[] 
         };
 
         errors.push({
-          message: babelError.message || 'Recovered parse error',
+          message: babelError.message ?? 'Recovered parse error',
           location: babelError.loc
             ? ({
                 start: {
@@ -161,7 +161,7 @@ function extractRecoveredErrors(ast: BabelFile, filename: string): ParseError[] 
                   index: 0,
                 },
                 filename,
-              } as any)
+              } as SourceLocation)
             : null,
           code: ParseErrorCodes.PARSE_ERROR,
         });

@@ -9,14 +9,12 @@ import type * as t from '@babel/types';
 
 import type {
   ComponentScope,
-  DependencyAnalysis,
   HoistOperation,
   ImportOperation,
   InternalDependency,
   PropThreadOperation,
   ScopeInfo,
 } from '../types/internal.js';
-import type { DependencyType } from '../types/public.js';
 
 // ===============================================================================
 // React Hook Constants

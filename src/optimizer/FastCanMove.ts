@@ -321,11 +321,10 @@ export class FastCanMove {
     const hooksUsed: Array<{ name: string; location?: t.SourceLocation | null }> = [];
 
     // Find hooks used in source element
-    const self = this;
     sourcePath.traverse({
-      CallExpression(path) {
+      CallExpression: (path) => {
         const callee = path.node.callee;
-        if (callee.type === 'Identifier' && self.isHookName(callee.name)) {
+        if (callee.type === 'Identifier' && this.isHookName(callee.name)) {
           hooksUsed.push({
             name: callee.name,
             location: path.node.loc,
@@ -484,12 +483,11 @@ export class FastCanMove {
     let jsxDepth = 0;
     let maxJsxDepth = 0;
 
-    const self = this;
     sourcePath.traverse({
       CallExpression: (path) => {
         nodeCount++; // Count all nodes via specific visitors
         const callee = path.node.callee;
-        if (callee.type === 'Identifier' && self.isHookName(callee.name)) {
+        if (callee.type === 'Identifier' && this.isHookName(callee.name)) {
           hookCount++;
         }
       },

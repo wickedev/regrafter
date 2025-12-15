@@ -5,13 +5,11 @@
  * and custom hooks while ensuring compliance with Rules of Hooks.
  */
 
-import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 
 import {
   createHoistOperation,
   createPropThreadOperation,
-  generateId,
 } from '../types/factories.js';
 import {
   ScopeType,
@@ -34,7 +32,6 @@ import {
   isHookName,
   classifyHook,
   HookCategory,
-  REACT_HOOKS,
 } from './types.js';
 
 // ===============================================================================
@@ -150,7 +147,7 @@ export class HookHoister implements IHookHoister {
   /**
    * Execute the hoisting operation (AST mutation)
    */
-  execute(operation: HoistOperation, context: HoistContext): void {
+  execute(operation: HoistOperation, _context: HoistContext): void {
     // This will be implemented in the transformation pipeline integration
     // For now, this is a placeholder that validates the operation
     if (!operation.dependencyId) {
@@ -405,7 +402,7 @@ export class HookHoister implements IHookHoister {
    */
   private checkStateHookBackwardRef(
     dependency: InternalDependency,
-    context: HoistContext
+    _context: HoistContext
   ): boolean {
     // State hooks typically need backward reference if the source
     // component still uses the state value
@@ -417,7 +414,7 @@ export class HookHoister implements IHookHoister {
    */
   private checkRefBackwardRef(
     dependency: InternalDependency,
-    context: HoistContext
+    _context: HoistContext
   ): boolean {
     // Refs often need to be passed down to access .current
     return dependency.consumers.length > 0;
