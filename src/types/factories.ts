@@ -148,13 +148,10 @@ export function createAnalysisStats(
  * Creates a MoveAnalysis object.
  */
 export function createMoveAnalysis(
-  params: Omit<MoveAnalysis, 'dependencies' | 'hoistedDeps'> & {
-    dependencies?: Dependency[];
-    hoistedDeps?: Dependency[];
-  }
+  params: Partial<MoveAnalysis> = {}
 ): MoveAnalysis {
   return {
-    canMove: params.canMove,
+    canMove: params.canMove ?? true,
     reason: params.reason,
     dependencies: params.dependencies ?? [],
     hoistedDeps: params.hoistedDeps ?? [],
@@ -210,16 +207,26 @@ export function createSuccessResult(
  * Creates a failed Result object.
  */
 export function createFailureResult(
-  reason: string,
+  reasonOrAnalysis: string | MoveAnalysis,
   dependencies: Dependency[] = [],
   suggestedFixes?: SuggestedFix[]
 ): Result {
+  // If MoveAnalysis object is passed, use it directly
+  if (typeof reasonOrAnalysis === 'object') {
+    return createResult({
+      success: false,
+      codes: [],
+      analysis: reasonOrAnalysis,
+    });
+  }
+
+  // Otherwise, create MoveAnalysis from reason string
   return createResult({
     success: false,
     codes: [],
     analysis: createMoveAnalysis({
       canMove: false,
-      reason,
+      reason: reasonOrAnalysis,
       dependencies,
       hoistedDeps: [],
       suggestedFixes,

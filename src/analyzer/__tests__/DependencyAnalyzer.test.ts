@@ -343,7 +343,7 @@ describe('DependencyAnalyzer', () => {
         import React from 'react';
 
         function App() {
-          return React.createElement('div');
+          return <div>{React.version}</div>;
         }
       `;
 

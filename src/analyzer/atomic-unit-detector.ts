@@ -606,6 +606,17 @@ export function findEnclosingAtomicUnit(path: NodePath): AtomicUnit | null {
     // Stop at certain boundaries
     if (current?.node) {
       const node = current.node;
+
+      // For arrow functions, check if they're part of a map/forEach call
+      // If so, continue searching up
+      if (node.type === 'ArrowFunctionExpression') {
+        const parent = current.parentPath;
+        if (parent?.node.type === 'CallExpression') {
+          // This is likely a callback in a call expression, continue searching
+          continue;
+        }
+      }
+
       // Stop at function/component boundaries
       if (
         node.type === 'FunctionDeclaration' ||

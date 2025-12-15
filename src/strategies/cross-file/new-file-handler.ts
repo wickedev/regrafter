@@ -238,6 +238,7 @@ export function generateEmptyComponentFile(
   const result = generate(ast, {
     comments: true,
     compact: false,
+    jsescOption: { quotes: 'single' },
   });
 
   const codeResult = createCode({
@@ -361,6 +362,7 @@ export function generateEmptyFile(
   const result = generate(ast, {
     comments: true,
     compact: false,
+    jsescOption: { quotes: 'single' },
   });
 
   const codeResult = createCode({
@@ -409,6 +411,7 @@ export function generateSharedModuleFile(
   const result = generate(ast, {
     comments: true,
     compact: false,
+    jsescOption: { quotes: 'single' },
   });
 
   const codeResult = createCode({

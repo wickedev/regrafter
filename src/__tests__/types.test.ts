@@ -467,23 +467,19 @@ describe('ResolutionStrategy enum', () => {
 // =============================================================================
 
 describe('Edge cases', () => {
-  it('should handle selector with zero values', () => {
+  it('should reject selector with zero line value', () => {
     const selector: PositionSelector = { file: 'test.tsx', line: 0, column: 0 };
-    expect(isValidSelector(selector)).toBe(true);
-    expect(selector.column).toBe(0);
-    expect(selector.line).toBe(0);
+    expect(isValidSelector(selector)).toBe(false); // line must be >= 1
   });
 
-  it('should handle empty file path in selector', () => {
+  it('should reject empty file path in selector', () => {
     const selector: PositionSelector = { file: '', line: 1, column: 1 };
-    expect(isValidSelector(selector)).toBe(true);
-    expect(selector.file).toBe('');
+    expect(isValidSelector(selector)).toBe(false); // file must be non-empty
   });
 
-  it('should handle empty path in PathSelector', () => {
+  it('should reject empty path in PathSelector', () => {
     const selector: PathSelector = { file: 'test.tsx', path: '' };
-    expect(isValidSelector(selector)).toBe(true);
-    expect(selector.path).toBe('');
+    expect(isValidSelector(selector)).toBe(false); // path must be non-empty
   });
 
   it('should create dependency with empty strings', () => {

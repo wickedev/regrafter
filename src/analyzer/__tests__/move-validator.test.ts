@@ -94,7 +94,7 @@ function App() {
   // Self-Move Validation Tests
   // =========================================================================
   describe('Self-Move Validation', () => {
-    it('should reject moving element to itself', () => {
+    it('should allow moving element to itself as no-op', () => {
       const code = `
 function App() {
   return (
@@ -109,8 +109,8 @@ function App() {
       const to = { file: 'App.tsx', line: 4, column: 5 };
 
       const result = validateMove(files, from, to, Move.Inside);
-      expect(result.valid).toBe(false);
-      expect(result.errorCode).toBe(MoveValidationError.SELF_MOVE);
+      expect(result.valid).toBe(true);
+      expect(result.warnings.some(w => w.includes('no-op'))).toBe(true);
     });
   });
 

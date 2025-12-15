@@ -338,13 +338,37 @@ export function isValidSelector(value: unknown): value is Selector {
 
   const obj = value as Record<string, unknown>;
 
-  if (typeof obj.file !== 'string') {
+  // Validate file path is non-empty string
+  if (typeof obj.file !== 'string' || obj.file.length === 0) {
     return false;
   }
 
   // Cast through unknown to satisfy strict type checking
   const selector = obj as unknown as Selector;
-  return isPositionSelector(selector) || isPathSelector(selector);
+
+  // Validate position selector
+  if (isPositionSelector(selector)) {
+    // Line must be positive integer
+    if (selector.line < 1 || !Number.isInteger(selector.line)) {
+      return false;
+    }
+    // Column must be non-negative integer
+    if (selector.column < 0 || !Number.isInteger(selector.column)) {
+      return false;
+    }
+    return true;
+  }
+
+  // Validate path selector
+  if (isPathSelector(selector)) {
+    // Path must be non-empty string
+    if (selector.path.length === 0) {
+      return false;
+    }
+    return true;
+  }
+
+  return false;
 }
 
 /**

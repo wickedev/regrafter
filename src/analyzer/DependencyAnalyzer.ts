@@ -569,8 +569,17 @@ export class DependencyAnalyzer {
   checkAnalyzability(elementPath: NodePath): AnalyzabilityResult {
     const blockers: UnanalyzableCode[] = [];
 
+    // Find the containing function/component scope
+    let containerPath: NodePath | null = elementPath;
+    while (containerPath && !this.isFunctionOrComponentScope(containerPath)) {
+      containerPath = containerPath.parentPath;
+    }
+
+    // If no container found, use element path
+    const scopeToCheck = containerPath || elementPath;
+
     // Traverse looking for unanalyzable patterns
-    elementPath.traverse({
+    scopeToCheck.traverse({
       // Check for eval()
       CallExpression: (callPath) => {
         const callee = callPath.node.callee;
@@ -1265,6 +1274,20 @@ export class DependencyAnalyzer {
   ): boolean {
     // Only imports need import operations
     return dep.type === DependencyType.Import;
+  }
+
+  /**
+   * Check if a node path is a function or component scope
+   */
+  private isFunctionOrComponentScope(path: NodePath): boolean {
+    const node = path.node;
+    return (
+      node.type === 'FunctionDeclaration' ||
+      node.type === 'FunctionExpression' ||
+      node.type === 'ArrowFunctionExpression' ||
+      node.type === 'ClassMethod' ||
+      node.type === 'ClassPrivateMethod'
+    );
   }
 
   /**

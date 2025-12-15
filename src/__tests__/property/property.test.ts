@@ -265,7 +265,8 @@ describe('Property: Validation Invariants', () => {
 
     const result = validateRegraftInput([], from, to, Move.Inside);
     expect(result.valid).toBe(false);
-    expect(result.error).toContain('at least one file');
+    expect(result.errors).toBeDefined();
+    expect(result.errors?.some(e => e.includes('at least one file'))).toBe(true);
   });
 
   it('missing file reference should always fail', () => {

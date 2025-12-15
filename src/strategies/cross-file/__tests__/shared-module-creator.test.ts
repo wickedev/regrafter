@@ -337,10 +337,11 @@ describe('addExportsToSourceFile', () => {
 
     const result = addExportsToSourceFile(ast, ['foo', 'bar']);
 
-    // Should have export statement
+    // Should have export statement (either with specifiers or declaration)
     const hasExport = result.program.body.some(
       (node) =>
-        node.type === 'ExportNamedDeclaration' && node.specifiers.length > 0
+        node.type === 'ExportNamedDeclaration' &&
+        (node.specifiers.length > 0 || node.declaration !== null)
     );
 
     expect(hasExport).toBe(true);

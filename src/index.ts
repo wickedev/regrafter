@@ -193,6 +193,7 @@ export {
 import type { NodePath } from '@babel/traverse';
 import traverse from '@babel/traverse';
 
+import { createOptimizer } from './optimizer/Optimizer.js';
 import { validateMoveOperation, type MoveValidationResult } from './analyzer/index.js';
 import { createMoveAnalysisBuilder, DependencyAnalyzer } from './analyzer/index.js';
 import { CodeGenerator } from './generator/CodeGenerator.js';
@@ -738,7 +739,6 @@ export function optimize(
   files: FileInput[],
   options?: import('./optimizer/types.js').OptimizeOptions
 ): Code[] {
-  const { createOptimizer } = require('./optimizer/Optimizer.js');
   const optimizer = createOptimizer();
   return optimizer.optimize(files, options);
 }
@@ -858,6 +858,12 @@ function executeTransformation(
 
     // Optionally run optimization
     if (options.optimize) {
+      // Save original changed flags
+      const originalChangedFlags = new Map<string, boolean>();
+      for (const code of codes) {
+        originalChangedFlags.set(code.file, code.changed);
+      }
+
       // Convert codes back to FileInput format for optimizer
       const optimizeInput: FileInput[] = codes.map(code => ({
         path: code.file,
@@ -865,7 +871,13 @@ function executeTransformation(
       }));
 
       // Run optimization
-      codes = optimize(optimizeInput);
+      const optimizedCodes = optimize(optimizeInput);
+
+      // Preserve original changed flags if optimizer didn't make changes
+      codes = optimizedCodes.map(code => ({
+        ...code,
+        changed: code.changed || (originalChangedFlags.get(code.file) ?? false),
+      }));
     }
 
     // Return success with the real analysis

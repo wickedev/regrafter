@@ -6,8 +6,12 @@
  */
 
 import type { NodePath } from '@babel/traverse';
-import traverse from '@babel/traverse';
+import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
+
+// Handle both ESM and CJS exports
+const traverse: typeof traverseModule =
+  (traverseModule as any).default || traverseModule;
 
 import { Parser, createParser } from '../parser/index.js';
 import { createAtomicUnit, createResolveResult, createSelectorError } from '../types/factories.js';
@@ -360,6 +364,39 @@ function isMoreSpecific(path1: NodePath, path2: NodePath): boolean {
   return depth1 > depth2;
 }
 
+/**
+ * Normalize a resolved result to its nearest JSXElement ancestor.
+ * This ensures validation rules work with consistent node types.
+ */
+function normalizeToJSXElement(result: ResolveResult): ResolveResult {
+  if (!result.path || !result.node) {
+    return result;
+  }
+
+  // If already a JSXElement, return as-is
+  if (result.node.type === 'JSXElement') {
+    return result;
+  }
+
+  // Walk up to find nearest JSXElement
+  let current: NodePath | null = result.path;
+  while (current) {
+    if (current.node.type === 'JSXElement') {
+      // Update the result to point to the JSXElement
+      return createResolveResult({
+        node: current.node,
+        path: current,
+        atomicUnit: result.atomicUnit, // Keep the original atomic unit
+        error: result.error,
+      });
+    }
+    current = current.parentPath;
+  }
+
+  // No JSXElement ancestor found, return original
+  return result;
+}
+
 // ============================================================================
 // Analyzability Check
 // ============================================================================
@@ -387,7 +424,28 @@ function checkAnalyzability(ast: t.File): AnalyzabilityResult {
         });
       }
 
-      // Check for Function constructor
+      // Check for Function constructor (as a call)
+      if (
+        callee.type === 'Identifier' &&
+        callee.name === 'Function' &&
+        path.node.arguments.length > 0
+      ) {
+        blockers.push({
+          type: 'dynamicCode',
+          location: path.node.loc
+            ? {
+                start: { line: path.node.loc.start.line, column: path.node.loc.start.column },
+                end: { line: path.node.loc.end.line, column: path.node.loc.end.column },
+              }
+            : { start: { line: 0, column: 0 }, end: { line: 0, column: 0 } },
+          description: 'Function constructor creates dynamic code',
+        });
+      }
+    },
+
+    // Check for new Function() constructor
+    NewExpression(path) {
+      const callee = path.node.callee;
       if (
         callee.type === 'Identifier' &&
         callee.name === 'Function' &&
@@ -437,7 +495,7 @@ function checkAnalyzability(ast: t.File): AnalyzabilityResult {
  */
 const selfMoveRule: ValidationRule = (source, target, _mode, _context) => {
   if (source.node === target.node) {
-    // Allow self-moves, they will be handled as no-ops by the transformer
+    // Allow self-moves as no-ops
     return {
       valid: true,
       warning: 'Moving element to itself (will be no-op)',
@@ -487,6 +545,11 @@ const sourceNotDescendantRule: ValidationRule = (source, target, mode, _context)
     return { valid: true };
   }
 
+  // Skip check if source and target are the same (will be handled as no-op)
+  if (source.node === target.node) {
+    return { valid: true };
+  }
+
   // Check if source is a descendant of target
   let current: NodePath | null = source.path;
   while (current) {
@@ -511,32 +574,47 @@ const targetSupportsChildrenRule: ValidationRule = (_source, target, mode, _cont
     return { valid: true };
   }
 
-  if (!target.node) {
+  if (!target.node || !target.path) {
     return { valid: true };
   }
 
-  // JSX elements can have children
-  if (target.node.type === 'JSXElement') {
-    // Check for self-closing elements that don't support children
-    const element = target.node;
-    const openingElement = element.openingElement;
+  // Target should already be normalized to JSXElement by validateMove
+  if (target.node.type !== 'JSXElement') {
+    return { valid: true };
+  }
 
-    // Get element name
-    let elementName = '';
-    if (openingElement.name.type === 'JSXIdentifier') {
-      elementName = openingElement.name.name;
-    }
+  // Check for self-closing elements that don't support children
+  const element = target.node;
+  const openingElement = element.openingElement;
 
-    // Known void elements that don't support children
-    const voidElements = [
-      'input', 'img', 'br', 'hr', 'meta', 'link',
-      'area', 'base', 'col', 'embed', 'param', 'source', 'track', 'wbr',
-    ];
+  // Get element name
+  let elementName = '';
+  if (openingElement.name.type === 'JSXIdentifier') {
+    elementName = openingElement.name.name;
+  }
 
-    if (voidElements.includes(elementName.toLowerCase())) {
+  // Known void elements that don't support children
+  const voidElements = [
+    'input', 'img', 'br', 'hr', 'meta', 'link',
+    'area', 'base', 'col', 'embed', 'param', 'source', 'track', 'wbr',
+  ];
+
+  if (voidElements.includes(elementName.toLowerCase())) {
+    return {
+      valid: false,
+      reason: `<${elementName}> is a void element and cannot have children`,
+      errorCode: MoveValidationError.TARGET_NO_CHILDREN,
+    };
+  }
+
+  // Also check if the element is self-closing (has no children and is self-closed)
+  if (openingElement.selfClosing && element.children.length === 0) {
+    // This is a self-closing element, check if it's a known void element or custom component
+    // For lowercase (HTML) elements that are self-closing, they shouldn't accept children
+    if (elementName && elementName[0] === elementName[0]?.toLowerCase()) {
       return {
         valid: false,
-        reason: `<${elementName}> is a void element and cannot have children`,
+        reason: `<${elementName} /> is self-closing and cannot have children`,
         errorCode: MoveValidationError.TARGET_NO_CHILDREN,
       };
     }
@@ -763,7 +841,7 @@ export function validateMove(
   }
 
   // Resolve source selector
-  const source = resolveSelector(from, sourceParseResult.ast, sourceFile);
+  let source = resolveSelector(from, sourceParseResult.ast, sourceFile);
   if (source.error || !source.node) {
     return {
       valid: false,
@@ -774,8 +852,11 @@ export function validateMove(
     };
   }
 
+  // Normalize to JSXElement for consistent validation
+  source = normalizeToJSXElement(source);
+
   // Resolve target selector
-  const target = resolveSelector(to, targetParseResult.ast!, targetFile);
+  let target = resolveSelector(to, targetParseResult.ast!, targetFile);
   if (target.error || !target.node) {
     return {
       valid: false,
@@ -786,6 +867,9 @@ export function validateMove(
       target,
     };
   }
+
+  // Normalize to JSXElement for consistent validation
+  target = normalizeToJSXElement(target);
 
   // Build AST map
   const astMap = new Map<string, t.File>();
