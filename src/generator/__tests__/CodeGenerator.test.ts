@@ -1,0 +1,639 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { parse } from '@babel/parser';
+import type * as t from '@babel/types';
+import { CodeGenerator } from '../CodeGenerator.js';
+import type { GeneratorOptions, IndentationInfo } from '../types.js';
+
+/**
+ * Unit tests for CodeGenerator
+ *
+ * Tests cover:
+ * - Task 1.5.1: Basic code generation
+ * - Task 1.5.2: Comment preservation
+ * - Task 1.5.3: Indentation adjustment
+ */
+describe('CodeGenerator', () => {
+  let generator: CodeGenerator;
+
+  // Helper function to parse JSX code
+  const parseCode = (code: string): t.File => {
+    return parse(code, {
+      sourceType: 'module',
+      plugins: ['jsx', 'typescript'],
+    });
+  };
+
+  beforeEach(() => {
+    generator = new CodeGenerator();
+  });
+
+  // ============================================================
+  // Task 1.5.1: Basic Code Generation Tests
+  // ============================================================
+  describe('Task 1.5.1: Basic Code Generation', () => {
+    it('should generate code from a simple AST', () => {
+      const code = `const x = 1;`;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('const x = 1');
+    });
+
+    it('should generate code from JSX AST', () => {
+      const code = `const App = () => <div>Hello</div>;`;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('<div>Hello</div>');
+    });
+
+    it('should generate code from complex JSX with attributes', () => {
+      const code = `
+        const Button = ({ onClick, children }) => (
+          <button className="btn" onClick={onClick}>
+            {children}
+          </button>
+        );
+      `;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('className="btn"');
+      expect(result.code).toContain('onClick={onClick}');
+      expect(result.code).toContain('{children}');
+    });
+
+    it('should generate code from nested JSX elements', () => {
+      const code = `
+        const Layout = () => (
+          <div>
+            <header>Header</header>
+            <main>
+              <article>Content</article>
+            </main>
+            <footer>Footer</footer>
+          </div>
+        );
+      `;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('<header>');
+      expect(result.code).toContain('<main>');
+      expect(result.code).toContain('<article>');
+      expect(result.code).toContain('<footer>');
+    });
+
+    it('should generate code from JSX fragments', () => {
+      const code = `
+        const Items = () => (
+          <>
+            <span>One</span>
+            <span>Two</span>
+          </>
+        );
+      `;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('<>');
+      expect(result.code).toContain('</>');
+    });
+
+    it('should generate code from self-closing JSX elements', () => {
+      const code = `const Input = () => <input type="text" />;`;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('<input');
+      expect(result.code).toContain('/>');
+    });
+
+    it('should generate code with JSX spread attributes', () => {
+      const code = `const El = (props) => <div {...props} />;`;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('{...props}');
+    });
+
+    it('should handle multiple files via generateMultiple', () => {
+      const files = new Map<string, t.File>([
+        ['file1.tsx', parseCode('const A = () => <div>A</div>;')],
+        ['file2.tsx', parseCode('const B = () => <span>B</span>;')],
+      ]);
+
+      const results = generator.generateMultiple(files);
+
+      expect(results.size).toBe(2);
+      expect(results.get('file1.tsx')?.code).toContain('<div>A</div>');
+      expect(results.get('file2.tsx')?.code).toContain('<span>B</span>');
+    });
+
+    it('should generate source map when available', () => {
+      const code = `const x = 1;`;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      // Source map should be present
+      expect(result.map).toBeDefined();
+      expect(result.map?.version).toBe(3);
+    });
+  });
+
+  // ============================================================
+  // Task 1.5.2: Comment Preservation Tests
+  // ============================================================
+  describe('Task 1.5.2: Comment Preservation', () => {
+    it('should preserve single-line comments by default', () => {
+      const code = `
+        // This is a comment
+        const x = 1;
+      `;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('// This is a comment');
+    });
+
+    it('should preserve multi-line comments', () => {
+      const code = `
+        /**
+         * This is a JSDoc comment
+         */
+        const fn = () => {};
+      `;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('This is a JSDoc comment');
+    });
+
+    it('should preserve inline comments', () => {
+      const code = `
+        const x = 1; // inline comment
+      `;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('inline comment');
+    });
+
+    it('should preserve JSX comments', () => {
+      const code = `
+        const El = () => (
+          <div>
+            {/* JSX comment */}
+            <span>Content</span>
+          </div>
+        );
+      `;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('JSX comment');
+    });
+
+    it('should not include comments when preserveComments is false', () => {
+      const code = `
+        // Comment to remove
+        const x = 1;
+      `;
+      const ast = parseCode(code);
+      const result = generator.generate(ast, { preserveComments: false });
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).not.toContain('Comment to remove');
+    });
+
+    it('should extract comments from a node', () => {
+      const code = `
+        // Leading comment
+        const x = 1; // Trailing comment
+      `;
+      const ast = parseCode(code);
+      const node = ast.program.body[0];
+
+      if (node) {
+        const comments = generator.extractComments(node);
+
+        expect(comments.leadingComments).toBeDefined();
+        expect(comments.leadingComments?.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('should attach comments to a node', () => {
+      const code = `const x = 1;`;
+      const ast = parseCode(code);
+      const node = ast.program.body[0];
+
+      if (node) {
+        const comments = {
+          leadingComments: [
+            { type: 'CommentLine' as const, value: ' New comment' },
+          ],
+        };
+
+        generator.attachComments(node, comments);
+
+        expect(node.leadingComments).toHaveLength(1);
+        expect(node.leadingComments?.[0]?.value).toBe(' New comment');
+      }
+    });
+
+    it('should transfer comments between nodes', () => {
+      const code1 = `
+        // Source comment
+        const x = 1;
+      `;
+      const code2 = `const y = 2;`;
+      const ast1 = parseCode(code1);
+      const ast2 = parseCode(code2);
+      
+      const sourceNode = ast1.program.body[0];
+      const targetNode = ast2.program.body[0];
+
+      if (sourceNode && targetNode) {
+        const hadLeadingComments = sourceNode.leadingComments !== undefined;
+        
+        generator.transferComments(sourceNode, targetNode);
+
+        if (hadLeadingComments) {
+          expect(sourceNode.leadingComments).toBeUndefined();
+          expect(targetNode.leadingComments).toBeDefined();
+        }
+      }
+    });
+
+    it('should remove comments from a node', () => {
+      const code = `
+        // Comment
+        const x = 1;
+      `;
+      const ast = parseCode(code);
+      const node = ast.program.body[0];
+
+      if (node && node.leadingComments) {
+        generator.removeComments(node);
+        
+        expect(node.leadingComments).toBeUndefined();
+        expect(node.trailingComments).toBeUndefined();
+        expect(node.innerComments).toBeUndefined();
+      }
+    });
+  });
+
+  // ============================================================
+  // Task 1.5.3: Indentation Adjustment Tests
+  // ============================================================
+  describe('Task 1.5.3: Indentation Adjustment', () => {
+    describe('detectIndentation', () => {
+      it('should detect 2-space indentation', () => {
+        const code = `
+function test() {
+  const x = 1;
+  if (true) {
+    return x;
+  }
+}
+`;
+        const info = generator.detectIndentation(code, 3);
+
+        expect(info.useTabs).toBe(false);
+        expect(info.size).toBe(2);
+        expect(info.level).toBe(1);
+      });
+
+      it('should detect 4-space indentation', () => {
+        const code = `
+function test() {
+    const x = 1;
+    if (true) {
+        return x;
+    }
+}
+`;
+        const info = generator.detectIndentation(code, 3);
+
+        expect(info.useTabs).toBe(false);
+        expect(info.size).toBe(4);
+        expect(info.level).toBe(1);
+      });
+
+      it('should detect tab indentation', () => {
+        const code = `
+function test() {
+\tconst x = 1;
+\tif (true) {
+\t\treturn x;
+\t}
+}
+`;
+        const info = generator.detectIndentation(code, 3);
+
+        expect(info.useTabs).toBe(true);
+        expect(info.level).toBe(1);
+      });
+
+      it('should return default for out of range line', () => {
+        const code = 'const x = 1;';
+        const info = generator.detectIndentation(code, 100);
+
+        expect(info.level).toBe(0);
+      });
+
+      it('should handle empty lines', () => {
+        const code = `
+const x = 1;
+
+const y = 2;
+`;
+        const info = generator.detectIndentation(code, 2);
+        expect(info).toBeDefined();
+      });
+    });
+
+    describe('adjustIndentation', () => {
+      it('should adjust code to match target indentation level', () => {
+        const code = `const x = 1;
+const y = 2;`;
+        
+        const targetIndent: IndentationInfo = {
+          char: '  ',
+          size: 2,
+          useTabs: false,
+          level: 2,
+        };
+
+        const adjusted = generator.adjustIndentation(code, targetIndent);
+
+        const lines = adjusted.split('\n');
+        expect(lines[0]).toMatch(/^    const x = 1/);
+        expect(lines[1]).toMatch(/^    const y = 2/);
+      });
+
+      it('should preserve relative indentation within code', () => {
+        const code = `if (true) {
+  const x = 1;
+}`;
+        
+        const targetIndent: IndentationInfo = {
+          char: '  ',
+          size: 2,
+          useTabs: false,
+          level: 1,
+        };
+
+        const adjusted = generator.adjustIndentation(code, targetIndent, true);
+
+        const lines = adjusted.split('\n');
+        expect(lines[0]).toMatch(/^  if \(true\)/);
+        expect(lines[1]).toMatch(/^    const x = 1/);
+        expect(lines[2]).toMatch(/^  }/);
+      });
+
+      it('should handle tab indentation', () => {
+        const code = `const x = 1;`;
+        
+        const targetIndent: IndentationInfo = {
+          char: '\t',
+          size: 1,
+          useTabs: true,
+          level: 2,
+        };
+
+        const adjusted = generator.adjustIndentation(code, targetIndent);
+
+        expect(adjusted).toBe('\t\tconst x = 1;');
+      });
+
+      it('should preserve empty lines', () => {
+        const code = `const x = 1;
+
+const y = 2;`;
+        
+        const targetIndent: IndentationInfo = {
+          char: '  ',
+          size: 2,
+          useTabs: false,
+          level: 1,
+        };
+
+        const adjusted = generator.adjustIndentation(code, targetIndent);
+
+        const lines = adjusted.split('\n');
+        expect(lines[0]).toMatch(/^  const x = 1/);
+        expect(lines[1]).toBe('');
+        expect(lines[2]).toMatch(/^  const y = 2/);
+      });
+
+      it('should handle deeply nested code', () => {
+        const code = `function outer() {
+  function inner() {
+    return 1;
+  }
+}`;
+        
+        const targetIndent: IndentationInfo = {
+          char: '  ',
+          size: 2,
+          useTabs: false,
+          level: 2,
+        };
+
+        const adjusted = generator.adjustIndentation(code, targetIndent, true);
+
+        const lines = adjusted.split('\n');
+        expect(lines[0]).toMatch(/^    function outer/);
+        expect(lines[1]).toMatch(/^      function inner/);
+        expect(lines[2]).toMatch(/^        return 1/);
+      });
+    });
+
+    describe('adjustNodeIndentation', () => {
+      it('should adjust node code to match target context', () => {
+        const nodeCode = `<span>Content</span>`;
+        const targetCode = `
+function Component() {
+  return (
+    <div>
+      
+    </div>
+  );
+}
+`;
+        const adjusted = generator.adjustNodeIndentation(nodeCode, targetCode, 5);
+
+        // Should have indentation matching line 5 (inside <div>)
+        expect(adjusted.trim()).toBe('<span>Content</span>');
+      });
+    });
+  });
+
+  // ============================================================
+  // Options Tests
+  // ============================================================
+  describe('Options Handling', () => {
+    it('should use default options when none provided', () => {
+      const defaultGenerator = new CodeGenerator();
+      const options = defaultGenerator.getOptions();
+
+      expect(options.preserveComments).toBe(true);
+      expect(options.formatOutput).toBe(false);
+      expect(options.indentSize).toBe(2);
+      expect(options.useTabs).toBe(false);
+    });
+
+    it('should merge custom options with defaults', () => {
+      const customGenerator = new CodeGenerator({ indentSize: 4 });
+      const options = customGenerator.getOptions();
+
+      expect(options.indentSize).toBe(4);
+      expect(options.preserveComments).toBe(true); // default preserved
+    });
+
+    it('should allow updating options', () => {
+      generator.updateOptions({ indentSize: 8 });
+      const options = generator.getOptions();
+
+      expect(options.indentSize).toBe(8);
+    });
+
+    it('should override options per-generate call', () => {
+      const code = `
+        // Comment
+        const x = 1;
+      `;
+      const ast = parseCode(code);
+
+      // Generator has preserveComments: true by default
+      const withComments = generator.generate(ast);
+      expect(withComments.code).toContain('Comment');
+
+      // Override for single call
+      const withoutComments = generator.generate(ast, { preserveComments: false });
+      expect(withoutComments.code).not.toContain('Comment');
+    });
+  });
+
+  // ============================================================
+  // Error Handling Tests
+  // ============================================================
+  describe('Error Handling', () => {
+    it('should return error for invalid AST', () => {
+      const invalidAst = { type: 'Invalid' } as unknown as t.File;
+      const result = generator.generate(invalidAst);
+
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.code).toBe('');
+    });
+
+    it('should include error code in generated errors', () => {
+      const invalidAst = { type: 'Invalid' } as unknown as t.File;
+      const result = generator.generate(invalidAst);
+
+      if (result.errors.length > 0) {
+        expect(result.errors[0]?.code).toBeDefined();
+      }
+    });
+  });
+
+  // ============================================================
+  // Integration Tests with Real JSX Patterns
+  // ============================================================
+  describe('Integration: Real JSX Patterns', () => {
+    it('should handle conditional rendering', () => {
+      const code = `
+        const El = ({ show }) => (
+          <div>
+            {show && <span>Visible</span>}
+          </div>
+        );
+      `;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('show &&');
+      expect(result.code).toContain('<span>Visible</span>');
+    });
+
+    it('should handle ternary expressions', () => {
+      const code = `
+        const El = ({ loading }) => (
+          <div>
+            {loading ? <span>Loading...</span> : <span>Done</span>}
+          </div>
+        );
+      `;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('loading ?');
+    });
+
+    it('should handle map expressions', () => {
+      const code = `
+        const List = ({ items }) => (
+          <ul>
+            {items.map(item => (
+              <li key={item.id}>{item.name}</li>
+            ))}
+          </ul>
+        );
+      `;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('items.map');
+      expect(result.code).toContain('key={item.id}');
+    });
+
+    it('should handle hooks in components', () => {
+      const code = `
+        const Counter = () => {
+          const [count, setCount] = useState(0);
+          
+          return (
+            <button onClick={() => setCount(c => c + 1)}>
+              Count: {count}
+            </button>
+          );
+        };
+      `;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.code).toContain('useState');
+      expect(result.code).toContain('setCount');
+    });
+
+    it('should handle TypeScript generics in JSX', () => {
+      const code = `
+        const List = <T,>({ items }: { items: T[] }) => (
+          <ul>
+            {items.map((item, i) => <li key={i}>{String(item)}</li>)}
+          </ul>
+        );
+      `;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+    });
+  });
+});

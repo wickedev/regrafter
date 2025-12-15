@@ -24,7 +24,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 1.1 Project Setup and Core Types
 
-- [ ] 1.1.1 Initialize TypeScript project with strict configuration
+- [x] 1.1.1 Initialize TypeScript project with strict configuration
   - Set up package.json with dependencies (@babel/parser, @babel/traverse, @babel/generator, @babel/types)
   - Configure tsconfig.json with strict mode, ES2022 target
   - Set up ESLint, Prettier, and Vitest for testing
@@ -33,7 +33,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: `npm run build` succeeds, `npm test` runs empty test suite
   - _Requirements: 13.1, 13.2_
 
-- [ ] 1.1.2 Define core public API types
+- [x] 1.1.2 Define core public API types
   - Implement `Move` enum (Inside, Before, After) with string values
   - Implement `Selector` type (PositionSelector | PathSelector union)
   - Implement `Options` interface with all optional fields and defaults
@@ -44,7 +44,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: All types compile, type guards pass tests, exports are correct
   - _Requirements: 1.1-1.6, 2.1-2.5, 3.1-3.4, 13.1-13.4_
 
-- [ ] 1.1.3 Define internal data structures
+- [x] 1.1.3 Define internal data structures
   - Implement `DependencyGraph` interface with nodes, edges, reverseEdges
   - Implement `ASTStore` interface for caching parsed ASTs
   - Implement `TransformPlan` and operation interfaces (Move, Hoist, PropThread, Import)
@@ -56,7 +56,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 1.2 Parser Component
 
-- [ ] 1.2.1 Implement Parser interface and core parsing logic
+- [x] 1.2.1 Implement Parser interface and core parsing logic
   - Create `Parser` class with `parse(source, filename)` method
   - Configure Babel parser with JSX, TypeScript, and modern JavaScript plugins
   - Implement `parseFiles(files)` method for batch parsing
@@ -65,7 +65,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Parses valid JSX/TSX files, returns Babel AST
   - _Requirements: 11.1_
 
-- [ ] 1.2.2 Implement parser error handling
+- [x] 1.2.2 Implement parser error handling
   - Create `ParseError` type with location, message, and code fields
   - Implement error recovery mode to continue parsing after errors
   - Return meaningful error messages with source locations
@@ -75,7 +75,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Risk**: Medium - Error recovery may miss edge cases
   - _Requirements: 11.1, 11.4_
 
-- [ ] 1.2.3 Implement parser caching mechanism
+- [x] 1.2.3 Implement parser caching mechanism
   - Add `ASTStore` for caching parsed ASTs
   - Implement `invalidateCache(filename)` method
   - Add content hash-based cache validation
@@ -144,7 +144,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 1.5 Code Generator Component
 
-- [ ] 1.5.1 Implement basic code generation
+- [x] 1.5.1 Implement basic code generation
   - Create `CodeGenerator` class wrapping @babel/generator
   - Implement `generate(ast, options)` method
   - Configure generator for JSX output
@@ -153,7 +153,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Generated code parses correctly, preserves semantics
   - _Requirements: 10.5_
 
-- [ ] 1.5.2 Implement comment preservation
+- [x] 1.5.2 Implement comment preservation
   - Configure Babel generator to preserve comments
   - Implement logic to attach comments to correct nodes after move
   - Handle leading, trailing, and inner comments
@@ -162,7 +162,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Comments remain attached to correct elements
   - _Requirements: 10.1, 10.2_
 
-- [ ] 1.5.3 Implement indentation adjustment
+- [x] 1.5.3 Implement indentation adjustment
   - Detect indentation style of target location
   - Adjust moved element's indentation to match new context
   - Preserve relative indentation within moved subtree
@@ -199,7 +199,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 2.1 Move.Inside Operation
 
-- [ ] 2.1.1 Implement Move.Inside operation
+- [x] 2.1.1 Implement Move.Inside operation
   - Implement `appendChild(targetPath, sourceNode)` function
   - Handle various target types (JSXElement, JSXFragment, component)
   - Determine correct insertion position within children
@@ -208,7 +208,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Elements insert as children of target element
   - _Requirements: 2.1, 2.4_
 
-- [ ] 2.1.2 Handle fragment and nested structure edge cases
+- [x] 2.1.2 Handle fragment and nested structure edge cases
   - Support moving into React.Fragment and shorthand fragments
   - Handle deeply nested JSX structures
   - Preserve existing children ordering
@@ -219,7 +219,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 2.2 Scope Manager Component
 
-- [ ] 2.2.1 Implement scope tracking infrastructure
+- [x] 2.2.1 Implement scope tracking infrastructure
   - Create `ScopeManager` class with scope tree data structure
   - Implement `getScope(path)` method using Babel scope
   - Build scope tree during AST traversal
@@ -228,7 +228,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Accurate scope information for all nodes
   - _Requirements: 4.1-4.6, 5.1-5.6_
 
-- [ ] 2.2.2 Implement component scope detection
+- [x] 2.2.2 Implement component scope detection
   - Detect function components and class components
   - Identify component boundaries vs regular functions
   - Track parent-child component relationships
@@ -237,7 +237,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Correctly identifies React component scopes
   - _Requirements: 5.1, 5.5_
 
-- [ ] 2.2.3 Implement scope accessibility checking
+- [x] 2.2.3 Implement scope accessibility checking
   - Implement `isAccessible(dependency, targetScope)` method
   - Check variable accessibility across scope boundaries
   - Handle closure scopes correctly
@@ -246,7 +246,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Correctly determines dependency accessibility
   - _Requirements: 5.1-5.4_
 
-- [ ] 2.2.4 Implement lowest common ancestor algorithm
+- [x] 2.2.4 Implement lowest common ancestor algorithm
   - Implement `findLowestCommonAncestor(scope1, scope2)` method
   - Build ancestor chains for both scopes
   - Find intersection point efficiently
@@ -257,7 +257,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 2.3 Dependency Analyzer Component
 
-- [ ] 2.3.1 Implement identifier collection from JSX elements
+- [x] 2.3.1 Implement identifier collection from JSX elements
   - Create `DependencyAnalyzer` class with `analyze(sourcePath, targetPath)` method
   - Traverse JSX element subtree to collect all identifiers
   - Handle JSX expressions, attribute values, spread attributes
@@ -266,7 +266,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Collects all identifiers used in JSX subtree
   - _Requirements: 4.1-4.5_
 
-- [ ] 2.3.2 Implement Hook dependency detection
+- [x] 2.3.2 Implement Hook dependency detection
   - Detect useState, useEffect, useReducer, useContext, useRef, etc.
   - Detect custom hooks (use* pattern)
   - Classify binding as Hook type when initialized by hook call
@@ -276,7 +276,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: All React hooks and custom hooks identified
   - _Requirements: 4.1_
 
-- [ ] 2.3.3 Implement Variable dependency detection
+- [x] 2.3.3 Implement Variable dependency detection
   - Detect const, let, var declarations
   - Distinguish pure (computed) vs impure (stateful) variables
   - Handle destructuring patterns
@@ -285,7 +285,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Variable dependencies identified with purity info
   - _Requirements: 4.2_
 
-- [ ] 2.3.4 Implement Import dependency detection
+- [x] 2.3.4 Implement Import dependency detection
   - Detect named imports, default imports, namespace imports
   - Track import source module
   - Handle re-exports
@@ -294,7 +294,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Import dependencies identified with source info
   - _Requirements: 4.3_
 
-- [ ] 2.3.5 Implement Prop dependency detection
+- [x] 2.3.5 Implement Prop dependency detection
   - Detect function parameters marked as props
   - Handle destructured props
   - Track prop usage in JSX
@@ -303,7 +303,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Prop dependencies identified correctly
   - _Requirements: 4.4_
 
-- [ ] 2.3.6 Implement Context dependency detection
+- [x] 2.3.6 Implement Context dependency detection
   - Detect useContext calls and their context references
   - Track Context.Consumer render prop pattern
   - Identify context provider boundaries
@@ -311,7 +311,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Context dependencies detected with provider info
   - _Requirements: 6.6_
 
-- [ ] 2.3.7 Implement Ref dependency detection
+- [x] 2.3.7 Implement Ref dependency detection
   - Detect useRef calls and ref attribute usage
   - Track forwardRef wrapped components
   - Identify ref.current accesses
@@ -321,7 +321,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 2.4 Transitive Dependency Analysis
 
-- [ ] 2.4.1 Implement transitive dependency detection
+- [x] 2.4.1 Implement transitive dependency detection
   - Follow dependency chain (A uses B, B uses C)
   - Build dependency graph with edges
   - Detect transitive closure for each dependency
@@ -330,7 +330,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Transitive dependencies identified with chain info
   - _Requirements: 4.5_
 
-- [ ] 2.4.2 Implement unanalyzable code detection
+- [x] 2.4.2 Implement unanalyzable code detection
   - Detect eval() calls in dependency chain
   - Detect dynamic code execution (new Function, etc.)
   - Mark dependencies as unanalyzable when detected
@@ -341,7 +341,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 2.5 MoveAnalysis Builder
 
-- [ ] 2.5.1 Implement MoveAnalysis construction
+- [x] 2.5.1 Implement MoveAnalysis construction
   - Create `MoveAnalysis` object from dependency analysis
   - Populate dependencies array with all detected dependencies
   - Calculate which dependencies need hoisting
@@ -350,7 +350,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: MoveAnalysis contains complete dependency info
   - _Requirements: 4.5_
 
-- [ ] 2.5.2 Implement `analyze()` API
+- [x] 2.5.2 Implement `analyze()` API
   - Create `analyze(files, from, to, mode)` function
   - Return MoveAnalysis without performing transformation
   - Write integration tests for analysis-only mode
@@ -360,7 +360,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 2.6 Phase 2 Integration
 
-- [ ] 2.6.1 Integrate dependency analysis into move pipeline
+- [x] 2.6.1 Integrate dependency analysis into move pipeline
   - Call dependency analyzer before transformation
   - Pass analysis results to transformation engine
   - Include analysis in Result object
@@ -368,7 +368,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Move operations include dependency analysis
   - _Requirements: 1.2, 1.6_
 
-- [ ] 2.6.2 Write Phase 2 integration tests
+- [x] 2.6.2 Write Phase 2 integration tests
   - Test Move.Inside with various targets
   - Test dependency detection for all types
   - Test transitive dependency chains
@@ -385,7 +385,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 3.1 Hoist Planning
 
-- [ ] 3.1.1 Implement hoist planning logic
+- [x] 3.1.1 Implement hoist planning logic
   - Create `HoistPlanner` class
   - Determine which dependencies need hoisting based on target scope
   - Select appropriate hoisting strategy per dependency type
@@ -394,7 +394,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Hoist plans are correct for all dependency types
   - _Requirements: 5.1-5.6_
 
-- [ ] 3.1.2 Implement Hook rules validation
+- [x] 3.1.2 Implement Hook rules validation
   - Validate target scope is valid for hooks (component top-level)
   - Detect conditional and loop scopes
   - Implement `isValidHookLocation(scope)` method
@@ -406,7 +406,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 3.2 Hook Hoister Strategy
 
-- [ ] 3.2.1 Implement useState/useReducer hoisting
+- [x] 3.2.1 Implement useState/useReducer hoisting
   - Clone hook declaration to target scope top-level
   - Update all references to use hoisted binding
   - Handle destructured return values [state, setState]
@@ -415,7 +415,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: State hooks hoist correctly, references update
   - _Requirements: 5.1_
 
-- [ ] 3.2.2 Implement useEffect/useLayoutEffect hoisting
+- [x] 3.2.2 Implement useEffect/useLayoutEffect hoisting
   - Hoist effect hook to target scope
   - Preserve dependency array references
   - Handle cleanup function references
@@ -423,7 +423,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Effect hooks hoist with correct dependencies
   - _Requirements: 5.1_
 
-- [ ] 3.2.3 Implement useRef hoisting
+- [x] 3.2.3 Implement useRef hoisting
   - Hoist ref to target scope
   - Handle ref.current references in moved element
   - Support forwardRef scenarios
@@ -431,7 +431,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Refs hoist and work correctly in new scope
   - _Requirements: 5.1, 6.9_
 
-- [ ] 3.2.4 Implement useCallback/useMemo hoisting
+- [x] 3.2.4 Implement useCallback/useMemo hoisting
   - Hoist memoization hooks to target scope
   - Update dependency arrays with new scope references
   - Preserve function/value references
@@ -439,7 +439,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Memoization hooks hoist with correct deps
   - _Requirements: 5.1_
 
-- [ ] 3.2.5 Implement custom hook hoisting
+- [x] 3.2.5 Implement custom hook hoisting
   - Detect custom hooks by use* pattern
   - Hoist entire custom hook call
   - Handle custom hook return values
@@ -449,7 +449,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 3.3 Variable Hoister Strategy
 
-- [ ] 3.3.1 Implement pure variable hoisting
+- [x] 3.3.1 Implement pure variable hoisting
   - Detect stateless computed variables
   - Hoist to common ancestor scope
   - Update all references
@@ -457,7 +457,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Pure variables hoist to correct scope
   - _Requirements: 5.2_
 
-- [ ] 3.3.2 Implement impure variable handling via props
+- [x] 3.3.2 Implement impure variable handling via props
   - Detect variables with side effects or state
   - Convert to prop threading instead of hoisting
   - Generate prop passing through component tree
@@ -467,7 +467,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 3.4 Prop Threader Strategy
 
-- [ ] 3.4.1 Implement prop threading through component tree
+- [x] 3.4.1 Implement prop threading through component tree
   - Calculate component path from source to target
   - Add prop to each intermediate component's interface
   - Pass prop value through JSX attributes
@@ -476,7 +476,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Props thread through entire component tree
   - _Requirements: 5.4, 5.6_
 
-- [ ] 3.4.2 Implement prop naming and conflict resolution
+- [x] 3.4.2 Implement prop naming and conflict resolution
   - Generate unique prop names to avoid conflicts
   - Handle existing prop names in components
   - Support prop renaming at boundaries
@@ -486,7 +486,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 3.5 Import Manager Strategy
 
-- [ ] 3.5.1 Implement import detection for target file
+- [x] 3.5.1 Implement import detection for target file
   - Check if import already exists in target file
   - Compare import specifiers
   - Handle default vs named imports
@@ -494,7 +494,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Correctly detects existing imports
   - _Requirements: 5.3_
 
-- [ ] 3.5.2 Implement import addition to target file
+- [x] 3.5.2 Implement import addition to target file
   - Add missing imports to target file
   - Group imports by source module
   - Maintain import ordering conventions
@@ -505,7 +505,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 3.6 Context Handler Strategy
 
-- [ ] 3.6.1 Implement Context Provider detection
+- [x] 3.6.1 Implement Context Provider detection
   - Find Context.Provider in component tree
   - Track provider boundaries
   - Detect if target is within provider scope
@@ -513,7 +513,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Provider boundaries detected correctly
   - _Requirements: 6.6_
 
-- [ ] 3.6.2 Implement Provider hoisting strategy
+- [x] 3.6.2 Implement Provider hoisting strategy
   - Hoist Provider to common ancestor when possible
   - Preserve provider value prop
   - Update component tree structure
@@ -521,7 +521,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Provider hoists maintaining context access
   - _Requirements: 6.6_
 
-- [ ] 3.6.3 Implement context-to-props extraction
+- [x] 3.6.3 Implement context-to-props extraction
   - Extract context value via useContext
   - Convert to prop threading
   - Add useContext to accessing component
@@ -532,7 +532,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 3.7 Suspense Handler Strategy
 
-- [ ] 3.7.1 Implement Suspense boundary detection
+- [x] 3.7.1 Implement Suspense boundary detection
   - Detect Suspense components in tree
   - Identify lazy-loaded components
   - Track Suspense-Lazy relationships
@@ -540,7 +540,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Suspense boundaries detected correctly
   - _Requirements: 6.7_
 
-- [ ] 3.7.2 Implement Suspense boundary creation
+- [x] 3.7.2 Implement Suspense boundary creation
   - Wrap lazy components in Suspense when moved outside
   - Generate default fallback or copy existing
   - Handle nested Suspense boundaries
@@ -550,7 +550,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 3.8 Phase 3 Integration
 
-- [ ] 3.8.1 Integrate hoisting into transformation pipeline
+- [x] 3.8.1 Integrate hoisting into transformation pipeline
   - Execute hoist plan before element move
   - Update references after hoisting
   - Track hoisted dependencies in analysis
@@ -576,7 +576,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 4.1 Cross-File Detection
 
-- [ ] 4.1.1 Implement cross-file move detection
+- [x] 4.1.1 Implement cross-file move detection
   - Compare from.file and to.file
   - Detect when source and target are different files
   - Flag cross-file mode in transformation context
@@ -584,7 +584,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Cross-file moves detected correctly
   - _Requirements: 7.1_
 
-- [ ] 4.1.2 Implement dependency export analysis
+- [x] 4.1.2 Implement dependency export analysis
   - Identify dependencies defined in source file
   - Check if dependencies are already exported
   - Determine which dependencies need export
@@ -594,7 +594,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 4.2 Shared Module Creator
 
-- [ ] 4.2.1 Implement shared module generation
+- [x] 4.2.1 Implement shared module generation
   - Create new file for shared dependencies
   - Generate export declarations
   - Use sensible file naming convention
@@ -602,7 +602,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Shared modules created with correct exports
   - _Requirements: 7.2, 7.3_
 
-- [ ] 4.2.2 Implement reference update in source file
+- [x] 4.2.2 Implement reference update in source file
   - Replace local references with imports
   - Handle multiple consumers of same dependency
   - Preserve source file functionality
@@ -610,7 +610,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Source file imports from shared module
   - _Requirements: 7.4_
 
-- [ ] 4.2.3 Implement imports in target file
+- [x] 4.2.3 Implement imports in target file
   - Add imports from shared module
   - Add imports from source file for exported items
   - Handle import grouping and ordering
@@ -620,7 +620,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 4.3 Circular Dependency Prevention
 
-- [ ] 4.3.1 Implement circular dependency detection
+- [x] 4.3.1 Implement circular dependency detection
   - Build import graph after transformation
   - Detect cycles in import graph
   - Return cycle path in error
@@ -629,7 +629,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Circular dependencies detected before completion
   - _Requirements: 11.5_
 
-- [ ] 4.3.2 Implement circular dependency resolution
+- [x] 4.3.2 Implement circular dependency resolution
   - Extract shared dependencies to break cycle
   - Restructure imports to remove cycles
   - Validate cycle-free after resolution
@@ -640,7 +640,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 4.4 New File Handling
 
-- [ ] 4.4.1 Implement new file creation detection
+- [x] 4.4.1 Implement new file creation detection
   - Detect when target file doesn't exist in files array
   - Mark new files in Code[] result
   - Generate valid empty component file structure
@@ -650,7 +650,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 4.5 Phase 4 Integration
 
-- [ ] 4.5.1 Integrate cross-file movement into pipeline
+- [x] 4.5.1 Integrate cross-file movement into pipeline
   - Coordinate multi-file AST transformations
   - Generate all modified files in result
   - Track file dependencies for ordering
@@ -658,7 +658,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Cross-file moves work end-to-end
   - _Requirements: 7.1-7.6_
 
-- [ ] 4.5.2 Write Phase 4 integration tests
+- [x] 4.5.2 Write Phase 4 integration tests
   - Test simple cross-file moves
   - Test moves with shared dependencies
   - Test circular dependency prevention
@@ -676,7 +676,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 5.1 Sink Candidate Analysis
 
-- [ ] 5.1.1 Implement sink candidate detection
+- [x] 5.1.1 Implement sink candidate detection
   - Scan all hoisted declarations in transformed code
   - Find all consumers of each declaration
   - Compute LCA of consumer scopes
@@ -684,7 +684,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Sink candidates identified correctly
   - _Requirements: 8.1, 8.2_
 
-- [ ] 5.1.2 Implement sinkability validation
+- [x] 5.1.2 Implement sinkability validation
   - Check if LCA differs from current scope
   - Validate hook sinking respects Rules of Hooks
   - Check for shared consumers (siblings, parent-child)
@@ -694,7 +694,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 5.2 Sink Execution
 
-- [ ] 5.2.1 Implement dependency sinking operation
+- [x] 5.2.1 Implement dependency sinking operation
   - Move declaration to optimal scope
   - Update all references
   - Preserve ordering within scope
@@ -702,7 +702,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Dependencies sink to correct locations
   - _Requirements: 8.2_
 
-- [ ] 5.2.2 Implement orphaned prop removal
+- [x] 5.2.2 Implement orphaned prop removal
   - Detect props no longer needed after sinking
   - Remove prop declarations and usages
   - Clean up empty prop spreads
@@ -710,7 +710,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Unnecessary props removed after sinking
   - _Requirements: 8.5_
 
-- [ ] 5.2.3 Implement dead code detection and removal
+- [x] 5.2.3 Implement dead code detection and removal
   - Detect declarations with no consumers
   - Remove unused declarations
   - Log removed dead code in analysis
@@ -720,7 +720,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 5.3 Optimizer API
 
-- [ ] 5.3.1 Implement `optimize()` standalone API
+- [x] 5.3.1 Implement `optimize()` standalone API
   - Create `optimize(files)` function
   - Run sinking analysis and execution
   - Return optimized Code[] array
@@ -728,7 +728,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: optimize() works as standalone function
   - _Requirements: 9.4_
 
-- [ ] 5.3.2 Integrate optimization into unified API
+- [x] 5.3.2 Integrate optimization into unified API
   - Call optimizer after transformation when options.optimize !== false
   - Default optimize to true
   - Skip optimization when dryRun is true
@@ -738,7 +738,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 5.4 Performance Optimization
 
-- [ ] 5.4.1 Implement AST traversal optimization
+- [x] 5.4.1 Implement AST traversal optimization
   - Use efficient traversal patterns
   - Avoid redundant traversals
   - Cache scope lookups
@@ -746,7 +746,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Single-file operations under 100ms
   - _Requirements: 12.1_
 
-- [ ] 5.4.2 Implement memory optimization
+- [x] 5.4.2 Implement memory optimization
   - Release unused AST nodes
   - Use WeakMaps for caching
   - Limit cache sizes
@@ -754,7 +754,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Memory usage under 10x file size
   - _Requirements: 12.4_
 
-- [ ] 5.4.3 Implement parallel file processing
+- [x] 5.4.3 Implement parallel file processing
   - Process multiple files concurrently where independent
   - Serialize operations with dependencies
   - Use Promise.all for parallel parsing
@@ -764,7 +764,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 5.5 canMove Optimization
 
-- [ ] 5.5.1 Implement fast canMove path
+- [x] 5.5.1 Implement fast canMove path
   - Run analysis without transformation planning
   - Return early on first blocking issue
   - Cache intermediate results
@@ -774,7 +774,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 5.6 Phase 5 Integration
 
-- [ ] 5.6.1 Implement performance benchmarks
+- [x] 5.6.1 Implement performance benchmarks
   - Create benchmark suite for all operations
   - Measure P95 latencies
   - Track memory usage
@@ -783,7 +783,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Benchmarks run in CI, results tracked
   - _Requirements: 12.1-12.4_
 
-- [ ] 5.6.2 Write Phase 5 integration tests
+- [x] 5.6.2 Write Phase 5 integration tests
   - Test sinking for various dependency patterns
   - Test shared dependency preservation
   - Test performance targets
@@ -800,7 +800,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 6.1 Atomic Unit Detection
 
-- [ ] 6.1.1 Implement conditional expression detection
+- [x] 6.1.1 Implement conditional expression detection
   - Detect `{condition && <Element />}` pattern
   - Wrap condition and element as atomic unit
   - Move entire expression together
@@ -808,7 +808,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Conditional expressions move atomically
   - _Requirements: 6.4_
 
-- [ ] 6.1.2 Implement ternary expression detection
+- [x] 6.1.2 Implement ternary expression detection
   - Detect `{condition ? <A /> : <B />}` pattern
   - Wrap entire ternary as atomic unit
   - Handle nested ternaries
@@ -816,7 +816,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Ternary expressions move atomically
   - _Requirements: 6.5_
 
-- [ ] 6.1.3 Implement map expression detection
+- [x] 6.1.3 Implement map expression detection
   - Detect `{items.map(item => <Element />)}` pattern
   - Include filter/reduce chains
   - Wrap entire mapping as atomic unit
@@ -824,7 +824,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Map expressions move atomically
   - _Requirements: 6.5_
 
-- [ ] 6.1.4 Implement compound component detection
+- [x] 6.1.4 Implement compound component detection
   - Detect member expressions like `<Tabs.Panel>`
   - Find compound component root
   - Include all related compound parts
@@ -834,7 +834,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 6.2 canMove API
 
-- [ ] 6.2.1 Implement `canMove()` function
+- [x] 6.2.1 Implement `canMove()` function
   - Create `canMove(files, from, to, mode)` returning boolean
   - Run validation without transformation
   - Return false for any blocking condition
@@ -842,7 +842,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: canMove returns accurate boolean
   - _Requirements: 6.1, 9.1_
 
-- [ ] 6.2.2 Implement move validation rules
+- [x] 6.2.2 Implement move validation rules
   - Validate selector resolution
   - Validate dependency resolution
   - Validate hook rules compliance
@@ -851,7 +851,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: All blocking conditions detected
   - _Requirements: 6.2-6.9_
 
-- [ ] 6.2.3 Implement validation reason reporting
+- [x] 6.2.3 Implement validation reason reporting
   - Populate MoveAnalysis.reason on failure
   - Provide specific failure reasons
   - Include location information
@@ -861,7 +861,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 6.3 Unified API Completion
 
-- [ ] 6.3.1 Implement full `regraft()` function
+- [x] 6.3.1 Implement full `regraft()` function
   - Orchestrate canMove, move, analyze, optimize
   - Support all options (dryRun, optimize, preserveComments, formatOutput)
   - Return complete Result object
@@ -869,7 +869,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: regraft() works for all scenarios
   - _Requirements: 1.1-1.6_
 
-- [ ] 6.3.2 Implement dryRun mode
+- [x] 6.3.2 Implement dryRun mode
   - Return analysis without transformation when dryRun: true
   - Include all validation and dependency info
   - Return empty codes array
@@ -877,7 +877,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: dryRun returns analysis only
   - _Requirements: 1.3_
 
-- [ ] 6.3.3 Implement formatOutput option
+- [x] 6.3.3 Implement formatOutput option
   - Integrate with Prettier when formatOutput: true
   - Default to false (preserve original format)
   - Handle formatting errors gracefully
@@ -887,7 +887,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 6.4 Phase 6 Integration
 
-- [ ] 6.4.1 Write atomic unit integration tests
+- [x] 6.4.1 Write atomic unit integration tests
   - Test conditional, ternary, map patterns
   - Test compound components
   - Test Suspense boundaries
@@ -895,7 +895,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: All atomic unit tests pass
   - _Requirements: 6.4-6.8_
 
-- [ ] 6.4.2 Write canMove integration tests
+- [x] 6.4.2 Write canMove integration tests
   - Test all valid move scenarios return true
   - Test all invalid scenarios return false
   - Test reason reporting accuracy
@@ -911,7 +911,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 7.1 Error Handling
 
-- [ ] 7.1.1 Implement error category taxonomy
+- [x] 7.1.1 Implement error category taxonomy
   - Create error classes for all categories (Parse, Selector, Dependency, Validation, Transform, Circular)
   - Implement error codes (E001-E099)
   - Add location information to all errors
@@ -919,7 +919,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: All errors follow taxonomy
   - _Requirements: 11.1-11.5_
 
-- [ ] 7.1.2 Implement suggested fixes generation
+- [x] 7.1.2 Implement suggested fixes generation
   - Generate SuggestedFix[] for recoverable errors
   - Include description and action for each fix
   - Mark automatic vs manual fixes
@@ -927,7 +927,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Helpful suggested fixes provided
   - _Requirements: 11.3_
 
-- [ ] 7.1.3 Implement error recovery strategies
+- [x] 7.1.3 Implement error recovery strategies
   - Implement automatic recovery for circular dependencies
   - Implement automatic hook location adjustment
   - Handle partial failures gracefully
@@ -937,7 +937,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 7.2 TypeScript Type Safety
 
-- [ ] 7.2.1 Export comprehensive type definitions
+- [x] 7.2.1 Export comprehensive type definitions
   - Create index.d.ts with all public types
   - Ensure strict type inference
   - Add JSDoc comments to all exports
@@ -945,7 +945,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Full TypeScript support for consumers
   - _Requirements: 13.1_
 
-- [ ] 7.2.2 Implement runtime type validation
+- [x] 7.2.2 Implement runtime type validation
   - Validate input parameters at runtime
   - Provide helpful type error messages
   - Handle edge cases in union types
@@ -955,7 +955,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 7.3 Documentation
 
-- [ ] 7.3.1 Write API documentation
+- [x] 7.3.1 Write API documentation
   - Document all public functions with examples
   - Document all types and interfaces
   - Create usage guide with common patterns
@@ -963,7 +963,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Complete API docs in README
   - _Requirements: All functional requirements_
 
-- [ ] 7.3.2 Write error code reference
+- [x] 7.3.2 Write error code reference
   - Document all error codes
   - Include recovery suggestions
   - Provide examples for each error
@@ -973,7 +973,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 7.4 Final Testing
 
-- [ ] 7.4.1 Write end-to-end test suite
+- [x] 7.4.1 Write end-to-end test suite
   - Cover all major use cases
   - Include real-world scenarios
   - Test edge cases and error paths
@@ -981,7 +981,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: E2E suite comprehensive
   - _Requirements: All requirements_
 
-- [ ] 7.4.2 Implement property-based tests
+- [x] 7.4.2 Implement property-based tests
   - Test idempotency (move + reverse = original)
   - Test parse validity (output always parses)
   - Test dependency preservation
@@ -990,7 +990,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Property tests pass for random inputs
   - _Requirements: All invariant requirements_
 
-- [ ] 7.4.3 Implement regression test suite
+- [x] 7.4.3 Implement regression test suite
   - Create fixtures from bug reports
   - Automate regression detection
   - Track test coverage
@@ -1000,7 +1000,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 7.5 Package Publishing
 
-- [ ] 7.5.1 Prepare npm package
+- [x] 7.5.1 Prepare npm package
   - Configure package.json for publishing
   - Set up bundling (ESM and CJS)
   - Configure exports map
@@ -1009,7 +1009,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Package installs and works correctly
   - _Requirements: 13.1_
 
-- [ ] 7.5.2 Set up CI/CD pipeline
+- [x] 7.5.2 Set up CI/CD pipeline
   - Configure automated testing
   - Configure automated publishing
   - Add version management
