@@ -42,6 +42,13 @@ export {
   mergeOptions,
 } from './types/index.js';
 
+// Export hoisting executor
+export {
+  HoistExecutor,
+  createHoistExecutor,
+  type HoistExecutionContext,
+} from './strategies/index.js';
+
 // Export internal types for advanced usage
 export {
   // Scope types
@@ -205,7 +212,16 @@ import { CodeGenerator } from './generator/CodeGenerator.js';
 import { createSelectorResolver } from './selector/index.js';
 import { createJSXTransformer } from './transformer/index.js';
 import { createScopeManager } from './scope/index.js';
-import { createMoveAnalysisBuilder } from './analyzer/index.js';
+import { createMoveAnalysisBuilder, DependencyAnalyzer } from './analyzer/index.js';
+import {
+  createConfiguredHoistPlanner,
+  createHoistExecutor,
+  type HoistPlan,
+  type HoistContext,
+  type HoistExecutionContext,
+} from './strategies/index.js';
+import type { NodePath } from '@babel/traverse';
+import traverse from '@babel/traverse';
 
 /**
  * Main entry point for the regraft operation.
@@ -380,6 +396,160 @@ export function move(
 
   // Cross-file move (Phase 4 - for now throw not implemented)
   throw new Error('Cross-file moves not yet implemented (Phase 4)');
+}
+
+/**
+ * Internal function: Move with hoisting integration
+ *
+ * Performs the complete transformation with dependency hoisting.
+ * This is used internally by regraft() to execute the full pipeline.
+ */
+function moveWithHoisting(
+  files: FileInput[],
+  from: Selector,
+  to: Selector,
+  mode: Move
+): Code[] {
+  // Create required instances
+  const parser = createParser();
+  const generator = new CodeGenerator();
+  const resolver = createSelectorResolver();
+  const transformer = createJSXTransformer();
+  const scopeManager = createScopeManager();
+  const analyzer = new DependencyAnalyzer(scopeManager);
+  const planner = createConfiguredHoistPlanner(scopeManager);
+  const executor = createHoistExecutor();
+
+  // Parse all files
+  const parsedFiles = new Map<string, import('@babel/types').File>();
+  for (const file of files) {
+    const result = parser.parse(file.content, file.path);
+    if (!result.success || !result.ast) {
+      throw new Error(`Failed to parse ${file.path}: ${result.errors[0]?.message || 'Unknown error'}`);
+    }
+    parsedFiles.set(file.path, result.ast);
+  }
+
+  // Get the AST for source file
+  const sourceAst = parsedFiles.get(from.file);
+  if (!sourceAst) {
+    throw new Error(`Source file not found: ${from.file}`);
+  }
+
+  // For same-file moves only (cross-file not yet implemented)
+  if (from.file !== to.file) {
+    throw new Error('Cross-file moves not yet implemented (Phase 4)');
+  }
+
+  // Build scope tree
+  scopeManager.buildScopeTree(sourceAst);
+  analyzer.setCurrentFile(from.file);
+
+  // Resolve selectors
+  const sourceResult = resolver.resolve(from, sourceAst);
+  if (!sourceResult.node || !sourceResult.path) {
+    throw new Error(`Failed to resolve source: ${sourceResult.error?.message || 'Element not found'}`);
+  }
+
+  const targetResult = resolver.resolve(to, sourceAst);
+  if (!targetResult.node || !targetResult.path) {
+    throw new Error(`Failed to resolve target: ${targetResult.error?.message || 'Element not found'}`);
+  }
+
+  // Get scopes
+  const sourceScope = scopeManager.getScopeForPath(sourceResult.path);
+  const targetScope = scopeManager.getScopeForPath(targetResult.path);
+
+  // Perform dependency analysis
+  const depAnalysis = analyzer.analyzeElement(sourceResult.path, targetScope);
+
+  // If there are dependencies that need hoisting, create and execute a hoisting plan
+  if (depAnalysis.needsHoisting.length > 0) {
+    // Create hoisting context
+    const context: HoistContext = {
+      sourceFile: from.file,
+      targetFile: to.file,
+      sourceScope: sourceScope || undefined,
+      targetScope: targetScope || undefined,
+      targetComponent: targetScope,
+    };
+
+    // Create hoisting plan
+    const hoistPlan = planner.plan(depAnalysis, context);
+
+    // If the plan is valid, execute it
+    if (hoistPlan.valid) {
+      // Build dependency paths map for executor
+      const dependencyPaths = new Map<string, NodePath>();
+      const scopePaths = new Map<string, NodePath>();
+
+      // Collect dependency paths
+      for (const dep of depAnalysis.dependencies) {
+        if (dep.location?.path) {
+          dependencyPaths.set(dep.id, dep.location.path);
+        }
+      }
+
+      // Collect scope paths by traversing the AST
+      traverse(sourceAst, {
+        FunctionDeclaration(path) {
+          if (path.node.id) {
+            scopePaths.set(path.node.id.name, path);
+          }
+        },
+        FunctionExpression(path) {
+          const parent = path.parent;
+          if (parent && 'id' in parent && parent.id && 'name' in parent.id) {
+            scopePaths.set(parent.id.name, path);
+          }
+        },
+        ArrowFunctionExpression(path) {
+          const parent = path.parent;
+          if (parent && 'id' in parent && parent.id && 'name' in parent.id) {
+            scopePaths.set(parent.id.name, path);
+          }
+        },
+      });
+
+      // Execute hoisting operations
+      const execContext: HoistExecutionContext = {
+        ast: sourceAst,
+        dependencyPaths,
+        scopePaths,
+      };
+
+      executor.execute(hoistPlan, execContext);
+    }
+  }
+
+  // Now perform the element move
+  const moveResult = transformer.move(
+    sourceAst,
+    sourceResult.path,
+    targetResult.path,
+    mode
+  );
+
+  if (!moveResult.success) {
+    throw new Error(`Move failed: ${moveResult.error || 'Unknown error'}`);
+  }
+
+  // Generate code for all files
+  const codes: Code[] = [];
+  for (const file of files) {
+    const ast = parsedFiles.get(file.path);
+    if (!ast) continue;
+
+    const generated = generator.generate(ast);
+    codes.push(createCode({
+      file: file.path,
+      content: generated.code,
+      changed: file.path === from.file,
+      original: file.path === from.file ? file.content : undefined,
+    }));
+  }
+
+  return codes;
 }
 
 /**
@@ -586,29 +756,28 @@ function executeTransformation(
   from: Selector,
   to: Selector,
   mode: Move,
-  _options: Required<Options>,
+  options: Required<Options>,
   _validation: MoveValidationResult
 ): Result {
   try {
+    // Perform dependency analysis
+    const fullAnalysis = analyze(files, from, to, mode);
+
+    // If analysis shows the move isn't possible, return failure
+    if (!fullAnalysis.canMove) {
+      return createFailureResult(
+        fullAnalysis.reason || 'Move is not possible',
+        [],
+        fullAnalysis.suggestedFixes
+      );
+    }
+
     // Use the move function for actual transformation
+    // The move function will now integrate hoisting internally if needed
     const codes = move(files, from, to, mode);
 
-    // Create success analysis
-    const analysis = createMoveAnalysis({
-      canMove: true,
-      dependencies: [], // TODO: Add dependency analysis in Phase 2
-      hoistedDeps: [],
-      stats: createAnalysisStats({
-        totalDependencies: 0,
-        hookDependencies: 0,
-        variableDependencies: 0,
-        importDependencies: 0,
-        propDependencies: 0,
-        transitiveDependencies: 0,
-      }),
-    });
-
-    return createSuccessResult(codes, analysis);
+    // Return success with the real analysis
+    return createSuccessResult(codes, fullAnalysis);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return createFailureResult(message);

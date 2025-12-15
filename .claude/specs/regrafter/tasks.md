@@ -86,7 +86,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 1.3 Selector Resolver Component
 
-- [ ] 1.3.1 Implement position-based selector resolution
+- [x] 1.3.1 Implement position-based selector resolution
   - Create `SelectorResolver` class with `resolve(ast, selector)` method
   - Implement algorithm to find JSX element containing line/column position
   - Handle edge cases: position between elements, whitespace, comments
@@ -95,7 +95,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Correctly identifies JSX elements by position in test cases
   - _Requirements: 3.1_
 
-- [ ] 1.3.2 Implement path-based selector resolution
+- [x] 1.3.2 Implement path-based selector resolution
   - Parse AST path strings (e.g., "Program.body[0].declaration")
   - Traverse AST using path segments
   - Handle array indices and property names in paths
@@ -104,7 +104,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Path selectors resolve to correct nodes
   - _Requirements: 3.2_
 
-- [ ] 1.3.3 Implement selector error handling
+- [x] 1.3.3 Implement selector error handling
   - Create `SelectorError` type with selector info and nearest match
   - Detect when selector points to non-JSX element
   - Validate file path exists in files array
@@ -115,7 +115,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 1.4 Basic Move Operations
 
-- [ ] 1.4.1 Implement Move.Before operation
+- [x] 1.4.1 Implement Move.Before operation
   - Create `TransformationEngine` class skeleton
   - Implement `insertBefore(targetPath, sourceNode)` function
   - Clone source node before insertion to preserve original
@@ -125,7 +125,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Elements move to correct position before target
   - _Requirements: 2.2, 2.4_
 
-- [ ] 1.4.2 Implement Move.After operation
+- [x] 1.4.2 Implement Move.After operation
   - Implement `insertAfter(targetPath, sourceNode)` function
   - Handle edge case when target is last child
   - Preserve JSX text/whitespace between siblings
@@ -134,7 +134,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Elements move to correct position after target
   - _Requirements: 2.3, 2.4_
 
-- [ ] 1.4.3 Implement source-target identity detection
+- [x] 1.4.3 Implement source-target identity detection
   - Detect when from and to selectors point to same element
   - Return success with unchanged code when positions are identical
   - Write tests for edge cases (same position, already at target)
@@ -173,7 +173,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
 
 ### 1.6 Phase 1 Integration
 
-- [ ] 1.6.1 Implement basic `move()` API
+- [x] 1.6.1 Implement basic `move()` API
   - Create main entry point that orchestrates Parser, Resolver, Engine, Generator
   - Implement `move(files, from, to, mode)` returning `Code[]`
   - Handle file array with path and content
@@ -182,7 +182,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Simple moves work end-to-end without dependency analysis
   - _Requirements: 9.2_
 
-- [ ] 1.6.2 Write Phase 1 integration tests
+- [x] 1.6.2 Write Phase 1 integration tests
   - Test simple sibling moves (before/after)
   - Test moves within same parent
   - Test error cases (invalid selector, parse errors)
@@ -558,7 +558,7 @@ This document outlines the implementation tasks for Regrafter, a programmatic AS
   - **Acceptance Criteria**: Hoisting integrates seamlessly with moves
   - _Requirements: 5.1-5.6_
 
-- [ ] 3.8.2 Write Phase 3 integration tests
+- [x] 3.8.2 Write Phase 3 integration tests
   - Test hook hoisting for all React hooks
   - Test variable hoisting (pure and impure)
   - Test prop threading through deep trees

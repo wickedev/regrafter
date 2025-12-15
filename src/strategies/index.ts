@@ -32,6 +32,10 @@ export {
 // HoistPlanner - Main planning orchestrator
 export { HoistPlanner, createHoistPlanner } from './HoistPlanner.js';
 
+// HoistExecutor - Executes hoisting operations on AST
+export { HoistExecutor, createHoistExecutor } from './HoistExecutor.js';
+export type { HoistExecutionContext } from './HoistExecutor.js';
+
 // HookHoister - React hooks hoisting strategy
 export { HookHoister, createHookHoister } from './HookHoister.js';
 

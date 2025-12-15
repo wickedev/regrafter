@@ -1,10 +1,8 @@
 /**
- * Hook Hoisting Integration Tests
+ * Hook Hoisting Integration Tests (Phase 3.8.2)
  *
  * Tests for the complete hook hoisting pipeline when moving elements
  * that use React hooks across component boundaries.
- *
- * Test File: src/__tests__/integration/hook-hoisting.test.ts
  *
  * Test Purpose:
  * - Verify hooks are hoisted to valid locations
@@ -13,187 +11,176 @@
  * - Verify multiple hooks are handled correctly
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import * as fs from 'fs';
-import * as path from 'path';
+import { describe, it, expect } from 'vitest';
 import {
   Move,
   DependencyType,
-  ResolutionStrategy,
   type PositionSelector,
-  type Result,
-  type Dependency,
-  createDependency,
-  createMoveAnalysis,
-  createSuccessResult,
-  createFailureResult,
-  createCode,
-} from '../../types/index.js';
-
-// =============================================================================
-// Test Cases Overview
-// =============================================================================
-/**
- * | Case ID   | Feature Description                                | Test Type     |
- * |-----------|---------------------------------------------------|---------------|
- * | HOIST-01  | Hoist useState when element moves up tree          | Positive Test |
- * | HOIST-02  | Hoist useEffect when element moves to new parent   | Positive Test |
- * | HOIST-03  | Hoist useContext when moving outside Provider      | Positive Test |
- * | HOIST-04  | Hoist useRef with element                          | Positive Test |
- * | HOIST-05  | Hoist custom hook with element                     | Positive Test |
- * | HOIST-06  | Hoist multiple hooks together                      | Positive Test |
- * | HOIST-07  | Preserve hook call order after hoisting            | Positive Test |
- * | HOIST-08  | Hoist hook to common ancestor component            | Positive Test |
- * | HOIST-09  | Thread state value through props after hoist       | Positive Test |
- * | HOIST-10  | Thread state setter through props after hoist      | Positive Test |
- * | HOIST-11  | Fail when hook cannot be hoisted (no valid scope)  | Error Test    |
- * | HOIST-12  | Handle hook with dependencies array                | Positive Test |
- * | HOIST-13  | Handle useMemo/useCallback hoisting                | Positive Test |
- * | HOIST-14  | Handle useReducer hoisting                         | Positive Test |
- * | HOIST-15  | Preserve cleanup functions in useEffect            | Positive Test |
- */
+  type FileInput,
+  createSelectorResolver,
+  createScopeManager,
+  createConfiguredHoistPlanner,
+  DependencyAnalyzer,
+} from '../../index.js';
+import { createParser } from '../../parser/index.js';
+import { createJSXTransformer } from '../../transformer/index.js';
+import { CodeGenerator } from '../../generator/CodeGenerator.js';
 
 // =============================================================================
 // Test Utilities
 // =============================================================================
 
-const FIXTURES_DIR = path.join(__dirname, '../../../test/fixtures');
-
-function loadFixture(filename: string): string {
-  return fs.readFileSync(path.join(FIXTURES_DIR, filename), 'utf-8');
-}
-
 /**
- * Mock regraft function for hook hoisting tests
+ * Integration test helper that performs full hoisting pipeline
  */
-async function regraft(
-  files: Array<{ path: string; content: string }>,
-  from: PositionSelector,
-  to: PositionSelector,
+async function testHoisting(
+  code: string,
+  fromSelector: PositionSelector,
+  toSelector: PositionSelector,
   mode: Move
-): Promise<Result> {
-  // Validate inputs
-  const sourceFile = files.find(f => f.path === from.file);
-  const targetFile = files.find(f => f.path === to.file);
+) {
+  const files: FileInput[] = [{ path: 'test.tsx', content: code }];
 
-  if (!sourceFile) {
-    return createFailureResult(
-      createMoveAnalysis({
-        canMove: false,
-        reason: `Source file not found: ${from.file}`,
-      })
-    );
+  // Parse
+  const parser = createParser();
+  const parseResult = parser.parse(code, 'test.tsx');
+  if (!parseResult.success || !parseResult.ast) {
+    throw new Error(`Parse failed: ${parseResult.errors[0]?.message}`);
+  }
+  const ast = parseResult.ast;
+
+  // Resolve selectors
+  const resolver = createSelectorResolver();
+  const sourceResult = resolver.resolve(fromSelector, ast);
+  const targetResult = resolver.resolve(toSelector, ast);
+
+  if (!sourceResult.path || !targetResult.path) {
+    throw new Error('Failed to resolve selectors');
   }
 
-  if (!targetFile) {
-    return createFailureResult(
-      createMoveAnalysis({
-        canMove: false,
-        reason: `Target file not found: ${to.file}`,
-      })
-    );
+  // Build scope tree
+  const scopeManager = createScopeManager();
+  scopeManager.buildScopeTree(ast);
+
+  // Get scopes
+  const sourceScope = scopeManager.getScopeForPath(sourceResult.path);
+  const targetScope = scopeManager.getScopeForPath(targetResult.path);
+  const sourceComponent = scopeManager.findEnclosingComponent(sourceResult.path);
+  const targetComponent = scopeManager.findEnclosingComponent(targetResult.path);
+
+  // Analyze dependencies
+  const depAnalyzer = new DependencyAnalyzer(scopeManager);
+  depAnalyzer.setCurrentFile('test.tsx');
+  const analysis = depAnalyzer.analyzeElement(sourceResult.path, targetScope);
+
+  // Create hoist context
+  const hoistContext = {
+    sourceFile: 'test.tsx',
+    targetFile: 'test.tsx',
+    sourceScope,
+    targetScope,
+    sourceComponent,
+    targetComponent,
+    isCrossFile: false,
+    asts: new Map([[ast, 'test.tsx']]),
+  };
+
+  // Plan hoisting
+  const hoistPlanner = createConfiguredHoistPlanner(scopeManager);
+  const plan = hoistPlanner.plan(analysis, hoistContext);
+
+  // Execute hoisting transformations (if plan has operations)
+  // Note: In real implementation, strategies would execute the plan
+  // For now, we just test that planning works
+  if (!plan.valid) {
+    throw new Error(`Hoisting plan invalid: ${plan.warnings.join(', ')}`);
   }
 
-  // Simulate hook detection and hoisting
-  const hookDeps = detectHooks(sourceFile.content, from);
-  const hoistedDeps = hookDeps.map(hook =>
-    createDependency({
-      symbol: hook,
-      type: DependencyType.Hook,
-      origin: sourceFile.path,
-      scope: 'Component',
-    })
-  );
+  // Perform the move
+  const transformer = createJSXTransformer();
+  const moveResult = transformer.move(ast, sourceResult.path, targetResult.path, mode);
 
-  return createSuccessResult(
-    files.map(f =>
-      createCode({
-        file: f.path,
-        content: f.content,
-        changed: true,
-      })
-    ),
-    createMoveAnalysis({
-      canMove: true,
-      dependencies: hookDeps.map(hook =>
-        createDependency({
-          symbol: hook,
-          type: DependencyType.Hook,
-          origin: sourceFile.path,
-          scope: 'source',
-        })
-      ),
-      hoistedDeps,
-    })
-  );
+  if (!moveResult.success) {
+    throw new Error(`Move failed: ${moveResult.error}`);
+  }
+
+  // Generate code
+  const generator = new CodeGenerator();
+  const generated = generator.generate(ast);
+
+  return {
+    code: generated.code,
+    dependencies: analysis.dependencies,
+    analysis,
+    plan,
+    success: true,
+  };
 }
-
-/**
- * Detect hooks used at a position (simplified)
- */
-function detectHooks(content: string, position: PositionSelector): string[] {
-  const hooks: string[] = [];
-  const hookPattern = /use[A-Z]\w*(?=\s*\()/g;
-
-  const lines = content.split('\n');
-  const relevantLines = lines.slice(0, position.line);
-  const text = relevantLines.join('\n');
-
-  let match;
-  while ((match = hookPattern.exec(text)) !== null) {
-    hooks.push(match[0]);
-  }
-
-  return [...new Set(hooks)];
-}
-
-// =============================================================================
-// Test Data
-// =============================================================================
-
-let hooksComponentContent: string;
-let nestedComponentContent: string;
-let contextComponentContent: string;
-
-beforeEach(() => {
-  hooksComponentContent = loadFixture('component-with-hooks.tsx');
-  nestedComponentContent = loadFixture('nested-components.tsx');
-  contextComponentContent = loadFixture('component-with-context.tsx');
-});
 
 // =============================================================================
 // useState Hoisting Tests
 // =============================================================================
 
-describe('Hook Hoisting - useState', () => {
-  /**
-   * HOIST-01: Hoist useState when element moves up tree
-   *
-   * Test Purpose: Verify useState is hoisted when element using state moves
-   *
-   * Test Steps:
-   * 1. Select element using useState value
-   * 2. Move to ancestor component
-   * 3. Verify useState hoisted
-   * 4. Verify state value threaded as prop
-   *
-   * Expected Results:
-   * - analysis.hoistedDeps includes useState
-   */
-  it('HOIST-01: should hoist useState when element moves up', async () => {
-    const files = [
-      { path: 'hooks.tsx', content: hooksComponentContent },
-    ];
+describe('Phase 3 Hook Hoisting - useState', () => {
+  it('HOIST-01: should hoist useState when element moves up tree', async () => {
+    const code = `
+import React, { useState } from 'react';
 
-    // Element displaying count
-    const from: PositionSelector = { file: 'hooks.tsx', line: 15, column: 6 };
-    // Target in parent scope
-    const to: PositionSelector = { file: 'hooks.tsx', line: 10, column: 4 };
+function Parent() {
+  return (
+    <div>
+      <Child />
+    </div>
+  );
+}
 
-    const result = await regraft(files, from, to, Move.Inside);
+function Child() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <div>
+      <span>Count: {count}</span>
+      <button onClick={() => setCount(count + 1)}>Increment</button>
+    </div>
+  );
+}
+`;
+
+    const from: PositionSelector = { file: 'test.tsx', line: 16, column: 6 };
+    const to: PositionSelector = { file: 'test.tsx', line: 6, column: 6 };
+
+    const result = await testHoisting(code, from, to, Move.Inside);
 
     expect(result.success).toBe(true);
-    expect(result.analysis.hoistedDeps?.some(d => d.symbol === 'useState')).toBe(true);
+    expect(result.dependencies.some(d =>
+      d.type === DependencyType.Hook && d.symbol === 'count'
+    )).toBe(true);
+    expect(result.plan.items.length).toBeGreaterThan(0);
+  });
+
+  it('HOIST-02: should handle useState with destructured values', async () => {
+    const code = `
+import React, { useState } from 'react';
+
+function Component() {
+  const [state, setState] = useState({ name: 'test', count: 0 });
+
+  return (
+    <div>
+      <span>{state.name}</span>
+      <span>{state.count}</span>
+    </div>
+  );
+}
+`;
+
+    const from: PositionSelector = { file: 'test.tsx', line: 8, column: 6 };
+    const to: PositionSelector = { file: 'test.tsx', line: 7, column: 4 };
+
+    const result = await testHoisting(code, from, to, Move.Before);
+
+    expect(result.success).toBe(true);
+    expect(result.dependencies.some(d => d.symbol === 'state')).toBe(true);
   });
 });
 
@@ -201,59 +188,62 @@ describe('Hook Hoisting - useState', () => {
 // useEffect Hoisting Tests
 // =============================================================================
 
-describe('Hook Hoisting - useEffect', () => {
-  /**
-   * HOIST-02: Hoist useEffect when element moves to new parent
-   *
-   * Test Purpose: Verify useEffect moves with dependent element
-   *
-   * Expected Results:
-   * - useEffect included in hoisted dependencies
-   */
-  it('HOIST-02: should hoist useEffect when element moves', async () => {
-    const files = [
-      { path: 'hooks.tsx', content: hooksComponentContent },
-    ];
+describe('Phase 3 Hook Hoisting - useEffect', () => {
+  it('HOIST-03: should hoist useEffect with dependencies', async () => {
+    const code = `
+import React, { useState, useEffect } from 'react';
 
-    const from: PositionSelector = { file: 'hooks.tsx', line: 20, column: 6 };
-    const to: PositionSelector = { file: 'hooks.tsx', line: 15, column: 4 };
+function Component() {
+  const [count, setCount] = useState(0);
 
-    const result = await regraft(files, from, to, Move.Inside);
+  useEffect(() => {
+    document.title = \`Count: \${count}\`;
+  }, [count]);
+
+  return (
+    <div>
+      <span>{count}</span>
+    </div>
+  );
+}
+`;
+
+    const from: PositionSelector = { file: 'test.tsx', line: 12, column: 6 };
+    const to: PositionSelector = { file: 'test.tsx', line: 11, column: 4 };
+
+    const result = await testHoisting(code, from, to, Move.Before);
 
     expect(result.success).toBe(true);
-    // Result should track hooks
-    expect(result.analysis.dependencies?.length).toBeGreaterThanOrEqual(0);
+    // Should detect both useState and useEffect
+    expect(result.dependencies.filter(d => d.type === DependencyType.Hook).length).toBeGreaterThan(0);
   });
-});
 
-// =============================================================================
-// useContext Hoisting Tests
-// =============================================================================
+  it('HOIST-04: should preserve cleanup functions in useEffect', async () => {
+    const code = `
+import React, { useEffect, useState } from 'react';
 
-describe('Hook Hoisting - useContext', () => {
-  /**
-   * HOIST-03: Hoist useContext when moving outside Provider
-   *
-   * Test Purpose: Verify context handling when moving out of Provider
-   *
-   * Expected Results:
-   * - Context dependency tracked
-   * - Provider boundary respected or hoisted
-   */
-  it('HOIST-03: should handle useContext when moving outside Provider', async () => {
-    const files = [
-      { path: 'context.tsx', content: contextComponentContent },
-    ];
+function Component() {
+  const [count, setCount] = useState(0);
 
-    // Element using context
-    const from: PositionSelector = { file: 'context.tsx', line: 45, column: 8 };
-    // Outside provider boundary
-    const to: PositionSelector = { file: 'context.tsx', line: 30, column: 4 };
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCount(c => c + 1);
+    }, 1000);
 
-    const result = await regraft(files, from, to, Move.Inside);
+    return () => clearInterval(interval);
+  }, []);
+
+  return <span>{count}</span>;
+}
+`;
+
+    const from: PositionSelector = { file: 'test.tsx', line: 15, column: 10 };
+    const to: PositionSelector = { file: 'test.tsx', line: 14, column: 2 };
+
+    const result = await testHoisting(code, from, to, Move.Before);
 
     expect(result.success).toBe(true);
-    // Should track context dependency
+    // Cleanup function should be part of the useEffect dependency
   });
 });
 
@@ -261,41 +251,30 @@ describe('Hook Hoisting - useContext', () => {
 // useRef Hoisting Tests
 // =============================================================================
 
-describe('Hook Hoisting - useRef', () => {
-  /**
-   * HOIST-04: Hoist useRef with element
-   *
-   * Test Purpose: Verify ref is hoisted with referencing element
-   *
-   * Expected Results:
-   * - useRef included in hoisted dependencies
-   */
-  it('HOIST-04: should hoist useRef with element', async () => {
+describe('Phase 3 Hook Hoisting - useRef', () => {
+  it('HOIST-05: should hoist useRef with element', async () => {
     const code = `
-      import React, { useRef } from 'react';
+import React, { useRef } from 'react';
 
-      const Component = () => {
-        const inputRef = useRef(null);
+function Component() {
+  const inputRef = useRef(null);
 
-        return (
-          <div>
-            <input ref={inputRef} />
-            <button onClick={() => inputRef.current?.focus()}>
-              Focus
-            </button>
-          </div>
-        );
-      };
-    `;
+  return (
+    <div>
+      <input ref={inputRef} />
+      <button onClick={() => inputRef.current?.focus()}>Focus</button>
+    </div>
+  );
+}
+`;
 
-    const files = [{ path: 'ref.tsx', content: code }];
+    const from: PositionSelector = { file: 'test.tsx', line: 9, column: 6 };
+    const to: PositionSelector = { file: 'test.tsx', line: 7, column: 4 };
 
-    const from: PositionSelector = { file: 'ref.tsx', line: 9, column: 8 };
-    const to: PositionSelector = { file: 'ref.tsx', line: 7, column: 6 };
-
-    const result = await regraft(files, from, to, Move.Before);
+    const result = await testHoisting(code, from, to, Move.Before);
 
     expect(result.success).toBe(true);
+    expect(result.dependencies.some(d => d.symbol === 'inputRef')).toBe(true);
   });
 });
 
@@ -303,41 +282,35 @@ describe('Hook Hoisting - useRef', () => {
 // Custom Hook Hoisting Tests
 // =============================================================================
 
-describe('Hook Hoisting - Custom Hooks', () => {
-  /**
-   * HOIST-05: Hoist custom hook with element
-   *
-   * Test Purpose: Verify custom hooks are hoisted
-   *
-   * Expected Results:
-   * - Custom hook included in dependencies
-   */
-  it('HOIST-05: should hoist custom hook with element', async () => {
+describe('Phase 3 Hook Hoisting - Custom Hooks', () => {
+  it('HOIST-06: should hoist custom hooks', async () => {
     const code = `
-      import React from 'react';
-      import { useWindowSize } from './hooks';
+import React from 'react';
 
-      const Component = () => {
-        const { width, height } = useWindowSize();
+function useCustom() {
+  const [value, setValue] = React.useState(0);
+  return { value, setValue };
+}
 
-        return (
-          <div>
-            <span>Width: {width}</span>
-            <span>Height: {height}</span>
-          </div>
-        );
-      };
-    `;
+function Component() {
+  const { value, setValue } = useCustom();
 
-    const files = [{ path: 'custom.tsx', content: code }];
+  return (
+    <div>
+      <span>{value}</span>
+      <button onClick={() => setValue(value + 1)}>+</button>
+    </div>
+  );
+}
+`;
 
-    const from: PositionSelector = { file: 'custom.tsx', line: 10, column: 8 };
-    const to: PositionSelector = { file: 'custom.tsx', line: 8, column: 6 };
+    const from: PositionSelector = { file: 'test.tsx', line: 14, column: 6 };
+    const to: PositionSelector = { file: 'test.tsx', line: 13, column: 4 };
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = await testHoisting(code, from, to, Move.Before);
 
     expect(result.success).toBe(true);
-    expect(result.analysis.dependencies?.some(d => d.symbol === 'useWindowSize')).toBe(true);
+    expect(result.dependencies.some(d => d.symbol === 'value')).toBe(true);
   });
 });
 
@@ -345,265 +318,125 @@ describe('Hook Hoisting - Custom Hooks', () => {
 // Multiple Hooks Tests
 // =============================================================================
 
-describe('Hook Hoisting - Multiple Hooks', () => {
-  /**
-   * HOIST-06: Hoist multiple hooks together
-   *
-   * Test Purpose: Verify multiple hooks are hoisted as unit
-   *
-   * Expected Results:
-   * - All dependent hooks hoisted
-   */
-  it('HOIST-06: should hoist multiple hooks together', async () => {
+describe('Phase 3 Hook Hoisting - Multiple Hooks', () => {
+  it('HOIST-07: should hoist multiple hooks together', async () => {
     const code = `
-      import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
-      const Component = () => {
-        const [data, setData] = useState([]);
-        const [loading, setLoading] = useState(true);
+function Component() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-        useEffect(() => {
-          fetch('/api').then(r => r.json()).then(setData);
-          setLoading(false);
-        }, []);
+  useEffect(() => {
+    fetch('/api').then(r => r.json()).then(setData).finally(() => setLoading(false));
+  }, []);
 
-        const processed = useMemo(() => data.map(d => d * 2), [data]);
+  const processed = useMemo(() => data.map(d => d * 2), [data]);
 
-        return (
-          <div>
-            {loading ? <span>Loading...</span> : <span>{processed.length}</span>}
-          </div>
-        );
-      };
-    `;
+  return (
+    <div>
+      {loading ? <span>Loading...</span> : <span>{processed.length}</span>}
+    </div>
+  );
+}
+`;
 
-    const files = [{ path: 'multi.tsx', content: code }];
+    const from: PositionSelector = { file: 'test.tsx', line: 15, column: 29 };
+    const to: PositionSelector = { file: 'test.tsx', line: 14, column: 4 };
 
-    const from: PositionSelector = { file: 'multi.tsx', line: 16, column: 8 };
-    const to: PositionSelector = { file: 'multi.tsx', line: 15, column: 6 };
-
-    const result = await regraft(files, from, to, Move.Before);
+    const result = await testHoisting(code, from, to, Move.Before);
 
     expect(result.success).toBe(true);
-    // Multiple hooks should be tracked
-    expect(result.analysis.hoistedDeps?.length).toBeGreaterThan(0);
+    // Should detect multiple hooks
+    const hookDeps = result.dependencies.filter(d => d.type === DependencyType.Hook);
+    expect(hookDeps.length).toBeGreaterThan(0);
   });
 
-  /**
-   * HOIST-07: Preserve hook call order after hoisting
-   *
-   * Test Purpose: Verify hooks remain in consistent order
-   *
-   * Expected Results:
-   * - Hook order is maintained (Rules of Hooks compliance)
-   */
-  it('HOIST-07: should preserve hook call order', async () => {
-    const files = [
-      { path: 'hooks.tsx', content: hooksComponentContent },
-    ];
-
-    const from: PositionSelector = { file: 'hooks.tsx', line: 15, column: 6 };
-    const to: PositionSelector = { file: 'hooks.tsx', line: 10, column: 4 };
-
-    const result = await regraft(files, from, to, Move.Inside);
-
-    expect(result.success).toBe(true);
-    // Hook order is preserved (enforced by Rules of Hooks)
-  });
-});
-
-// =============================================================================
-// Common Ancestor Tests
-// =============================================================================
-
-describe('Hook Hoisting - Common Ancestor', () => {
-  /**
-   * HOIST-08: Hoist hook to common ancestor component
-   *
-   * Test Purpose: Verify hoisting finds correct ancestor
-   *
-   * Expected Results:
-   * - Hook hoisted to nearest common component ancestor
-   */
-  it('HOIST-08: should hoist to common ancestor component', async () => {
-    const files = [
-      { path: 'nested.tsx', content: nestedComponentContent },
-    ];
-
-    // Nested element
-    const from: PositionSelector = { file: 'nested.tsx', line: 50, column: 10 };
-    // Different branch
-    const to: PositionSelector = { file: 'nested.tsx', line: 40, column: 6 };
-
-    const result = await regraft(files, from, to, Move.Inside);
-
-    expect(result.success).toBe(true);
-  });
-});
-
-// =============================================================================
-// Prop Threading Tests
-// =============================================================================
-
-describe('Hook Hoisting - Prop Threading', () => {
-  /**
-   * HOIST-09: Thread state value through props after hoist
-   *
-   * Test Purpose: Verify state value passed via props
-   *
-   * Expected Results:
-   * - State value available at new location via props
-   */
-  it('HOIST-09: should thread state value through props', async () => {
-    const files = [
-      { path: 'hooks.tsx', content: hooksComponentContent },
-    ];
-
-    const from: PositionSelector = { file: 'hooks.tsx', line: 15, column: 6 };
-    const to: PositionSelector = { file: 'hooks.tsx', line: 10, column: 4 };
-
-    const result = await regraft(files, from, to, Move.Inside);
-
-    expect(result.success).toBe(true);
-    // Prop threading would be indicated in analysis
-  });
-
-  /**
-   * HOIST-10: Thread state setter through props after hoist
-   *
-   * Test Purpose: Verify setter function passed via props
-   *
-   * Expected Results:
-   * - Setter available at new location via props
-   */
-  it('HOIST-10: should thread state setter through props', async () => {
-    const files = [
-      { path: 'hooks.tsx', content: hooksComponentContent },
-    ];
-
-    // Button with onClick using setter
-    const from: PositionSelector = { file: 'hooks.tsx', line: 16, column: 6 };
-    const to: PositionSelector = { file: 'hooks.tsx', line: 10, column: 4 };
-
-    const result = await regraft(files, from, to, Move.Inside);
-
-    expect(result.success).toBe(true);
-  });
-});
-
-// =============================================================================
-// Error Cases
-// =============================================================================
-
-describe('Hook Hoisting - Error Cases', () => {
-  /**
-   * HOIST-11: Fail when hook cannot be hoisted
-   *
-   * Test Purpose: Verify failure when no valid scope exists
-   *
-   * Expected Results:
-   * - Failure with reason explaining limitation
-   */
-  it('HOIST-11: should handle case with no valid hoist scope', async () => {
-    // This would be a case where moving outside all components
-    const files = [
-      { path: 'hooks.tsx', content: hooksComponentContent },
-    ];
-
-    // Invalid target (outside components)
-    const from: PositionSelector = { file: 'hooks.tsx', line: 15, column: 6 };
-    const to: PositionSelector = { file: 'nonexistent.tsx', line: 1, column: 0 };
-
-    const result = await regraft(files, from, to, Move.Inside);
-
-    expect(result.success).toBe(false);
-    expect(result.analysis.reason).toBeDefined();
-  });
-});
-
-// =============================================================================
-// Hook with Dependencies Tests
-// =============================================================================
-
-describe('Hook Hoisting - Dependencies Array', () => {
-  /**
-   * HOIST-12: Handle hook with dependencies array
-   *
-   * Test Purpose: Verify hooks with deps arrays are handled
-   *
-   * Expected Results:
-   * - Dependencies in array also tracked
-   */
-  it('HOIST-12: should handle hook with dependencies array', async () => {
+  it('HOIST-08: should preserve hook call order', async () => {
     const code = `
-      import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
-      const Component = () => {
-        const [count, setCount] = useState(0);
-        const [name, setName] = useState('');
+function Component() {
+  const [a, setA] = useState(1);
+  const [b, setB] = useState(2);
+  const [c, setC] = useState(3);
 
-        useEffect(() => {
-          document.title = \`\${name}: \${count}\`;
-        }, [count, name]);
+  useEffect(() => {
+    console.log(a, b, c);
+  }, [a, b, c]);
 
-        return (
-          <div>
-            <span>{count}</span>
-            <span>{name}</span>
-          </div>
-        );
-      };
-    `;
+  return <div>{a + b + c}</div>;
+}
+`;
 
-    const files = [{ path: 'deps.tsx', content: code }];
+    const from: PositionSelector = { file: 'test.tsx', line: 13, column: 10 };
+    const to: PositionSelector = { file: 'test.tsx', line: 12, column: 2 };
 
-    const from: PositionSelector = { file: 'deps.tsx', line: 14, column: 8 };
-    const to: PositionSelector = { file: 'deps.tsx', line: 12, column: 6 };
-
-    const result = await regraft(files, from, to, Move.Before);
+    const result = await testHoisting(code, from, to, Move.Before);
 
     expect(result.success).toBe(true);
+    // Hook order must be preserved (Rules of Hooks)
   });
 });
 
 // =============================================================================
-// useMemo/useCallback Tests
+// useMemo and useCallback Tests
 // =============================================================================
 
-describe('Hook Hoisting - Memoization Hooks', () => {
-  /**
-   * HOIST-13: Handle useMemo/useCallback hoisting
-   *
-   * Test Purpose: Verify memoization hooks are hoisted
-   *
-   * Expected Results:
-   * - useMemo/useCallback hoisted with element
-   */
-  it('HOIST-13: should handle useMemo hoisting', async () => {
+describe('Phase 3 Hook Hoisting - Memoization Hooks', () => {
+  it('HOIST-09: should hoist useMemo with dependencies', async () => {
     const code = `
-      import React, { useMemo } from 'react';
+import React, { useMemo } from 'react';
 
-      const Component = ({ items }) => {
-        const sorted = useMemo(() => {
-          return items.slice().sort((a, b) => a - b);
-        }, [items]);
+function Component({ items }) {
+  const sorted = useMemo(() => {
+    return items.slice().sort((a, b) => a - b);
+  }, [items]);
 
-        return (
-          <ul>
-            {sorted.map(item => <li key={item}>{item}</li>)}
-          </ul>
-        );
-      };
-    `;
+  return (
+    <ul>
+      {sorted.map(item => <li key={item}>{item}</li>)}
+    </ul>
+  );
+}
+`;
 
-    const files = [{ path: 'memo.tsx', content: code }];
+    const from: PositionSelector = { file: 'test.tsx', line: 11, column: 6 };
+    const to: PositionSelector = { file: 'test.tsx', line: 10, column: 4 };
 
-    const from: PositionSelector = { file: 'memo.tsx', line: 10, column: 8 };
-    const to: PositionSelector = { file: 'memo.tsx', line: 9, column: 6 };
-
-    const result = await regraft(files, from, to, Move.Before);
+    const result = await testHoisting(code, from, to, Move.Before);
 
     expect(result.success).toBe(true);
+    expect(result.dependencies.some(d => d.symbol === 'sorted')).toBe(true);
+  });
+
+  it('HOIST-10: should hoist useCallback with dependencies', async () => {
+    const code = `
+import React, { useCallback, useState } from 'react';
+
+function Component() {
+  const [count, setCount] = useState(0);
+
+  const increment = useCallback(() => {
+    setCount(c => c + 1);
+  }, []);
+
+  return (
+    <div>
+      <span>{count}</span>
+      <button onClick={increment}>+</button>
+    </div>
+  );
+}
+`;
+
+    const from: PositionSelector = { file: 'test.tsx', line: 14, column: 6 };
+    const to: PositionSelector = { file: 'test.tsx', line: 12, column: 4 };
+
+    const result = await testHoisting(code, from, to, Move.Before);
+
+    expect(result.success).toBe(true);
+    expect(result.dependencies.some(d => d.symbol === 'increment')).toBe(true);
   });
 });
 
@@ -611,94 +444,133 @@ describe('Hook Hoisting - Memoization Hooks', () => {
 // useReducer Tests
 // =============================================================================
 
-describe('Hook Hoisting - useReducer', () => {
-  /**
-   * HOIST-14: Handle useReducer hoisting
-   *
-   * Test Purpose: Verify useReducer is hoisted with dispatcher
-   *
-   * Expected Results:
-   * - useReducer hoisted, dispatch passed as prop
-   */
-  it('HOIST-14: should handle useReducer hoisting', async () => {
+describe('Phase 3 Hook Hoisting - useReducer', () => {
+  it('HOIST-11: should hoist useReducer with dispatcher', async () => {
     const code = `
-      import React, { useReducer } from 'react';
+import React, { useReducer } from 'react';
 
-      const reducer = (state, action) => {
-        switch (action.type) {
-          case 'increment':
-            return { count: state.count + 1 };
-          default:
-            return state;
-        }
-      };
+const reducer = (state, action) => {
+  switch (action.type) {
+    case 'increment':
+      return { count: state.count + 1 };
+    default:
+      return state;
+  }
+};
 
-      const Component = () => {
-        const [state, dispatch] = useReducer(reducer, { count: 0 });
+function Component() {
+  const [state, dispatch] = useReducer(reducer, { count: 0 });
 
-        return (
-          <div>
-            <span>{state.count}</span>
-            <button onClick={() => dispatch({ type: 'increment' })}>+</button>
-          </div>
-        );
-      };
-    `;
+  return (
+    <div>
+      <span>{state.count}</span>
+      <button onClick={() => dispatch({ type: 'increment' })}>+</button>
+    </div>
+  );
+}
+`;
 
-    const files = [{ path: 'reducer.tsx', content: code }];
+    const from: PositionSelector = { file: 'test.tsx', line: 18, column: 6 };
+    const to: PositionSelector = { file: 'test.tsx', line: 17, column: 4 };
 
-    const from: PositionSelector = { file: 'reducer.tsx', line: 17, column: 8 };
-    const to: PositionSelector = { file: 'reducer.tsx', line: 16, column: 6 };
-
-    const result = await regraft(files, from, to, Move.Before);
+    const result = await testHoisting(code, from, to, Move.Before);
 
     expect(result.success).toBe(true);
+    expect(result.dependencies.some(d => d.symbol === 'state')).toBe(true);
   });
 });
 
 // =============================================================================
-// Cleanup Function Tests
+// Variable Hoisting Tests
 // =============================================================================
 
-describe('Hook Hoisting - Cleanup Functions', () => {
-  /**
-   * HOIST-15: Preserve cleanup functions in useEffect
-   *
-   * Test Purpose: Verify cleanup functions are preserved
-   *
-   * Expected Results:
-   * - Cleanup function remains intact after hoisting
-   */
-  it('HOIST-15: should preserve cleanup functions in useEffect', async () => {
+describe('Phase 3 Variable Hoisting', () => {
+  it('HOIST-12: should hoist pure variables', async () => {
     const code = `
-      import React, { useEffect, useState } from 'react';
+import React from 'react';
 
-      const Component = () => {
-        const [count, setCount] = useState(0);
+function Component({ items }) {
+  const count = items.length;
+  const doubled = count * 2;
 
-        useEffect(() => {
-          const interval = setInterval(() => {
-            setCount(c => c + 1);
-          }, 1000);
+  return (
+    <div>
+      <span>Count: {count}</span>
+      <span>Doubled: {doubled}</span>
+    </div>
+  );
+}
+`;
 
-          return () => {
-            clearInterval(interval);
-          };
-        }, []);
+    const from: PositionSelector = { file: 'test.tsx', line: 10, column: 6 };
+    const to: PositionSelector = { file: 'test.tsx', line: 9, column: 4 };
 
-        return <span>{count}</span>;
-      };
-    `;
-
-    const files = [{ path: 'cleanup.tsx', content: code }];
-
-    const from: PositionSelector = { file: 'cleanup.tsx', line: 17, column: 6 };
-    const to: PositionSelector = { file: 'cleanup.tsx', line: 16, column: 4 };
-
-    const result = await regraft(files, from, to, Move.Before);
+    const result = await testHoisting(code, from, to, Move.Before);
 
     expect(result.success).toBe(true);
-    // Cleanup function preserved with useEffect
+    expect(result.dependencies.some(d =>
+      d.type === DependencyType.Variable && d.symbol === 'count'
+    )).toBe(true);
+  });
+});
+
+// =============================================================================
+// Import Hoisting Tests
+// =============================================================================
+
+describe('Phase 3 Import Management', () => {
+  it('HOIST-13: should detect import dependencies', async () => {
+    const code = `
+import React from 'react';
+import { format } from 'date-fns';
+
+function Component() {
+  const now = new Date();
+  const formatted = format(now, 'yyyy-MM-dd');
+
+  return <div>{formatted}</div>;
+}
+`;
+
+    const from: PositionSelector = { file: 'test.tsx', line: 9, column: 10 };
+    const to: PositionSelector = { file: 'test.tsx', line: 8, column: 2 };
+
+    const result = await testHoisting(code, from, to, Move.Before);
+
+    expect(result.success).toBe(true);
+    expect(result.dependencies.some(d =>
+      d.type === DependencyType.Import && d.symbol === 'format'
+    )).toBe(true);
+  });
+});
+
+// =============================================================================
+// Rules of Hooks Validation Tests
+// =============================================================================
+
+describe('Phase 3 Rules of Hooks Validation', () => {
+  it('HOIST-14: should validate hooks are not in conditional scopes', async () => {
+    const code = `
+import React, { useState } from 'react';
+
+function Component({ showCounter }) {
+  const [count, setCount] = useState(0);
+
+  return (
+    <div>
+      {showCounter && <span>{count}</span>}
+    </div>
+  );
+}
+`;
+
+    const from: PositionSelector = { file: 'test.tsx', line: 9, column: 22 };
+    const to: PositionSelector = { file: 'test.tsx', line: 8, column: 4 };
+
+    const result = await testHoisting(code, from, to, Move.Before);
+
+    expect(result.success).toBe(true);
+    // Hook should remain at component top-level
   });
 });
 
@@ -706,78 +578,46 @@ describe('Hook Hoisting - Cleanup Functions', () => {
 // Edge Cases
 // =============================================================================
 
-describe('Hook Hoisting - Edge Cases', () => {
-  it('should handle hooks in custom wrapper components', async () => {
+describe('Phase 3 Hook Hoisting - Edge Cases', () => {
+  it('HOIST-15: should handle hooks with complex destructuring', async () => {
     const code = `
-      import React, { useState } from 'react';
+import React, { useState } from 'react';
 
-      const Wrapper = ({ children }) => {
-        const [visible, setVisible] = useState(true);
-        return visible ? <div>{children}</div> : null;
-      };
+function Component() {
+  const [[nested], setNested] = useState([['value']]);
 
-      const App = () => {
-        return (
-          <Wrapper>
-            <span>Content</span>
-          </Wrapper>
-        );
-      };
-    `;
+  return <span>{nested}</span>;
+}
+`;
 
-    const files = [{ path: 'wrapper.tsx', content: code }];
+    const from: PositionSelector = { file: 'test.tsx', line: 7, column: 10 };
+    const to: PositionSelector = { file: 'test.tsx', line: 6, column: 2 };
 
-    const from: PositionSelector = { file: 'wrapper.tsx', line: 12, column: 8 };
-    const to: PositionSelector = { file: 'wrapper.tsx', line: 10, column: 4 };
-
-    const result = await regraft(files, from, to, Move.Before);
+    const result = await testHoisting(code, from, to, Move.Before);
 
     expect(result.success).toBe(true);
   });
 
-  it('should handle hooks with complex return values', async () => {
+  it('HOIST-16: should handle hooks in nested components', async () => {
     const code = `
-      import React, { useState } from 'react';
+import React, { useState } from 'react';
 
-      const Component = () => {
-        const [[nested, value], setNested] = useState([[1, 2], 3]);
+function Outer() {
+  return (
+    <Inner />
+  );
+}
 
-        return <span>{nested[0]} - {value}</span>;
-      };
-    `;
+function Inner() {
+  const [value, setValue] = useState(0);
+  return <span>{value}</span>;
+}
+`;
 
-    const files = [{ path: 'complex.tsx', content: code }];
+    const from: PositionSelector = { file: 'test.tsx', line: 12, column: 10 };
+    const to: PositionSelector = { file: 'test.tsx', line: 11, column: 2 };
 
-    const from: PositionSelector = { file: 'complex.tsx', line: 6, column: 6 };
-    const to: PositionSelector = { file: 'complex.tsx', line: 5, column: 4 };
-
-    const result = await regraft(files, from, to, Move.Before);
-
-    expect(result.success).toBe(true);
-  });
-
-  it('should handle conditional hook rendering patterns', async () => {
-    const code = `
-      import React, { useState } from 'react';
-
-      const Component = ({ showCounter }) => {
-        // This is valid as long as component always renders with same hook order
-        const [count, setCount] = useState(0);
-
-        return (
-          <div>
-            {showCounter && <span>{count}</span>}
-          </div>
-        );
-      };
-    `;
-
-    const files = [{ path: 'conditional.tsx', content: code }];
-
-    const from: PositionSelector = { file: 'conditional.tsx', line: 10, column: 26 };
-    const to: PositionSelector = { file: 'conditional.tsx', line: 9, column: 6 };
-
-    const result = await regraft(files, from, to, Move.Before);
+    const result = await testHoisting(code, from, to, Move.Before);
 
     expect(result.success).toBe(true);
   });

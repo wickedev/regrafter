@@ -431,14 +431,15 @@ function checkAnalyzability(ast: t.File): AnalyzabilityResult {
 // ============================================================================
 
 /**
- * Rule: Cannot move element to itself
+ * Rule: Moving element to itself is allowed (will be handled as no-op)
+ * Task 1.4.3: Source-target identity detection should return success
  */
 const selfMoveRule: ValidationRule = (source, target, _mode, _context) => {
   if (source.node === target.node) {
+    // Allow self-moves, they will be handled as no-ops by the transformer
     return {
-      valid: false,
-      reason: 'Cannot move element to itself',
-      errorCode: MoveValidationError.SELF_MOVE,
+      valid: true,
+      warning: 'Moving element to itself (will be no-op)',
     };
   }
   return { valid: true };
@@ -449,6 +450,11 @@ const selfMoveRule: ValidationRule = (source, target, _mode, _context) => {
  */
 const targetNotDescendantRule: ValidationRule = (source, target, _mode, _context) => {
   if (!source.path || !target.path) {
+    return { valid: true };
+  }
+
+  // Skip check if source and target are the same (will be handled as no-op)
+  if (source.node === target.node) {
     return { valid: true };
   }
 
