@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en-US" dir="ltr" class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-api/errors" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.9.2">
+<title data-rh="true">Error Code Reference | Regrafter</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://wickedev.github.io/regrafter/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://wickedev.github.io/regrafter/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://wickedev.github.io/regrafter/docs/api/errors"><meta data-rh="true" property="og:locale" content="en_US"><meta data-rh="true" property="og:locale:alternate" content="ko_KR"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Error Code Reference | Regrafter"><meta data-rh="true" name="description" content="This document provides detailed information about all error codes in Regrafter."><meta data-rh="true" property="og:description" content="This document provides detailed information about all error codes in Regrafter."><link data-rh="true" rel="icon" href="/regrafter/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://wickedev.github.io/regrafter/docs/api/errors"><link data-rh="true" rel="alternate" href="https://wickedev.github.io/regrafter/docs/api/errors" hreflang="en-US"><link data-rh="true" rel="alternate" href="https://wickedev.github.io/regrafter/ko/docs/api/errors" hreflang="ko-KR"><link data-rh="true" rel="alternate" href="https://wickedev.github.io/regrafter/docs/api/errors" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Error Code Reference","item":"https://wickedev.github.io/regrafter/docs/api/errors"}]}</script><link rel="alternate" type="application/rss+xml" href="/regrafter/blog/rss.xml" title="Regrafter RSS Feed">
+<link rel="alternate" type="application/atom+xml" href="/regrafter/blog/atom.xml" title="Regrafter Atom Feed"><link rel="stylesheet" href="/regrafter/assets/css/styles.9c53a5ce.css">
+<script src="/regrafter/assets/js/runtime~main.ce51078d.js" defer="defer"></script>
+<script src="/regrafter/assets/js/main.d653eb92.js" defer="defer"></script>
+</head>
+<body class="navigation-with-keyboard">
+<svg style="display: none;"><defs>
+<symbol id="theme-svg-external-link" viewBox="0 0 24 24"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",t||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")),document.documentElement.setAttribute("data-theme-choice",t||"system")}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><link rel="preload" as="image" href="/regrafter/img/logo.svg"><div role="region" aria-label="Skip to main content"><a class="skipToContent_fXgn" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="theme-layout-navbar navbar navbar--fixed-top"><div class="navbar__inner"><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/regrafter/"><div class="navbar__logo"><img src="/regrafter/img/logo.svg" alt="Regrafter Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src="/regrafter/img/logo.svg" alt="Regrafter Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">Regrafter</b></a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" href="/regrafter/docs/intro">Docs</a><a class="navbar__item navbar__link" href="/regrafter/blog">Blog</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><div class="navbar__item dropdown dropdown--hoverable dropdown--right"><a href="#" aria-haspopup="true" aria-expanded="false" role="button" class="navbar__link"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" class="iconLanguage_nlXk"><path fill="currentColor" d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"></path></svg>English</a><ul class="dropdown__menu"><li><a href="/regrafter/docs/api/errors" target="_self" rel="noopener noreferrer" class="dropdown__link dropdown__link--active" lang="en-US">English</a></li><li><a href="/regrafter/ko/docs/api/errors" target="_self" rel="noopener noreferrer" class="dropdown__link" lang="ko-KR">한국어</a></li></ul></div><a href="https://github.com/wickedev/regrafter" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">GitHub<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a><div class="toggle_vylO colorModeToggle_DEke"><button class="clean-btn toggleButton_gllP toggleButtonDisabled_aARS" type="button" disabled="" title="system mode" aria-label="Switch between dark and light mode (currently system mode)"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g3eP lightToggleIcon_pyhR"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g3eP darkToggleIcon_wfgR"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g3eP systemToggleIcon_QzmC"><path fill="currentColor" d="m12 21c4.971 0 9-4.029 9-9s-4.029-9-9-9-9 4.029-9 9 4.029 9 9 9zm4.95-13.95c1.313 1.313 2.05 3.093 2.05 4.95s-0.738 3.637-2.05 4.95c-1.313 1.313-3.093 2.05-4.95 2.05v-14c1.857 0 3.637 0.737 4.95 2.05z"></path></svg></button></div><div class="navbarSearchContainer_Bca1"></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="theme-layout-main main-wrapper mainWrapper_z2l0"><div class="docsWrapper_hBAB"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type="button"></button><div class="docRoot_UBD9"><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class="sidebarViewport_aRkj"><div class="sidebar_njMd"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/regrafter/docs/intro"><span title="Getting Started" class="linkLabel_WmDU">Getting Started</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="categoryLink_byQd menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role="button" aria-expanded="true" href="/regrafter/docs/api/overview"><span title="api" class="categoryLinkLabel_W154">api</span></a></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/regrafter/docs/api/overview"><span title="API Overview" class="linkLabel_WmDU">API Overview</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/regrafter/docs/api/errors"><span title="Error Code Reference" class="linkLabel_WmDU">Error Code Reference</span></a></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_byQd menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/regrafter/docs/concepts/dependencies"><span title="concepts" class="categoryLinkLabel_W154">concepts</span></a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_byQd menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/regrafter/docs/examples/basic"><span title="examples" class="categoryLinkLabel_W154">examples</span></a></div></li></ul></nav></div></div></aside><main class="docMainContainer_TBSr"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_VOVn"><div class="docItemContainer_Djhp"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label="Breadcrumbs"><ul class="breadcrumbs"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/regrafter/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_YNFT"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li class="breadcrumbs__item"><span class="breadcrumbs__link">api</span></li><li class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link">Error Code Reference</span></li></ul></nav><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type="button" class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>Error Code Reference</h1></header>
+<p>This document provides detailed information about all error codes in Regrafter.</p>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="error-code-format">Error Code Format<a href="#error-code-format" class="hash-link" aria-label="Direct link to Error Code Format" title="Direct link to Error Code Format" translate="no">​</a></h2>
+<p>Error codes follow the format <code>EXXX</code> where:</p>
+<ul>
+<li class="">E001-E009: Parse errors</li>
+<li class="">E010-E019: Selector errors</li>
+<li class="">E020-E029: Dependency errors</li>
+<li class="">E030-E039: Validation errors</li>
+<li class="">E040-E049: Circular dependency errors</li>
+<li class="">E050-E059: Transform errors</li>
+<li class="">E090-E099: Internal errors</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="parse-errors-e001-e009">Parse Errors (E001-E009)<a href="#parse-errors-e001-e009" class="hash-link" aria-label="Direct link to Parse Errors (E001-E009)" title="Direct link to Parse Errors (E001-E009)" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e001---general-parse-error">E001 - General Parse Error<a href="#e001---general-parse-error" class="hash-link" aria-label="Direct link to E001 - General Parse Error" title="Direct link to E001 - General Parse Error" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Failed to parse {file}: {message}</code></p>
+<p><strong>Description:</strong> The file could not be parsed due to a syntax error.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Invalid JavaScript/TypeScript syntax</li>
+<li class="">Malformed JSX</li>
+<li class="">Encoding issues</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Check the file for syntax errors</li>
+<li class="">Ensure the file uses valid JSX/TSX syntax</li>
+<li class="">Verify the file encoding is UTF-8</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e002---unexpected-token">E002 - Unexpected Token<a href="#e002---unexpected-token" class="hash-link" aria-label="Direct link to E002 - Unexpected Token" title="Direct link to E002 - Unexpected Token" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Unexpected token at {file}:{line}:{column}</code></p>
+<p><strong>Description:</strong> The parser encountered an unexpected token.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Missing or extra punctuation (brackets, parentheses, commas)</li>
+<li class="">Invalid operator usage</li>
+<li class="">Incomplete statements</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Review the code at the specified location</li>
+<li class="">Check for missing closing brackets or parentheses</li>
+<li class="">Verify statement completion</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e003---unterminated-string">E003 - Unterminated String<a href="#e003---unterminated-string" class="hash-link" aria-label="Direct link to E003 - Unterminated String" title="Direct link to E003 - Unterminated String" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Unterminated string literal in {file} at line {line}</code></p>
+<p><strong>Description:</strong> A string literal was not properly closed.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Missing closing quote</li>
+<li class="">Unescaped quotes within string</li>
+<li class="">Multi-line string without proper template syntax</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Add the missing closing quote</li>
+<li class="">Use template literals (``) for multi-line strings</li>
+<li class="">Escape internal quotes properly</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e004---invalid-jsx-syntax">E004 - Invalid JSX Syntax<a href="#e004---invalid-jsx-syntax" class="hash-link" aria-label="Direct link to E004 - Invalid JSX Syntax" title="Direct link to E004 - Invalid JSX Syntax" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Invalid JSX syntax in {file}: {message}</code></p>
+<p><strong>Description:</strong> JSX-specific syntax error.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Unclosed JSX elements</li>
+<li class="">Invalid JSX attribute syntax</li>
+<li class="">Missing JSX closing tags</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Ensure all JSX elements have closing tags or are self-closing</li>
+<li class="">Verify JSX attribute syntax (use camelCase, proper quoting)</li>
+<li class="">Check JSX expression syntax</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e005---typescript-syntax-error">E005 - TypeScript Syntax Error<a href="#e005---typescript-syntax-error" class="hash-link" aria-label="Direct link to E005 - TypeScript Syntax Error" title="Direct link to E005 - TypeScript Syntax Error" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>TypeScript syntax error in {file}: {message}</code></p>
+<p><strong>Description:</strong> TypeScript-specific syntax error.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Invalid type annotations</li>
+<li class="">Incorrect generic syntax</li>
+<li class="">Type-only features in wrong positions</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Verify type annotation syntax</li>
+<li class="">Check generic parameter syntax</li>
+<li class="">Ensure type imports use <code>import type</code></li>
+</ul>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="selector-errors-e010-e019">Selector Errors (E010-E019)<a href="#selector-errors-e010-e019" class="hash-link" aria-label="Direct link to Selector Errors (E010-E019)" title="Direct link to Selector Errors (E010-E019)" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e010---no-jsx-element-at-position">E010 - No JSX Element at Position<a href="#e010---no-jsx-element-at-position" class="hash-link" aria-label="Direct link to E010 - No JSX Element at Position" title="Direct link to E010 - No JSX Element at Position" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>No JSX element found at {file}:{line}:{column}</code></p>
+<p><strong>Description:</strong> The position selector did not resolve to a JSX element.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Position is outside JSX element boundaries</li>
+<li class="">Position points to non-JSX code</li>
+<li class="">Position is at whitespace</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Adjust the selector position to be within a JSX element</li>
+<li class="">Use the analyze API to find valid positions</li>
+<li class="">Verify the file content matches expected structure</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e011---invalid-ast-path">E011 - Invalid AST Path<a href="#e011---invalid-ast-path" class="hash-link" aria-label="Direct link to E011 - Invalid AST Path" title="Direct link to E011 - Invalid AST Path" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Invalid AST path: {path}</code></p>
+<p><strong>Description:</strong> The AST path selector is malformed or doesn&#x27;t exist.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Typos in the path string</li>
+<li class="">Path refers to non-existent nodes</li>
+<li class="">Array index out of bounds</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Use position selector instead</li>
+<li class="">Verify the AST structure of the file</li>
+<li class="">Check array indices in the path</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e012---file-not-in-input">E012 - File Not in Input<a href="#e012---file-not-in-input" class="hash-link" aria-label="Direct link to E012 - File Not in Input" title="Direct link to E012 - File Not in Input" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>File not in input: {file}</code></p>
+<p><strong>Description:</strong> The selector references a file not provided in the input.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Typo in file path</li>
+<li class="">Missing file in the files array</li>
+<li class="">Cross-file reference without including target file</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Add the referenced file to the files array</li>
+<li class="">Verify file path spelling</li>
+<li class="">Include all relevant files for cross-file operations</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e013---element-not-movable">E013 - Element Not Movable<a href="#e013---element-not-movable" class="hash-link" aria-label="Direct link to E013 - Element Not Movable" title="Direct link to E013 - Element Not Movable" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Element at position is not movable: {reason}</code></p>
+<p><strong>Description:</strong> The selected element cannot be moved due to constraints.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Element is a root component</li>
+<li class="">Element is part of a Fragment with special semantics</li>
+<li class="">Element has immovable dependencies</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Extract the element to a component first</li>
+<li class="">Consider the suggested alternatives</li>
+<li class="">Review the reason provided in the error</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e014---same-source-and-target">E014 - Same Source and Target<a href="#e014---same-source-and-target" class="hash-link" aria-label="Direct link to E014 - Same Source and Target" title="Direct link to E014 - Same Source and Target" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Source and target selectors point to the same element</code></p>
+<p><strong>Description:</strong> The move operation would be a no-op.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Selector positions resolve to the same element</li>
+<li class="">Accidental duplicate selectors</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Specify different source and target locations</li>
+<li class="">Verify selector positions are distinct</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e015---move-into-self">E015 - Move Into Self<a href="#e015---move-into-self" class="hash-link" aria-label="Direct link to E015 - Move Into Self" title="Direct link to E015 - Move Into Self" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Cannot move element into itself or its descendants</code></p>
+<p><strong>Description:</strong> Attempted to move an element inside its own subtree.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Target element is a child of source element</li>
+<li class="">Circular move structure</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Choose a target outside the source element&#x27;s subtree</li>
+<li class="">Consider restructuring the component hierarchy</li>
+</ul>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="dependency-errors-e020-e029">Dependency Errors (E020-E029)<a href="#dependency-errors-e020-e029" class="hash-link" aria-label="Direct link to Dependency Errors (E020-E029)" title="Direct link to Dependency Errors (E020-E029)" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e020---eval-detected">E020 - eval() Detected<a href="#e020---eval-detected" class="hash-link" aria-label="Direct link to E020 - eval() Detected" title="Direct link to E020 - eval() Detected" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Cannot analyze: eval() detected at {file}:{line}:{column}</code></p>
+<p><strong>Description:</strong> Code contains <code>eval()</code> which prevents static analysis.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Use of <code>eval()</code> function</li>
+<li class="">Dynamic code generation</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Remove eval() usage</li>
+<li class="">Use JSON.parse() for JSON strings</li>
+<li class="">Consider safer alternatives</li>
+</ul>
+<p><strong>Recoverable:</strong> No</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e021---dynamic-code-execution">E021 - Dynamic Code Execution<a href="#e021---dynamic-code-execution" class="hash-link" aria-label="Direct link to E021 - Dynamic Code Execution" title="Direct link to E021 - Dynamic Code Execution" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Cannot analyze: dynamic code execution at {file}:{line}:{column}</code></p>
+<p><strong>Description:</strong> Code contains dynamic code execution patterns.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class=""><code>new Function()</code> usage</li>
+<li class="">Dynamic property access with computed values</li>
+<li class="">Indirect eval</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Refactor to static patterns</li>
+<li class="">Use mapping objects instead of dynamic access</li>
+</ul>
+<p><strong>Recoverable:</strong> No</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e022---unresolvable-reference">E022 - Unresolvable Reference<a href="#e022---unresolvable-reference" class="hash-link" aria-label="Direct link to E022 - Unresolvable Reference" title="Direct link to E022 - Unresolvable Reference" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Unresolvable external reference: {symbol} in {file}</code></p>
+<p><strong>Description:</strong> Reference to undefined or external symbol.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Missing import</li>
+<li class="">Undefined variable</li>
+<li class="">External/global reference</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Add the missing import</li>
+<li class="">Define the symbol</li>
+<li class="">Verify the import source</li>
+</ul>
+<p><strong>Recoverable:</strong> Yes - can add import automatically</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e023---dependency-cycle">E023 - Dependency Cycle<a href="#e023---dependency-cycle" class="hash-link" aria-label="Direct link to E023 - Dependency Cycle" title="Direct link to E023 - Dependency Cycle" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Dependency cycle detected in {symbol}: {cycle}</code></p>
+<p><strong>Description:</strong> Circular dependency chain detected.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Mutual dependencies between symbols</li>
+<li class="">Circular import patterns</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Extract shared dependencies to a common module</li>
+<li class="">Refactor to break the cycle</li>
+</ul>
+<p><strong>Recoverable:</strong> Yes - can create shared module</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e024---cannot-determine-scope">E024 - Cannot Determine Scope<a href="#e024---cannot-determine-scope" class="hash-link" aria-label="Direct link to E024 - Cannot Determine Scope" title="Direct link to E024 - Cannot Determine Scope" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Cannot determine scope for {symbol}</code></p>
+<p><strong>Description:</strong> Unable to determine the scope of a dependency.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Dynamic scoping patterns</li>
+<li class="">Unusual code structure</li>
+<li class="">Analysis limitations</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Ensure clear lexical scoping</li>
+<li class="">Refactor for clearer scope boundaries</li>
+</ul>
+<p><strong>Recoverable:</strong> No</p>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="validation-errors-e030-e039">Validation Errors (E030-E039)<a href="#validation-errors-e030-e039" class="hash-link" aria-label="Direct link to Validation Errors (E030-E039)" title="Direct link to Validation Errors (E030-E039)" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e030---hook-in-conditional">E030 - Hook in Conditional<a href="#e030---hook-in-conditional" class="hash-link" aria-label="Direct link to E030 - Hook in Conditional" title="Direct link to E030 - Hook in Conditional" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Cannot hoist Hook &quot;{hook}&quot; to conditional scope</code></p>
+<p><strong>Description:</strong> Hook would be placed inside conditional, violating Rules of Hooks.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Target location is inside if/else block</li>
+<li class="">Target component is conditionally rendered</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Move the hook outside the conditional</li>
+<li class="">Create a custom hook</li>
+<li class="">Extract to separate component</li>
+</ul>
+<p><strong>Recoverable:</strong> Yes - can restructure automatically</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e031---hook-in-loop">E031 - Hook in Loop<a href="#e031---hook-in-loop" class="hash-link" aria-label="Direct link to E031 - Hook in Loop" title="Direct link to E031 - Hook in Loop" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Cannot hoist Hook &quot;{hook}&quot; to loop scope</code></p>
+<p><strong>Description:</strong> Hook would be placed inside loop, violating Rules of Hooks.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Target location is inside a loop</li>
+<li class="">Hook usage in map callback</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Move the hook outside the loop</li>
+<li class="">Extract loop iteration to separate component</li>
+</ul>
+<p><strong>Recoverable:</strong> Yes - can restructure automatically</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e032---hook-rules-violation">E032 - Hook Rules Violation<a href="#e032---hook-rules-violation" class="hash-link" aria-label="Direct link to E032 - Hook Rules Violation" title="Direct link to E032 - Hook Rules Violation" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Move would violate React Hook rules for &quot;{hook}&quot;</code></p>
+<p><strong>Description:</strong> The move operation would result in invalid Hook usage.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Conditional hook call would be created</li>
+<li class="">Hook order would change inconsistently</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Restructure to maintain hook rules</li>
+<li class="">Extract to custom hook</li>
+<li class="">Use different target location</li>
+</ul>
+<p><strong>Recoverable:</strong> Yes - partial restructuring possible</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e033---hook-outside-component">E033 - Hook Outside Component<a href="#e033---hook-outside-component" class="hash-link" aria-label="Direct link to E033 - Hook Outside Component" title="Direct link to E033 - Hook Outside Component" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Cannot move Hook call outside of React component or custom Hook</code></p>
+<p><strong>Description:</strong> Hook must remain within component or custom Hook scope.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Target is not a React component</li>
+<li class="">Target is a utility function</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Move to a valid component scope</li>
+<li class="">Create a custom hook wrapper</li>
+</ul>
+<p><strong>Recoverable:</strong> No</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e034---invalid-target-scope">E034 - Invalid Target Scope<a href="#e034---invalid-target-scope" class="hash-link" aria-label="Direct link to E034 - Invalid Target Scope" title="Direct link to E034 - Invalid Target Scope" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Invalid target scope for dependency &quot;{symbol}&quot;</code></p>
+<p><strong>Description:</strong> Target scope cannot accept the dependency.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Scope type mismatch</li>
+<li class="">Incompatible dependency type for target</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Choose different target location</li>
+<li class="">Convert dependency to prop</li>
+</ul>
+<p><strong>Recoverable:</strong> No</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e035---props-threading-depth-exceeded">E035 - Props Threading Depth Exceeded<a href="#e035---props-threading-depth-exceeded" class="hash-link" aria-label="Direct link to E035 - Props Threading Depth Exceeded" title="Direct link to E035 - Props Threading Depth Exceeded" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Props threading depth exceeds maximum ({depth} &gt; {max})</code></p>
+<p><strong>Description:</strong> Too many intermediate components for prop threading.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Deep component hierarchy</li>
+<li class="">Many intermediate components</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Use React Context instead</li>
+<li class="">Consider state management library</li>
+<li class="">Restructure component hierarchy</li>
+</ul>
+<p><strong>Recoverable:</strong> Yes - can create Context automatically</p>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="circular-dependency-errors-e040-e049">Circular Dependency Errors (E040-E049)<a href="#circular-dependency-errors-e040-e049" class="hash-link" aria-label="Direct link to Circular Dependency Errors (E040-E049)" title="Direct link to Circular Dependency Errors (E040-E049)" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e040---circular-dependency">E040 - Circular Dependency<a href="#e040---circular-dependency" class="hash-link" aria-label="Direct link to E040 - Circular Dependency" title="Direct link to E040 - Circular Dependency" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Circular dependency detected: {cycle}</code></p>
+<p><strong>Description:</strong> Move would create circular dependency between symbols.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Mutual references between symbols</li>
+<li class="">Dependency chain forms a cycle</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Extract shared dependencies to common module</li>
+<li class="">Refactor dependency structure</li>
+</ul>
+<p><strong>Recoverable:</strong> Yes - automatic refactoring available</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e041---cross-file-circular-import">E041 - Cross-File Circular Import<a href="#e041---cross-file-circular-import" class="hash-link" aria-label="Direct link to E041 - Cross-File Circular Import" title="Direct link to E041 - Cross-File Circular Import" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Cross-file circular import would be created: {cycle}</code></p>
+<p><strong>Description:</strong> Move would create circular import between files.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Files would mutually import each other</li>
+<li class="">Import chain forms a cycle</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Create shared module for common exports</li>
+<li class="">Restructure imports</li>
+<li class="">Use lazy imports (dynamic import)</li>
+</ul>
+<p><strong>Recoverable:</strong> Yes - automatic refactoring available</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e042---cannot-break-cycle">E042 - Cannot Break Cycle<a href="#e042---cannot-break-cycle" class="hash-link" aria-label="Direct link to E042 - Cannot Break Cycle" title="Direct link to E042 - Cannot Break Cycle" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Cannot break circular dependency: {reason}</code></p>
+<p><strong>Description:</strong> Automatic circular dependency resolution failed.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Complex circular structure</li>
+<li class="">Cannot identify safe extraction point</li>
+<li class="">All resolution strategies fail</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Manual refactoring required</li>
+<li class="">Consider merging the modules</li>
+<li class="">Extract interfaces to break type cycles</li>
+</ul>
+<p><strong>Recoverable:</strong> No</p>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="transform-errors-e050-e059">Transform Errors (E050-E059)<a href="#transform-errors-e050-e059" class="hash-link" aria-label="Direct link to Transform Errors (E050-E059)" title="Direct link to Transform Errors (E050-E059)" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e050---insertion-failed">E050 - Insertion Failed<a href="#e050---insertion-failed" class="hash-link" aria-label="Direct link to E050 - Insertion Failed" title="Direct link to E050 - Insertion Failed" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Failed to insert at target: {reason}</code></p>
+<p><strong>Description:</strong> AST insertion operation failed.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Invalid insertion point</li>
+<li class="">AST structure incompatible</li>
+<li class="">Internal error</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Try simpler move operation</li>
+<li class="">Verify target location is valid</li>
+<li class="">Report bug if persistent</li>
+</ul>
+<p><strong>Recoverable:</strong> No</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e051---reference-update-failed">E051 - Reference Update Failed<a href="#e051---reference-update-failed" class="hash-link" aria-label="Direct link to E051 - Reference Update Failed" title="Direct link to E051 - Reference Update Failed" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Failed to update references: {reason}</code></p>
+<p><strong>Description:</strong> Reference update after move failed.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Complex reference patterns</li>
+<li class="">Dynamic references</li>
+<li class="">Scope resolution failure</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Manual reference updates needed</li>
+<li class="">Simplify reference patterns</li>
+</ul>
+<p><strong>Recoverable:</strong> No</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e052---removal-failed">E052 - Removal Failed<a href="#e052---removal-failed" class="hash-link" aria-label="Direct link to E052 - Removal Failed" title="Direct link to E052 - Removal Failed" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Failed to remove source element: {reason}</code></p>
+<p><strong>Description:</strong> Could not remove element from original location.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Element is required in original location</li>
+<li class="">AST modification conflict</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Clone element instead of moving</li>
+<li class="">Review original location constraints</li>
+</ul>
+<p><strong>Recoverable:</strong> No</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e053---hoisting-failed">E053 - Hoisting Failed<a href="#e053---hoisting-failed" class="hash-link" aria-label="Direct link to E053 - Hoisting Failed" title="Direct link to E053 - Hoisting Failed" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Hoisting operation failed for {symbol}: {reason}</code></p>
+<p><strong>Description:</strong> Dependency hoisting operation failed.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Invalid hoist target</li>
+<li class="">Scope incompatibility</li>
+<li class="">Dependency conflicts</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Convert to prop instead of hoisting</li>
+<li class="">Choose different target scope</li>
+</ul>
+<p><strong>Recoverable:</strong> No</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e054---import-update-failed">E054 - Import Update Failed<a href="#e054---import-update-failed" class="hash-link" aria-label="Direct link to E054 - Import Update Failed" title="Direct link to E054 - Import Update Failed" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Import update failed in {file}: {reason}</code></p>
+<p><strong>Description:</strong> Could not update import statements.</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li class="">Import conflict</li>
+<li class="">Module resolution failure</li>
+<li class="">Circular import created</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li class="">Manually add required imports</li>
+<li class="">Check module paths</li>
+</ul>
+<p><strong>Recoverable:</strong> No</p>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="internal-errors-e090-e099">Internal Errors (E090-E099)<a href="#internal-errors-e090-e099" class="hash-link" aria-label="Direct link to Internal Errors (E090-E099)" title="Direct link to Internal Errors (E090-E099)" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e090---assertion-failed">E090 - Assertion Failed<a href="#e090---assertion-failed" class="hash-link" aria-label="Direct link to E090 - Assertion Failed" title="Direct link to E090 - Assertion Failed" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Assertion failed: {condition}</code></p>
+<p><strong>Description:</strong> Internal assertion failure indicating a bug.</p>
+<p><strong>Action:</strong> Please report this error with reproduction steps.</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e091---unexpected-ast-node">E091 - Unexpected AST Node<a href="#e091---unexpected-ast-node" class="hash-link" aria-label="Direct link to E091 - Unexpected AST Node" title="Direct link to E091 - Unexpected AST Node" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Unexpected AST node type: expected {expected}, got {actual}</code></p>
+<p><strong>Description:</strong> AST structure does not match expected shape.</p>
+<p><strong>Action:</strong> Please report this error with the source code.</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="e099---general-internal-error">E099 - General Internal Error<a href="#e099---general-internal-error" class="hash-link" aria-label="Direct link to E099 - General Internal Error" title="Direct link to E099 - General Internal Error" translate="no">​</a></h3>
+<p><strong>Message:</strong> <code>Internal error: {message}</code></p>
+<p><strong>Description:</strong> Catch-all for unexpected internal errors.</p>
+<p><strong>Action:</strong> Please report this error with full context.</p>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="error-recovery">Error Recovery<a href="#error-recovery" class="hash-link" aria-label="Direct link to Error Recovery" title="Direct link to Error Recovery" translate="no">​</a></h2>
+<p>Some errors support automatic recovery:</p>
+<div class="language-typescript codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-typescript codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">import</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> isRecoverable</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> attemptRecovery </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">from</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&#x27;regrafter&#x27;</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">try</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token keyword" style="color:#00009f">const</span><span class="token plain"> result </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">regraft</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">files</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> from</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> to</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> mode</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">catch</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">error</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token keyword" style="color:#00009f">if</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">error </span><span class="token keyword" style="color:#00009f">instanceof</span><span class="token plain"> </span><span class="token class-name">RegraffError</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">&amp;&amp;</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">isRecoverable</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">error</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token keyword" style="color:#00009f">const</span><span class="token plain"> recovery </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">await</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">attemptRecovery</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">error</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token builtin">console</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">log</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">recovery</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">success </span><span class="token operator" style="color:#393A34">?</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&#x27;Recovered!&#x27;</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> recovery</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">action</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="recoverable-error-codes">Recoverable Error Codes<a href="#recoverable-error-codes" class="hash-link" aria-label="Direct link to Recoverable Error Codes" title="Direct link to Recoverable Error Codes" translate="no">​</a></h3>
+<table><thead><tr><th>Code</th><th>Auto-Recovery Action</th></tr></thead><tbody><tr><td>E022</td><td>Add missing import</td></tr><tr><td>E023</td><td>Create shared module</td></tr><tr><td>E030</td><td>Move hook to valid scope</td></tr><tr><td>E031</td><td>Extract loop to component</td></tr><tr><td>E032</td><td>Restructure hook usage</td></tr><tr><td>E035</td><td>Create Context provider</td></tr><tr><td>E040</td><td>Create shared module</td></tr><tr><td>E041</td><td>Restructure imports</td></tr></tbody></table>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="programmatic-error-access">Programmatic Error Access<a href="#programmatic-error-access" class="hash-link" aria-label="Direct link to Programmatic Error Access" title="Direct link to Programmatic Error Access" translate="no">​</a></h2>
+<div class="language-typescript codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-typescript codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">import</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token constant" style="color:#36acaa">ERROR_CODES</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  getErrorCodeDefinition</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  getErrorCodesByCategory</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  ErrorCategory</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">from</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&#x27;regrafter&#x27;</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token comment" style="color:#999988;font-style:italic">// Get single error definition</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">const</span><span class="token plain"> e030 </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">getErrorCodeDefinition</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&#x27;E030&#x27;</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token builtin">console</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">log</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">e030</span><span class="token operator" style="color:#393A34">?.</span><span class="token plain">description</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token comment" style="color:#999988;font-style:italic">// Get all validation errors</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">const</span><span class="token plain"> validationErrors </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">getErrorCodesByCategory</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">ErrorCategory</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">Validation</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><br></span></code></pre></div></div></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col noPrint_WFHX"><a href="https://github.com/wickedev/regrafter/tree/main/website/docs/api/errors.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_Z9Sw" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_JAkA"></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/regrafter/docs/api/overview"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">API Overview</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/regrafter/docs/concepts/dependencies"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">Dependency Management</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#error-code-format" class="table-of-contents__link toc-highlight">Error Code Format</a></li><li><a href="#parse-errors-e001-e009" class="table-of-contents__link toc-highlight">Parse Errors (E001-E009)</a><ul><li><a href="#e001---general-parse-error" class="table-of-contents__link toc-highlight">E001 - General Parse Error</a></li><li><a href="#e002---unexpected-token" class="table-of-contents__link toc-highlight">E002 - Unexpected Token</a></li><li><a href="#e003---unterminated-string" class="table-of-contents__link toc-highlight">E003 - Unterminated String</a></li><li><a href="#e004---invalid-jsx-syntax" class="table-of-contents__link toc-highlight">E004 - Invalid JSX Syntax</a></li><li><a href="#e005---typescript-syntax-error" class="table-of-contents__link toc-highlight">E005 - TypeScript Syntax Error</a></li></ul></li><li><a href="#selector-errors-e010-e019" class="table-of-contents__link toc-highlight">Selector Errors (E010-E019)</a><ul><li><a href="#e010---no-jsx-element-at-position" class="table-of-contents__link toc-highlight">E010 - No JSX Element at Position</a></li><li><a href="#e011---invalid-ast-path" class="table-of-contents__link toc-highlight">E011 - Invalid AST Path</a></li><li><a href="#e012---file-not-in-input" class="table-of-contents__link toc-highlight">E012 - File Not in Input</a></li><li><a href="#e013---element-not-movable" class="table-of-contents__link toc-highlight">E013 - Element Not Movable</a></li><li><a href="#e014---same-source-and-target" class="table-of-contents__link toc-highlight">E014 - Same Source and Target</a></li><li><a href="#e015---move-into-self" class="table-of-contents__link toc-highlight">E015 - Move Into Self</a></li></ul></li><li><a href="#dependency-errors-e020-e029" class="table-of-contents__link toc-highlight">Dependency Errors (E020-E029)</a><ul><li><a href="#e020---eval-detected" class="table-of-contents__link toc-highlight">E020 - eval() Detected</a></li><li><a href="#e021---dynamic-code-execution" class="table-of-contents__link toc-highlight">E021 - Dynamic Code Execution</a></li><li><a href="#e022---unresolvable-reference" class="table-of-contents__link toc-highlight">E022 - Unresolvable Reference</a></li><li><a href="#e023---dependency-cycle" class="table-of-contents__link toc-highlight">E023 - Dependency Cycle</a></li><li><a href="#e024---cannot-determine-scope" class="table-of-contents__link toc-highlight">E024 - Cannot Determine Scope</a></li></ul></li><li><a href="#validation-errors-e030-e039" class="table-of-contents__link toc-highlight">Validation Errors (E030-E039)</a><ul><li><a href="#e030---hook-in-conditional" class="table-of-contents__link toc-highlight">E030 - Hook in Conditional</a></li><li><a href="#e031---hook-in-loop" class="table-of-contents__link toc-highlight">E031 - Hook in Loop</a></li><li><a href="#e032---hook-rules-violation" class="table-of-contents__link toc-highlight">E032 - Hook Rules Violation</a></li><li><a href="#e033---hook-outside-component" class="table-of-contents__link toc-highlight">E033 - Hook Outside Component</a></li><li><a href="#e034---invalid-target-scope" class="table-of-contents__link toc-highlight">E034 - Invalid Target Scope</a></li><li><a href="#e035---props-threading-depth-exceeded" class="table-of-contents__link toc-highlight">E035 - Props Threading Depth Exceeded</a></li></ul></li><li><a href="#circular-dependency-errors-e040-e049" class="table-of-contents__link toc-highlight">Circular Dependency Errors (E040-E049)</a><ul><li><a href="#e040---circular-dependency" class="table-of-contents__link toc-highlight">E040 - Circular Dependency</a></li><li><a href="#e041---cross-file-circular-import" class="table-of-contents__link toc-highlight">E041 - Cross-File Circular Import</a></li><li><a href="#e042---cannot-break-cycle" class="table-of-contents__link toc-highlight">E042 - Cannot Break Cycle</a></li></ul></li><li><a href="#transform-errors-e050-e059" class="table-of-contents__link toc-highlight">Transform Errors (E050-E059)</a><ul><li><a href="#e050---insertion-failed" class="table-of-contents__link toc-highlight">E050 - Insertion Failed</a></li><li><a href="#e051---reference-update-failed" class="table-of-contents__link toc-highlight">E051 - Reference Update Failed</a></li><li><a href="#e052---removal-failed" class="table-of-contents__link toc-highlight">E052 - Removal Failed</a></li><li><a href="#e053---hoisting-failed" class="table-of-contents__link toc-highlight">E053 - Hoisting Failed</a></li><li><a href="#e054---import-update-failed" class="table-of-contents__link toc-highlight">E054 - Import Update Failed</a></li></ul></li><li><a href="#internal-errors-e090-e099" class="table-of-contents__link toc-highlight">Internal Errors (E090-E099)</a><ul><li><a href="#e090---assertion-failed" class="table-of-contents__link toc-highlight">E090 - Assertion Failed</a></li><li><a href="#e091---unexpected-ast-node" class="table-of-contents__link toc-highlight">E091 - Unexpected AST Node</a></li><li><a href="#e099---general-internal-error" class="table-of-contents__link toc-highlight">E099 - General Internal Error</a></li></ul></li><li><a href="#error-recovery" class="table-of-contents__link toc-highlight">Error Recovery</a><ul><li><a href="#recoverable-error-codes" class="table-of-contents__link toc-highlight">Recoverable Error Codes</a></li></ul></li><li><a href="#programmatic-error-access" class="table-of-contents__link toc-highlight">Programmatic Error Access</a></li></ul></div></div></div></div></main></div></div></div><footer class="theme-layout-footer footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="theme-layout-footer-column col footer__col"><div class="footer__title">Docs</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="/regrafter/docs/intro">Getting Started</a></li><li class="footer__item"><a class="footer__link-item" href="/regrafter/docs/api/overview">API Reference</a></li></ul></div><div class="theme-layout-footer-column col footer__col"><div class="footer__title">Community</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://github.com/wickedev/regrafter/issues" target="_blank" rel="noopener noreferrer" class="footer__link-item">GitHub Issues<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://github.com/wickedev/regrafter/discussions" target="_blank" rel="noopener noreferrer" class="footer__link-item">GitHub Discussions<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div><div class="theme-layout-footer-column col footer__col"><div class="footer__title">More</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="/regrafter/blog">Blog</a></li><li class="footer__item"><a href="https://github.com/wickedev/regrafter" target="_blank" rel="noopener noreferrer" class="footer__link-item">GitHub<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://www.npmjs.com/package/regrafter" target="_blank" rel="noopener noreferrer" class="footer__link-item">npm<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div></div><div class="footer__bottom text--center"><div class="footer__copyright">Copyright © 2025 wickedev. Built with Docusaurus.</div></div></div></footer></div>
+</body>
+</html>

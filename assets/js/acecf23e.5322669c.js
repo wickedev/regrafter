@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkwebsite=globalThis.webpackChunkwebsite||[]).push([[903],{1912:e=>{e.exports=JSON.parse('{"blogBasePath":"/regrafter/blog","blogTitle":"Blog","authorsListPath":"/regrafter/blog/authors"}')}}]);
