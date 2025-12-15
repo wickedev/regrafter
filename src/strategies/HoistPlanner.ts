@@ -5,9 +5,14 @@
  * hoisting strategy for each, ensuring compliance with React's Rules of Hooks.
  */
 
-import type * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
+import type * as t from '@babel/types';
 
+import {
+  createHoistOperation,
+  createPropThreadOperation,
+  generateId,
+} from '../types/factories.js';
 import {
   ScopeType,
   HoistStrategy,
@@ -22,11 +27,6 @@ import type {
   ScopeInfo,
 } from '../types/internal.js';
 import { DependencyType } from '../types/public.js';
-import {
-  createHoistOperation,
-  createPropThreadOperation,
-  generateId,
-} from '../types/factories.js';
 
 import type {
   HoistContext,
@@ -583,7 +583,7 @@ export class HoistPlanner {
         node.type === 'FunctionExpression') &&
       path.parentPath?.isVariableDeclarator()
     ) {
-      const id = (path.parentPath.node as t.VariableDeclarator).id;
+      const id = (path.parentPath.node).id;
       if (id.type === 'Identifier') {
         functionName = id.name;
       }
@@ -627,7 +627,7 @@ export class HoistPlanner {
 
     // If it's a variable declarator, check the init
     if (node.type === 'VariableDeclarator') {
-      const init = (node as t.VariableDeclarator).init;
+      const init = (node).init;
       if (!init) {
         return true; // Uninitialized is considered pure
       }

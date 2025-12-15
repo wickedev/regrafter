@@ -9,8 +9,11 @@
  * Task 2.1: Move.Inside operation implementation
  */
 
-import * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
+
+import { Move } from '../types/public.js';
+
 import {
   MoveResult,
   MoveOptions,
@@ -18,7 +21,7 @@ import {
   mergeMoveOptions,
   TransformerErrorCodes,
 } from './types.js';
-import { Move } from '../types/public.js';
+
 
 /**
  * Type alias for JSX child elements

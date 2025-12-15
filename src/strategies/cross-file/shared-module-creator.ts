@@ -6,11 +6,18 @@
  * Implements tasks 4.2.1, 4.2.2, and 4.2.3 from the task list.
  */
 
-import * as t from '@babel/types';
 import generate from '@babel/generator';
 import traverse from '@babel/traverse';
 import type { NodePath, Binding } from '@babel/traverse';
+import * as t from '@babel/types';
 
+import {
+  createImportOperation,
+  createImportSpecifier,
+  createSharedModuleOperation,
+  createExportDeclaration,
+  generateId,
+} from '../../types/factories.js';
 import type {
   InternalDependency,
   ImportOperation,
@@ -19,13 +26,7 @@ import type {
   ExportDeclaration,
 } from '../../types/internal.js';
 import { DependencyType } from '../../types/public.js';
-import {
-  createImportOperation,
-  createImportSpecifier,
-  createSharedModuleOperation,
-  createExportDeclaration,
-  generateId,
-} from '../../types/factories.js';
+
 import {
   analyzeDependencyExports,
   computeImportPath,

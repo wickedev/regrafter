@@ -5,9 +5,9 @@
  * It takes a HoistPlan from the HoistPlanner and executes all operations on the AST.
  */
 
-import * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
 import traverse from '@babel/traverse';
+import * as t from '@babel/types';
 
 import type {
   HoistPlan,

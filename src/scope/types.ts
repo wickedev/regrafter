@@ -4,8 +4,9 @@
  * Type definitions for scope tracking and analysis.
  */
 
-import type * as t from '@babel/types';
 import type { NodePath, Binding } from '@babel/traverse';
+import type * as t from '@babel/types';
+
 import { ScopeType, type ScopeInfo, type ComponentScope } from '../types/internal.js';
 
 /**

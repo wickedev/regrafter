@@ -4,21 +4,22 @@
  * Type definitions for dependency analysis operations.
  */
 
-import type * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
+import type * as t from '@babel/types';
+
 import type { ScopeInfo, ComponentScope } from '../scope/types.js';
-import {
-  DependencyType,
-  type Dependency,
-  type MoveAnalysis,
-  type AnalysisStats,
-} from '../types/public.js';
 import {
   type InternalDependency,
   type DependencyAnalysis,
   type UnanalyzableCode,
   type AnalyzabilityResult,
 } from '../types/internal.js';
+import {
+  DependencyType,
+  type Dependency,
+  type MoveAnalysis,
+  type AnalysisStats,
+} from '../types/public.js';
 
 /**
  * Re-export types

@@ -17,9 +17,18 @@
  * - 2.4.2: Unanalyzable code detection
  */
 
-import * as t from '@babel/types';
 import type { NodePath, Binding } from '@babel/traverse';
 import traverse from '@babel/traverse';
+import * as t from '@babel/types';
+
+
+import { ScopeManager, type ScopeInfo, type ComponentScope, ScopeType } from '../scope/index.js';
+import {
+  createInternalDependency,
+  createDependencyOrigin,
+  createDependencyAnalysis,
+} from '../types/factories.js';
+
 import {
   DependencyType,
   type IdentifierReference,
@@ -38,12 +47,6 @@ import {
   type AnalyzabilityResult,
   mergeAnalyzerOptions,
 } from './types.js';
-import { ScopeManager, type ScopeInfo, type ComponentScope, ScopeType } from '../scope/index.js';
-import {
-  createInternalDependency,
-  createDependencyOrigin,
-  createDependencyAnalysis,
-} from '../types/factories.js';
 
 /**
  * Set of React hooks

@@ -9,11 +9,12 @@
  * - Compound components: <Tabs.Panel>, <Menu.Item>
  */
 
-import type * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
+import type * as t from '@babel/types';
+
+import { createAtomicUnit } from '../types/factories.js';
 import { AtomicUnitType } from '../types/internal.js';
 import type { AtomicUnit } from '../types/internal.js';
-import { createAtomicUnit } from '../types/factories.js';
 
 // ============================================================================
 // Atomic Unit Type Guards
@@ -295,7 +296,7 @@ export function detectMapExpression(
     return null;
   }
 
-  const mapper = firstArg as t.ArrowFunctionExpression | t.FunctionExpression;
+  const mapper = firstArg;
 
   // The mapper must return/contain JSX
   if (!containsJSXElement(mapper.body)) {

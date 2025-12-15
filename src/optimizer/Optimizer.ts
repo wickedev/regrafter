@@ -9,8 +9,11 @@
  * - Integrate into unified regraft() API
  */
 
+import traverse, { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
-import type { FileInput, Code } from '../types/public.js';
+
+import { CodeGenerator } from '../generator/CodeGenerator.js';
+import { Parser, createParser } from '../parser/index.js';
 import {
   createCode,
   createDependencyGraph,
@@ -20,15 +23,15 @@ import {
   createOptimizeResult,
 } from '../types/factories.js';
 import { ScopeType, type DependencyGraph, type ScopeInfo } from '../types/index.js';
-import { Parser, createParser } from '../parser/index.js';
-import { CodeGenerator } from '../generator/CodeGenerator.js';
-import { SinkAnalyzer, createSinkAnalyzer } from './SinkAnalyzer.js';
-import { SinkExecutor, createSinkExecutor } from './SinkExecutor.js';
+import type { FileInput, Code } from '../types/public.js';
+
+import { FastCanMove, createFastCanMove } from './FastCanMove.js';
 import {
   PerformanceOptimizer,
   createPerformanceOptimizer,
 } from './PerformanceOptimizer.js';
-import { FastCanMove, createFastCanMove } from './FastCanMove.js';
+import { SinkAnalyzer, createSinkAnalyzer } from './SinkAnalyzer.js';
+import { SinkExecutor, createSinkExecutor } from './SinkExecutor.js';
 import type {
   IOptimizer,
   OptimizeOptions,
@@ -37,7 +40,6 @@ import type {
   FastCanMoveOptions,
   DeadCodeInfo,
 } from './types.js';
-import traverse, { NodePath } from '@babel/traverse';
 
 /**
  * Default options for optimization.

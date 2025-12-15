@@ -5,10 +5,15 @@
  * elements are moved across the component tree.
  */
 
-import * as t from '@babel/types';
 import traverse from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
 
+import {
+  createHoistOperation,
+  createPropThreadOperation,
+  generateId,
+} from '../types/factories.js';
 import {
   ScopeType,
   HoistStrategy,
@@ -20,11 +25,6 @@ import type {
   PropThreadOperation,
 } from '../types/internal.js';
 import { DependencyType } from '../types/public.js';
-import {
-  createHoistOperation,
-  createPropThreadOperation,
-  generateId,
-} from '../types/factories.js';
 
 import type {
   HoistContext,
@@ -415,7 +415,7 @@ export class ContextHandler implements IContextHandler {
 
     // Check if this is a useContext call
     if (node?.type === 'VariableDeclarator') {
-      const init = (node as t.VariableDeclarator).init;
+      const init = (node).init;
       if (init?.type === 'CallExpression' && init.arguments.length > 0) {
         const arg = init.arguments[0];
         if (arg.type === 'Identifier') {
@@ -493,7 +493,7 @@ export function isCreateContextCall(node: t.Node): boolean {
     return false;
   }
 
-  const callee = (node as t.CallExpression).callee;
+  const callee = (node).callee;
 
   if (callee.type === 'Identifier') {
     return callee.name === 'createContext';

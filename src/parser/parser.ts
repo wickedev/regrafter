@@ -7,6 +7,7 @@
 
 import { parse as babelParse, ParserOptions, ParserPlugin } from '@babel/parser';
 import type { File as BabelFile } from '@babel/types';
+
 import { ASTStore } from './ast-store.js';
 import {
   FileInput,

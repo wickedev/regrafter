@@ -4,8 +4,8 @@
  * This module defines the interfaces and types used by the hoisting strategies.
  */
 
-import type * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
+import type * as t from '@babel/types';
 
 import type {
   ComponentScope,

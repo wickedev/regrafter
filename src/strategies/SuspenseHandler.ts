@@ -5,9 +5,13 @@
  * containing lazy-loaded components are moved across the component tree.
  */
 
-import * as t from '@babel/types';
 import traverse, { type NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
 
+import {
+  createHoistOperation,
+  generateId,
+} from '../types/factories.js';
 import {
   ScopeType,
   HoistStrategy,
@@ -18,10 +22,6 @@ import type {
   ScopeInfo,
 } from '../types/internal.js';
 import { DependencyType } from '../types/public.js';
-import {
-  createHoistOperation,
-  generateId,
-} from '../types/factories.js';
 
 import type {
   HoistContext,
@@ -242,7 +242,7 @@ export class SuspenseHandler implements ISuspenseHandler {
       return false;
     }
 
-    const callee = (node as t.CallExpression).callee;
+    const callee = (node).callee;
 
     // React.lazy()
     if (
@@ -285,7 +285,7 @@ export class SuspenseHandler implements ISuspenseHandler {
 
     // Check if the dependency's origin node is a lazy declaration
     if (node.type === 'VariableDeclarator') {
-      const init = (node as t.VariableDeclarator).init;
+      const init = (node).init;
       if (init && this.isLazyCall(init)) {
         return true;
       }
@@ -390,7 +390,7 @@ export function isReactLazy(node: t.Node): boolean {
     return false;
   }
 
-  const callee = (node as t.CallExpression).callee;
+  const callee = (node).callee;
 
   if (callee.type === 'Identifier') {
     return callee.name === 'lazy';
@@ -417,7 +417,7 @@ export function isDynamicImport(node: t.Node): boolean {
     return false;
   }
 
-  const call = node as t.CallExpression;
+  const call = node;
 
   // import() expression
   if (call.callee.type === 'Import') {

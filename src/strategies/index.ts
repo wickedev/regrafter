@@ -88,15 +88,14 @@ export {
 // Strategy Factory
 // ===============================================================================
 
+import { ContextHandler } from './ContextHandler.js';
 import { HoistPlanner } from './HoistPlanner.js';
 import { HookHoister } from './HookHoister.js';
-import { VariableHoister } from './VariableHoister.js';
-import { PropThreader } from './PropThreader.js';
 import { ImportManager } from './ImportManager.js';
-import { ContextHandler } from './ContextHandler.js';
+import { PropThreader } from './PropThreader.js';
 import { SuspenseHandler } from './SuspenseHandler.js';
-
 import type { IHoistStrategy } from './types.js';
+import { VariableHoister } from './VariableHoister.js';
 
 /**
  * Strategy registry for dependency hoisting

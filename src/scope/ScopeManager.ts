@@ -10,9 +10,16 @@
  * - 2.2.4: LCA (Lowest Common Ancestor) algorithm
  */
 
-import * as t from '@babel/types';
 import type { NodePath, Binding } from '@babel/traverse';
 import traverse from '@babel/traverse';
+import * as t from '@babel/types';
+
+import {
+  createScopeInfo,
+  createComponentScope,
+  generateId,
+} from '../types/factories.js';
+
 import {
   ScopeType,
   type ScopeInfo,
@@ -24,11 +31,7 @@ import {
   type HookInfo,
   type ScopeTree,
 } from './types.js';
-import {
-  createScopeInfo,
-  createComponentScope,
-  generateId,
-} from '../types/factories.js';
+
 
 /**
  * List of React hooks that we track
@@ -327,7 +330,7 @@ export class ScopeManager {
     }
 
     // Find LCA index in path A
-    const lcaIndexA = pathA.findIndex(s => s.id === lca!.id);
+    const lcaIndexA = pathA.findIndex(s => s.id === lca.id);
 
     return {
       lca,

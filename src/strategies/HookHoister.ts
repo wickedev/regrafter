@@ -5,9 +5,14 @@
  * and custom hooks while ensuring compliance with Rules of Hooks.
  */
 
-import * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
 
+import {
+  createHoistOperation,
+  createPropThreadOperation,
+  generateId,
+} from '../types/factories.js';
 import {
   ScopeType,
   HoistStrategy,
@@ -18,11 +23,6 @@ import type {
   ScopeInfo,
 } from '../types/internal.js';
 import { DependencyType } from '../types/public.js';
-import {
-  createHoistOperation,
-  createPropThreadOperation,
-  generateId,
-} from '../types/factories.js';
 
 import type {
   HoistContext,
@@ -347,7 +347,7 @@ export class HookHoister implements IHookHoister {
 
     // Try to determine the hook name from the call expression
     if (node?.type === 'VariableDeclarator') {
-      const init = (node as t.VariableDeclarator).init;
+      const init = (node).init;
       if (init?.type === 'CallExpression') {
         const callee = init.callee;
         if (callee.type === 'Identifier') {
@@ -371,7 +371,7 @@ export class HookHoister implements IHookHoister {
       }
 
       // Handle destructured return values
-      const id = (node as t.VariableDeclarator).id;
+      const id = (node).id;
       if (id.type === 'ArrayPattern') {
         destructuredNames.push(
           ...id.elements
@@ -476,7 +476,7 @@ export class HookHoister implements IHookHoister {
         node.type === 'FunctionExpression') &&
       path.parentPath?.isVariableDeclarator()
     ) {
-      const id = (path.parentPath.node as t.VariableDeclarator).id;
+      const id = (path.parentPath.node).id;
       if (id.type === 'Identifier') {
         functionName = id.name;
       }

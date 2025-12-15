@@ -5,21 +5,21 @@
  * and merging of duplicate import operations.
  */
 
-import * as t from '@babel/types';
 import traverse from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
 
+import {
+  createImportOperation,
+  createImportSpecifier,
+  generateId,
+} from '../types/factories.js';
 import type {
   ImportOperation,
   ImportSpecifier,
   InternalDependency,
 } from '../types/internal.js';
 import { DependencyType } from '../types/public.js';
-import {
-  createImportOperation,
-  createImportSpecifier,
-  generateId,
-} from '../types/factories.js';
 
 import type {
   HoistContext,
@@ -277,7 +277,7 @@ export class ImportManager implements IImportManager {
     }
 
     return t.importDeclaration(
-      specifiers as (t.ImportSpecifier | t.ImportDefaultSpecifier | t.ImportNamespaceSpecifier)[],
+      specifiers,
       t.stringLiteral(operation.importSource)
     );
   }

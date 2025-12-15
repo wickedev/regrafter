@@ -5,8 +5,8 @@
  * with proper initialization and default values.
  */
 
-import type * as t from '@babel/types';
 import type { NodePath, Binding } from '@babel/traverse';
+import type * as t from '@babel/types';
 
 import {
   ScopeType,

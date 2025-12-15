@@ -5,19 +5,19 @@
  * intermediate components from source to target.
  */
 
-import * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
 
+import {
+  createPropThreadOperation,
+  generateId,
+} from '../types/factories.js';
 import type {
   ComponentScope,
   InternalDependency,
   PropThreadOperation,
   ScopeInfo,
 } from '../types/internal.js';
-import {
-  createPropThreadOperation,
-  generateId,
-} from '../types/factories.js';
 
 import type {
   HoistContext,

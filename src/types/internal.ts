@@ -5,8 +5,8 @@
  * These types are not part of the public API and may change between versions.
  */
 
-import type * as t from '@babel/types';
 import type { NodePath, Binding } from '@babel/traverse';
+import type * as t from '@babel/types';
 
 import type { DependencyType, Move } from './public.js';
 

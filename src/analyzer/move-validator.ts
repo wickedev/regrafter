@@ -5,16 +5,17 @@
  * Implements the canMove API and provides detailed validation reporting.
  */
 
-import type * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
 import traverse from '@babel/traverse';
+import type * as t from '@babel/types';
 
-import type { FileInput, Selector, Move } from '../types/public.js';
-import { isPositionSelector, isPathSelector } from '../types/public.js';
+import { Parser, createParser } from '../parser/index.js';
+import { createAtomicUnit, createResolveResult, createSelectorError } from '../types/factories.js';
 import { AtomicUnitType } from '../types/internal.js';
 import type { AtomicUnit, ResolveResult, AnalyzabilityResult, UnanalyzableCode } from '../types/internal.js';
-import { createAtomicUnit, createResolveResult, createSelectorError } from '../types/factories.js';
-import { Parser, createParser } from '../parser/index.js';
+import type { FileInput, Selector, Move } from '../types/public.js';
+import { isPositionSelector, isPathSelector } from '../types/public.js';
+
 import {
   detectAtomicUnit,
   detectConditionalExpression,

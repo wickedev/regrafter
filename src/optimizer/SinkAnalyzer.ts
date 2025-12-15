@@ -13,6 +13,13 @@
 
 import traverse, { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
+
+import {
+  createScopeInfo,
+  createConsumerInfo,
+  createSinkCandidate,
+  generateId,
+} from '../types/factories.js';
 import {
   ScopeType,
   type ScopeInfo,
@@ -22,12 +29,8 @@ import {
   type DependencyGraph,
   DependencyType,
 } from '../types/index.js';
-import {
-  createScopeInfo,
-  createConsumerInfo,
-  createSinkCandidate,
-  generateId,
-} from '../types/factories.js';
+import type { FileInput } from '../types/public.js';
+
 import type {
   ISinkAnalyzer,
   SinkAnalysisOptions,
@@ -36,7 +39,7 @@ import type {
   ScopeTree,
   HoistedDeclaration,
 } from './types.js';
-import type { FileInput } from '../types/public.js';
+
 
 /**
  * Default options for sink analysis.
@@ -409,9 +412,9 @@ export class SinkAnalyzer implements ISinkAnalyzer {
         symbol: node.name,
         type: node.metadata.isHook ? DependencyType.Hook : DependencyType.Variable,
         origin: {
-          node: (node.path?.node as t.Node) || ({} as t.Node),
+          node: (node.path?.node) || ({} as t.Node),
           file: '', // Would need file context
-          location: node.path?.node ? (node.path.node as t.Node).loc : null,
+          location: node.path?.node ? (node.path.node).loc : null,
         },
         scope: node.scope,
         isTransitive: false,

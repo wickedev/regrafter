@@ -4,6 +4,7 @@
  * Provides runtime validation for API inputs with helpful error messages.
  */
 
+import { RegraffError, ErrorCategory } from '../errors/ErrorCategory.js';
 import type {
   Selector,
   PositionSelector,
@@ -18,7 +19,6 @@ import {
   isValidMove,
   isValidOptions,
 } from '../types/public.js';
-import { RegraffError, ErrorCategory } from '../errors/ErrorCategory.js';
 
 // ===============================================================================
 // Validation Error Class

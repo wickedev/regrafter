@@ -7,9 +7,9 @@
  * Based on design.md section 3.5 Selector Resolver Component
  */
 
-import * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
+import * as t from '@babel/types';
 
 // Handle both ESM and CJS exports
 const traverse = (traverseModule as { default?: typeof traverseModule }).default || traverseModule;
@@ -97,9 +97,9 @@ function determineAtomicUnitType(path: NodePath): AtomicUnitType {
   if (
     t.isJSXExpressionContainer(parent) &&
     t.isCallExpression(node) &&
-    t.isMemberExpression((node as t.CallExpression).callee)
+    t.isMemberExpression((node).callee)
   ) {
-    const callee = (node as t.CallExpression).callee as t.MemberExpression;
+    const callee = (node).callee;
     if (
       t.isIdentifier(callee.property) &&
       callee.property.name === 'map'
@@ -120,7 +120,7 @@ function determineAtomicUnitType(path: NodePath): AtomicUnitType {
 
   // Check if compound component: <Tabs.Panel>
   if (t.isJSXElement(node)) {
-    const opening = (node as t.JSXElement).openingElement;
+    const opening = (node).openingElement;
     if (t.isJSXMemberExpression(opening.name)) {
       return AtomicUnitType.CompoundComponent;
     }

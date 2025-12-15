@@ -8,9 +8,18 @@
  * - 2.5.2: Implement analyze() API
  */
 
-import * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
 import traverse from '@babel/traverse';
+import * as t from '@babel/types';
+
+import { ScopeManager, type ScopeInfo, ScopeType } from '../scope/index.js';
+import {
+  createMoveAnalysis,
+  createAnalysisStats,
+  createDependency,
+  createSuggestedFix,
+} from '../types/factories.js';
+import type { DependencyAnalysis, InternalDependency } from '../types/internal.js';
 import {
   type MoveAnalysis,
   type Dependency,
@@ -19,14 +28,7 @@ import {
   DependencyType,
   ResolutionStrategy,
 } from '../types/public.js';
-import type { DependencyAnalysis, InternalDependency } from '../types/internal.js';
-import {
-  createMoveAnalysis,
-  createAnalysisStats,
-  createDependency,
-  createSuggestedFix,
-} from '../types/factories.js';
-import { ScopeManager, type ScopeInfo, ScopeType } from '../scope/index.js';
+
 import { DependencyAnalyzer, type AnalyzerOptions } from './DependencyAnalyzer.js';
 
 /**

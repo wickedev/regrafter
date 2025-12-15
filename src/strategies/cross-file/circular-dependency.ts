@@ -5,13 +5,9 @@
  * Implements tasks 4.3.1 and 4.3.2 from the task list.
  */
 
-import * as t from '@babel/types';
 import traverse from '@babel/traverse';
+import * as t from '@babel/types';
 
-import type {
-  InternalDependency,
-  SharedModuleOperation,
-} from '../../types/internal.js';
 import {
   createDependencyGraph,
   addNodeToDependencyGraph,
@@ -20,6 +16,11 @@ import {
   createExportDeclaration,
   generateId,
 } from '../../types/factories.js';
+import type {
+  InternalDependency,
+  SharedModuleOperation,
+} from '../../types/internal.js';
+
 import { computeImportPath } from './detector.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -5,9 +5,9 @@
  * Implements tasks 4.1.1 and 4.1.2 from the task list.
  */
 
-import type * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
 import traverse from '@babel/traverse';
+import type * as t from '@babel/types';
 
 import type {
   InternalDependency,
@@ -382,7 +382,7 @@ function isReference(path: NodePath<t.Identifier>): boolean {
   // Not a reference if it's a variable declarator id
   if (
     parent.type === 'VariableDeclarator' &&
-    (parent as t.VariableDeclarator).id === path.node
+    (parent).id === path.node
   ) {
     return false;
   }
@@ -391,7 +391,7 @@ function isReference(path: NodePath<t.Identifier>): boolean {
   if (
     (parent.type === 'FunctionDeclaration' ||
       parent.type === 'ClassDeclaration') &&
-    (parent as t.FunctionDeclaration | t.ClassDeclaration).id === path.node
+    (parent).id === path.node
   ) {
     return false;
   }
@@ -416,7 +416,7 @@ function isReference(path: NodePath<t.Identifier>): boolean {
   // Not a reference if it's an export specifier local name
   if (
     parent.type === 'ExportSpecifier' &&
-    (parent as t.ExportSpecifier).local === path.node
+    (parent).local === path.node
   ) {
     return false;
   }
@@ -424,8 +424,8 @@ function isReference(path: NodePath<t.Identifier>): boolean {
   // Not a reference if it's an object property key (non-computed)
   if (
     parent.type === 'ObjectProperty' &&
-    (parent as t.ObjectProperty).key === path.node &&
-    !(parent as t.ObjectProperty).computed
+    (parent).key === path.node &&
+    !(parent).computed
   ) {
     return false;
   }
@@ -433,8 +433,8 @@ function isReference(path: NodePath<t.Identifier>): boolean {
   // Not a reference if it's a member expression property (non-computed)
   if (
     parent.type === 'MemberExpression' &&
-    (parent as t.MemberExpression).property === path.node &&
-    !(parent as t.MemberExpression).computed
+    (parent).property === path.node &&
+    !(parent).computed
   ) {
     return false;
   }

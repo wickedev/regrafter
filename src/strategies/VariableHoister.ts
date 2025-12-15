@@ -6,9 +6,14 @@
  * converted to prop threading.
  */
 
-import * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
 
+import {
+  createHoistOperation,
+  createPropThreadOperation,
+  generateId,
+} from '../types/factories.js';
 import {
   ScopeType,
   HoistStrategy,
@@ -19,11 +24,6 @@ import type {
   ScopeInfo,
 } from '../types/internal.js';
 import { DependencyType } from '../types/public.js';
-import {
-  createHoistOperation,
-  createPropThreadOperation,
-  generateId,
-} from '../types/factories.js';
 
 import type {
   HoistContext,
@@ -168,7 +168,7 @@ export class VariableHoister implements IVariableHoister {
 
     // Handle variable declarator
     if (node.type === 'VariableDeclarator') {
-      return this.analyzeVariableDeclarator(node as t.VariableDeclarator);
+      return this.analyzeVariableDeclarator(node);
     }
 
     // Handle other node types

@@ -5,6 +5,7 @@
  */
 
 import type { SuggestedFix } from '../types/public.js';
+
 import {
   ErrorCategory,
   RegraffError,

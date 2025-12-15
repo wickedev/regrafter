@@ -4,8 +4,8 @@
  * Type definitions for the AST transformation operations.
  */
 
-import type * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
+import type * as t from '@babel/types';
 
 /**
  * Error codes for transformer errors

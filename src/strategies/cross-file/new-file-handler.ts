@@ -5,12 +5,12 @@
  * Implements task 4.4.1 from the task list.
  */
 
-import * as t from '@babel/types';
 import generate from '@babel/generator';
+import * as t from '@babel/types';
 
-import type { Code } from '../../types/public.js';
-import type { ImportOperation, ImportSpecifier } from '../../types/internal.js';
 import { createCode } from '../../types/factories.js';
+import type { ImportOperation, ImportSpecifier } from '../../types/internal.js';
+import type { Code } from '../../types/public.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types

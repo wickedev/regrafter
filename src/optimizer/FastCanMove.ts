@@ -12,13 +12,15 @@
 
 import traverse, { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
+
+import { Parser, createParser } from '../parser/index.js';
 import type { FileInput } from '../types/public.js';
+
 import type {
   FastCanMoveResult,
   FastCanMoveOptions,
   BlockingIssue,
 } from './types.js';
-import { Parser, createParser } from '../parser/index.js';
 
 /**
  * Default options for fast canMove analysis.
@@ -268,13 +270,13 @@ export class FastCanMove {
       if (typeof part === 'number') {
         // Array index - get the property name from previous part
         const propertyName = parts[i - 1] as string;
-        const container = (current!.node as Record<string, t.Node[]>)[propertyName];
+        const container = (current.node as Record<string, t.Node[]>)[propertyName];
         if (!Array.isArray(container) || !container[part]) {
           return null;
         }
         // Find the NodePath for this index
         let found = false;
-        current!.traverse({
+        current.traverse({
           enter(childPath) {
             if (childPath.node === container[part]) {
               current = childPath;
@@ -293,12 +295,12 @@ export class FastCanMove {
         }
 
         // Regular property access
-        const node = (current!.node as unknown as Record<string, t.Node>)[part];
+        const node = (current.node as unknown as Record<string, t.Node>)[part];
         if (!node) return null;
 
         // Find the NodePath for this property
         let found = false;
-        current!.traverse({
+        current.traverse({
           enter(childPath) {
             if (childPath.node === node) {
               current = childPath;

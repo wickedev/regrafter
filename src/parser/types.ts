@@ -5,8 +5,7 @@
  * which handles parsing source files into Babel AST format.
  */
 
-import type { File as BabelFile } from '@babel/types';
-import type { SourceLocation } from '@babel/types';
+import type { File as BabelFile , SourceLocation } from '@babel/types';
 
 /**
  * Input file for parsing

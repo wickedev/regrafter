@@ -9,16 +9,18 @@
  * - Memory usage tracking
  */
 
+import os from 'os';
+
 import type { FileInput } from '../types/public.js';
+
+import { createFastCanMove } from './FastCanMove.js';
+import { createOptimizer } from './Optimizer.js';
 import type {
   BenchmarkCase,
   BenchmarkResult,
   BenchmarkSuite,
   PerformanceMetrics,
 } from './types.js';
-import { createOptimizer } from './Optimizer.js';
-import { createFastCanMove } from './FastCanMove.js';
-import os from 'os';
 
 /**
  * Default benchmark configuration.

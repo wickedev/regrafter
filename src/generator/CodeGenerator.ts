@@ -1,5 +1,6 @@
 import generate from '@babel/generator';
 import type * as t from '@babel/types';
+
 import {
   GeneratorOptions,
   GenerateResult,

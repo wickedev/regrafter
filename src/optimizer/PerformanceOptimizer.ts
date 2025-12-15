@@ -12,7 +12,9 @@
 
 import traverse, { NodePath, Visitor } from '@babel/traverse';
 import type * as t from '@babel/types';
+
 import type { FileInput } from '../types/public.js';
+
 import type {
   IPerformanceOptimizer,
   PerformanceConfig,

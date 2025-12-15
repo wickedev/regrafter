@@ -7,6 +7,7 @@
 
 import type { SourceLocation } from '../types/internal.js';
 import type { Selector, SuggestedFix, Dependency } from '../types/public.js';
+
 import {
   ErrorCategory,
   ParseError,

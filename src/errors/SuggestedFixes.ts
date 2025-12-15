@@ -5,6 +5,7 @@
  */
 
 import type { SuggestedFix, Dependency, DependencyType } from '../types/public.js';
+
 import { ErrorCategory, RegraffError } from './ErrorCategory.js';
 
 // ===============================================================================

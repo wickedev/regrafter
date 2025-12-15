@@ -6,6 +6,7 @@
  */
 
 import type { File as BabelFile } from '@babel/types';
+
 import type { ParseResult } from './types.js';
 
 /**

@@ -6,22 +6,9 @@
  * Implements task 4.5.1 from the task list.
  */
 
-import * as t from '@babel/types';
 import generate from '@babel/generator';
+import * as t from '@babel/types';
 
-import type {
-  Code,
-  MoveAnalysis,
-  Result,
-  Dependency,
-} from '../../types/public.js';
-import type {
-  InternalDependency,
-  ImportOperation,
-  SharedModuleOperation,
-  TransformPlan,
-  TransformResult,
-} from '../../types/internal.js';
 import {
   createCode,
   createResult,
@@ -30,26 +17,21 @@ import {
   createTransformResult,
   createTransformStats,
 } from '../../types/factories.js';
+import type {
+  InternalDependency,
+  ImportOperation,
+  SharedModuleOperation,
+  TransformPlan,
+  TransformResult,
+} from '../../types/internal.js';
+import type {
+  Code,
+  MoveAnalysis,
+  Result,
+  Dependency,
+} from '../../types/public.js';
 
 // Import cross-file sub-modules
-import {
-  detectCrossFileMove,
-  analyzeDependencyExports,
-  computeImportPath,
-  needsSharedModule,
-  type CrossFileDetectionResult,
-  type DependencyExportAnalysis,
-} from './detector.js';
-import {
-  generateSharedModule,
-  updateSourceFileReferences,
-  generateTargetImports,
-  addImportsToAst,
-  addExportsToSourceFile,
-  type SharedModuleResult,
-  type SourceFileUpdateResult,
-  type TargetImportResult,
-} from './shared-module-creator.js';
 import {
   buildImportGraph,
   detectCircularDependencies,
@@ -61,6 +43,14 @@ import {
   type CircularResolutionResult,
 } from './circular-dependency.js';
 import {
+  detectCrossFileMove,
+  analyzeDependencyExports,
+  computeImportPath,
+  needsSharedModule,
+  type CrossFileDetectionResult,
+  type DependencyExportAnalysis,
+} from './detector.js';
+import {
   isNewFile,
   detectFileType,
   generateEmptyComponentFile,
@@ -70,6 +60,16 @@ import {
   type NewFileResult,
   type NewFileConfig,
 } from './new-file-handler.js';
+import {
+  generateSharedModule,
+  updateSourceFileReferences,
+  generateTargetImports,
+  addImportsToAst,
+  addExportsToSourceFile,
+  type SharedModuleResult,
+  type SourceFileUpdateResult,
+  type TargetImportResult,
+} from './shared-module-creator.js';
 
 // Re-export all sub-module types and functions
 export * from './detector.js';
@@ -445,7 +445,7 @@ export function validateCrossFileMove(
   // Check for dependencies with eval or dynamic code
   for (const dep of dependencies) {
     if (dep.origin.node.type === 'CallExpression') {
-      const callee = (dep.origin.node as t.CallExpression).callee;
+      const callee = (dep.origin.node).callee;
       if (callee.type === 'Identifier' && callee.name === 'eval') {
         errors.push(
           `Dependency "${dep.symbol}" uses eval() and cannot be analyzed`

@@ -12,12 +12,14 @@
 
 import traverse, { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
+
+import { createPropRemoval , generateId } from '../types/factories.js';
 import type {
   SinkCandidate,
   PropRemoval,
   ScopeInfo,
 } from '../types/index.js';
-import { createPropRemoval } from '../types/factories.js';
+
 import type {
   ISinkExecutor,
   SinkExecutionResult,
@@ -25,7 +27,7 @@ import type {
   SinkOperation,
   SinkModification,
 } from './types.js';
-import { generateId } from '../types/factories.js';
+
 
 /**
  * SinkExecutor handles the actual transformation of ASTs to sink

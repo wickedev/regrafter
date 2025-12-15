@@ -190,6 +190,26 @@ export {
 } from './strategies/index.js';
 
 // Internal imports for implementation
+import type { NodePath } from '@babel/traverse';
+import traverse from '@babel/traverse';
+
+import { validateMoveOperation, type MoveValidationResult } from './analyzer/index.js';
+import { createMoveAnalysisBuilder, DependencyAnalyzer } from './analyzer/index.js';
+import { CodeGenerator } from './generator/CodeGenerator.js';
+import { createParser } from './parser/index.js';
+import { createScopeManager } from './scope/index.js';
+import { createSelectorResolver } from './selector/index.js';
+import {
+  executeCrossFileTransform,
+  createCrossFileContext,
+} from './strategies/cross-file/index.js';
+import {
+  createConfiguredHoistPlanner,
+  createHoistExecutor,
+  type HoistContext,
+  type HoistExecutionContext,
+} from './strategies/index.js';
+import { createJSXTransformer } from './transformer/index.js';
 import type {
   FileInput,
   Selector,
@@ -197,34 +217,7 @@ import type {
   Options,
   Result,
   Code,
-} from './types/index.js';
-import {
-  mergeOptions,
-  createMoveAnalysis,
-  createCode,
-  createSuccessResult,
-  createFailureResult,
-  createAnalysisStats,
-} from './types/index.js';
-import { validateMoveOperation, type MoveValidationResult } from './analyzer/index.js';
-import { createParser } from './parser/index.js';
-import { CodeGenerator } from './generator/CodeGenerator.js';
-import { createSelectorResolver } from './selector/index.js';
-import { createJSXTransformer } from './transformer/index.js';
-import { createScopeManager } from './scope/index.js';
-import { createMoveAnalysisBuilder, DependencyAnalyzer } from './analyzer/index.js';
-import {
-  createConfiguredHoistPlanner,
-  createHoistExecutor,
-  type HoistContext,
-  type HoistExecutionContext,
-} from './strategies/index.js';
-import {
-  executeCrossFileTransform,
-  createCrossFileContext,
-} from './strategies/cross-file/index.js';
-import type { NodePath } from '@babel/traverse';
-import traverse from '@babel/traverse';
+ SuggestedFix } from './types/index.js';
 
 /**
  * Main entry point for the regraft operation.
@@ -754,8 +747,14 @@ export function optimize(
 // Helper Functions for regraft
 // =============================================================================
 
-import type { SuggestedFix } from './types/index.js';
-import { createSuggestedFix } from './types/index.js';
+import {
+  mergeOptions,
+  createMoveAnalysis,
+  createCode,
+  createSuccessResult,
+  createFailureResult,
+  createAnalysisStats,
+ createSuggestedFix } from './types/index.js';
 
 /**
  * Get suggested fixes based on error code
