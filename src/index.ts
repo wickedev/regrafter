@@ -845,7 +845,7 @@ function createDryRunResult(
   const analysis = createMoveAnalysis({
     canMove: validation.valid,
     reason: validation.valid ? undefined : validation.reason,
-    dependencies: [], // TODO: Add dependency analysis in Phase 2
+    dependencies: [], // TODO: Add dependency analysis
     hoistedDeps: [],
     stats: createAnalysisStats({
       totalDependencies: 0,

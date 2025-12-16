@@ -4,7 +4,6 @@
  * Provides optimization capabilities for the Regrafter library including
  * sink analysis, dead code removal, and performance optimization.
  *
- * Phase 5: Optimization & Performance
  */
 
 // Types
