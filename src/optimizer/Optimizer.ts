@@ -3,10 +3,6 @@
  *
  * Main optimizer module that coordinates sink analysis, execution,
  * and performance optimization. Provides the public optimize() API.
- *
- * Task 5.3: Optimizer API
- * - Implement optimize(files) standalone function
- * - Integrate into unified regraft() API
  */
 
 import type { NodePath } from '@babel/traverse';

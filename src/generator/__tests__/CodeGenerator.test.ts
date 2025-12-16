@@ -6,11 +6,6 @@ import type { GeneratorOptions, IndentationInfo } from '../types.js';
 
 /**
  * Unit tests for CodeGenerator
- *
- * Tests cover:
- * - Task 1.5.1: Basic code generation
- * - Task 1.5.2: Comment preservation
- * - Task 1.5.3: Indentation adjustment
  */
 describe('CodeGenerator', () => {
   let generator: CodeGenerator;
@@ -28,9 +23,9 @@ describe('CodeGenerator', () => {
   });
 
   // ============================================================
-  // Task 1.5.1: Basic Code Generation Tests
+  // Basic Code Generation Tests
   // ============================================================
-  describe('Task 1.5.1: Basic Code Generation', () => {
+  describe('Basic Code Generation', () => {
     it('should generate code from a simple AST', () => {
       const code = `const x = 1;`;
       const ast = parseCode(code);
@@ -149,9 +144,9 @@ describe('CodeGenerator', () => {
   });
 
   // ============================================================
-  // Task 1.5.2: Comment Preservation Tests
+  // Comment Preservation Tests
   // ============================================================
-  describe('Task 1.5.2: Comment Preservation', () => {
+  describe('Comment Preservation', () => {
     it('should preserve single-line comments by default', () => {
       const code = `
         // This is a comment
@@ -295,9 +290,9 @@ describe('CodeGenerator', () => {
   });
 
   // ============================================================
-  // Task 1.5.3: Indentation Adjustment Tests
+  // Indentation Adjustment Tests
   // ============================================================
-  describe('Task 1.5.3: Indentation Adjustment', () => {
+  describe('Indentation Adjustment', () => {
     describe('detectIndentation', () => {
       it('should detect 2-space indentation', () => {
         const code = `

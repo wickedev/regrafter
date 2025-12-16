@@ -1,5 +1,5 @@
 /**
- * Phase 2 Integration Tests - Dependency Analysis
+ * Integration Tests - Dependency Analysis
  *
  * Integration tests for the complete dependency analysis pipeline
  * including the analyze() API.
@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { analyze, Move, DependencyType } from '../../index.js';
 import type { FileInput, MoveAnalysis } from '../../index.js';
 
-describe('Phase 2 Integration - Dependency Analysis', () => {
+describe('Dependency Analysis Integration', () => {
   describe('analyze() API', () => {
     it('should analyze a simple move operation', () => {
       const code = `

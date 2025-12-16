@@ -398,6 +398,11 @@ export class ContextHandler implements IContextHandler {
   private extractContextName(dependency: InternalDependency): string | undefined {
     const node = dependency.origin.node;
 
+    // Handle null node
+    if (node === null) {
+      return undefined;
+    }
+
     // Check if this is a useContext call
     if (node.type === 'VariableDeclarator') {
       const init = (node).init;

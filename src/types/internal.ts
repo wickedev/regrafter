@@ -108,8 +108,8 @@ export interface DependencyNode {
   type: 'symbol' | 'element' | 'scope';
   /** Name of the symbol/element */
   name: string;
-  /** NodePath in the AST */
-  path: NodePath;
+  /** NodePath in the AST (can be null if node is not directly associated with AST) */
+  path: NodePath | null;
   /** Scope where this node is defined */
   scope: ScopeInfo;
   /** Additional metadata */
@@ -133,7 +133,7 @@ export interface DependencyGraph {
  */
 export interface DependencyOrigin {
   /** AST node where the dependency is defined */
-  node: t.Node;
+  node: t.Node | null;
   /** File path where the dependency is defined */
   file: string;
   /** Source location in the file */
@@ -562,8 +562,8 @@ export interface DependencyAnalysis {
  * Information about a consumer of a dependency.
  */
 export interface ConsumerInfo {
-  /** NodePath to the consumer */
-  path: NodePath;
+  /** NodePath to the consumer (can be null for synthetic consumers) */
+  path: NodePath | null;
   /** Scope of the consumer */
   scope: ScopeInfo;
   /** How the dependency is used */

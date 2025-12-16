@@ -3,11 +3,6 @@
  *
  * Provides optimized AST traversal, memory management, and parallel processing
  * capabilities for the optimizer module.
- *
- * Task 5.4: Performance Optimization
- * - AST traversal optimization
- * - Memory optimization (WeakMaps, cache limits)
- * - Parallel file processing
  */
 
 import type { NodePath, Visitor } from '@babel/traverse';

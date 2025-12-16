@@ -339,6 +339,16 @@ export class HookHoister implements IHookHoister {
     const destructuredNames: string[] = [];
     let dependencyArray: string[] | undefined;
 
+    // Handle null node
+    if (node === null) {
+      return {
+        hookName,
+        category: classifyHook(hookName),
+        destructuredNames,
+        dependencyArray,
+      };
+    }
+
     // Try to determine the hook name from the call expression
     if (node.type === 'VariableDeclarator') {
       const init = (node).init;

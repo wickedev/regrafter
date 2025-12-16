@@ -738,7 +738,7 @@ export function createDependencyAnalysis(
  * Creates a ConsumerInfo object.
  */
 export function createConsumerInfo(params: {
-  path: NodePath;
+  path: NodePath | null;
   scope: ScopeInfo;
   usageType: 'direct' | 'prop' | 'closure';
 }): ConsumerInfo {

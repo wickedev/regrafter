@@ -231,7 +231,9 @@ function collectNeededImports(
   // Find all identifiers used in the dependencies
   const usedIdentifiers = new Set<string>();
   for (const dep of dependencies) {
-    collectIdentifiersFromNode(dep.origin.node, usedIdentifiers);
+    if (dep.origin.node !== null) {
+      collectIdentifiersFromNode(dep.origin.node, usedIdentifiers);
+    }
   }
 
   // Analyze imports in source file

@@ -129,10 +129,10 @@ describe('JSXTransformer', () => {
   });
 
   // ===========================================================================
-  // Move.Before Operation (Task 1.4.1)
+  // Move.Before Operation
   // ===========================================================================
 
-  describe('moveBefore (Task 1.4.1)', () => {
+  describe('moveBefore', () => {
     it('should move element before target sibling', () => {
       const ast = parseCode(simpleJSXCode);
       const footer = findJSXElementByTag(ast, 'footer');
@@ -213,10 +213,10 @@ describe('JSXTransformer', () => {
   });
 
   // ===========================================================================
-  // Move.After Operation (Task 1.4.2)
+  // Move.After Operation
   // ===========================================================================
 
-  describe('moveAfter (Task 1.4.2)', () => {
+  describe('moveAfter', () => {
     it('should move element after target sibling', () => {
       const ast = parseCode(simpleJSXCode);
       const header = findJSXElementByTag(ast, 'header');
@@ -281,10 +281,10 @@ describe('JSXTransformer', () => {
   });
 
   // ===========================================================================
-  // Source-Target Identity Detection (Task 1.4.3)
+  // Source-Target Identity Detection
   // ===========================================================================
 
-  describe('isSameElement (Task 1.4.3)', () => {
+  describe('isSameElement', () => {
     it('should detect same element by node identity', () => {
       const ast = parseCode(simpleJSXCode);
       const header = findJSXElementByTag(ast, 'header');
@@ -304,7 +304,7 @@ describe('JSXTransformer', () => {
     });
   });
 
-  describe('isNoOpMove (Task 1.4.3)', () => {
+  describe('isNoOpMove', () => {
     it('should detect no-op when source and target are same element', () => {
       const ast = parseCode(simpleJSXCode);
       const header = findJSXElementByTag(ast, 'header');

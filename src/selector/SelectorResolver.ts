@@ -289,10 +289,6 @@ export class SelectorResolver implements ISelectorResolver {
   }
 
   /**
-   * Resolve using position (line/column)
-   *
-   * Task 1.3.1: Position-based selector resolution
-   *
    * Finds the most specific (innermost) JSX element at the given position.
    * Uses specificity scoring to prefer smaller, more precisely targeted nodes.
    *
@@ -413,10 +409,6 @@ export class SelectorResolver implements ISelectorResolver {
   }
 
   /**
-   * Resolve using AST path string
-   *
-   * Task 1.3.2: Path-based selector resolution
-   *
    * Navigates the AST using a dot-notation path string.
    * Supports array indexing with bracket notation.
    *

@@ -2,12 +2,6 @@
  * Scope Manager
  *
  * Provides scope tracking infrastructure for dependency analysis.
- *
- * Task 2.2: Scope Manager implementation
- * - 2.2.1: Scope tracking infrastructure
- * - 2.2.2: Component scope detection
- * - 2.2.3: Scope accessibility checking
- * - 2.2.4: LCA (Lowest Common Ancestor) algorithm
  */
 
 import type { NodePath, Binding } from '@babel/traverse';
@@ -72,8 +66,6 @@ export class ScopeManager {
   private readonly components: Map<string, ComponentInfo> = new Map();
 
   /**
-   * Task 2.2.1: Build scope tree from AST
-   *
    * Analyzes the AST and builds a hierarchical scope tree
    * tracking all scopes, bindings, and component boundaries.
    *
@@ -171,8 +163,6 @@ export class ScopeManager {
   }
 
   /**
-   * Task 2.2.2: Detect if a function is a React component
-   *
    * A function is a React component if:
    * - It starts with an uppercase letter
    * - It returns JSX
@@ -191,8 +181,6 @@ export class ScopeManager {
   }
 
   /**
-   * Task 2.2.2: Detect component scope from a function
-   *
    * Creates a ComponentScope for React components with
    * hook tracking and conditional/loop detection.
    */
@@ -240,8 +228,6 @@ export class ScopeManager {
   }
 
   /**
-   * Task 2.2.3: Check if a scope is accessible from another scope
-   *
    * A scope is accessible if:
    * - They share a common ancestor
    * - The access doesn't violate closure rules
@@ -308,8 +294,6 @@ export class ScopeManager {
   }
 
   /**
-   * Task 2.2.4: Compute Lowest Common Ancestor (LCA) of two scopes
-   *
    * Uses path-to-root comparison for efficient LCA computation.
    */
   computeLCA(scopeA: ScopeInfo, scopeB: ScopeInfo): LCAResult {

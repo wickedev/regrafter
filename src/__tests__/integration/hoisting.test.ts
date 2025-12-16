@@ -1,14 +1,14 @@
 /**
- * Phase 3 Integration Tests - Dependency Hoisting (Task 3.8.2)
+ * Integration Tests - Dependency Hoisting
  *
- * Tests the integration of all Phase 3 hoisting components:
- * - HoistPlanner (3.1)
- * - Hook Hoisting Strategies (3.2)
- * - Variable Hoisting (3.3)
- * - Prop Threading (3.4)
- * - Import Management (3.5)
- * - Context Handler (3.6)
- * - Suspense Handler (3.7)
+ * Tests the integration of all hoisting components:
+ * - HoistPlanner
+ * - Hook Hoisting Strategies
+ * - Variable Hoisting
+ * - Prop Threading
+ * - Import Management
+ * - Context Handler
+ * - Suspense Handler
  *
  * These tests verify that the hoisting strategies work correctly
  * when integrated together through the HoistPlanner.
@@ -59,10 +59,10 @@ function createTestSetup(code: string) {
 }
 
 // =============================================================================
-// Phase 3.1: Hoist Planning Tests
+// Hoist Planning Tests
 // =============================================================================
 
-describe('Phase 3.1 - Hoist Planning', () => {
+describe('Hoist Planning', () => {
   it('should create a valid HoistPlanner instance', () => {
     const code = `
       import React, { useState } from 'react';
@@ -104,10 +104,10 @@ describe('Phase 3.1 - Hoist Planning', () => {
 });
 
 // =============================================================================
-// Phase 3.2: Hook Hoisting Strategy Tests
+// Hook Hoisting Strategy Tests
 // =============================================================================
 
-describe('Phase 3.2 - Hook Hoisting Strategies', () => {
+describe('Hook Hoisting Strategies', () => {
   describe('Hook Detection', () => {
     it('should identify built-in React hooks', () => {
       expect(isHookName('useState')).toBe(true);
@@ -173,10 +173,10 @@ describe('Phase 3.2 - Hook Hoisting Strategies', () => {
 });
 
 // =============================================================================
-// Phase 3.3: Variable Hoisting Tests
+// Variable Hoisting Tests
 // =============================================================================
 
-describe('Phase 3.3 - Variable Hoisting', () => {
+describe('Variable Hoisting', () => {
   it('should create VariableHoister instance', () => {
     const code = `function Component() { return <div />; }`;
     const { scopeManager } = createTestSetup(code);
@@ -201,10 +201,10 @@ describe('Phase 3.3 - Variable Hoisting', () => {
 });
 
 // =============================================================================
-// Phase 3.4: Prop Threading Tests
+// Prop Threading Tests
 // =============================================================================
 
-describe('Phase 3.4 - Prop Threading', () => {
+describe('Prop Threading', () => {
   it('should create PropThreader instance', () => {
     const code = `function Component() { return <div />; }`;
     const { scopeManager } = createTestSetup(code);
@@ -231,10 +231,10 @@ describe('Phase 3.4 - Prop Threading', () => {
 });
 
 // =============================================================================
-// Phase 3.5: Import Management Tests
+// Import Management Tests
 // =============================================================================
 
-describe('Phase 3.5 - Import Management', () => {
+describe('Import Management', () => {
   it('should create ImportManager instance', () => {
     const code = `import React from 'react';`;
     const { scopeManager } = createTestSetup(code);
@@ -262,10 +262,10 @@ describe('Phase 3.5 - Import Management', () => {
 });
 
 // =============================================================================
-// Phase 3.6: Context Handler Tests
+// Context Handler Tests
 // =============================================================================
 
-describe('Phase 3.6 - Context Handler', () => {
+describe('Context Handler', () => {
   it('should create ContextHandler instance', () => {
     const code = `function Component() { return <div />; }`;
     const { scopeManager } = createTestSetup(code);
@@ -292,10 +292,10 @@ describe('Phase 3.6 - Context Handler', () => {
 });
 
 // =============================================================================
-// Phase 3.7: Suspense Handler Tests
+// Suspense Handler Tests
 // =============================================================================
 
-describe('Phase 3.7 - Suspense Handler', () => {
+describe('Suspense Handler', () => {
   it('should create SuspenseHandler instance', () => {
     const code = `function Component() { return <div />; }`;
     const { scopeManager } = createTestSetup(code);
@@ -325,10 +325,10 @@ describe('Phase 3.7 - Suspense Handler', () => {
 });
 
 // =============================================================================
-// Phase 3.8: Integration Tests
+// Full Integration Tests
 // =============================================================================
 
-describe('Phase 3.8 - Full Integration', () => {
+describe('Full Integration', () => {
   it('should integrate all strategies through HoistPlanner', () => {
     const code = `
       import React, { useState, useEffect } from 'react';
@@ -410,7 +410,7 @@ describe('Phase 3.8 - Full Integration', () => {
     expect(planner).toBeDefined();
   });
 
-  it('should support all Phase 3 hoisting strategies', () => {
+  it('should support all hoisting strategies', () => {
     const code = `
       import React, { useState, useEffect, useContext, useRef } from 'react';
       import { format } from 'date-fns';
@@ -451,7 +451,7 @@ describe('Phase 3.8 - Full Integration', () => {
 // Comprehensive Integration Test
 // =============================================================================
 
-describe('Phase 3 Complete Pipeline', () => {
+describe('Complete Pipeline', () => {
   it('should handle a realistic component with multiple dependency types', () => {
     const code = `
       import React, { useState, useEffect, useMemo, useCallback, useContext } from 'react';

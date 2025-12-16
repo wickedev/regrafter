@@ -570,7 +570,6 @@ function checkAnalyzability(ast: t.File): AnalyzabilityResult {
 
 /**
  * Rule: Moving element to itself is allowed (will be handled as no-op)
- * Task 1.4.3: Source-target identity detection should return success
  */
 const selfMoveRule: ValidationRule = (source, target, _mode, _context) => {
   if (source.node === target.node) {

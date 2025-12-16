@@ -373,6 +373,11 @@ export class ImportManager implements IImportManager {
     // Check the original node to determine type
     const node = dependency.origin.node;
 
+    // Handle null node
+    if (node === null) {
+      return 'named'; // Default to named when node is null
+    }
+
     if (node.type === 'ImportDefaultSpecifier') {
       return 'default';
     }

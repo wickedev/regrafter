@@ -3,11 +3,6 @@
  *
  * Executes sink operations by moving declarations to optimal scope locations,
  * removing orphaned props, and detecting/removing dead code.
- *
- * Task 5.2: Sink Execution
- * - Move declarations to optimal scope
- * - Orphaned prop removal
- * - Dead code detection and removal
  */
 
 import type { NodePath } from '@babel/traverse';

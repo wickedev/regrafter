@@ -2,19 +2,6 @@
  * Dependency Analyzer
  *
  * Analyzes dependencies of JSX elements for safe move operations.
- *
- * Task 2.3: Dependency Analyzer implementation
- * - 2.3.1: Identifier collection from JSX elements
- * - 2.3.2: Hook dependency detection
- * - 2.3.3: Variable dependency detection
- * - 2.3.4: Import dependency detection
- * - 2.3.5: Prop dependency detection
- * - 2.3.6: Context dependency detection
- * - 2.3.7: Ref dependency detection
- *
- * Task 2.4: Transitive dependency analysis
- * - 2.4.1: Transitive dependency detection
- * - 2.4.2: Unanalyzable code detection
  */
 
 import type { NodePath, Binding } from '@babel/traverse';
@@ -110,8 +97,6 @@ export class DependencyAnalyzer {
   }
 
   /**
-   * Task 2.3.1: Collect all identifiers from a JSX element and its subtree
-   *
    * Traverses the JSX element to find all identifier references that
    * the element depends on.
    *
@@ -268,8 +253,6 @@ export class DependencyAnalyzer {
   }
 
   /**
-   * Task 2.3.2: Detect hook dependencies
-   *
    * Analyzes identifiers to find those that come from React hooks.
    *
    * @param identifiers - Identifier references to analyze
@@ -312,8 +295,6 @@ export class DependencyAnalyzer {
   }
 
   /**
-   * Task 2.3.3: Detect variable dependencies
-   *
    * Analyzes identifiers to find local variable references.
    *
    * @param identifiers - Identifier references to analyze
@@ -369,8 +350,6 @@ export class DependencyAnalyzer {
   }
 
   /**
-   * Task 2.3.4: Detect import dependencies
-   *
    * Analyzes identifiers to find import references.
    *
    * @param identifiers - Identifier references to analyze
@@ -412,8 +391,6 @@ export class DependencyAnalyzer {
   }
 
   /**
-   * Task 2.3.5: Detect prop dependencies
-   *
    * Analyzes identifiers to find component prop references.
    *
    * @param identifiers - Identifier references to analyze
@@ -452,8 +429,6 @@ export class DependencyAnalyzer {
   }
 
   /**
-   * Task 2.3.6: Detect context dependencies
-   *
    * Analyzes identifiers to find React context value references.
    *
    * @param identifiers - Identifier references to analyze
@@ -489,8 +464,6 @@ export class DependencyAnalyzer {
   }
 
   /**
-   * Task 2.3.7: Detect ref dependencies
-   *
    * Analyzes identifiers to find React ref references.
    *
    * @param identifiers - Identifier references to analyze
@@ -524,8 +497,6 @@ export class DependencyAnalyzer {
   }
 
   /**
-   * Task 2.4.1: Detect transitive dependencies
-   *
    * Analyzes dependencies to find their own dependencies recursively.
    *
    * @param dependencies - Direct dependencies to analyze
@@ -577,8 +548,6 @@ export class DependencyAnalyzer {
   }
 
   /**
-   * Task 2.4.2: Detect unanalyzable code
-   *
    * Identifies code patterns that cannot be statically analyzed,
    * such as eval(), dynamic property access, etc.
    *

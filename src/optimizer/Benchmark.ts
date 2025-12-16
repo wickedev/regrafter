@@ -3,10 +3,6 @@
  *
  * Performance benchmarking utilities for measuring optimizer performance,
  * memory usage, and throughput.
- *
- * Task 5.6: Benchmarks
- * - Performance benchmark suite
- * - Memory usage tracking
  */
 
 import os from 'os';

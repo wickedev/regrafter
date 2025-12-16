@@ -4,10 +4,6 @@
  * Provides a fast path for checking if an element can be moved without
  * performing the full transformation. Uses early return on blocking issues
  * for optimal performance.
- *
- * Task 5.5: canMove Optimization
- * - Fast canMove path (analysis without transformation)
- * - Early return on blocking issues
  */
 
 import type { NodePath } from '@babel/traverse';

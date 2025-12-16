@@ -5,8 +5,6 @@
  * - Move.Inside (appendChild)
  * - Move.Before (insertBefore sibling)
  * - Move.After (insertAfter sibling)
- *
- * Task 2.1: Move.Inside operation implementation
  */
 
 import type { NodePath } from '@babel/traverse';
@@ -40,8 +38,6 @@ type JSXChild =
  */
 export class JSXTransformer {
   /**
-   * Task 1.4.3: Source-target identity detection
-   *
    * Check if source and target are the same element.
    * Uses node identity and source location for comparison.
    *
@@ -132,7 +128,7 @@ export class JSXTransformer {
   ): MoveResult {
     const mergedOptions = mergeMoveOptions(options);
 
-    // Task 1.4.3: Check for source-target identity (no-op case)
+    // Check for source-target identity (no-op case)
     if (this.isNoOpMove(sourcePath, targetPath, mode)) {
       return {
         success: true,
@@ -167,8 +163,6 @@ export class JSXTransformer {
 
   /**
    * Move.Inside operation - appendChild semantics
-   *
-   * Task 2.1.1: appendChild operation for Move.Inside mode
    *
    * Inserts the source element as a child of the target element.
    * By default, appends to the end of children. Use insertIndex for specific position.
@@ -418,8 +412,6 @@ export class JSXTransformer {
   }
 
   /**
-   * Task 2.1.2: Fragment and nested structure handling
-   *
    * Check if a node is a valid JSX source for moving
    */
   private isValidJSXSource(path: NodePath): boolean {

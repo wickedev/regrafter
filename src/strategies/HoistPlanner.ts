@@ -625,6 +625,11 @@ export class HoistPlanner {
     // analyze the initializer expression
     const node = dep.origin.node;
 
+    // Handle null node
+    if (node === null) {
+      return false; // Cannot determine purity if node is null
+    }
+
     // If it's a variable declarator, check the init
     if (node.type === 'VariableDeclarator') {
       const init = node.init;

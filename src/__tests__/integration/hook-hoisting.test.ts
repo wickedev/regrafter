@@ -1,5 +1,5 @@
 /**
- * Hook Hoisting Integration Tests (Phase 3.8.2)
+ * Hook Hoisting Integration Tests
  *
  * Tests for the complete hook hoisting pipeline when moving elements
  * that use React hooks across component boundaries.
@@ -121,7 +121,7 @@ async function testHoisting(
 // useState Hoisting Tests
 // =============================================================================
 
-describe('Phase 3 Hook Hoisting - useState', () => {
+describe('Hook Hoisting - useState', () => {
   it('HOIST-01: should hoist useState when element moves up tree', async () => {
     const code = `
 import React, { useState } from 'react';
@@ -188,7 +188,7 @@ function Component() {
 // useEffect Hoisting Tests
 // =============================================================================
 
-describe('Phase 3 Hook Hoisting - useEffect', () => {
+describe('Hook Hoisting - useEffect', () => {
   it('HOIST-03: should hoist useEffect with dependencies', async () => {
     const code = `
 import React, { useState, useEffect } from 'react';
@@ -257,7 +257,7 @@ function Component() {
 // useRef Hoisting Tests
 // =============================================================================
 
-describe('Phase 3 Hook Hoisting - useRef', () => {
+describe('Hook Hoisting - useRef', () => {
   it('HOIST-05: should hoist useRef with element', async () => {
     const code = `
 import React, { useRef } from 'react';
@@ -288,7 +288,7 @@ function Component() {
 // Custom Hook Hoisting Tests
 // =============================================================================
 
-describe('Phase 3 Hook Hoisting - Custom Hooks', () => {
+describe('Hook Hoisting - Custom Hooks', () => {
   it('HOIST-06: should hoist custom hooks', async () => {
     const code = `
 import React from 'react';
@@ -324,7 +324,7 @@ function Component() {
 // Multiple Hooks Tests
 // =============================================================================
 
-describe('Phase 3 Hook Hoisting - Multiple Hooks', () => {
+describe('Hook Hoisting - Multiple Hooks', () => {
   it('HOIST-07: should hoist multiple hooks together', async () => {
     const code = `
 import React, { useState, useEffect, useMemo } from 'react';
@@ -395,7 +395,7 @@ function Component() {
 // useMemo and useCallback Tests
 // =============================================================================
 
-describe('Phase 3 Hook Hoisting - Memoization Hooks', () => {
+describe('Hook Hoisting - Memoization Hooks', () => {
   it('HOIST-09: should hoist useMemo with dependencies', async () => {
     const code = `
 import React, { useMemo } from 'react';
@@ -459,7 +459,7 @@ function Component() {
 // useReducer Tests
 // =============================================================================
 
-describe('Phase 3 Hook Hoisting - useReducer', () => {
+describe('Hook Hoisting - useReducer', () => {
   it('HOIST-11: should hoist useReducer with dispatcher', async () => {
     const code = `
 import React, { useReducer } from 'react';
@@ -499,7 +499,7 @@ function Component() {
 // Variable Hoisting Tests
 // =============================================================================
 
-describe('Phase 3 Variable Hoisting', () => {
+describe('Variable Hoisting', () => {
   it('HOIST-12: should hoist pure variables', async () => {
     const code = `
 import React from 'react';
@@ -533,7 +533,7 @@ function Component({ items }) {
 // Import Hoisting Tests
 // =============================================================================
 
-describe('Phase 3 Import Management', () => {
+describe('Import Management', () => {
   it('HOIST-13: should detect import dependencies', async () => {
     const code = `
 import React from 'react';
@@ -568,7 +568,7 @@ function Component() {
 // Rules of Hooks Validation Tests
 // =============================================================================
 
-describe('Phase 3 Rules of Hooks Validation', () => {
+describe('Rules of Hooks Validation', () => {
   it('HOIST-14: should validate hooks are not in conditional scopes', async () => {
     const code = `
 import React, { useState } from 'react';
@@ -599,7 +599,7 @@ function Component({ showCounter }) {
 // Edge Cases
 // =============================================================================
 
-describe('Phase 3 Hook Hoisting - Edge Cases', () => {
+describe('Hook Hoisting - Edge Cases', () => {
   it('HOIST-15: should handle hooks with complex destructuring', async () => {
     const code = `
 import React, { useState } from 'react';

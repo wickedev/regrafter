@@ -2,10 +2,6 @@
  * MoveAnalysis Builder
  *
  * Builds MoveAnalysis objects from dependency analysis results.
- *
- * Task 2.5: MoveAnalysis Builder
- * - 2.5.1: Build MoveAnalysis object from dependency analysis
- * - 2.5.2: Implement analyze() API
  */
 
 import type { NodePath } from '@babel/traverse';
@@ -52,8 +48,6 @@ export class MoveAnalysisBuilder {
   }
 
   /**
-   * Task 2.5.1: Build MoveAnalysis from dependency analysis
-   *
    * Converts internal dependency analysis to public MoveAnalysis format.
    *
    * @param elementPath - Path to the source JSX element
@@ -99,8 +93,6 @@ export class MoveAnalysisBuilder {
   }
 
   /**
-   * Task 2.5.2: Analyze API for external use
-   *
    * Public method to analyze a proposed move operation.
    *
    * @param ast - The AST containing the elements

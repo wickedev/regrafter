@@ -156,6 +156,11 @@ export class VariableHoister implements IVariableHoister {
   analyzePurity(dependency: InternalDependency): PurityAnalysis {
     const node = dependency.origin.node;
 
+    // Handle null node
+    if (node === null) {
+      return { isPure: false, reason: 'Node is null' };
+    }
+
     // Handle variable declarator
     if (node.type === 'VariableDeclarator') {
       return this.analyzeVariableDeclarator(node);

@@ -50,8 +50,6 @@ export class CodeGenerator {
   /**
    * Generate code from a Babel AST
    *
-   * Task 1.5.1: Basic code generation using @babel/generator
-   *
    * @param ast - The Babel AST to generate code from
    * @param options - Optional generation options to override defaults
    * @returns GenerateResult with code, optional source map, and any errors
@@ -108,15 +106,12 @@ export class CodeGenerator {
 
   /**
    * Build Babel generator options from our options
-   *
-   * Task 1.5.1: Configure generator for JSX output
-   * Task 1.5.2: Configure to preserve comments
    */
   private buildBabelGeneratorOptions(
     options: Required<GeneratorOptions>
   ): Parameters<typeof generateCode>[1] {
     return {
-      // Task 1.5.2: Comment preservation configuration
+      // Comment preservation configuration
       comments: options.preserveComments,
       
       // Retain leading/trailing comments on nodes
@@ -178,13 +173,11 @@ export class CodeGenerator {
   }
 
   // ============================================================
-  // Task 1.5.2: Comment Preservation
+  // Comment Preservation
   // ============================================================
 
   /**
    * Attach comments to the correct nodes after a move operation
-   *
-   * Task 1.5.2: Implement logic to attach comments to correct nodes after move
    *
    * @param node - The node to attach comments to
    * @param comments - The comments to attach
@@ -205,8 +198,6 @@ export class CodeGenerator {
 
   /**
    * Extract comments from a node before moving it
-   *
-   * Task 1.5.2: Handle leading, trailing, and inner comments
    *
    * @param node - The node to extract comments from
    * @returns CommentAttachment with all comments from the node
@@ -307,13 +298,11 @@ export class CodeGenerator {
   }
 
   // ============================================================
-  // Task 1.5.3: Indentation Adjustment
+  // Indentation Adjustment
   // ============================================================
 
   /**
    * Detect the indentation style used at a specific location in the code
-   *
-   * Task 1.5.3: Detect indentation style of target location
    *
    * @param code - The source code string
    * @param line - The line number (1-based) to detect indentation at
@@ -450,8 +439,6 @@ export class CodeGenerator {
   /**
    * Adjust indentation of code to match a target indentation level
    *
-   * Task 1.5.3: Adjust moved element's indentation to match new context
-   *
    * @param code - The code string to adjust
    * @param targetIndent - The target indentation info
    * @param preserveRelative - Whether to preserve relative indentation within the code
@@ -509,8 +496,6 @@ export class CodeGenerator {
 
   /**
    * Find the minimum indentation level in a set of lines
-   *
-   * Task 1.5.3: Preserve relative indentation within moved subtree
    *
    * @param lines - Array of code lines
    * @returns Minimum indentation info

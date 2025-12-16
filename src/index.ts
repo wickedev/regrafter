@@ -134,14 +134,14 @@ export {
   type MapExpressionInfo,
   type CompoundComponentInfo,
 
-  // Dependency analysis (Phase 2)
+  // Dependency analysis
   DependencyAnalyzer,
   createDependencyAnalyzer,
   MoveAnalysisBuilder,
   createMoveAnalysisBuilder,
 } from './analyzer/index.js';
 
-// Export scope utilities (Phase 2)
+// Export scope utilities
 export {
   ScopeManager,
   createScopeManager,
@@ -153,7 +153,7 @@ export {
   createSelectorResolver,
 } from './selector/index.js';
 
-// Export strategy utilities for dependency hoisting (Phase 3)
+// Export strategy utilities for dependency hoisting
 export {
   // Main planner
   HoistPlanner,
@@ -323,8 +323,6 @@ export function canMove(
  *
  * Lower-level API for custom workflows. Does not check if the move
  * is safe or perform dependency sinking.
- *
- * Task 1.6.1: Basic move() API implementation
  *
  * @param files - Array of file inputs with path and content
  * @param from - Selector identifying the source element
@@ -543,7 +541,7 @@ function moveWithHoisting(
 
   // For same-file moves only (cross-file not yet implemented)
   if (from.file !== to.file) {
-    throw new Error('Cross-file moves not yet implemented (Phase 4)');
+    throw new Error('Cross-file moves not yet implemented');
   }
 
   // Build scope tree
@@ -683,8 +681,6 @@ function moveWithHoisting(
  * Returns detailed dependency analysis without performing transformation.
  * Useful for understanding what hoisting would be required.
  *
- * Task 2.5.2: Implement analyze() API
- *
  * @param files - Array of file inputs with path and content
  * @param from - Selector identifying the source element
  * @param to - Selector identifying the target location
@@ -715,7 +711,7 @@ export function analyze(
   const resolver = createSelectorResolver();
 
   // Note: HoistPlanner and strategies are available via ./strategies/index.js
-  // for full dependency hoisting integration (Phase 3 complete)
+  // for full dependency hoisting integration
 
   // Parse the source file
   const sourceFile = files.find(f => f.path === from.file);

@@ -541,7 +541,7 @@ export function validateCrossFileMove(
 
   // Check for dependencies with eval or dynamic code
   for (const dep of dependencies) {
-    if (dep.origin.node.type === 'CallExpression') {
+    if (dep.origin.node !== null && dep.origin.node.type === 'CallExpression') {
       const callee = (dep.origin.node).callee;
       if (callee.type === 'Identifier' && callee.name === 'eval') {
         errors.push(

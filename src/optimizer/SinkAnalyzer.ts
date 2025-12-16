@@ -4,11 +4,6 @@
  * Analyzes hoisted declarations to identify candidates that can be sunk
  * to more optimal scope locations. Implements LCA (Lowest Common Ancestor)
  * computation for determining optimal sink targets.
- *
- * Task 5.1: Sink Candidate Analysis
- * - Detect hoisted declarations that can be sunk
- * - Find all consumers of each declaration
- * - Compute LCA of consumer scopes
  */
 
 import type { NodePath } from '@babel/traverse';
@@ -172,7 +167,17 @@ export class SinkAnalyzer implements ISinkAnalyzer {
       if (!consumerNode) continue;
 
       // Determine usage type based on how the dependency is consumed
-      const usageType = this.determineUsageType(consumerNode, dependency);
+      // For nodes without a path, use 'direct' as default
+      let usageType: 'direct' | 'prop' | 'closure' = 'direct';
+
+      if (consumerNode.path !== null) {
+        // At this point, TypeScript knows path is not null
+        const consumerWithPath: { path: NodePath; scope: ScopeInfo } = {
+          path: consumerNode.path,
+          scope: consumerNode.scope,
+        };
+        usageType = this.determineUsageType(consumerWithPath, dependency);
+      }
 
       consumers.push(
         createConsumerInfo({
@@ -454,9 +459,9 @@ export class SinkAnalyzer implements ISinkAnalyzer {
           ? DependencyType.Hook
           : DependencyType.Variable,
         origin: {
-          node: node.path.node,
+          node: node.path !== null ? node.path.node : null,
           file: '', // Would need file context
-          location: node.path.node.loc ?? null,
+          location: node.path !== null ? (node.path.node.loc ?? null) : null,
         },
         scope: node.scope,
         isTransitive: false,

@@ -1,7 +1,5 @@
 /**
- * Phase 1 Integration Tests - Basic Move Operations
- *
- * Task 1.6.2: Write Phase 1 integration tests
+ * Integration Tests - Basic Move Operations
  *
  * These tests verify end-to-end functionality of:
  * - Simple sibling moves (Move.Before, Move.After)
@@ -37,7 +35,7 @@ function loadFixture(filename: string): string {
 }
 
 /**
- * Inline test code for Phase 1 basic move tests
+ * Inline test code for basic move tests
  */
 const simpleJSXCode = `
 function App() {
@@ -97,9 +95,9 @@ function createFileInput(path: string, content: string): FileInput {
 // Test Suites
 // =============================================================================
 
-describe('Phase 1 Integration Tests', () => {
+describe('Basic Move Integration Tests', () => {
   // ===========================================================================
-  // Move.Before Integration Tests (Task 1.4.1)
+  // Move.Before Integration Tests
   // ===========================================================================
 
   describe('Move.Before Integration', () => {
@@ -167,7 +165,7 @@ describe('Phase 1 Integration Tests', () => {
   });
 
   // ===========================================================================
-  // Move.After Integration Tests (Task 1.4.2)
+  // Move.After Integration Tests
   // ===========================================================================
 
   describe('Move.After Integration', () => {
@@ -205,7 +203,7 @@ describe('Phase 1 Integration Tests', () => {
   });
 
   // ===========================================================================
-  // Source-Target Identity Tests (Task 1.4.3)
+  // Source-Target Identity Tests
   // ===========================================================================
 
   describe('Source-Target Identity Detection', () => {
@@ -234,7 +232,7 @@ describe('Phase 1 Integration Tests', () => {
   });
 
   // ===========================================================================
-  // regraft() API Integration Tests (Task 1.6.1)
+  // regraft() API Integration Tests
   // ===========================================================================
 
   describe('regraft() API', () => {
