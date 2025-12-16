@@ -4,7 +4,7 @@
  * Provides runtime validation for API inputs with helpful error messages.
  */
 
-import { RegraffError, ErrorCategory } from '../errors/ErrorCategory.js';
+import { RegraffError, ErrorCategory } from '../errors/error-category.js';
 import type {
   Selector,
   PositionSelector,

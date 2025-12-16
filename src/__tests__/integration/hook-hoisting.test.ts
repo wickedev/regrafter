@@ -24,7 +24,7 @@ import {
 } from '../../index.js';
 import { createParser } from '../../parser/index.js';
 import { createJSXTransformer } from '../../transformer/index.js';
-import { CodeGenerator } from '../../generator/CodeGenerator.js';
+import { CodeGenerator } from '../../generator/code-generator.js';
 
 // =============================================================================
 // Test Utilities

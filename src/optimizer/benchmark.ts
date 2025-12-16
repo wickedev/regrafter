@@ -7,7 +7,7 @@
 
 import os from 'os';
 
-import { createOptimizer } from './Optimizer.js';
+import { createOptimizer } from './optimizer.js';
 import type {
   BenchmarkCase,
   BenchmarkResult,

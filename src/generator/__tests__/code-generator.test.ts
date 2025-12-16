@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
 import type * as t from '@babel/types';
-import { CodeGenerator } from '../CodeGenerator.js';
+import { CodeGenerator } from '../code-generator.js';
 import type { GeneratorOptions, IndentationInfo } from '../types.js';
 
 /**

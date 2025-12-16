@@ -4,7 +4,7 @@
  * Exports scope tracking and analysis components.
  */
 
-export { ScopeManager, createScopeManager } from './ScopeManager.js';
+export { ScopeManager, createScopeManager } from './scope-manager.js';
 export {
   ScopeType,
   type ScopeInfo,

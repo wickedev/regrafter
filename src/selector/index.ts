@@ -7,7 +7,7 @@
 export {
   SelectorResolver,
   createSelectorResolver,
-} from './SelectorResolver.js';
+} from './selector-resolver.js';
 
 export {
   SelectorErrorCodes,

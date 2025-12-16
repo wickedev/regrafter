@@ -194,14 +194,14 @@ import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
 import { DependencyAnalyzer, createMoveAnalysisBuilder, validateMoveOperation, type MoveValidationResult } from './analyzer/index.js';
-import { CodeGenerator } from './generator/CodeGenerator.js';
-import { createOptimizer } from './optimizer/Optimizer.js';
+import { CodeGenerator } from './generator/code-generator.js';
+import { createOptimizer } from './optimizer/optimizer.js';
 import type { OptimizeOptions } from './optimizer/types.js';
 import { createParser } from './parser/index.js';
 import { createScopeManager } from './scope/index.js';
 import { createSelectorResolver } from './selector/index.js';
 import { createCrossFileContext, executeCrossFileTransform } from './strategies/cross-file/index.js';
-import type { HoistExecutionContext } from './strategies/HoistExecutor.js';
+import type { HoistExecutionContext } from './strategies/hoist-executor.js';
 import { createConfiguredHoistPlanner, createHoistExecutor } from './strategies/index.js';
 import type { HoistContext } from './strategies/types.js';
 import { createJSXTransformer } from './transformer/index.js';

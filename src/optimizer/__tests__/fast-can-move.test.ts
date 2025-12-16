@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FastCanMove, createFastCanMove } from '../FastCanMove.js';
+import { FastCanMove, createFastCanMove } from '../fast-can-move.js';
 import type { FileInput } from '../../types/public.js';
 
 describe('FastCanMove', () => {

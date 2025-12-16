@@ -24,7 +24,7 @@ export {
   isTransformError,
   isCircularError,
   isInternalError,
-} from './ErrorCategory.js';
+} from './error-category.js';
 
 // Error codes and factories
 export {
@@ -42,7 +42,7 @@ export {
   getErrorCodeDefinition,
   getErrorCodesByCategory,
   isRecoverableErrorCode,
-} from './ErrorCodes.js';
+} from './error-codes.js';
 
 // Suggested fixes
 export {
@@ -56,7 +56,7 @@ export {
   getSuggestedFixesForTransformError,
   getSuggestedFixesForDependency,
   getSuggestedFixesForError,
-} from './SuggestedFixes.js';
+} from './suggested-fixes.js';
 
 // Error recovery
 export {
@@ -73,4 +73,4 @@ export {
   mergeRecoveryResults,
   failedRecovery,
   successfulRecovery,
-} from './ErrorRecovery.js';
+} from './error-recovery.js';

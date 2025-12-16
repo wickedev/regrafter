@@ -14,7 +14,7 @@ import {
   createMediumFileBenchmark,
   createMultiFileBenchmark,
   createCanMoveBenchmark,
-} from '../Benchmark.js';
+} from '../benchmark.js';
 import type { BenchmarkCase } from '../types.js';
 
 describe('BenchmarkRunner', () => {

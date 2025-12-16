@@ -11,7 +11,7 @@ import type {
   CircularError,
   ValidationError,
   DependencyError,
-} from './ErrorCategory.js';
+} from './error-category.js';
 
 // ===============================================================================
 // Recovery Strategy Types

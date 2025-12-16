@@ -25,7 +25,7 @@ import {
   ResolutionStrategy,
 } from '../types/public.js';
 
-import { DependencyAnalyzer } from './DependencyAnalyzer.js';
+import { DependencyAnalyzer } from './dependency-analyzer.js';
 import type { AnalyzerOptions } from './types.js';
 
 /**

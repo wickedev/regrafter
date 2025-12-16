@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SinkAnalyzer, createSinkAnalyzer } from '../SinkAnalyzer.js';
+import { SinkAnalyzer, createSinkAnalyzer } from '../sink-analyzer.js';
 import {
   createDependencyGraph,
   addNodeToDependencyGraph,

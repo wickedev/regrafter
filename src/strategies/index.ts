@@ -30,17 +30,17 @@ export {
 } from './types.js';
 
 // HoistPlanner - Main planning orchestrator
-export { HoistPlanner, createHoistPlanner } from './HoistPlanner.js';
+export { HoistPlanner, createHoistPlanner } from './hoist-planner.js';
 
 // HoistExecutor - Executes hoisting operations on AST
-export { HoistExecutor, createHoistExecutor } from './HoistExecutor.js';
-export type { HoistExecutionContext } from './HoistExecutor.js';
+export { HoistExecutor, createHoistExecutor } from './hoist-executor.js';
+export type { HoistExecutionContext } from './hoist-executor.js';
 
 // HookHoister - React hooks hoisting strategy
-export { HookHoister, createHookHoister } from './HookHoister.js';
+export { HookHoister, createHookHoister } from './hook-hoister.js';
 
 // VariableHoister - Variable/expression hoisting strategy
-export { VariableHoister, createVariableHoister } from './VariableHoister.js';
+export { VariableHoister, createVariableHoister } from './variable-hoister.js';
 
 // PropThreader - Prop threading through component tree
 export {
@@ -49,7 +49,7 @@ export {
   hasCommonAncestor,
   findLowestCommonAncestor,
   getComponentDepth,
-} from './PropThreader.js';
+} from './prop-threader.js';
 
 // ImportManager - Import statement management
 export {
@@ -59,7 +59,7 @@ export {
   isNodeModule,
   sortImports,
   removeUnusedImports,
-} from './ImportManager.js';
+} from './import-manager.js';
 
 // ContextHandler - React Context handling
 export {
@@ -70,7 +70,7 @@ export {
   isContextConsumer,
   findContextDefinitions,
   findProviderInstances,
-} from './ContextHandler.js';
+} from './context-handler.js';
 
 // SuspenseHandler - React Suspense boundary handling
 export {
@@ -82,20 +82,20 @@ export {
   findSuspenseBoundaries,
   hasParentSuspense,
   createSuspenseElement,
-} from './SuspenseHandler.js';
+} from './suspense-handler.js';
 
 // ===============================================================================
 // Strategy Factory
 // ===============================================================================
 
-import { ContextHandler } from './ContextHandler.js';
-import { HoistPlanner } from './HoistPlanner.js';
-import { HookHoister } from './HookHoister.js';
-import { ImportManager } from './ImportManager.js';
-import { PropThreader } from './PropThreader.js';
-import { SuspenseHandler } from './SuspenseHandler.js';
+import { ContextHandler } from './context-handler.js';
+import { HoistPlanner } from './hoist-planner.js';
+import { HookHoister } from './hook-hoister.js';
+import { ImportManager } from './import-manager.js';
+import { PropThreader } from './prop-threader.js';
+import { SuspenseHandler } from './suspense-handler.js';
 import type { IHoistStrategy } from './types.js';
-import { VariableHoister } from './VariableHoister.js';
+import { VariableHoister } from './variable-hoister.js';
 
 /**
  * Strategy registry for dependency hoisting

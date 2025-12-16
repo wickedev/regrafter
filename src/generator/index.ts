@@ -7,7 +7,7 @@
  * @module generator
  */
 
-export { CodeGenerator } from './CodeGenerator.js';
+export { CodeGenerator } from './code-generator.js';
 export type {
   GeneratorOptions,
   GenerateResult,

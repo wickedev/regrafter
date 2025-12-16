@@ -51,13 +51,13 @@ export {
 export {
   DependencyAnalyzer,
   createDependencyAnalyzer,
-} from './DependencyAnalyzer.js';
+} from './dependency-analyzer.js';
 
 // MoveAnalysis Builder
 export {
   MoveAnalysisBuilder,
   createMoveAnalysisBuilder,
-} from './MoveAnalysisBuilder.js';
+} from './move-analysis-builder.js';
 
 // Types
 export {

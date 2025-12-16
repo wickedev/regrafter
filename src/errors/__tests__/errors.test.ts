@@ -23,7 +23,7 @@ import {
   isTransformError,
   isCircularError,
   isInternalError,
-} from '../ErrorCategory.js';
+} from '../error-category.js';
 
 import {
   ERROR_CODES,
@@ -37,7 +37,7 @@ import {
   getErrorCodeDefinition,
   getErrorCodesByCategory,
   isRecoverableErrorCode,
-} from '../ErrorCodes.js';
+} from '../error-codes.js';
 
 import {
   getSuggestedFixesForParseError,
@@ -46,14 +46,14 @@ import {
   getSuggestedFixesForValidationError,
   getSuggestedFixesForCircularError,
   getSuggestedFixesForError,
-} from '../SuggestedFixes.js';
+} from '../suggested-fixes.js';
 
 import {
   isRecoverable,
   getRecoveryStrategy,
   attemptRecovery,
   RECOVERY_STRATEGIES,
-} from '../ErrorRecovery.js';
+} from '../error-recovery.js';
 
 describe('ErrorCategory', () => {
   it('should have all expected categories', () => {

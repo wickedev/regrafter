@@ -9,7 +9,7 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
-import { CodeGenerator } from '../generator/CodeGenerator.js';
+import { CodeGenerator } from '../generator/code-generator.js';
 import type { Parser} from '../parser/index.js';
 import { createParser } from '../parser/index.js';
 import {
@@ -27,17 +27,17 @@ import { loadTraverseFunction } from '../utils/index.js';
 const traverse = loadTraverseFunction(traverseModule);
 
 
-import type { FastCanMove} from './FastCanMove.js';
-import { createFastCanMove } from './FastCanMove.js';
+import type { FastCanMove} from './fast-can-move.js';
+import { createFastCanMove } from './fast-can-move.js';
 import type {
-  PerformanceOptimizer} from './PerformanceOptimizer.js';
+  PerformanceOptimizer} from './performance-optimizer.js';
 import {
   createPerformanceOptimizer,
-} from './PerformanceOptimizer.js';
-import type { SinkAnalyzer} from './SinkAnalyzer.js';
-import { createSinkAnalyzer } from './SinkAnalyzer.js';
-import type { SinkExecutor} from './SinkExecutor.js';
-import { createSinkExecutor } from './SinkExecutor.js';
+} from './performance-optimizer.js';
+import type { SinkAnalyzer} from './sink-analyzer.js';
+import { createSinkAnalyzer } from './sink-analyzer.js';
+import type { SinkExecutor} from './sink-executor.js';
+import { createSinkExecutor } from './sink-executor.js';
 import type {
   IOptimizer,
   OptimizeOptions,

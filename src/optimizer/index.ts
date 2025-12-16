@@ -47,10 +47,10 @@ export type {
 } from './types.js';
 
 // Sink Analyzer
-export { SinkAnalyzer, createSinkAnalyzer } from './SinkAnalyzer.js';
+export { SinkAnalyzer, createSinkAnalyzer } from './sink-analyzer.js';
 
 // Sink Executor
-export { SinkExecutor, createSinkExecutor } from './SinkExecutor.js';
+export { SinkExecutor, createSinkExecutor } from './sink-executor.js';
 
 // Performance Optimizer
 export {
@@ -58,10 +58,10 @@ export {
   createPerformanceOptimizer,
   PerformanceTracker,
   createPerformanceTracker,
-} from './PerformanceOptimizer.js';
+} from './performance-optimizer.js';
 
 // Fast canMove
-export { FastCanMove, createFastCanMove } from './FastCanMove.js';
+export { FastCanMove, createFastCanMove } from './fast-can-move.js';
 
 // Main Optimizer
 export {
@@ -69,7 +69,7 @@ export {
   createOptimizer,
   optimize,
   optimizeWithDetails,
-} from './Optimizer.js';
+} from './optimizer.js';
 
 // Benchmark utilities
 export {
@@ -83,4 +83,4 @@ export {
   createMultiFileBenchmark,
   createCanMoveBenchmark,
   runAllBenchmarks,
-} from './Benchmark.js';
+} from './benchmark.js';

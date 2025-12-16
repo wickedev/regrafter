@@ -17,7 +17,7 @@ import {
   TransformError,
   CircularError,
   InternalError,
-} from './ErrorCategory.js';
+} from './error-category.js';
 
 // ===============================================================================
 // Error Code Definitions
