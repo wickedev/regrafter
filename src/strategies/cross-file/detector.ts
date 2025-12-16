@@ -6,10 +6,14 @@
  */
 
 import type * as TraverseNS from '@babel/traverse';
-import traverse from '@babel/traverse';
+import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
 type NodePath<T = t.Node> = TraverseNS.NodePath<T>;
+
+import { loadTraverseFunction } from '../../utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 import type {
   InternalDependency,

@@ -5,9 +5,13 @@
  * elements are moved across the component tree.
  */
 
-import traverse from '@babel/traverse';
+import traverseModule from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
+
+import { loadTraverseFunction } from '../utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 import {
   createHoistOperation,

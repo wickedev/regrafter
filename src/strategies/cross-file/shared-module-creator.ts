@@ -11,39 +11,10 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-// Handle both ESM and CJS exports for generateCode
-const generateCodeModuleRecord: Record<string, unknown> = generateCodeModule;
-type GenerateFunction = (ast: t.Node, options?: object) => { code: string; map?: object };
-function isGenerateFunction(value: unknown): value is GenerateFunction {
-  return typeof value === 'function';
-}
-function getGenerateFunction(): GenerateFunction {
-  if (isGenerateFunction(generateCodeModuleRecord.default)) {
-    return generateCodeModuleRecord.default;
-  }
-  if (isGenerateFunction(generateCodeModule)) {
-    return generateCodeModule;
-  }
-  throw new Error('@babel/generator module is not properly loaded');
-}
-const generateCode = getGenerateFunction();
+import { loadGenerateFunction, loadTraverseFunction } from '../../utils/index.js';
 
-// Handle both ESM and CJS exports for traverse
-const traverseModuleRecord: Record<string, unknown> = traverseModule;
-type TraverseFunction = (ast: t.Node, visitor: object) => void;
-function isTraverseFunction(value: unknown): value is TraverseFunction {
-  return typeof value === 'function';
-}
-function getTraverseFunction(): TraverseFunction {
-  if (isTraverseFunction(traverseModuleRecord.default)) {
-    return traverseModuleRecord.default;
-  }
-  if (isTraverseFunction(traverseModule)) {
-    return traverseModule;
-  }
-  throw new Error('@babel/traverse module is not properly loaded');
-}
-const traverse = getTraverseFunction();
+const generateCode = loadGenerateFunction(generateCodeModule);
+const traverse = loadTraverseFunction(traverseModule);
 
 function isGeneratedCode(
   value: unknown

@@ -11,8 +11,12 @@
  */
 
 import type { NodePath, Visitor } from '@babel/traverse';
-import traverse from '@babel/traverse';
+import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
+
+import { loadTraverseFunction } from '../utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 import type { FileInput } from '../types/public.js';
 

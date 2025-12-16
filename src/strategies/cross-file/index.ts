@@ -6,8 +6,12 @@
  * Implements task 4.5.1 from the task list.
  */
 
-import generateCode from '@babel/generator';
+import generateCodeModule from '@babel/generator';
 import type * as t from '@babel/types';
+
+import { loadGenerateFunction } from '../../utils/index.js';
+
+const generateCode = loadGenerateFunction(generateCodeModule);
 
 import {
   createCode,
