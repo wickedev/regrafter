@@ -1,5 +1,6 @@
 # Claude Code
 .claude/*
+!.claude/CLAUDE.md
 !.claude/specs/
 !.claude/steering/
 

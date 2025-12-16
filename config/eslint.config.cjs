@@ -9,7 +9,7 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
-    project: './tsconfig.json',
+    project: './config/tsconfig.json',
   },
   plugins: ['@typescript-eslint', 'import'],
   extends: [
@@ -104,7 +104,7 @@ module.exports = {
   settings: {
     'import/resolver': {
       typescript: {
-        project: './tsconfig.json',
+        project: './config/tsconfig.json',
       },
     },
   },

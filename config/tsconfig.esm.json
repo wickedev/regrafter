@@ -1,9 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "./dist/cjs",
-    "module": "CommonJS",
-    "moduleResolution": "Node",
+    "outDir": "../dist/esm",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "declaration": false,
     "declarationMap": false,
     "noUnusedLocals": false,
@@ -12,6 +12,6 @@
     "skipLibCheck": true,
     "noImplicitAny": false
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "src/__tests__/**/*"]
+  "include": ["../src/**/*"],
+  "exclude": ["../node_modules", "../dist", "**/*.test.ts", "../src/__tests__/**/*"]
 }
