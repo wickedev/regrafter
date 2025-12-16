@@ -11,6 +11,20 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
+import {
+  createImportOperation,
+  createImportSpecifier,
+  createSharedModuleOperation,
+  createExportDeclaration,
+} from '../../types/factories.js';
+import type {
+  InternalDependency,
+  ImportOperation,
+  ImportSpecifier,
+  SharedModuleOperation,
+  ExportDeclaration,
+} from '../../types/internal.js';
+import { DependencyType } from '../../types/public.js';
 import { loadGenerateFunction, loadTraverseFunction } from '../../utils/index.js';
 
 const generateCode = loadGenerateFunction(generateCodeModule);
@@ -43,21 +57,6 @@ function safeGenerateCode(
   }
   throw new Error('Invalid generateCode result');
 }
-
-import {
-  createImportOperation,
-  createImportSpecifier,
-  createSharedModuleOperation,
-  createExportDeclaration,
-} from '../../types/factories.js';
-import type {
-  InternalDependency,
-  ImportOperation,
-  ImportSpecifier,
-  SharedModuleOperation,
-  ExportDeclaration,
-} from '../../types/internal.js';
-import { DependencyType } from '../../types/public.js';
 
 import {
   computeImportPath,

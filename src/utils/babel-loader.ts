@@ -21,6 +21,21 @@ export type GenerateFunction = (
 ) => { code: string; map?: object };
 
 /**
+ * Type guard for module with default export
+ */
+interface ModuleWithDefault {
+  default: unknown;
+}
+
+function hasDefaultExport(value: unknown): value is ModuleWithDefault {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'default' in value
+  );
+}
+
+/**
  * Type guard for traverse function
  */
 function isTraverseFunction(value: unknown): value is TraverseFunction {
@@ -43,15 +58,18 @@ function isGenerateFunction(value: unknown): value is GenerateFunction {
  * @throws Error if the module is not properly loaded
  */
 export function loadTraverseFunction(traverseModule: unknown): TraverseFunction {
-  const moduleRecord: Record<string, unknown> =
-    traverseModule as Record<string, unknown>;
+  // Type narrowing: first check if it's an object with a 'default' property
+  if (hasDefaultExport(traverseModule)) {
+    if (isTraverseFunction(traverseModule.default)) {
+      return traverseModule.default;
+    }
+  }
 
-  if (isTraverseFunction(moduleRecord.default)) {
-    return moduleRecord.default;
-  }
+  // Check if the module itself is a function (CJS export)
   if (isTraverseFunction(traverseModule)) {
-    return traverseModule as TraverseFunction;
+    return traverseModule;
   }
+
   throw new Error('@babel/traverse module is not properly loaded');
 }
 
@@ -64,14 +82,17 @@ export function loadTraverseFunction(traverseModule: unknown): TraverseFunction 
  * @throws Error if the module is not properly loaded
  */
 export function loadGenerateFunction(generateModule: unknown): GenerateFunction {
-  const moduleRecord: Record<string, unknown> =
-    generateModule as Record<string, unknown>;
+  // Type narrowing: first check if it's an object with a 'default' property
+  if (hasDefaultExport(generateModule)) {
+    if (isGenerateFunction(generateModule.default)) {
+      return generateModule.default;
+    }
+  }
 
-  if (isGenerateFunction(moduleRecord.default)) {
-    return moduleRecord.default;
-  }
+  // Check if the module itself is a function (CJS export)
   if (isGenerateFunction(generateModule)) {
-    return generateModule as GenerateFunction;
+    return generateModule;
   }
+
   throw new Error('@babel/generator module is not properly loaded');
 }

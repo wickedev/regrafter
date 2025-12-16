@@ -8,13 +8,12 @@
 import generateCodeModule from '@babel/generator';
 import * as t from '@babel/types';
 
-import { loadGenerateFunction } from '../../utils/index.js';
-
-const generateCode = loadGenerateFunction(generateCodeModule);
-
 import { createCode } from '../../types/factories.js';
 import type { ImportOperation } from '../../types/internal.js';
 import type { Code } from '../../types/public.js';
+import { loadGenerateFunction } from '../../utils/index.js';
+
+const generateCode = loadGenerateFunction(generateCodeModule);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Helper Functions

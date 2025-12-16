@@ -9,10 +9,6 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-import { loadTraverseFunction } from '../utils/index.js';
-
-const traverse = loadTraverseFunction(traverseModule);
-
 import {
   createImportOperation,
   createImportSpecifier,
@@ -23,6 +19,9 @@ import type {
   InternalDependency,
 } from '../types/internal.js';
 import { DependencyType } from '../types/public.js';
+import { loadTraverseFunction } from '../utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 import type {
   IImportManager,

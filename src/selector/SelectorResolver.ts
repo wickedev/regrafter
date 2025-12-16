@@ -11,10 +11,6 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-import { loadTraverseFunction } from '../utils/index.js';
-
-const traverse = loadTraverseFunction(traverseModule);
-
 import {
   isPositionSelector,
   isPathSelector,
@@ -29,6 +25,9 @@ import type {
   PathSelector,
   ResolveResult,
 } from '../types/index.js';
+import { loadTraverseFunction } from '../utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 import {
   SelectorErrorCodes,

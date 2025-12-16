@@ -9,10 +9,6 @@ import traverseModule from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
 
-import { loadTraverseFunction } from '../utils/index.js';
-
-const traverse = loadTraverseFunction(traverseModule);
-
 import {
   createHoistOperation,
   createPropThreadOperation,
@@ -27,6 +23,9 @@ import type {
   PropThreadOperation,
 } from '../types/internal.js';
 import { DependencyType } from '../types/public.js';
+import { loadTraverseFunction } from '../utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 import type {
   HoistContext,

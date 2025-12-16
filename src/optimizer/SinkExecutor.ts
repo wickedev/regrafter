@@ -14,16 +14,15 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-import { loadTraverseFunction } from '../utils/index.js';
-
-const traverse = loadTraverseFunction(traverseModule);
-
 import { createPropRemoval , generateId } from '../types/factories.js';
 import type {
   SinkCandidate,
   PropRemoval,
   ScopeInfo,
 } from '../types/index.js';
+import { loadTraverseFunction } from '../utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 import type {
   ISinkExecutor,

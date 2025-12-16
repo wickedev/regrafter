@@ -386,21 +386,28 @@ export function isValidOptions(value: unknown): value is Options {
     return true; // Empty options is valid
   }
 
-  const obj: Record<string, unknown> = value;
+  // Type guard helper function
+  function isObjectWithProperties(val: unknown): val is Record<string, unknown> {
+    return typeof val === 'object' && val !== null;
+  }
 
-  if (obj.optimize !== undefined && typeof obj.optimize !== 'boolean') {
+  if (!isObjectWithProperties(value)) {
+    return true; // This should never happen due to line check above
+  }
+
+  if (value.optimize !== undefined && typeof value.optimize !== 'boolean') {
     return false;
   }
-  if (obj.dryRun !== undefined && typeof obj.dryRun !== 'boolean') {
+  if (value.dryRun !== undefined && typeof value.dryRun !== 'boolean') {
     return false;
   }
   if (
-    obj.preserveComments !== undefined &&
-    typeof obj.preserveComments !== 'boolean'
+    value.preserveComments !== undefined &&
+    typeof value.preserveComments !== 'boolean'
   ) {
     return false;
   }
-  if (obj.formatOutput !== undefined && typeof obj.formatOutput !== 'boolean') {
+  if (value.formatOutput !== undefined && typeof value.formatOutput !== 'boolean') {
     return false;
   }
 

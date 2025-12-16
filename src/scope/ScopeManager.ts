@@ -14,15 +14,12 @@ import type { NodePath, Binding } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-import { loadTraverseFunction } from '../utils/index.js';
-
-const traverse = loadTraverseFunction(traverseModule);
-
 import {
   createScopeInfo,
   createComponentScope,
   generateId,
 } from '../types/factories.js';
+import { loadTraverseFunction } from '../utils/index.js';
 
 import {
   ScopeType,
@@ -35,6 +32,8 @@ import {
   type HookInfo,
   type ScopeTree,
 } from './types.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 
 /**

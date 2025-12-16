@@ -9,10 +9,6 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-import { loadTraverseFunction } from '../utils/index.js';
-
-const traverse = loadTraverseFunction(traverseModule);
-
 import type { Parser} from '../parser/index.js';
 import { createParser } from '../parser/index.js';
 import { createResolveResult, createSelectorError } from '../types/factories.js';
@@ -20,11 +16,14 @@ import { AtomicUnitType } from '../types/internal.js';
 import type { ResolveResult, AnalyzabilityResult, UnanalyzableCode } from '../types/internal.js';
 import type { FileInput, Selector } from '../types/public.js';
 import { Move, isPositionSelector, isPathSelector } from '../types/public.js';
+import { loadTraverseFunction } from '../utils/index.js';
 
 import {
   detectAtomicUnit,
   isJSXNode,
 } from './atomic-unit-detector.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 // ============================================================================
 // Types

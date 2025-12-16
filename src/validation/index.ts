@@ -18,6 +18,17 @@ import {
 } from '../types/public.js';
 
 // ===============================================================================
+// Type Guard Helpers
+// ===============================================================================
+
+/**
+ * Type guard to check if a value is a Record<string, unknown>
+ */
+function isRecord(val: unknown): val is Record<string, unknown> {
+  return typeof val === 'object' && val !== null;
+}
+
+// ===============================================================================
 // Validation Error Class
 // ===============================================================================
 
@@ -156,11 +167,14 @@ export function validatePositionSelector(
     return invalidResult(`${paramName} must be an object`);
   }
 
-  const obj: Record<string, unknown> = value;
+  if (!isRecord(value)) {
+    return invalidResult(`${paramName} must be an object`);
+  }
+
   const errors: string[] = [];
 
   // Validate file
-  const fileResult = validateString(obj.file, `${paramName}.file`);
+  const fileResult = validateString(value.file, `${paramName}.file`);
   if (!fileResult.valid) {
     if (fileResult.error !== undefined) {
       errors.push(fileResult.error);
@@ -168,7 +182,7 @@ export function validatePositionSelector(
   }
 
   // Validate line
-  const lineResult = validatePositiveInteger(obj.line, `${paramName}.line`);
+  const lineResult = validatePositiveInteger(value.line, `${paramName}.line`);
   if (!lineResult.valid) {
     if (lineResult.error !== undefined) {
       errors.push(lineResult.error);
@@ -176,7 +190,7 @@ export function validatePositionSelector(
   }
 
   // Validate column
-  const columnResult = validatePositiveInteger(obj.column, `${paramName}.column`);
+  const columnResult = validatePositiveInteger(value.column, `${paramName}.column`);
   if (!columnResult.valid) {
     if (columnResult.error !== undefined) {
       errors.push(columnResult.error);
@@ -210,11 +224,14 @@ export function validatePathSelector(
     return invalidResult(`${paramName} must be an object`);
   }
 
-  const obj: Record<string, unknown> = value;
+  if (!isRecord(value)) {
+    return invalidResult(`${paramName} must be an object`);
+  }
+
   const errors: string[] = [];
 
   // Validate file
-  const fileResult = validateString(obj.file, `${paramName}.file`);
+  const fileResult = validateString(value.file, `${paramName}.file`);
   if (!fileResult.valid) {
     if (fileResult.error !== undefined) {
       errors.push(fileResult.error);
@@ -222,7 +239,7 @@ export function validatePathSelector(
   }
 
   // Validate path
-  const pathResult = validateString(obj.path, `${paramName}.path`);
+  const pathResult = validateString(value.path, `${paramName}.path`);
   if (!pathResult.valid) {
     if (pathResult.error !== undefined) {
       errors.push(pathResult.error);
@@ -254,15 +271,17 @@ export function validateSelector(
     return invalidResult(`${paramName} must be an object`);
   }
 
-  const obj: Record<string, unknown> = value;
+  if (!isRecord(value)) {
+    return invalidResult(`${paramName} must be an object`);
+  }
 
   // Check if it's a PositionSelector
-  if ('line' in obj && 'column' in obj) {
+  if ('line' in value && 'column' in value) {
     return validatePositionSelector(value, paramName);
   }
 
   // Check if it's a PathSelector
-  if ('path' in obj && typeof obj.path === 'string') {
+  if ('path' in value && typeof value.path === 'string') {
     return validatePathSelector(value, paramName);
   }
 
@@ -300,33 +319,36 @@ export function validateOptions(
     return invalidResult(`${paramName} must be an object, got ${typeof value}`);
   }
 
-  const obj: Record<string, unknown> = value;
+  if (!isRecord(value)) {
+    return invalidResult(`${paramName} must be an object`);
+  }
+
   const errors: string[] = [];
 
   // Validate optional fields
-  if (obj.optimize !== undefined) {
-    const result = validateBoolean(obj.optimize, `${paramName}.optimize`);
+  if (value.optimize !== undefined) {
+    const result = validateBoolean(value.optimize, `${paramName}.optimize`);
     if (!result.valid && result.error !== undefined) {
       errors.push(result.error);
     }
   }
 
-  if (obj.dryRun !== undefined) {
-    const result = validateBoolean(obj.dryRun, `${paramName}.dryRun`);
+  if (value.dryRun !== undefined) {
+    const result = validateBoolean(value.dryRun, `${paramName}.dryRun`);
     if (!result.valid && result.error !== undefined) {
       errors.push(result.error);
     }
   }
 
-  if (obj.preserveComments !== undefined) {
-    const result = validateBoolean(obj.preserveComments, `${paramName}.preserveComments`);
+  if (value.preserveComments !== undefined) {
+    const result = validateBoolean(value.preserveComments, `${paramName}.preserveComments`);
     if (!result.valid && result.error !== undefined) {
       errors.push(result.error);
     }
   }
 
-  if (obj.formatOutput !== undefined) {
-    const result = validateBoolean(obj.formatOutput, `${paramName}.formatOutput`);
+  if (value.formatOutput !== undefined) {
+    const result = validateBoolean(value.formatOutput, `${paramName}.formatOutput`);
     if (!result.valid && result.error !== undefined) {
       errors.push(result.error);
     }
@@ -334,7 +356,7 @@ export function validateOptions(
 
   // Check for unknown properties
   const validProps = ['optimize', 'dryRun', 'preserveComments', 'formatOutput'];
-  for (const key of Object.keys(obj)) {
+  for (const key of Object.keys(value)) {
     if (!validProps.includes(key)) {
       errors.push(`Unknown option: ${key}`);
     }
@@ -359,11 +381,14 @@ export function validateFileInput(
     return invalidResult(`files[${index}] must be an object`);
   }
 
-  const obj: Record<string, unknown> = value;
+  if (!isRecord(value)) {
+    return invalidResult(`files[${index}] must be an object`);
+  }
+
   const errors: string[] = [];
 
   // Validate path
-  const pathResult = validateString(obj.path, `files[${index}].path`);
+  const pathResult = validateString(value.path, `files[${index}].path`);
   if (!pathResult.valid) {
     if (pathResult.error !== undefined) {
       errors.push(pathResult.error);
@@ -371,7 +396,7 @@ export function validateFileInput(
   }
 
   // Validate content (allow empty content)
-  const contentResult = validateString(obj.content, `files[${index}].content`, true);
+  const contentResult = validateString(value.content, `files[${index}].content`, true);
   if (!contentResult.valid) {
     if (contentResult.error !== undefined) {
       errors.push(contentResult.error);

@@ -613,6 +613,7 @@ function moveWithHoisting(
             typeof parent === 'object' &&
             'id' in parent &&
             typeof parent.id === 'object' &&
+            parent.id !== null &&
             'name' in parent.id &&
             typeof parent.id.name === 'string'
           ) {
@@ -626,6 +627,7 @@ function moveWithHoisting(
             typeof parent === 'object' &&
             'id' in parent &&
             typeof parent.id === 'object' &&
+            parent.id !== null &&
             'name' in parent.id &&
             typeof parent.id.name === 'string'
           ) {

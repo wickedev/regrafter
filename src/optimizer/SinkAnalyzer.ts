@@ -15,10 +15,6 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
-import { loadTraverseFunction } from '../utils/index.js';
-
-const traverse = loadTraverseFunction(traverseModule);
-
 import {
   createScopeInfo,
   createConsumerInfo,
@@ -35,6 +31,7 @@ import {
   DependencyType,
 } from '../types/index.js';
 import type { FileInput } from '../types/public.js';
+import { loadTraverseFunction } from '../utils/index.js';
 
 import type {
   ISinkAnalyzer,
@@ -43,6 +40,9 @@ import type {
   LCAResult,
   ScopeTree,
 } from './types.js';
+
+
+const traverse = loadTraverseFunction(traverseModule);
 
 /**
  * Default options for sink analysis.
@@ -454,9 +454,9 @@ export class SinkAnalyzer implements ISinkAnalyzer {
           ? DependencyType.Hook
           : DependencyType.Variable,
         origin: {
-          node: node.path !== null ? node.path.node : null as any,
+          node: node.path.node,
           file: '', // Would need file context
-          location: node.path !== null ? (node.path.node.loc ?? null) : null,
+          location: node.path.node.loc ?? null,
         },
         scope: node.scope,
         isTransitive: false,
@@ -479,11 +479,9 @@ export class SinkAnalyzer implements ISinkAnalyzer {
     const path = consumerNode.path;
 
     // Check if used as a prop
-    if (path !== null) {
-      const parentPath = path.parentPath;
-      if (parentPath !== null && parentPath.isJSXAttribute()) {
-        return 'prop';
-      }
+    const parentPath = path.parentPath;
+    if (parentPath !== null && parentPath.isJSXAttribute()) {
+      return 'prop';
     }
 
     // Check if used in a closure (referenced from a different scope)

@@ -13,10 +13,6 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
-import { loadTraverseFunction } from '../utils/index.js';
-
-const traverse = loadTraverseFunction(traverseModule);
-
 import { CodeGenerator } from '../generator/CodeGenerator.js';
 import type { Parser} from '../parser/index.js';
 import { createParser } from '../parser/index.js';
@@ -30,6 +26,10 @@ import {
 } from '../types/factories.js';
 import { ScopeType, type DependencyGraph, type ScopeInfo } from '../types/index.js';
 import type { FileInput, Code } from '../types/public.js';
+import { loadTraverseFunction } from '../utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
+
 
 import type { FastCanMove} from './FastCanMove.js';
 import { createFastCanMove } from './FastCanMove.js';
