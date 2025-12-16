@@ -6,10 +6,72 @@
  * Implements tasks 4.2.1, 4.2.2, and 4.2.3 from the task list.
  */
 
-import generateCode from '@babel/generator';
+import generateCodeModule from '@babel/generator';
 import type { NodePath } from '@babel/traverse';
-import traverse from '@babel/traverse';
+import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
+
+// Handle both ESM and CJS exports for generateCode
+const generateCodeModuleRecord: Record<string, unknown> = generateCodeModule;
+type GenerateFunction = (ast: t.Node, options?: object) => { code: string; map?: object };
+function isGenerateFunction(value: unknown): value is GenerateFunction {
+  return typeof value === 'function';
+}
+function getGenerateFunction(): GenerateFunction {
+  if (isGenerateFunction(generateCodeModuleRecord.default)) {
+    return generateCodeModuleRecord.default;
+  }
+  if (isGenerateFunction(generateCodeModule)) {
+    return generateCodeModule;
+  }
+  throw new Error('@babel/generator module is not properly loaded');
+}
+const generateCode = getGenerateFunction();
+
+// Handle both ESM and CJS exports for traverse
+const traverseModuleRecord: Record<string, unknown> = traverseModule;
+type TraverseFunction = (ast: t.Node, visitor: object) => void;
+function isTraverseFunction(value: unknown): value is TraverseFunction {
+  return typeof value === 'function';
+}
+function getTraverseFunction(): TraverseFunction {
+  if (isTraverseFunction(traverseModuleRecord.default)) {
+    return traverseModuleRecord.default;
+  }
+  if (isTraverseFunction(traverseModule)) {
+    return traverseModule;
+  }
+  throw new Error('@babel/traverse module is not properly loaded');
+}
+const traverse = getTraverseFunction();
+
+function isGeneratedCode(
+  value: unknown
+): value is { code: string; map?: object } {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (!('code' in value)) {
+    return false;
+  }
+  type ObjectWithCode = { code: unknown };
+  const obj: ObjectWithCode = value;
+  return typeof obj.code === 'string';
+}
+
+/**
+ * Safely generates code from AST.
+ */
+function safeGenerateCode(
+  ast: t.Node,
+  opts?: object
+): { code: string; map?: object } {
+  const result: unknown = generateCode(ast, opts);
+  if (isGeneratedCode(result)) {
+    return result;
+  }
+  throw new Error('Invalid generateCode result');
+}
 
 import {
   createImportOperation,
@@ -99,10 +161,7 @@ export function generateSharedModule(
   sourceFile: string,
   config: SharedModuleConfig = {}
 ): SharedModuleResult {
-  const {
-    namingConvention = 'shared',
-    extension = '.ts',
-  } = config;
+  const { namingConvention = 'shared', extension = '.ts' } = config;
 
   // Generate shared module path
   const sharedModulePath = generateSharedModulePath(
@@ -145,10 +204,10 @@ export function generateSharedModule(
   const sharedAst = t.file(t.program(statements, [], 'module'));
 
   // Generate code
-  const result = generateCode(sharedAst, {
+  const result = safeGenerateCode(sharedAst, {
     comments: true,
     compact: false,
-  }) as { code: string; map?: object };
+  });
 
   const operation = createSharedModuleOperation({
     newFilePath: sharedModulePath,
@@ -176,7 +235,11 @@ function generateSharedModulePath(
   parts.pop(); // Remove filename
 
   // Get source file name without extension
-  const sourceFileName = sourceFile.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'module';
+  const sourceFileName =
+    sourceFile
+      .split('/')
+      .pop()
+      ?.replace(/\.[^.]+$/, '') ?? 'module';
 
   // Generate shared module name
   const sharedName = `${sourceFileName}.${convention}${extension}`;
@@ -216,16 +279,19 @@ function collectNeededImports(
         const local = specifier.local.name;
 
         if (usedIdentifiers.has(local)) {
-          if (!neededImports.has(source)) {
-            neededImports.set(source, new Set());
+          let importSet = neededImports.get(source);
+          if (importSet === undefined) {
+            importSet = new Set();
+            neededImports.set(source, importSet);
           }
-          neededImports.get(source)!.add(imported);
+          importSet.add(imported);
         }
       } else if (specifier.type === 'ImportDefaultSpecifier') {
         if (usedIdentifiers.has(specifier.local.name)) {
           defaultImports.set(source, specifier.local.name);
         }
-      } else if (specifier.type === 'ImportNamespaceSpecifier') {
+      } else {
+        // ImportNamespaceSpecifier
         if (usedIdentifiers.has(specifier.local.name)) {
           namespaceImports.set(source, specifier.local.name);
         }
@@ -238,7 +304,9 @@ function collectNeededImports(
 
   // Add default imports
   for (const [source, name] of defaultImports) {
-    const specifiers: Array<t.ImportDefaultSpecifier | t.ImportSpecifier | t.ImportNamespaceSpecifier> = [t.importDefaultSpecifier(t.identifier(name))];
+    const specifiers: Array<
+      t.ImportDefaultSpecifier | t.ImportSpecifier | t.ImportNamespaceSpecifier
+    > = [t.importDefaultSpecifier(t.identifier(name))];
 
     // Merge with named imports if they exist
     const namedImports = neededImports.get(source);
@@ -278,10 +346,20 @@ function collectNeededImports(
 /**
  * Collects all identifiers from a node.
  */
-function collectIdentifiersFromNode(node: t.Node, identifiers: Set<string>): void {
-  const tempAst = t.file(t.program([t.expressionStatement(node as t.Expression)]));
+function collectIdentifiersFromNode(
+  node: t.Node,
+  identifiers: Set<string>
+): void {
+  // Only wrap nodes that are valid program body items; otherwise traverse the node directly
+  const astToTraverse: t.Node = t.isProgram(node)
+    ? node
+    : t.isStatement(node)
+      ? t.file(t.program([node]))
+      : t.isExpression(node)
+        ? t.file(t.program([t.expressionStatement(node)]))
+        : node;
 
-  traverse(tempAst, {
+  traverse(astToTraverse, {
     Identifier(path: NodePath<t.Identifier>) {
       identifiers.add(path.node.name);
     },
@@ -388,7 +466,10 @@ export function updateSourceFileReferences(
 
   // Remove marked statements (in reverse order to preserve indices)
   for (let i = statementsToRemove.length - 1; i >= 0; i--) {
-    clonedAst.program.body.splice(statementsToRemove[i], 1);
+    const indexToRemove = statementsToRemove[i];
+    if (indexToRemove !== undefined) {
+      clonedAst.program.body.splice(indexToRemove, 1);
+    }
   }
 
   // Create import operation for the shared module
@@ -416,7 +497,8 @@ export function updateSourceFileReferences(
   // Find the last import in the file
   let lastImportIndex = -1;
   for (let i = 0; i < clonedAst.program.body.length; i++) {
-    if (clonedAst.program.body[i].type === 'ImportDeclaration') {
+    const node = clonedAst.program.body[i];
+    if (node && node.type === 'ImportDeclaration') {
       lastImportIndex = i;
     }
   }
@@ -465,22 +547,27 @@ export function generateTargetImports(
       // This dependency is from an external module
       // We need to add the same import to the target file
       const importSource = extractImportSource(dep);
-      if (importSource) {
+      if (importSource !== null && importSource.length > 0) {
         if (!fromExternal.has(importSource)) {
           fromExternal.set(importSource, []);
         }
-        fromExternal.get(importSource)!.push(
-          createImportSpecifier({
-            type: 'named',
-            imported: dep.symbol,
-          })
-        );
+        const externalImports = fromExternal.get(importSource);
+        if (externalImports) {
+          externalImports.push(
+            createImportSpecifier({
+              type: 'named',
+              imported: dep.symbol,
+            })
+          );
+        }
       }
       continue;
     }
 
     // Check if dependency needs shared module
-    if (sharedModulePath && needsSharedModule(dep, exportAnalysis)) {
+    const hasSharedPath =
+      sharedModulePath !== null && sharedModulePath.length > 0;
+    if (hasSharedPath && needsSharedModule(dep, exportAnalysis)) {
       fromShared.push(dep.symbol);
     }
     // Check if dependency is already exported from source
@@ -495,7 +582,9 @@ export function generateTargetImports(
   }
 
   // Create import from shared module
-  if (sharedModulePath && fromShared.length > 0) {
+  const hasSharedPath =
+    sharedModulePath !== null && sharedModulePath.length > 0;
+  if (hasSharedPath && fromShared.length > 0) {
     const importPath = computeImportPath(targetFile, sharedModulePath);
     imports.push(
       createImportOperation({
@@ -556,7 +645,10 @@ function extractImportSource(dep: InternalDependency): string | null {
   // This is a simplified approach - in a full implementation,
   // we would traverse up to find the ImportDeclaration
   // For now, we'll store this in the dependency metadata
-  if ('importSource' in dep.origin && typeof dep.origin.importSource === 'string') {
+  if (
+    'importSource' in dep.origin &&
+    typeof dep.origin.importSource === 'string'
+  ) {
     return dep.origin.importSource;
   }
 
@@ -584,9 +676,10 @@ export function addImportsToAst(
       if (!existingImports.has(source)) {
         existingImports.set(source, new Set());
       }
+      const sourceImports = existingImports.get(source);
       for (const spec of node.specifiers) {
-        if (spec.type === 'ImportSpecifier') {
-          existingImports.get(source)!.add(spec.local.name);
+        if (spec.type === 'ImportSpecifier' && sourceImports) {
+          sourceImports.add(spec.local.name);
         }
       }
     }
@@ -597,9 +690,12 @@ export function addImportsToAst(
 
   for (const importOp of imports) {
     const existing = existingImports.get(importOp.importSource);
-    const newSpecifiers = importOp.specifiers.filter(
-      (spec) => !existing?.has(spec.local)
-    );
+    const newSpecifiers = importOp.specifiers.filter((spec) => {
+      if (existing === undefined) {
+        return true;
+      }
+      return !existing.has(spec.local);
+    });
 
     if (newSpecifiers.length === 0) continue;
 
@@ -649,7 +745,8 @@ export function addImportsToAst(
   // Find insertion point (after last import)
   let insertIndex = 0;
   for (let i = 0; i < clonedAst.program.body.length; i++) {
-    if (clonedAst.program.body[i].type === 'ImportDeclaration') {
+    const node = clonedAst.program.body[i];
+    if (node && node.type === 'ImportDeclaration') {
       insertIndex = i + 1;
     }
   }
@@ -658,6 +755,40 @@ export function addImportsToAst(
   clonedAst.program.body.splice(insertIndex, 0, ...newImports);
 
   return clonedAst;
+}
+
+/**
+ * Collects existing export names from an export declaration.
+ */
+function collectExistingExportsFromDeclaration(
+  node: t.ExportNamedDeclaration,
+  existingExports: Set<string>
+): void {
+  if (node.declaration) {
+    if (node.declaration.type === 'VariableDeclaration') {
+      for (const decl of node.declaration.declarations) {
+        if (decl.id.type === 'Identifier') {
+          existingExports.add(decl.id.name);
+        }
+      }
+    } else if (
+      (node.declaration.type === 'FunctionDeclaration' ||
+        node.declaration.type === 'ClassDeclaration') &&
+      node.declaration.id
+    ) {
+      existingExports.add(node.declaration.id.name);
+    }
+  }
+
+  for (const spec of node.specifiers) {
+    if (spec.type === 'ExportSpecifier') {
+      const exported =
+        spec.exported.type === 'Identifier'
+          ? spec.exported.name
+          : spec.exported.value;
+      existingExports.add(exported);
+    }
+  }
 }
 
 /**
@@ -678,30 +809,7 @@ export function addExportsToSourceFile(
   const existingExports = new Set<string>();
   for (const node of clonedAst.program.body) {
     if (node.type === 'ExportNamedDeclaration') {
-      if (node.declaration) {
-        if (node.declaration.type === 'VariableDeclaration') {
-          for (const decl of node.declaration.declarations) {
-            if (decl.id.type === 'Identifier') {
-              existingExports.add(decl.id.name);
-            }
-          }
-        } else if (
-          (node.declaration.type === 'FunctionDeclaration' ||
-            node.declaration.type === 'ClassDeclaration') &&
-          node.declaration.id
-        ) {
-          existingExports.add(node.declaration.id.name);
-        }
-      }
-      for (const spec of node.specifiers) {
-        if (spec.type === 'ExportSpecifier') {
-          const exported =
-            spec.exported.type === 'Identifier'
-              ? spec.exported.name
-              : spec.exported.value;
-          existingExports.add(exported);
-        }
-      }
+      collectExistingExportsFromDeclaration(node, existingExports);
     }
   }
 
@@ -716,10 +824,11 @@ export function addExportsToSourceFile(
   for (let i = 0; i < clonedAst.program.body.length; i++) {
     const node = clonedAst.program.body[i];
 
+    if (!node) continue;
+
     if (node.type === 'VariableDeclaration') {
       const hasExportableDecl = node.declarations.some(
-        (decl) =>
-          decl.id.type === 'Identifier' && symbolSet.has(decl.id.name)
+        (decl) => decl.id.type === 'Identifier' && symbolSet.has(decl.id.name)
       );
 
       if (hasExportableDecl) {

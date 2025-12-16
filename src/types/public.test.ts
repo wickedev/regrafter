@@ -61,12 +61,12 @@ describe('isPositionSelector', () => {
   });
 
   it('should return false if line is not a number', () => {
-    const selector = { file: 'test.tsx', line: '10', column: 5 } as unknown;
+    const selector: unknown = { file: 'test.tsx', line: '10', column: 5 };
     expect(isPositionSelector(selector as { file: string; line: number; column: number })).toBe(false);
   });
 
   it('should return false if column is not a number', () => {
-    const selector = { file: 'test.tsx', line: 10, column: '5' } as unknown;
+    const selector: unknown = { file: 'test.tsx', line: 10, column: '5' };
     expect(isPositionSelector(selector as { file: string; line: number; column: number })).toBe(false);
   });
 
@@ -88,7 +88,7 @@ describe('isPathSelector', () => {
   });
 
   it('should return false if path is not a string', () => {
-    const selector = { file: 'test.tsx', path: 123 } as unknown;
+    const selector: unknown = { file: 'test.tsx', path: 123 };
     expect(isPathSelector(selector as { file: string; path: string })).toBe(false);
   });
 

@@ -1,5 +1,22 @@
-import generateCode, { type GeneratorResult } from '@babel/generator';
+import generateCodeModule, { type GeneratorResult } from '@babel/generator';
 import type * as t from '@babel/types';
+
+// Handle both ESM and CJS exports
+const generateCodeModuleRecord: Record<string, unknown> = generateCodeModule;
+type GenerateFunction = (ast: t.File, options?: Record<string, unknown>) => GeneratorResult;
+function isGenerateFunction(value: unknown): value is GenerateFunction {
+  return typeof value === 'function';
+}
+function getGenerateFunction(): GenerateFunction {
+  if (isGenerateFunction(generateCodeModuleRecord.default)) {
+    return generateCodeModuleRecord.default;
+  }
+  if (isGenerateFunction(generateCodeModule)) {
+    return generateCodeModule;
+  }
+  throw new Error('@babel/generator module is not properly loaded');
+}
+const generateCode = getGenerateFunction();
 
 import type {
   GeneratorOptions,
@@ -48,7 +65,7 @@ export class CodeGenerator {
       const babelGeneratorOptions = this.buildBabelGeneratorOptions(mergedOptions);
 
       // Generate code using @babel/generator
-      const result: GeneratorResult = generateCode(ast, babelGeneratorOptions) as GeneratorResult;
+      const result: GeneratorResult = generateCode(ast, babelGeneratorOptions);
 
       return {
         code: result.code,
@@ -129,20 +146,34 @@ export class CodeGenerator {
    * Convert Babel source map to our SourceMap format
    */
   private convertSourceMap(babelMap: unknown): GenerateResult['map'] {
-    if (!babelMap || typeof babelMap !== 'object') {
+    if (babelMap === null || babelMap === undefined || typeof babelMap !== 'object') {
       return undefined;
     }
 
-    const map = babelMap as Record<string, unknown>;
-    
+    function isStringArray(value: unknown): value is string[] {
+      return Array.isArray(value) && value.every(item => typeof item === 'string');
+    }
+
+    function isRecord(value: unknown): value is Record<string, unknown> {
+      return value !== null && value !== undefined && typeof value === 'object';
+    }
+
+    if (!isRecord(babelMap)) {
+      return undefined;
+    }
+
+    const versionValue = babelMap['version'];
+    const sourcesValue = babelMap['sources'];
+    const namesValue = babelMap['names'];
+    const mappingsValue = babelMap['mappings'];
+    const sourcesContentValue = babelMap['sourcesContent'];
+
     return {
-      version: typeof map['version'] === 'number' ? map['version'] : 3,
-      sources: Array.isArray(map['sources']) ? map['sources'] as string[] : [],
-      names: Array.isArray(map['names']) ? map['names'] as string[] : [],
-      mappings: typeof map['mappings'] === 'string' ? map['mappings'] : '',
-      sourcesContent: Array.isArray(map['sourcesContent'])
-        ? map['sourcesContent'] as string[]
-        : undefined,
+      version: typeof versionValue === 'number' ? versionValue : 3,
+      sources: isStringArray(sourcesValue) ? sourcesValue : [],
+      names: isStringArray(namesValue) ? namesValue : [],
+      mappings: typeof mappingsValue === 'string' ? mappingsValue : '',
+      sourcesContent: isStringArray(sourcesContentValue) ? sourcesContentValue : undefined,
     };
   }
 
@@ -212,18 +243,53 @@ export class CodeGenerator {
    * @returns Cloned comments array
    */
   private cloneComments(comments: readonly t.Comment[]): t.Comment[] {
-    return comments.map((comment) => ({
-      type: comment.type,
-      value: comment.value,
-      start: comment.start,
-      end: comment.end,
-      loc: comment.loc
-        ? {
+    const result: t.Comment[] = [];
+    for (const comment of comments) {
+      if (comment.type === 'CommentBlock') {
+        const cloned: t.CommentBlock = {
+          type: 'CommentBlock',
+          value: comment.value,
+        };
+        // Only check for undefined (not null) as the types don't include null
+        if (comment.start !== undefined) {
+          cloned.start = comment.start;
+        }
+        if (comment.end !== undefined) {
+          cloned.end = comment.end;
+        }
+        if (comment.loc !== undefined) {
+          cloned.loc = {
             start: { ...comment.loc.start },
             end: { ...comment.loc.end },
-          }
-        : undefined,
-    }));
+            filename: comment.loc.filename,
+            identifierName: comment.loc.identifierName,
+          };
+        }
+        result.push(cloned);
+      } else {
+        const cloned: t.CommentLine = {
+          type: 'CommentLine',
+          value: comment.value,
+        };
+        // Only check for undefined (not null) as the types don't include null
+        if (comment.start !== undefined) {
+          cloned.start = comment.start;
+        }
+        if (comment.end !== undefined) {
+          cloned.end = comment.end;
+        }
+        if (comment.loc !== undefined) {
+          cloned.loc = {
+            start: { ...comment.loc.start },
+            end: { ...comment.loc.end },
+            filename: comment.loc.filename,
+            identifierName: comment.loc.identifierName,
+          };
+        }
+        result.push(cloned);
+      }
+    }
+    return result;
   }
 
   /**
@@ -270,10 +336,10 @@ export class CodeGenerator {
 
     // Analyze multiple lines to determine the prevalent indentation style
     const indentationStats = this.analyzeIndentationStyle(lines);
-    
+
     // Get the specific line's indentation
     const targetLine = lines[line - 1];
-    if (!targetLine) {
+    if (targetLine === undefined || targetLine.length === 0) {
       return defaultInfo;
     }
 
@@ -411,9 +477,6 @@ export class CodeGenerator {
     const baseLevel = targetIndent.useTabs
       ? baseIndent.tabs
       : Math.floor(baseIndent.spaces / targetIndent.size);
-
-    // Target indentation string
-    const _targetIndentStr = targetIndent.char.repeat(targetIndent.level);
 
     // Adjust each line
     const adjustedLines = lines.map((line) => {

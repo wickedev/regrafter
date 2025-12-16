@@ -187,11 +187,8 @@ export class HookHoister implements IHookHoister {
     }
 
     // Function scope is valid only if it's a custom hook
-    if (scope.type === ScopeType.Function) {
-      return this.isCustomHookScope(scope);
-    }
-
-    return false;
+    // At this point, the remaining scope type must be Function
+    return this.isCustomHookScope(scope);
   }
 
   /**
@@ -382,7 +379,13 @@ export class HookHoister implements IHookHoister {
               (prop): prop is t.ObjectProperty =>
                 prop.type === 'ObjectProperty' && prop.value.type === 'Identifier'
             )
-            .map((prop) => (prop.value as t.Identifier).name)
+            .map((prop) => {
+              if (prop.value.type === 'Identifier') {
+                return prop.value.name;
+              }
+              return '';
+            })
+            .filter((name) => name !== '')
         );
       } else if (id.type === 'Identifier') {
         destructuredNames.push(id.name);
@@ -459,10 +462,6 @@ export class HookHoister implements IHookHoister {
    */
   private isCustomHookScope(scope: ScopeInfo): boolean {
     const path = scope.path;
-    if (!path.node) {
-      return false;
-    }
-
     const node = path.node;
     let functionName: string | undefined;
 
@@ -471,7 +470,7 @@ export class HookHoister implements IHookHoister {
     } else if (
       (node.type === 'ArrowFunctionExpression' ||
         node.type === 'FunctionExpression') &&
-      path.parentPath?.isVariableDeclarator()
+      path.parentPath?.isVariableDeclarator() === true
     ) {
       const id = (path.parentPath.node).id;
       if (id.type === 'Identifier') {
@@ -479,7 +478,7 @@ export class HookHoister implements IHookHoister {
       }
     }
 
-    return functionName ? isHookName(functionName) : false;
+    return functionName !== undefined && isHookName(functionName);
   }
 
   /**
@@ -494,7 +493,7 @@ export class HookHoister implements IHookHoister {
       hookInfo.category === HookCategory.State &&
       hookInfo.destructuredNames.length > 0
     ) {
-      return hookInfo.destructuredNames[0];
+      return hookInfo.destructuredNames[0] ?? dependency.symbol;
     }
 
     return dependency.symbol;
@@ -508,7 +507,7 @@ export class HookHoister implements IHookHoister {
     hookInfo: HookReturnInfo
   ): string {
     if (hookInfo.destructuredNames.length > 0) {
-      return hookInfo.destructuredNames[0];
+      return hookInfo.destructuredNames[0] ?? dependency.symbol;
     }
     return dependency.symbol;
   }

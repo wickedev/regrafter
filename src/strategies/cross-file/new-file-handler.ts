@@ -13,6 +13,36 @@ import type { ImportOperation } from '../../types/internal.js';
 import type { Code } from '../../types/public.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// Helper Functions
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Type guard for generateCode result.
+ */
+function isGeneratedCode(value: unknown): value is { code: string; map?: object } {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (!('code' in value)) {
+    return false;
+  }
+  type ObjectWithCode = { code: unknown };
+  const obj: ObjectWithCode = value;
+  return typeof obj.code === 'string';
+}
+
+/**
+ * Safely generates code from AST.
+ */
+function safeGenerateCode(ast: t.Node, opts?: object): { code: string; map?: object } {
+  const result: unknown = generateCode(ast, opts);
+  if (isGeneratedCode(result)) {
+    return result;
+  }
+  throw new Error('Invalid generateCode result');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -117,7 +147,7 @@ export function detectFileType(filePath: string): FileTypeInfo {
 
   // Detect extension
   const extensionMatch = fileName.match(/\.(tsx?|jsx?|mjs)$/);
-  const extension = extensionMatch ? extensionMatch[1] : 'tsx';
+  const extension = extensionMatch?.[1] ?? 'tsx';
 
   const isTypeScript = extension.startsWith('ts');
   const isJsx = extension === 'tsx' || extension === 'jsx';
@@ -155,11 +185,11 @@ export function generateEmptyComponentFile(
   const statements: t.Statement[] = [];
 
   // Add 'use client' or 'use server' directive if specified
-  if (config.useClient) {
+  if (config.useClient === true) {
     statements.push(
       t.expressionStatement(t.stringLiteral('use client'))
     );
-  } else if (config.useServer) {
+  } else if (config.useServer === true) {
     statements.push(
       t.expressionStatement(t.stringLiteral('use server'))
     );
@@ -234,11 +264,11 @@ export function generateEmptyComponentFile(
   const ast = t.file(t.program(statements, [], 'module'));
 
   // Generate code
-  const result = generateCode(ast, {
+  const result = safeGenerateCode(ast, {
     comments: true,
     compact: false,
     jsescOption: { quotes: 'single' },
-  }) as { code: string; map?: object };
+  });
 
   const codeResult = createCode({
     file: filePath,
@@ -356,11 +386,11 @@ export function generateEmptyFile(
   };
   ast.comments = [autoGenComment];
 
-  const result = generateCode(ast, {
+  const result = safeGenerateCode(ast, {
     comments: true,
     compact: false,
     jsescOption: { quotes: 'single' },
-  }) as { code: string; map?: object };
+  });
 
   const codeResult = createCode({
     file: filePath,
@@ -405,11 +435,11 @@ export function generateSharedModuleFile(
   const ast = t.file(t.program(statements, [], 'module'));
   ast.comments = [headerComment];
 
-  const result = generateCode(ast, {
+  const result = safeGenerateCode(ast, {
     comments: true,
     compact: false,
     jsescOption: { quotes: 'single' },
-  }) as { code: string; map?: object };
+  });
 
   const codeResult = createCode({
     file: filePath,

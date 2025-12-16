@@ -117,7 +117,6 @@ export class Optimizer implements IOptimizer {
     options?: OptimizeOptions
   ): ExtendedOptimizeResult {
     const opts = this.mergeOptions(options);
-    const _startTime = performance.now();
 
     // Parse all files
     const parseResults = this.performanceOptimizer.timePhase('parse', () => {
@@ -130,7 +129,7 @@ export class Optimizer implements IOptimizer {
 
     for (const file of files) {
       const result = parseResults.get(file.path);
-      if (result?.success && result.ast) {
+      if (result !== undefined && result.success === true && result.ast) {
         asts.set(file.path, result.ast);
         originalContents.set(file.path, file.content);
       }
@@ -146,13 +145,16 @@ export class Optimizer implements IOptimizer {
 
     // Sink analysis and execution
     if (opts.enableSinking) {
-      sinkAnalysis = this.performanceOptimizer.timePhase('analysis', () => {
+      const analysisResult = this.performanceOptimizer.timePhase('analysis', () => {
         return this.sinkAnalyzer.analyze(files, graph, opts.sinkOptions);
       });
+      sinkAnalysis = analysisResult;
 
-      if (!opts.dryRun && sinkAnalysis.sinkable.length > 0) {
+      // analysisResult is always defined (analyze() always returns a result)
+      // Check if there are sinkable elements and if not in dry run mode
+      if (!opts.dryRun && analysisResult.sinkable.length > 0) {
         this.performanceOptimizer.timePhase('transform', () => {
-          return this.sinkExecutor.execute(sinkAnalysis!.sinkable, asts);
+          return this.sinkExecutor.execute(analysisResult.sinkable, asts);
         });
       }
     }
@@ -239,7 +241,7 @@ export class Optimizer implements IOptimizer {
   private buildDependencyGraph(asts: Map<string, t.File>): DependencyGraph {
     const graph = createDependencyGraph();
 
-    for (const [_filePath, ast] of asts) {
+    for (const [_filePath, ast] of Array.from(asts)) {
       // Build scope tree first
       const scopeTree = this.sinkAnalyzer.buildScopeTree(ast);
 
@@ -253,7 +255,7 @@ export class Optimizer implements IOptimizer {
           const node = createDependencyNode({
             type: 'symbol',
             name: id.name,
-            path: path as NodePath,
+            path,
             scope,
             metadata: {
               isHook: false,
@@ -265,16 +267,17 @@ export class Optimizer implements IOptimizer {
           addNodeToDependencyGraph(graph, node);
         },
         FunctionDeclaration: (path: NodePath<t.FunctionDeclaration>) => {
-          if (!path.node.id) return;
+          const nodeId = path.node.id;
+          if (!nodeId) return;
 
           const scope = this.findEnclosingScope(path, scopeTree.root);
           const node = createDependencyNode({
             type: 'symbol',
-            name: path.node.id.name,
-            path: path as NodePath,
+            name: nodeId.name,
+            path,
             scope,
             metadata: {
-              isHook: this.fastCanMove.isHookName(path.node.id.name),
+              isHook: this.fastCanMove.isHookName(nodeId.name),
               isPure: true,
               hasSideEffects: false,
               isExported: this.isExported(path),
@@ -291,7 +294,7 @@ export class Optimizer implements IOptimizer {
           const node = createDependencyNode({
             type: 'element',
             name: name.name,
-            path: path as NodePath,
+            path,
             scope,
             metadata: {
               isHook: false,
@@ -320,7 +323,7 @@ export class Optimizer implements IOptimizer {
       ) {
         // Check if React component
         const name = this.getFunctionName(current);
-        const isComponent = name ? /^[A-Z]/.test(name) : false;
+        const isComponent = name !== null ? /^[A-Z]/.test(name) : false;
 
         return createScopeInfo({
           type: isComponent ? ScopeType.Component : ScopeType.Function,
@@ -362,11 +365,15 @@ export class Optimizer implements IOptimizer {
   }
 
   private getFunctionName(path: NodePath): string | null {
-    if (path.isFunctionDeclaration() && path.node.id) {
-      return path.node.id.name;
+    if (path.isFunctionDeclaration()) {
+      const nodeId = path.node.id;
+      if (nodeId !== null && nodeId !== undefined) {
+        return nodeId.name;
+      }
     }
-    if (path.parentPath?.isVariableDeclarator()) {
-      const id = path.parentPath.node.id;
+    const parentPath = path.parentPath;
+    if (parentPath !== null && parentPath.isVariableDeclarator()) {
+      const id = parentPath.node.id;
       if (id.type === 'Identifier') {
         return id.name;
       }
@@ -374,9 +381,9 @@ export class Optimizer implements IOptimizer {
     return null;
   }
 
-  private isPureDeclaration(path: NodePath): boolean {
-    const init = (path.node as t.VariableDeclarator).init;
-    if (!init) return true;
+  private isPureDeclaration(path: NodePath<t.VariableDeclarator>): boolean {
+    const init = path.node.init;
+    if (init === null || init === undefined) return true;
 
     // Check for side-effect-free initializers
     if (
@@ -436,7 +443,7 @@ export class Optimizer implements IOptimizer {
   private convertToCodeArray(result: ExtendedOptimizeResult): Code[] {
     const codes: Code[] = [];
 
-    for (const [filePath, ast] of result.asts) {
+    for (const [filePath, ast] of Array.from(result.asts)) {
       const generated = this.generator.generate(ast);
       codes.push(
         createCode({

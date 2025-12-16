@@ -182,7 +182,7 @@ export class DependencyAnalyzer {
         } else if (t.isJSXMemberExpression(nameNode)) {
           // Handle Compound.Component pattern
           const names = this.extractMemberExpressionNames(nameNode);
-          if (names.length > 0 && names[0]) {
+          if (names.length > 0 && names[0] !== undefined && names[0] !== '') {
             jsxElementNames.push(names.join('.'));
 
             const scope = this.scopeManager.getScopeForPath(jsxPath);
@@ -800,7 +800,7 @@ export class DependencyAnalyzer {
     const parent = path.parent;
     return (
       t.isJSXOpeningElement(parent) &&
-      (parent.name === path.node ||
+      ((t.isJSXIdentifier(parent.name) && parent.name.name === path.node.name) ||
         this.isPartOfJSXName(parent.name, path.node))
     );
   }
@@ -984,7 +984,7 @@ export class DependencyAnalyzer {
           hookName = callee.property.name;
         }
 
-        if (hookName) {
+        if (hookName !== null && hookName !== '') {
           // Get all bindings created by this hook
           const bindings: string[] = [];
           if (t.isIdentifier(decl.id)) {
@@ -1207,7 +1207,7 @@ export class DependencyAnalyzer {
           name = decl.id.name;
         }
 
-        if (name) {
+        if (name !== null && name !== '') {
           return { name, contextName };
         }
       }
@@ -1247,9 +1247,10 @@ export class DependencyAnalyzer {
         }
 
         // Get initial value if any
-        const initialValue = decl.init.arguments[0] as t.Expression | undefined;
+        const firstArg = decl.init.arguments[0];
+        const initialValue = firstArg !== undefined && t.isExpression(firstArg) ? firstArg : undefined;
 
-        if (name) {
+        if (name !== null && name !== '') {
           return { name, initialValue };
         }
       }
@@ -1327,6 +1328,10 @@ export class DependencyAnalyzer {
               ? dep.localName
               : 'unknown';
 
+      if (!scope) {
+        throw new Error(`Failed to resolve scope for dependency: ${name}`);
+      }
+
       return createInternalDependency({
         symbol: name,
         type: dep.type,
@@ -1335,7 +1340,7 @@ export class DependencyAnalyzer {
           file: this.currentFile,
           location: dep.path.node.loc,
         }),
-        scope: scope!,
+        scope,
         isTransitive: false,
       });
     });

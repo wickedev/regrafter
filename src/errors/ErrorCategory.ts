@@ -77,7 +77,7 @@ export class RegraffError extends Error {
     }
 
     // Maintains proper stack trace for where our error was thrown (only in V8)
-    if (Error.captureStackTrace) {
+    if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, RegraffError);
     }
   }
@@ -88,7 +88,7 @@ export class RegraffError extends Error {
   toFormattedString(): string {
     let result = `[${this.code}] ${this.message}`;
 
-    if (this.file) {
+    if (this.file !== undefined && this.file !== '') {
       result += `\n  at ${this.file}`;
       if (this.location) {
         result += `:${this.location.start.line}:${this.location.start.column}`;

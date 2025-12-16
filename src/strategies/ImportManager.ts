@@ -62,7 +62,8 @@ export class ImportManager implements IImportManager {
                 found = true;
                 path.stop();
               }
-            } else if (spec.type === 'ImportNamespaceSpecifier') {
+            } else {
+              // ImportNamespaceSpecifier
               if (spec.local.name === specifier) {
                 found = true;
                 path.stop();
@@ -102,7 +103,8 @@ export class ImportManager implements IImportManager {
                 imported,
                 local: spec.local.name,
               });
-            } else if (spec.type === 'ImportNamespaceSpecifier') {
+            } else {
+              // ImportNamespaceSpecifier
               specifiers.push({
                 type: 'namespace',
                 imported: '*',
@@ -146,7 +148,7 @@ export class ImportManager implements IImportManager {
 
     // Get the import source from the dependency origin
     const importSource = this.extractImportSource(dependency);
-    if (!importSource) {
+    if (importSource === null) {
       return null;
     }
 
@@ -178,16 +180,18 @@ export class ImportManager implements IImportManager {
       const key = `${op.file}:${op.importSource}`;
 
       if (grouped.has(key)) {
-        const existing = grouped.get(key)!;
-        // Merge specifiers, avoiding duplicates
-        for (const spec of op.specifiers) {
-          const exists = existing.specifiers.some(
-            (s) =>
-              s.imported === spec.imported &&
-              s.type === spec.type
-          );
-          if (!exists) {
-            existing.specifiers.push(spec);
+        const existing = grouped.get(key);
+        if (existing !== undefined) {
+          // Merge specifiers, avoiding duplicates
+          for (const spec of op.specifiers) {
+            const exists = existing.specifiers.some(
+              (s) =>
+                s.imported === spec.imported &&
+                s.type === spec.type
+            );
+            if (!exists) {
+              existing.specifiers.push(spec);
+            }
           }
         }
       } else {
@@ -295,7 +299,7 @@ export class ImportManager implements IImportManager {
     // Find imports and their positions
     for (let i = 0; i < body.length; i++) {
       const node = body[i];
-      if (node.type === 'ImportDeclaration') {
+      if (node !== undefined && node.type === 'ImportDeclaration') {
         lastImportIndex = i;
 
         if (position === 'grouped') {
@@ -349,14 +353,9 @@ export class ImportManager implements IImportManager {
    * Extract import source from a dependency
    */
   private extractImportSource(dependency: InternalDependency): string | null {
-    const node = dependency.origin.node;
-
-    // If the dependency node is an import specifier, get the source
-    if (node.type === 'ImportSpecifier' || node.type === 'ImportDefaultSpecifier') {
-      // Need to find the parent ImportDeclaration
-      // This would require path information, so for now we use the origin file
-      return null;
-    }
+    // If the dependency node is an import specifier, we need the parent ImportDeclaration
+    // This would require path information, so for now we use the origin file
+    // Note: dependency.origin.node can be ImportSpecifier, ImportDefaultSpecifier, or other types
 
     // For import dependencies, the origin file is typically the source module
     return dependency.origin.file;
@@ -495,7 +494,10 @@ export function removeUnusedImports(
 
       // Remove unused specifiers (reverse order to maintain indices)
       for (let i = unusedSpecifiers.length - 1; i >= 0; i--) {
-        path.node.specifiers.splice(unusedSpecifiers[i], 1);
+        const index = unusedSpecifiers[i];
+        if (index !== undefined) {
+          path.node.specifiers.splice(index, 1);
+        }
       }
 
       // Remove entire declaration if no specifiers left

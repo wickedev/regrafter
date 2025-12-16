@@ -12,7 +12,7 @@ import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
 
 import { ScopeType } from '../scope/index.js';
-import type { ScopeManager, type ScopeInfo } from '../scope/index.js';
+import type { ScopeManager, ScopeInfo } from '../scope/index.js';
 import {
   createMoveAnalysis,
   createAnalysisStats,
@@ -57,14 +57,14 @@ export class MoveAnalysisBuilder {
    * Converts internal dependency analysis to public MoveAnalysis format.
    *
    * @param elementPath - Path to the source JSX element
-   * @param targetPath - Path to the target location
+   * @param _targetPath - Path to the target location (reserved for future use)
    * @param sourceScope - Scope of the source element
    * @param targetScope - Scope of the target location
    * @returns MoveAnalysis for the proposed move
    */
   buildMoveAnalysis(
     elementPath: NodePath,
-    targetPath: NodePath,
+    _targetPath: NodePath,
     sourceScope: ScopeInfo | null,
     targetScope: ScopeInfo | null
   ): MoveAnalysis {
@@ -114,7 +114,7 @@ export class MoveAnalysisBuilder {
     targetPath: NodePath
   ): MoveAnalysis {
     // Build scope tree if not already built
-    const _scopeTree = this.scopeManager.buildScopeTree(ast);
+    this.scopeManager.buildScopeTree(ast);
 
     // Get scopes for source and target
     const sourceScope = this.scopeManager.getScopeForPath(sourcePath);
@@ -272,7 +272,10 @@ export class MoveAnalysisBuilder {
    */
   private getScopeName(scope: ScopeInfo): string {
     if (scope.type === ScopeType.Component) {
-      return (scope as { componentName?: string }).componentName ?? 'Component';
+      // When type is Component, scope has componentName property
+      return 'componentName' in scope && typeof scope.componentName === 'string'
+        ? scope.componentName
+        : 'Component';
     }
     if (scope.type === ScopeType.Module) {
       return 'module';
@@ -303,7 +306,7 @@ export class MoveAnalysisBuilder {
    * Generate suggested fixes for a failed move
    */
   private generateSuggestedFixes(
-    analysis: DependencyAnalysis,
+    _analysis: DependencyAnalysis,
     reason: string
   ): SuggestedFix[] {
     const fixes: SuggestedFix[] = [];

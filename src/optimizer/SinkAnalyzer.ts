@@ -199,7 +199,10 @@ export class SinkAnalyzer implements ISinkAnalyzer {
     }
 
     if (scopes.length === 1) {
-      const scope = scopes[0]!;
+      const scope = scopes[0];
+      if (!scope) {
+        throw new Error('Scope array unexpectedly empty after length check');
+      }
       return {
         scope,
         depth: scope.depth,
@@ -212,11 +215,17 @@ export class SinkAnalyzer implements ISinkAnalyzer {
 
     // Find common ancestors by comparing paths from root
     // Make a copy before reversing to avoid mutating the original array
-    const firstPath = [...paths[0]!].reverse(); // Start from root
+    const firstPath = paths[0];
+    if (!firstPath || firstPath.length === 0) {
+      throw new Error('First scope path is empty');
+    }
+    const firstPathReversed = [...firstPath].reverse(); // Start from root
     let lcaIndex = -1;
 
-    for (let i = 0; i < firstPath.length; i++) {
-      const scopeAtDepth = firstPath[i]!;
+    for (let i = 0; i < firstPathReversed.length; i++) {
+      const scopeAtDepth = firstPathReversed[i];
+      if (!scopeAtDepth) continue;
+
       const allMatch = paths.every((path) => {
         const reversed = [...path].reverse();
         return reversed[i]?.id === scopeAtDepth.id;
@@ -230,8 +239,15 @@ export class SinkAnalyzer implements ISinkAnalyzer {
     }
 
     // LCA is the deepest common ancestor
-    const lcaScope = lcaIndex >= 0 ? firstPath[lcaIndex]! : firstPath[0]!;
-    const pathFromRoot = firstPath.slice(0, lcaIndex + 1);
+    const lcaScope = lcaIndex >= 0
+      ? firstPathReversed[lcaIndex]
+      : firstPathReversed[0];
+
+    if (!lcaScope) {
+      throw new Error('Unable to determine LCA scope');
+    }
+
+    const pathFromRoot = firstPathReversed.slice(0, lcaIndex + 1);
 
     return {
       scope: lcaScope,
@@ -258,29 +274,36 @@ export class SinkAnalyzer implements ISinkAnalyzer {
     const parents = new Map<string, string | null>();
     const children = new Map<string, Set<string>>();
 
-    // Create root scope (module level)
-    const rootScope = createScopeInfo({
-      type: ScopeType.Module,
-      path: null as unknown as NodePath, // Will be set during traversal
-      parent: null,
-      depth: 0,
-      id: generateId('scope_root'),
-    });
-
-    scopes.set(rootScope.id, rootScope);
-    depths.set(rootScope.id, 0);
-    parents.set(rootScope.id, null);
-    children.set(rootScope.id, new Set());
-
-    let currentScope = rootScope;
-    const scopeStack: ScopeInfo[] = [rootScope];
+    // Root scope will be set during traversal
+    let rootScope: ScopeInfo | null = null;
+    let currentScope: ScopeInfo | null = null;
+    const scopeStack: ScopeInfo[] = [];
 
     // Traverse AST to build scope tree
     traverse(ast, {
       enter(path: NodePath) {
-        // Update root scope path when we find Program
-        if (path.isProgram()) {
-          rootScope.path = path as NodePath;
+        // Create root scope when we find Program
+        if (path.isProgram() && rootScope === null) {
+          rootScope = createScopeInfo({
+            type: ScopeType.Module,
+            path,
+            parent: null,
+            depth: 0,
+            id: generateId('scope_root'),
+          });
+
+          scopes.set(rootScope.id, rootScope);
+          depths.set(rootScope.id, 0);
+          parents.set(rootScope.id, null);
+          children.set(rootScope.id, new Set());
+
+          currentScope = rootScope;
+          scopeStack.push(rootScope);
+          return;
+        }
+
+        // Skip if root scope hasn't been initialized
+        if (rootScope === null || currentScope === null) {
           return;
         }
 
@@ -342,6 +365,11 @@ export class SinkAnalyzer implements ISinkAnalyzer {
         }
       },
       exit(path: NodePath) {
+        // Skip if root scope hasn't been initialized
+        if (rootScope === null || currentScope === null) {
+          return;
+        }
+
         // Pop scope when exiting scope-creating nodes
         if (
           path.isFunctionDeclaration() ||
@@ -351,16 +379,25 @@ export class SinkAnalyzer implements ISinkAnalyzer {
         ) {
           const topScope = scopeStack[scopeStack.length - 1];
           // Only pop if this path matches the current scope's path
-          if (topScope && topScope.path === path) {
+          if (topScope !== undefined && topScope.path === path) {
             scopeStack.pop();
-            currentScope = scopeStack[scopeStack.length - 1] ?? rootScope;
+            const newCurrentScope = scopeStack[scopeStack.length - 1];
+            currentScope = newCurrentScope ?? rootScope;
           }
         }
       },
     });
 
+    // Helper to narrow rootScope type after traversal
+    function ensureRootScope(scope: ScopeInfo | null): ScopeInfo {
+      if (scope === null) {
+        throw new Error('Failed to create root scope - no Program node found');
+      }
+      return scope;
+    }
+
     const tree: ScopeTree = {
-      root: rootScope,
+      root: ensureRootScope(rootScope),
       scopes,
       depths,
       parents,
@@ -406,10 +443,6 @@ export class SinkAnalyzer implements ISinkAnalyzer {
       }
 
       // Create an InternalDependency-like object from the node
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      const emptyNode: t.Node = {} as t.Node; // Fallback for missing node
-      const originNode = node.path?.node ?? emptyNode;
-
       const dep: InternalDependency = {
         id: node.id,
         symbol: node.name,
@@ -417,9 +450,9 @@ export class SinkAnalyzer implements ISinkAnalyzer {
           ? DependencyType.Hook
           : DependencyType.Variable,
         origin: {
-          node: originNode,
+          node: node.path !== null ? node.path.node : null as any,
           file: '', // Would need file context
-          location: node.path?.node.loc ?? null,
+          location: node.path !== null ? (node.path.node.loc ?? null) : null,
         },
         scope: node.scope,
         isTransitive: false,
@@ -441,10 +474,10 @@ export class SinkAnalyzer implements ISinkAnalyzer {
   ): 'direct' | 'prop' | 'closure' {
     const path = consumerNode.path;
 
-    // Check if path exists before accessing properties
-    if (path) {
-      // Check if used as a prop
-      if (path.parentPath?.isJSXAttribute()) {
+    // Check if used as a prop
+    if (path !== null) {
+      const parentPath = path.parentPath;
+      if (parentPath !== null && parentPath.isJSXAttribute()) {
         return 'prop';
       }
     }
@@ -586,7 +619,7 @@ function isReactComponent(path: NodePath): boolean {
   // Check for capitalized function name (convention for React components)
   if (path.isFunctionDeclaration()) {
     const name = path.node.id?.name;
-    if (name && /^[A-Z]/.test(name)) {
+    if (typeof name === 'string' && name.length > 0 && /^[A-Z]/.test(name)) {
       return true;
     }
   }

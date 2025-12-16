@@ -5,9 +5,11 @@
  * Implements tasks 4.1.1 and 4.1.2 from the task list.
  */
 
-import type { NodePath } from '@babel/traverse';
+import type * as TraverseNS from '@babel/traverse';
 import traverse from '@babel/traverse';
 import type * as t from '@babel/types';
+
+type NodePath<T = t.Node> = TraverseNS.NodePath<T>;
 
 import type {
   InternalDependency,
@@ -132,23 +134,25 @@ export function analyzeExports(ast: t.File): ExportInfo[] {
       const node = path.node;
 
       // Handle export specifiers: export { foo, bar as baz }
-      if (node.specifiers && node.specifiers.length > 0) {
+      if (node.specifiers.length > 0) {
         for (const specifier of node.specifiers) {
           if (specifier.type === 'ExportSpecifier') {
-            const exported =
-              specifier.exported.type === 'Identifier'
-                ? specifier.exported.name
-                : specifier.exported.value;
-            const local =
-              specifier.local.type === 'Identifier'
-                ? specifier.local.name
-                : String(specifier.local);
+            const exportedNode = specifier.exported;
+            let exported: string;
+            if (exportedNode.type === 'Identifier') {
+              exported = exportedNode.name;
+            } else {
+              exported = String(exportedNode.value);
+            }
+
+            // specifier.local is always an Identifier in ExportSpecifier
+            const local: string = specifier.local.name;
 
             exports.push({
               name: exported,
               localName: local,
               type: 'named',
-              isReExport: !!node.source,
+              isReExport: node.source !== undefined,
               reExportSource: node.source?.value,
             });
           }
@@ -256,7 +260,8 @@ function extractIdentifiersFromPattern(
         }
       }
     }
-  } else if (pattern.type === 'ArrayPattern') {
+  } else {
+    // ArrayPattern
     for (const element of pattern.elements) {
       if (element?.type === 'Identifier') {
         exports.push({
@@ -397,8 +402,7 @@ function isReference(path: NodePath<t.Identifier>): boolean {
 
   // Not a reference if it's a function parameter
   if (parent.type === 'FunctionDeclaration' || parent.type === 'FunctionExpression' || parent.type === 'ArrowFunctionExpression') {
-    const params = (parent as t.FunctionDeclaration).params;
-    if (params && params.includes(path.node)) {
+    if (parent.params.includes(path.node)) {
       return false;
     }
   }
@@ -413,28 +417,17 @@ function isReference(path: NodePath<t.Identifier>): boolean {
   }
 
   // Not a reference if it's an export specifier local name
-  if (
-    parent.type === 'ExportSpecifier' &&
-    (parent).local === path.node
-  ) {
+  if (parent.type === 'ExportSpecifier' && parent.local === path.node) {
     return false;
   }
 
   // Not a reference if it's an object property key (non-computed)
-  if (
-    parent.type === 'ObjectProperty' &&
-    (parent).key === path.node &&
-    !(parent).computed
-  ) {
+  if (parent.type === 'ObjectProperty' && parent.key === path.node && !parent.computed) {
     return false;
   }
 
   // Not a reference if it's a member expression property (non-computed)
-  if (
-    parent.type === 'MemberExpression' &&
-    (parent).property === path.node &&
-    !(parent).computed
-  ) {
+  if (parent.type === 'MemberExpression' && parent.property === path.node && !parent.computed) {
     return false;
   }
 
@@ -501,7 +494,11 @@ export function computeImportPath(fromFile: string, toFile: string): string {
   } else if (upCount === 0) {
     relativePath = './' + [...downPath, toFileBase].join('/');
   } else {
-    relativePath = [...(Array(upCount).fill('..') as string[]), ...downPath, toFileBase].join('/');
+    const upParts: string[] = [];
+    for (let i = 0; i < upCount; i++) {
+      upParts.push('..');
+    }
+    relativePath = [...upParts, ...downPath, toFileBase].join('/');
   }
 
   return relativePath;

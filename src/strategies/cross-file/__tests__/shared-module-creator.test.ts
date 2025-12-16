@@ -318,7 +318,7 @@ describe('addImportsToAst', () => {
     ];
 
     const result = addImportsToAst(ast, imports);
-    const importDecl = result.program.body[0] as t.ImportDeclaration;
+    const importDecl: t.ImportDeclaration = result.program.body[0];
 
     expect(importDecl.specifiers[0].type).toBe('ImportNamespaceSpecifier');
   });

@@ -532,7 +532,7 @@ function Component() {
   // ============================================================
   describe('Error Handling', () => {
     it('should return error for invalid AST', () => {
-      const invalidAst = { type: 'Invalid' } as unknown as t.File;
+      const invalidAst: t.File = { type: 'Invalid' } as unknown;
       const result = generator.generate(invalidAst);
 
       expect(result.errors.length).toBeGreaterThan(0);
@@ -540,7 +540,7 @@ function Component() {
     });
 
     it('should include error code in generated errors', () => {
-      const invalidAst = { type: 'Invalid' } as unknown as t.File;
+      const invalidAst: t.File = { type: 'Invalid' } as unknown;
       const result = generator.generate(invalidAst);
 
       if (result.errors.length > 0) {

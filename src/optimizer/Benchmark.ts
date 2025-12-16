@@ -187,7 +187,6 @@ export class BenchmarkRunner {
   ): BenchmarkResult {
     // Sort for percentile calculations
     const sortedTimes = [...runTimesMs].sort((a, b) => a - b);
-    const _sortedMemory = [...memoryUsages].sort((a, b) => a - b);
 
     // Mean
     const meanMs = runTimesMs.reduce((a, b) => a + b, 0) / runTimesMs.length;
@@ -250,8 +249,7 @@ export class BenchmarkRunner {
   }
 
   private getMemoryUsage(): number {
-    const heapUsed = process.memoryUsage().heapUsed;
-    return heapUsed ?? 0;
+    return process.memoryUsage().heapUsed;
   }
 
   private getEnvironmentInfo(): BenchmarkSuite['environment'] {
@@ -350,8 +348,7 @@ export class MemoryTracker {
   }
 
   private getHeapUsed(): number {
-    const heapUsed = process.memoryUsage().heapUsed;
-    return heapUsed ?? 0;
+    return process.memoryUsage().heapUsed;
   }
 }
 

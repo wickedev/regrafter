@@ -85,12 +85,18 @@ export class PropThreader implements IPropThreader {
 
     // Add source ancestors up to (but not including) LCA
     for (let i = 0; i < sourceAncestors.length - lcaIndex; i++) {
-      path.push(sourceAncestors[i]);
+      const ancestor = sourceAncestors[i];
+      if (ancestor) {
+        path.push(ancestor);
+      }
     }
 
     // Add target ancestors from LCA down to target
     for (let i = targetAncestors.length - lcaIndex - 1; i >= 0; i--) {
-      path.push(targetAncestors[i]);
+      const ancestor = targetAncestors[i];
+      if (ancestor) {
+        path.push(ancestor);
+      }
     }
 
     return path;
@@ -116,15 +122,17 @@ export class PropThreader implements IPropThreader {
       const fromComponent = componentPath[i];
       const toComponent = componentPath[i + 1];
 
-      operations.push(
-        createPropThreadOperation({
-          propName: name,
-          valueExpression: name,
-          fromComponent: fromComponent.componentName,
-          toComponent: toComponent.componentName,
-          path: componentPath.map((c) => c.componentName),
-        })
-      );
+      if (fromComponent && toComponent) {
+        operations.push(
+          createPropThreadOperation({
+            propName: name,
+            valueExpression: name,
+            fromComponent: fromComponent.componentName,
+            toComponent: toComponent.componentName,
+            path: componentPath.map((c) => c.componentName),
+          })
+        );
+      }
     }
 
     return operations;
@@ -230,7 +238,10 @@ export class PropThreader implements IPropThreader {
       if (!grouped.has(key)) {
         grouped.set(key, []);
       }
-      grouped.get(key)!.push(op);
+      const group = grouped.get(key);
+      if (group) {
+        group.push(op);
+      }
     }
 
     // Merge operations with same hop
@@ -238,7 +249,10 @@ export class PropThreader implements IPropThreader {
 
     for (const [, ops] of grouped) {
       if (ops.length === 1) {
-        merged.push(ops[0]);
+        const op = ops[0];
+        if (op) {
+          merged.push(op);
+        }
       } else {
         // Create a combined operation
         // In practice, each prop will have its own attribute, but
@@ -428,7 +442,10 @@ export function findLowestCommonAncestor(
   current = component2;
   while (current !== null) {
     if (ancestors1.has(current.id)) {
-      return ancestors1.get(current.id)!;
+      const ancestor = ancestors1.get(current.id);
+      if (ancestor !== undefined) {
+        return ancestor;
+      }
     }
     current = current.parentComponent;
   }

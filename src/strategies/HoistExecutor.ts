@@ -77,14 +77,18 @@ export class HoistExecutor {
       case HoistStrategy.Hoist:
         this.executeHoisting(operation, context);
         break;
-      case HoistStrategy.PropThread:
-        // Prop threading is handled by PropThreadOperation
+      case HoistStrategy.PassAsProp:
+      case HoistStrategy.CreateShared:
+      case HoistStrategy.WrapProvider:
+      case HoistStrategy.ExtractContext:
+        // These strategies are handled by their respective operation types
+        // (PropThreadOperation, ImportOperation, etc.)
         break;
-      case HoistStrategy.NoHoist:
-        // No operation needed
-        break;
-      default:
-        throw new Error(`Unknown hoisting strategy: ${operation.strategy}`);
+      default: {
+        // Exhaustive check - all enum values should be handled above
+        const exhaustiveCheck: never = operation.strategy;
+        throw new Error(`Unknown hoisting strategy: ${String(exhaustiveCheck)}`);
+      }
     }
   }
 
@@ -119,14 +123,19 @@ export class HoistExecutor {
     // If it's an identifier reference, find its declaration
     if (declarationPath.isIdentifier() || declarationPath.isJSXIdentifier()) {
       const binding = declarationPath.scope.getBinding(operation.symbol);
-      if (binding?.path) {
-        declarationPath = binding.path;
+      const bindingPath = binding?.path;
+      if (bindingPath !== undefined) {
+        declarationPath = bindingPath;
       }
     }
 
     // Navigate to the statement level
-    while (declarationPath && !declarationPath.isStatement()) {
-      declarationPath = declarationPath.parentPath as NodePath;
+    while (!declarationPath.isStatement()) {
+      const parent = declarationPath.parentPath;
+      if (parent === null) {
+        break;
+      }
+      declarationPath = parent;
     }
 
     if (!declarationPath.isStatement()) {
@@ -146,11 +155,11 @@ export class HoistExecutor {
     if (targetPath.isFunctionDeclaration() || targetPath.isFunctionExpression() || targetPath.isArrowFunctionExpression()) {
       const bodyPath = targetPath.get('body');
       if (Array.isArray(bodyPath)) {
-        insertionPath = bodyPath[0];
+        insertionPath = bodyPath[0] ?? null;
       } else if (bodyPath.isBlockStatement()) {
         const bodyStatements = bodyPath.get('body');
         if (Array.isArray(bodyStatements) && bodyStatements.length > 0) {
-          insertionPath = bodyStatements[0];
+          insertionPath = bodyStatements[0] ?? null;
         } else {
           // Empty body, add to the block
           bodyPath.unshiftContainer('body', declarationNode);

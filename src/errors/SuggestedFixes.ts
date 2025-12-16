@@ -135,7 +135,7 @@ export function getSuggestedFixesForSelectorError(
           false
         )
       );
-      if (nearestMatch) {
+      if (nearestMatch !== undefined && nearestMatch !== '') {
         fixes.push(
           createSuggestedFix(
             `Nearest JSX element found: ${nearestMatch}`,
@@ -528,7 +528,7 @@ export function getSuggestedFixesForDependency(
   }
 
   const fixes: SuggestedFix[] = [];
-  const depType = dependency.type as DependencyType;
+  const depType: DependencyType = dependency.type;
 
   switch (depType) {
     case DependencyType.Hook:

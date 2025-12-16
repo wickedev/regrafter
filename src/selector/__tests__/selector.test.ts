@@ -880,7 +880,7 @@ describe('Selector - Unified Resolution', () => {
 
   it('should return error for invalid selector via resolve()', () => {
     const resolver = new MockSelectorResolver(simpleComponent);
-    const invalidSelector = { file: 'test.tsx' } as unknown as Selector;
+    const invalidSelector: Selector = { file: 'test.tsx' } as unknown;
 
     const result = resolver.resolve(invalidSelector);
 

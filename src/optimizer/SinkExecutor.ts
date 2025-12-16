@@ -62,7 +62,7 @@ export class SinkExecutor implements ISinkExecutor {
         const result = this.executeSinkOperation(operation, asts);
         if (result.success) {
           sunkDependencies.push(operation.candidate);
-        } else if (result.error) {
+        } else if (typeof result.error === 'string' && result.error.length > 0) {
           errors.push(result.error);
         }
       } catch (error) {
@@ -336,8 +336,7 @@ export class SinkExecutor implements ISinkExecutor {
       return { success: false, error: `AST not found for file: ${dep.origin.file}` };
     }
 
-    let moved = false;
-    let declarationNode: t.Node | null = null;
+    let declarationNode: t.Statement | undefined;
 
     // Find and extract the declaration
     traverse(ast, {
@@ -363,7 +362,7 @@ export class SinkExecutor implements ISinkExecutor {
       },
     });
 
-    if (!declarationNode) {
+    if (declarationNode === undefined) {
       return {
         success: false,
         error: `Declaration not found for symbol: ${dep.symbol}`,
@@ -371,13 +370,15 @@ export class SinkExecutor implements ISinkExecutor {
     }
 
     // Insert at target scope
+    let insertionSucceeded = false;
+
     traverse(ast, {
       enter(path: NodePath) {
-        if (isSameScopeNode(path, targetScope)) {
+        if (isSameScopeNode(path, targetScope) && declarationNode !== undefined) {
           // Insert declaration at the beginning of the scope
           if (path.isBlockStatement()) {
-            path.node.body.unshift(declarationNode as t.Statement);
-            moved = true;
+            path.node.body.unshift(declarationNode);
+            insertionSucceeded = true;
             path.stop();
           } else if (path.isProgram()) {
             // Find first non-import statement
@@ -390,18 +391,27 @@ export class SinkExecutor implements ISinkExecutor {
               }
               insertIndex = i + 1;
             }
-            body.splice(insertIndex, 0, declarationNode as t.Statement);
-            moved = true;
+            body.splice(insertIndex, 0, declarationNode);
+            insertionSucceeded = true;
             path.stop();
           }
         }
       },
     });
 
-    if (!moved) {
+    // Check if insertion succeeded (TypeScript flow analysis limitation through callbacks)
+    function ensureInsertionSucceeded(succeeded: boolean): void {
+      if (succeeded === false) {
+        throw new Error(`Could not insert declaration at target scope for: ${dep.symbol}`);
+      }
+    }
+
+    try {
+      ensureInsertionSucceeded(insertionSucceeded);
+    } catch (error) {
       return {
         success: false,
-        error: `Could not insert declaration at target scope for: ${dep.symbol}`,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
 
@@ -419,50 +429,61 @@ export class SinkExecutor implements ISinkExecutor {
     }
 
     const used = new Set<string>();
+    const bindings = new Set<string>();
 
-    traverse(ast, {
-      Identifier(path: NodePath<t.Identifier>) {
-        // Skip binding declarations
-        if (path.isBindingIdentifier()) return;
+    // Type guard for Babel nodes
+    function isNode(value: unknown): value is t.Node {
+      return typeof value === 'object' && value !== null && 'type' in value;
+    }
 
-        const parent = path.parentPath as NodePath | null;
+    // Helper to safely access node properties using Reflect API
+    function getNodeProperty(obj: t.Node, propKey: string): unknown {
+      return Reflect.get(obj, propKey);
+    }
 
-        // Skip property access (obj.prop - skip prop)
-        if (
-          parent?.isMemberExpression() &&
-          path.key === 'property' &&
-          !parent.node.computed
-        ) {
-          return;
+    // Simplified approach: collect all identifier names and bindings separately
+    // then compute used = all identifiers - bindings
+    function collectIdentifiers(node: t.Node): void {
+      if (t.isIdentifier(node)) {
+        used.add(node.name);
+      }
+
+      if (t.isVariableDeclarator(node) && t.isIdentifier(node.id)) {
+        bindings.add(node.id.name);
+      }
+
+      if (t.isFunctionDeclaration(node) && node.id && t.isIdentifier(node.id)) {
+        bindings.add(node.id.name);
+      }
+
+      if (t.isImportSpecifier(node) && t.isIdentifier(node.local)) {
+        bindings.add(node.local.name);
+      }
+
+      if (t.isImportDefaultSpecifier(node) && t.isIdentifier(node.local)) {
+        bindings.add(node.local.name);
+      }
+
+      // Recurse through child nodes
+      const keys = Object.keys(node);
+      for (const key of keys) {
+        const value: unknown = getNodeProperty(node, key);
+
+        if (typeof value === 'object' && value !== null) {
+          if (Array.isArray(value)) {
+            for (const item of value) {
+              if (isNode(item)) {
+                collectIdentifiers(item);
+              }
+            }
+          } else if (isNode(value)) {
+            collectIdentifiers(value);
+          }
         }
+      }
+    }
 
-        // Skip import specifier names
-        if (
-          parent?.isImportSpecifier() &&
-          path.key === 'imported'
-        ) {
-          return;
-        }
-
-        // Skip object property keys
-        if (
-          parent?.isObjectProperty() &&
-          path.key === 'key' &&
-          !parent.node.computed
-        ) {
-          return;
-        }
-
-        const nodeName = (path.node as t.Identifier).name;
-        used.add(nodeName);
-      },
-      JSXIdentifier(path: NodePath<t.JSXIdentifier>) {
-        // JSX element names are used
-        if (path.parentPath.isJSXOpeningElement()) {
-          used.add(path.node.name);
-        }
-      },
-    });
+    collectIdentifiers(ast);
 
     this.usedIdentifiers.set(ast, used);
     return used;
@@ -507,7 +528,10 @@ function checkAndRemoveOrphanedPropParams(
 
     // Remove in reverse order to maintain indices
     for (let i = toRemove.length - 1; i >= 0; i--) {
-      firstParam.properties.splice(toRemove[i]!, 1);
+      const indexToRemove = toRemove[i];
+      if (indexToRemove !== undefined) {
+        firstParam.properties.splice(indexToRemove, 1);
+      }
     }
   }
 }
@@ -570,13 +594,24 @@ function isExported(path: NodePath): boolean {
  */
 function isSameScopeNode(path: NodePath, scope: ScopeInfo): boolean {
   // Compare by node identity if scope has a path
-  if (scope.path && scope.path.node === path.node) {
+  if (scope.path.node === path.node) {
     return true;
   }
 
   // Fallback to comparing scope IDs stored in path data
-  const pathScopeId = (path.node as { _scopeId?: string })._scopeId;
-  return pathScopeId === scope.id;
+  interface NodeWithScopeId {
+    _scopeId?: string;
+  }
+
+  function hasScopeId(node: t.Node): node is t.Node & NodeWithScopeId {
+    return '_scopeId' in node;
+  }
+
+  if (hasScopeId(path.node)) {
+    return path.node._scopeId === scope.id;
+  }
+
+  return false;
 }
 
 /**

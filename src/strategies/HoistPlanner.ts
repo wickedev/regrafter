@@ -61,7 +61,7 @@ export class HoistPlanner {
       const planItem = this.planDependencyHoist(dep, context);
 
       if (planItem) {
-        if (planItem.reason) {
+        if (planItem.reason !== undefined && planItem.reason !== '') {
           // Could not hoist
           plan.unhoistable.push({
             dependency: dep,
@@ -495,12 +495,8 @@ export class HoistPlanner {
       return this.isTopLevelOfComponent(scope);
     }
 
-    // Function scope is valid only if it's a custom hook
-    if (scope.type === ScopeType.Function) {
-      return this.isCustomHookScope(scope);
-    }
-
-    return false;
+    // Function scope is the only remaining type - valid only if it's a custom hook
+    return this.isCustomHookScope(scope);
   }
 
   /**
@@ -574,27 +570,21 @@ export class HoistPlanner {
   private isCustomHookScope(scope: ScopeInfo): boolean {
     // Get the function name from the scope
     const path = scope.path;
-    if (!path) {
-      return false;
-    }
 
     // Check various function types
     const node = path.node;
-    if (!node) {
-      return false;
-    }
-
     let functionName: string | undefined;
 
     // Function declaration
-    if (node.type === 'FunctionDeclaration' && node.id) {
+    if (node.type === 'FunctionDeclaration' && node.id !== undefined && node.id !== null) {
       functionName = node.id.name;
     }
     // Arrow function or function expression assigned to variable
     else if (
       (node.type === 'ArrowFunctionExpression' ||
         node.type === 'FunctionExpression') &&
-      path.parentPath?.isVariableDeclarator()
+      path.parentPath !== null &&
+      path.parentPath.isVariableDeclarator()
     ) {
       const id = path.parentPath.node.id;
       if (id.type === 'Identifier') {
@@ -602,7 +592,7 @@ export class HoistPlanner {
       }
     }
 
-    if (functionName) {
+    if (functionName !== undefined) {
       return isHookName(functionName);
     }
 
@@ -634,14 +624,11 @@ export class HoistPlanner {
     // This is a simplified check - a full implementation would
     // analyze the initializer expression
     const node = dep.origin.node;
-    if (!node) {
-      return false;
-    }
 
     // If it's a variable declarator, check the init
     if (node.type === 'VariableDeclarator') {
       const init = node.init;
-      if (!init) {
+      if (init === undefined || init === null) {
         return true; // Uninitialized is considered pure
       }
 
@@ -785,13 +772,17 @@ export class HoistPlanner {
       if (!componentGraph.has(thread.fromComponent)) {
         componentGraph.set(thread.fromComponent, new Set());
       }
-      componentGraph.get(thread.fromComponent)!.add(thread.toComponent);
+      const fromGraph = componentGraph.get(thread.fromComponent);
+      if (fromGraph !== undefined) {
+        fromGraph.add(thread.toComponent);
+      }
     }
 
     // Simple cycle detection (would need DFS for full detection)
     for (const [from, toSet] of componentGraph) {
       for (const to of toSet) {
-        if (componentGraph.get(to)?.has(from)) {
+        const toGraph = componentGraph.get(to);
+        if (toGraph !== undefined && toGraph.has(from)) {
           plan.warnings.push(
             `Potential circular prop dependency between ${from} and ${to}`
           );

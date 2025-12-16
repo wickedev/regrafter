@@ -527,10 +527,12 @@ export class JSXTransformer {
     const parent = path.parent;
 
     if (t.isJSXElement(parent)) {
-      return [...parent.children] as t.Node[];
+      const siblings: t.Node[] = [...parent.children];
+      return siblings;
     }
     if (t.isJSXFragment(parent)) {
-      return [...parent.children] as t.Node[];
+      const siblings: t.Node[] = [...parent.children];
+      return siblings;
     }
     if (t.isArrayExpression(parent)) {
       return parent.elements.filter((e): e is t.Expression => e !== null);
@@ -552,15 +554,40 @@ export class JSXTransformer {
     const parent = path.parent;
 
     if (t.isJSXElement(parent)) {
-      parent.children = siblings as JSXChild[];
+      const jsxChildren: JSXChild[] = siblings.filter((s): s is JSXChild =>
+        t.isJSXElement(s) ||
+        t.isJSXFragment(s) ||
+        t.isJSXText(s) ||
+        t.isJSXExpressionContainer(s) ||
+        t.isJSXSpreadChild(s)
+      );
+      parent.children = jsxChildren;
     } else if (t.isJSXFragment(parent)) {
-      parent.children = siblings as JSXChild[];
+      const jsxChildren: JSXChild[] = siblings.filter((s): s is JSXChild =>
+        t.isJSXElement(s) ||
+        t.isJSXFragment(s) ||
+        t.isJSXText(s) ||
+        t.isJSXExpressionContainer(s) ||
+        t.isJSXSpreadChild(s)
+      );
+      parent.children = jsxChildren;
     } else if (t.isArrayExpression(parent)) {
-      parent.elements = siblings as Array<t.Expression | t.SpreadElement | null>;
+      const elements: Array<t.Expression | t.SpreadElement | null> = siblings.filter(
+        (s): s is t.Expression | t.SpreadElement =>
+          t.isExpression(s) || t.isSpreadElement(s)
+      );
+      parent.elements = elements;
     } else if (t.isBlockStatement(parent)) {
-      parent.body = siblings as t.Statement[];
+      const statements: t.Statement[] = siblings.filter(
+        (s): s is t.Statement => t.isStatement(s)
+      );
+      parent.body = statements;
     } else if (t.isProgram(parent)) {
-      parent.body = siblings as Array<t.Statement | t.ModuleDeclaration>;
+      const bodyNodes: Array<t.Statement | t.ModuleDeclaration> = siblings.filter(
+        (s): s is t.Statement | t.ModuleDeclaration =>
+          t.isStatement(s) || t.isModuleDeclaration(s)
+      );
+      parent.body = bodyNodes;
     }
   }
 
@@ -571,7 +598,7 @@ export class JSXTransformer {
     const parent = path.parent;
     const node = path.node;
 
-    let children: t.Node[] | null = null;
+    let children: readonly t.Node[] | null = null;
 
     if (t.isJSXElement(parent)) {
       children = parent.children;
@@ -586,7 +613,7 @@ export class JSXTransformer {
     }
 
     if (children) {
-      return children.indexOf(node as never);
+      return children.findIndex(child => child === node);
     }
 
     return -1;
@@ -619,8 +646,14 @@ export class JSXTransformer {
       }
     }
 
-    // Return as-is if no wrapping needed (should be a JSXChild at this point)
-    return node as unknown as JSXChild;
+    // Fallback: wrap any other node in an expression container
+    // This handles edge cases where the node type isn't recognized
+    if (t.isExpression(node)) {
+      return t.jsxExpressionContainer(node);
+    }
+
+    // If not an expression, convert to JSXText as last resort
+    return t.jsxText(String(node));
   }
 
   /**

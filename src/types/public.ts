@@ -312,20 +312,22 @@ export function isPathSelector(selector: Selector): selector is PathSelector {
  * Type guard to check if a value is a valid Move enum value.
  */
 export function isValidMove(value: unknown): value is Move {
-  return (
-    typeof value === 'string' &&
-    Object.values(Move).includes(value as Move)
-  );
+  if (typeof value !== 'string') {
+    return false;
+  }
+  const moveValues: string[] = Object.values(Move);
+  return moveValues.includes(value);
 }
 
 /**
  * Type guard to check if a value is a valid DependencyType enum value.
  */
 export function isValidDependencyType(value: unknown): value is DependencyType {
-  return (
-    typeof value === 'string' &&
-    Object.values(DependencyType).includes(value as DependencyType)
-  );
+  if (typeof value !== 'string') {
+    return false;
+  }
+  const dependencyTypeValues: string[] = Object.values(DependencyType);
+  return dependencyTypeValues.includes(value);
 }
 
 /**
@@ -336,33 +338,38 @@ export function isValidSelector(value: unknown): value is Selector {
     return false;
   }
 
-  const obj = value as Record<string, unknown>;
+  if (!('file' in value)) {
+    return false;
+  }
+
+  const obj: { file: unknown } = value;
 
   // Validate file path is non-empty string
   if (typeof obj.file !== 'string' || obj.file.length === 0) {
     return false;
   }
 
-  // Cast through unknown to satisfy strict type checking
-  const selector = obj as unknown as Selector;
+  // Check if it looks like a PositionSelector
+  if ('line' in value && 'column' in value) {
+    const posObj: { line: unknown; column: unknown } = value;
 
-  // Validate position selector
-  if (isPositionSelector(selector)) {
     // Line must be positive integer
-    if (selector.line < 1 || !Number.isInteger(selector.line)) {
+    if (typeof posObj.line !== 'number' || posObj.line < 1 || !Number.isInteger(posObj.line)) {
       return false;
     }
     // Column must be non-negative integer
-    if (selector.column < 0 || !Number.isInteger(selector.column)) {
+    if (typeof posObj.column !== 'number' || posObj.column < 0 || !Number.isInteger(posObj.column)) {
       return false;
     }
     return true;
   }
 
-  // Validate path selector
-  if (isPathSelector(selector)) {
+  // Check if it looks like a PathSelector
+  if ('path' in value) {
+    const pathObj: { path: unknown } = value;
+
     // Path must be non-empty string
-    if (selector.path.length === 0) {
+    if (typeof pathObj.path !== 'string' || pathObj.path.length === 0) {
       return false;
     }
     return true;
@@ -379,7 +386,7 @@ export function isValidOptions(value: unknown): value is Options {
     return true; // Empty options is valid
   }
 
-  const obj = value as Record<string, unknown>;
+  const obj: Record<string, unknown> = value;
 
   if (obj.optimize !== undefined && typeof obj.optimize !== 'boolean') {
     return false;

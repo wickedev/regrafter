@@ -8,11 +8,8 @@
  */
 
 import type { NodePath } from '@babel/traverse';
-import traverseModule from '@babel/traverse';
+import traverse from '@babel/traverse';
 import * as t from '@babel/types';
-
-// Handle both ESM and CJS exports
-const traverse = (traverseModule as { default?: typeof traverseModule }).default ?? traverseModule;
 
 import {
   isPositionSelector,
@@ -56,7 +53,7 @@ function positionInNode(
   column: number
 ): boolean {
   const loc = node.loc;
-  if (!loc) return false;
+  if (loc === null || loc === undefined) return false;
 
   const { start, end } = loc;
 
@@ -76,7 +73,7 @@ function positionInNode(
  */
 function nodeSpecificity(node: t.Node): number {
   const loc = node.loc;
-  if (!loc) return Infinity;
+  if (loc === null || loc === undefined) return Infinity;
 
   const lines = loc.end.line - loc.start.line;
   const chars = loc.end.column - loc.start.column;
@@ -164,12 +161,25 @@ function parseASTPath(pathStr: string): Array<{ key: string; index?: number }> {
   while ((match = regex.exec(pathStr)) !== null) {
     const key = match[1];
     const index = match[2] !== undefined ? parseInt(match[2], 10) : undefined;
-    if (key) {
+    if (key !== undefined && key !== '') {
       segments.push({ key, index });
     }
   }
 
   return segments;
+}
+
+/**
+ * Type guard to check if an unknown value is a valid AST node
+ */
+function isASTNode(value: unknown): value is t.Node {
+  return (
+    value !== null &&
+    value !== undefined &&
+    typeof value === 'object' &&
+    'type' in value &&
+    typeof value.type === 'string'
+  );
 }
 
 /**
@@ -187,9 +197,14 @@ function navigateToPath(
       return null;
     }
 
-    // Access the property
-    const obj = current as Record<string, unknown>;
-    let next = obj[segment.key];
+    // Type guard: check if current is an object
+    if (typeof current !== 'object') {
+      return null;
+    }
+
+    // Access the property safely using Reflect API
+    // After the typeof check, we know current is an object
+    let next: unknown = Reflect.get(current, segment.key);
 
     // If index is specified, access array element
     if (segment.index !== undefined) {
@@ -202,21 +217,12 @@ function navigateToPath(
     current = next;
   }
 
-  // Validate that current is a valid AST node
-  if (
-    current === null ||
-    current === undefined ||
-    typeof current !== 'object'
-  ) {
+  // Use type guard to validate that current is a valid AST node
+  if (!isASTNode(current)) {
     return null;
   }
 
-  const node = current as t.Node;
-  if (!('type' in node)) {
-    return null;
-  }
-
-  return node;
+  return current;
 }
 
 /**
@@ -312,11 +318,16 @@ export class SelectorResolver implements ISelectorResolver {
     }
 
     // Track the best matching JSX element
-    let bestMatch: {
-      node: t.Node;
-      path: NodePath;
+    // Use specific NodePath types to avoid any type issues
+    const found: {
+      node: t.Node | null;
+      path: NodePath<t.JSXElement> | NodePath<t.JSXFragment> | NodePath<t.JSXExpressionContainer> | null;
       specificity: number;
-    } | null = null;
+    } = {
+      node: null,
+      path: null,
+      specificity: Infinity,
+    };
 
     // Traverse AST to find JSX elements at the position
     traverse(ast, {
@@ -324,8 +335,10 @@ export class SelectorResolver implements ISelectorResolver {
         const node = path.node;
         if (positionInNode(node, line, column)) {
           const spec = nodeSpecificity(node);
-          if (!bestMatch || spec < bestMatch.specificity) {
-            bestMatch = { node, path, specificity: spec };
+          if (found.path === null || spec < found.specificity) {
+            found.node = node;
+            found.path = path;
+            found.specificity = spec;
           }
         }
       },
@@ -333,8 +346,10 @@ export class SelectorResolver implements ISelectorResolver {
         const node = path.node;
         if (positionInNode(node, line, column)) {
           const spec = nodeSpecificity(node);
-          if (!bestMatch || spec < bestMatch.specificity) {
-            bestMatch = { node, path, specificity: spec };
+          if (found.path === null || spec < found.specificity) {
+            found.node = node;
+            found.path = path;
+            found.specificity = spec;
           }
         }
       },
@@ -348,15 +363,20 @@ export class SelectorResolver implements ISelectorResolver {
             t.isCallExpression(node.expression))
         ) {
           const spec = nodeSpecificity(node);
-          if (!bestMatch || spec < bestMatch.specificity) {
-            bestMatch = { node, path, specificity: spec };
+          if (found.path === null || spec < found.specificity) {
+            found.node = node;
+            found.path = path;
+            found.specificity = spec;
           }
         }
       },
     });
 
     // No JSX element found at position
-    if (!bestMatch) {
+    const matchedNode = found.node;
+    const matchedPath = found.path;
+
+    if (matchedNode === null || matchedPath === null) {
       return createResolveResult({
         node: null,
         path: null,
@@ -373,19 +393,18 @@ export class SelectorResolver implements ISelectorResolver {
     }
 
     // Determine atomic unit
-    const matchPath = bestMatch.path as NodePath;
-    const matchNode = bestMatch.node as t.Node;
-    const atomicUnitType = determineAtomicUnitType(matchPath);
-    const atomicUnitNodes = getAtomicUnitNodes(matchPath);
+    // Note: determineAtomicUnitType and getAtomicUnitNodes accept NodePath
+    const atomicUnitType = determineAtomicUnitType(matchedPath);
+    const atomicUnitNodes = getAtomicUnitNodes(matchedPath);
     const atomicUnit = createAtomicUnit({
       type: atomicUnitType,
-      path: matchPath,
+      path: matchedPath,
       nodes: atomicUnitNodes,
     });
 
     return createResolveResult({
-      node: matchNode,
-      path: matchPath,
+      node: matchedNode,
+      path: matchedPath,
       atomicUnit,
     });
   }

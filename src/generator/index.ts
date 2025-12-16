@@ -8,12 +8,12 @@
  */
 
 export { CodeGenerator } from './CodeGenerator.js';
-export {
+export type {
   GeneratorOptions,
   GenerateResult,
   GeneratorError,
   SourceMap,
   CommentAttachment,
   IndentationInfo,
-  DEFAULT_GENERATOR_OPTIONS,
 } from './types.js';
+export { DEFAULT_GENERATOR_OPTIONS } from './types.js';

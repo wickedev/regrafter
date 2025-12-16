@@ -65,16 +65,16 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 10,
       manualAction: 'Move the Hook call to the top level of the component',
-      recover: (): RecoveryResult => {
+      recover: (): Promise<RecoveryResult> => {
         // In actual implementation, this would:
         // 1. Find the nearest valid ancestor scope
         // 2. Move the hook declaration there
         // 3. Update references
-        return {
+        return Promise.resolve({
           success: true,
           action: 'Moved Hook to valid ancestor scope',
           warnings: ['Hook order may have changed - verify behavior'],
-        };
+        });
       },
     },
   ],
@@ -85,12 +85,12 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 10,
       manualAction: 'Move the Hook call outside of the loop',
-      recover: (): RecoveryResult => {
-        return {
+      recover: (): Promise<RecoveryResult> => {
+        return Promise.resolve({
           success: true,
           action: 'Moved Hook outside loop scope',
           warnings: ['Verify that Hook behavior matches expected loop semantics'],
-        };
+        });
       },
     },
   ],
@@ -101,13 +101,13 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 8,
       manualAction: 'Restructure Hook usage to comply with Rules of Hooks',
-      recover: (): RecoveryResult => {
-        return {
+      recover: (): Promise<RecoveryResult> => {
+        return Promise.resolve({
           success: true,
           action: 'Restructured Hook usage',
           partial: true,
           warnings: ['Manual verification recommended'],
-        };
+        });
       },
     },
   ],
@@ -118,12 +118,12 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 5,
       manualAction: 'Consider using React Context instead of deep prop drilling',
-      recover: (): RecoveryResult => {
-        return {
+      recover: (): Promise<RecoveryResult> => {
+        return Promise.resolve({
           success: true,
           action: 'Created Context Provider for deep prop chain',
           warnings: ['Context Provider added - verify placement is correct'],
-        };
+        });
       },
     },
   ],
@@ -138,12 +138,12 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 10,
       manualAction: 'Extract shared dependencies to a common module',
-      recover: (): RecoveryResult => {
-        return {
+      recover: (): Promise<RecoveryResult> => {
+        return Promise.resolve({
           success: true,
           action: 'Created shared module to break circular dependency',
           warnings: ['New shared module created - review imports'],
-        };
+        });
       },
     },
   ],
@@ -154,12 +154,12 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 10,
       manualAction: 'Restructure imports to eliminate circular dependency',
-      recover: (): RecoveryResult => {
-        return {
+      recover: (): Promise<RecoveryResult> => {
+        return Promise.resolve({
           success: true,
           action: 'Restructured imports to break cycle',
           warnings: ['Import structure changed - verify all imports are correct'],
-        };
+        });
       },
     },
   ],
@@ -184,13 +184,13 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 8,
       manualAction: 'Add the missing import or define the symbol',
-      recover: (): RecoveryResult => {
-        return {
+      recover: (): Promise<RecoveryResult> => {
+        return Promise.resolve({
           success: true,
           action: 'Added missing import',
           partial: true,
           warnings: ['Verify import source is correct'],
-        };
+        });
       },
     },
   ],
@@ -201,11 +201,11 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 7,
       manualAction: 'Refactor to eliminate circular dependencies',
-      recover: (): RecoveryResult => {
-        return {
+      recover: (): Promise<RecoveryResult> => {
+        return Promise.resolve({
           success: true,
           action: 'Extracted shared dependency to break cycle',
-        };
+        });
       },
     },
   ],
@@ -278,19 +278,22 @@ export async function attemptRecovery(error: RegraffError): Promise<RecoveryResu
 export function getRecoverySuggestions(error: RegraffError): SuggestedFix[] {
   const strategy = RECOVERY_STRATEGIES.get(error.code);
 
-  if (!strategy) {
+  if (strategy === undefined) {
     return [];
   }
 
   const suggestions: SuggestedFix[] = [];
 
   if (strategy.canAutoRecover) {
+    const manualAction = strategy.manualAction;
     suggestions.push({
-      description: strategy.manualAction ?? `Automatic recovery available for ${error.code}`,
+      description: manualAction !== undefined && manualAction !== ''
+        ? manualAction
+        : `Automatic recovery available for ${error.code}`,
       action: 'auto_recover',
       automatic: true,
     });
-  } else if (strategy.manualAction) {
+  } else if (strategy.manualAction !== undefined && strategy.manualAction !== '') {
     suggestions.push({
       description: strategy.manualAction,
       action: 'manual_fix',
@@ -402,7 +405,10 @@ export function mergeRecoveryResults(results: RecoveryResult[]): RecoveryResult 
   }
 
   const success = results.every(r => r.success);
-  const actions = results.filter(r => r.action).map(r => r.action!);
+  const actionsWithValues = results.filter((r): r is RecoveryResult & { action: string } =>
+    r.action !== undefined
+  );
+  const actions = actionsWithValues.map(r => r.action);
   const warnings = results.flatMap(r => r.warnings ?? []);
   const partial = results.some(r => r.partial);
 

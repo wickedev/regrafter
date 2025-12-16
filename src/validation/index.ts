@@ -97,12 +97,13 @@ function invalidResult<T>(error: string, errors?: string[]): ValidationResult<T>
  */
 export function validateString(
   value: unknown,
-  paramName: string
+  paramName: string,
+  allowEmpty = false
 ): ValidationResult<string> {
   if (typeof value !== 'string') {
     return invalidResult(`${paramName} must be a string, got ${typeof value}`);
   }
-  if (value.length === 0) {
+  if (!allowEmpty && value.length === 0) {
     return invalidResult(`${paramName} cannot be empty`);
   }
   return validResult(value);
@@ -155,35 +156,46 @@ export function validatePositionSelector(
     return invalidResult(`${paramName} must be an object`);
   }
 
-  const obj = value as Record<string, unknown>;
+  const obj: Record<string, unknown> = value;
   const errors: string[] = [];
 
   // Validate file
   const fileResult = validateString(obj.file, `${paramName}.file`);
   if (!fileResult.valid) {
-    errors.push(fileResult.error!);
+    if (fileResult.error !== undefined) {
+      errors.push(fileResult.error);
+    }
   }
 
   // Validate line
   const lineResult = validatePositiveInteger(obj.line, `${paramName}.line`);
   if (!lineResult.valid) {
-    errors.push(lineResult.error!);
+    if (lineResult.error !== undefined) {
+      errors.push(lineResult.error);
+    }
   }
 
   // Validate column
   const columnResult = validatePositiveInteger(obj.column, `${paramName}.column`);
   if (!columnResult.valid) {
-    errors.push(columnResult.error!);
+    if (columnResult.error !== undefined) {
+      errors.push(columnResult.error);
+    }
   }
 
   if (errors.length > 0) {
     return invalidResult(`Invalid PositionSelector`, errors);
   }
 
+  // At this point we know all results are valid and have values
+  if (fileResult.value === undefined || lineResult.value === undefined || columnResult.value === undefined) {
+    return invalidResult(`Invalid PositionSelector: missing validated values`);
+  }
+
   return validResult({
-    file: obj.file as string,
-    line: obj.line as number,
-    column: obj.column as number,
+    file: fileResult.value,
+    line: lineResult.value,
+    column: columnResult.value
   });
 }
 
@@ -198,29 +210,37 @@ export function validatePathSelector(
     return invalidResult(`${paramName} must be an object`);
   }
 
-  const obj = value as Record<string, unknown>;
+  const obj: Record<string, unknown> = value;
   const errors: string[] = [];
 
   // Validate file
   const fileResult = validateString(obj.file, `${paramName}.file`);
   if (!fileResult.valid) {
-    errors.push(fileResult.error!);
+    if (fileResult.error !== undefined) {
+      errors.push(fileResult.error);
+    }
   }
 
   // Validate path
   const pathResult = validateString(obj.path, `${paramName}.path`);
   if (!pathResult.valid) {
-    errors.push(pathResult.error!);
+    if (pathResult.error !== undefined) {
+      errors.push(pathResult.error);
+    }
   }
 
   if (errors.length > 0) {
     return invalidResult(`Invalid PathSelector`, errors);
   }
 
-  return validResult({
-    file: obj.file as string,
-    path: obj.path as string,
-  });
+  if (fileResult.value === undefined || pathResult.value === undefined) {
+    return invalidResult(`Invalid PathSelector: missing validated values`);
+  }
+
+  const file: string = fileResult.value;
+  const path: string = pathResult.value;
+
+  return validResult({ file, path });
 }
 
 /**
@@ -234,7 +254,7 @@ export function validateSelector(
     return invalidResult(`${paramName} must be an object`);
   }
 
-  const obj = value as Record<string, unknown>;
+  const obj: Record<string, unknown> = value;
 
   // Check if it's a PositionSelector
   if ('line' in obj && 'column' in obj) {
@@ -280,28 +300,36 @@ export function validateOptions(
     return invalidResult(`${paramName} must be an object, got ${typeof value}`);
   }
 
-  const obj = value as Record<string, unknown>;
+  const obj: Record<string, unknown> = value;
   const errors: string[] = [];
 
   // Validate optional fields
   if (obj.optimize !== undefined) {
     const result = validateBoolean(obj.optimize, `${paramName}.optimize`);
-    if (!result.valid) errors.push(result.error!);
+    if (!result.valid && result.error !== undefined) {
+      errors.push(result.error);
+    }
   }
 
   if (obj.dryRun !== undefined) {
     const result = validateBoolean(obj.dryRun, `${paramName}.dryRun`);
-    if (!result.valid) errors.push(result.error!);
+    if (!result.valid && result.error !== undefined) {
+      errors.push(result.error);
+    }
   }
 
   if (obj.preserveComments !== undefined) {
     const result = validateBoolean(obj.preserveComments, `${paramName}.preserveComments`);
-    if (!result.valid) errors.push(result.error!);
+    if (!result.valid && result.error !== undefined) {
+      errors.push(result.error);
+    }
   }
 
   if (obj.formatOutput !== undefined) {
     const result = validateBoolean(obj.formatOutput, `${paramName}.formatOutput`);
-    if (!result.valid) errors.push(result.error!);
+    if (!result.valid && result.error !== undefined) {
+      errors.push(result.error);
+    }
   }
 
   // Check for unknown properties
@@ -316,7 +344,8 @@ export function validateOptions(
     return invalidResult(`Invalid Options`, errors);
   }
 
-  return validResult(value as Options);
+  const options: Options = value;
+  return validResult(options);
 }
 
 /**
@@ -330,28 +359,37 @@ export function validateFileInput(
     return invalidResult(`files[${index}] must be an object`);
   }
 
-  const obj = value as Record<string, unknown>;
+  const obj: Record<string, unknown> = value;
   const errors: string[] = [];
 
   // Validate path
   const pathResult = validateString(obj.path, `files[${index}].path`);
   if (!pathResult.valid) {
-    errors.push(pathResult.error!);
+    if (pathResult.error !== undefined) {
+      errors.push(pathResult.error);
+    }
   }
 
-  // Validate content
-  if (typeof obj.content !== 'string') {
-    errors.push(`files[${index}].content must be a string`);
+  // Validate content (allow empty content)
+  const contentResult = validateString(obj.content, `files[${index}].content`, true);
+  if (!contentResult.valid) {
+    if (contentResult.error !== undefined) {
+      errors.push(contentResult.error);
+    }
   }
 
   if (errors.length > 0) {
     return invalidResult(`Invalid FileInput at index ${index}`, errors);
   }
 
-  return validResult({
-    path: obj.path as string,
-    content: obj.content as string,
-  });
+  if (pathResult.value === undefined || contentResult.value === undefined) {
+    return invalidResult(`Invalid FileInput: missing validated values`);
+  }
+
+  const path: string = pathResult.value;
+  const content: string = contentResult.value;
+
+  return validResult({ path, content });
 }
 
 /**
@@ -374,11 +412,13 @@ export function validateFileInputArray(
 
   for (let i = 0; i < value.length; i++) {
     const result = validateFileInput(value[i], i);
-    if (result.valid) {
-      files.push(result.value!);
+    if (result.valid && result.value !== undefined) {
+      files.push(result.value);
     } else {
-      errors.push(result.error!);
-      if (result.errors) {
+      if (result.error !== undefined) {
+        errors.push(result.error);
+      }
+      if (result.errors !== undefined) {
         errors.push(...result.errors);
       }
     }
@@ -421,45 +461,69 @@ export function validateRegraftInput(
   // Validate files
   const filesResult = validateFileInputArray(files, 'files');
   if (!filesResult.valid) {
-    errors.push(filesResult.error!);
-    if (filesResult.errors) errors.push(...filesResult.errors);
+    if (filesResult.error !== undefined) {
+      errors.push(filesResult.error);
+    }
+    if (filesResult.errors !== undefined) {
+      errors.push(...filesResult.errors);
+    }
   }
 
   // Validate from selector
   const fromResult = validateSelector(from, 'from');
   if (!fromResult.valid) {
-    errors.push(fromResult.error!);
-    if (fromResult.errors) errors.push(...fromResult.errors);
+    if (fromResult.error !== undefined) {
+      errors.push(fromResult.error);
+    }
+    if (fromResult.errors !== undefined) {
+      errors.push(...fromResult.errors);
+    }
   }
 
   // Validate to selector
   const toResult = validateSelector(to, 'to');
   if (!toResult.valid) {
-    errors.push(toResult.error!);
-    if (toResult.errors) errors.push(...toResult.errors);
+    if (toResult.error !== undefined) {
+      errors.push(toResult.error);
+    }
+    if (toResult.errors !== undefined) {
+      errors.push(...toResult.errors);
+    }
   }
 
   // Validate mode
   const modeResult = validateMove(mode, 'mode');
   if (!modeResult.valid) {
-    errors.push(modeResult.error!);
+    if (modeResult.error !== undefined) {
+      errors.push(modeResult.error);
+    }
   }
 
   // Validate options (optional)
   const optionsResult = validateOptions(options, 'options');
   if (!optionsResult.valid) {
-    errors.push(optionsResult.error!);
-    if (optionsResult.errors) errors.push(...optionsResult.errors);
+    if (optionsResult.error !== undefined) {
+      errors.push(optionsResult.error);
+    }
+    if (optionsResult.errors !== undefined) {
+      errors.push(...optionsResult.errors);
+    }
   }
 
   if (errors.length > 0) {
     return invalidResult('Invalid input parameters', errors);
   }
 
+  // At this point, all validations passed, so values must be defined
+  if (filesResult.value === undefined || fromResult.value === undefined ||
+      toResult.value === undefined || modeResult.value === undefined) {
+    return invalidResult('Missing validated values after successful validation');
+  }
+
   // Additional cross-field validations
-  const validatedFiles = filesResult.value!;
-  const validatedFrom = fromResult.value!;
-  const validatedTo = toResult.value!;
+  const validatedFiles = filesResult.value;
+  const validatedFrom = fromResult.value;
+  const validatedTo = toResult.value;
 
   // Check that from.file exists in files array
   const fromFileExists = validatedFiles.some(f => f.path === validatedFrom.file);
@@ -487,7 +551,7 @@ export function validateRegraftInput(
     files: validatedFiles,
     from: validatedFrom,
     to: validatedTo,
-    mode: modeResult.value!,
+    mode: modeResult.value,
     options: optionsResult.value,
   });
 }

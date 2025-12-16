@@ -136,7 +136,7 @@ describe('SelectorResolver', () => {
       expect(result.node).not.toBeNull();
       // Should find h1, not header
       if (result.node && 'openingElement' in result.node) {
-        const element = result.node as t.JSXElement;
+        const element: t.JSXElement = result.node;
         if (element.openingElement.name.type === 'JSXIdentifier') {
           expect(element.openingElement.name.name).toBe('h1');
         }

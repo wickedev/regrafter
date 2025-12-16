@@ -190,43 +190,52 @@ export {
 } from './strategies/index.js';
 
 import type { NodePath } from '@babel/traverse';
-import traverse from '@babel/traverse';
+import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
-import {
-  validateMoveOperation,
-  type MoveValidationResult,
-  createMoveAnalysisBuilder,
-  DependencyAnalyzer,
-} from './analyzer/index.js';
+import { DependencyAnalyzer, createMoveAnalysisBuilder, validateMoveOperation, type MoveValidationResult } from './analyzer/index.js';
 import { CodeGenerator } from './generator/CodeGenerator.js';
 import { createOptimizer } from './optimizer/Optimizer.js';
 import type { OptimizeOptions } from './optimizer/types.js';
 import { createParser } from './parser/index.js';
 import { createScopeManager } from './scope/index.js';
 import { createSelectorResolver } from './selector/index.js';
-import {
-  executeCrossFileTransform,
-  createCrossFileContext,
-} from './strategies/cross-file/index.js';
+import { createCrossFileContext, executeCrossFileTransform } from './strategies/cross-file/index.js';
 import type { HoistExecutionContext } from './strategies/HoistExecutor.js';
-import {
-  createConfiguredHoistPlanner,
-  createHoistExecutor,
-} from './strategies/index.js';
+import { createConfiguredHoistPlanner, createHoistExecutor } from './strategies/index.js';
 import type { HoistContext } from './strategies/types.js';
 import { createJSXTransformer } from './transformer/index.js';
-// eslint-disable-next-line import/order
-import type {
-  Move,
-  FileInput,
-  Selector,
-  Options,
-  Result,
-  Code,
-  SuggestedFix,
-  MoveAnalysis,
+import type { Code, FileInput, MoveAnalysis, Move, Options, Result, Selector, SuggestedFix } from './types/index.js';
+import {
+  mergeOptions,
+  createMoveAnalysis,
+  createCode,
+  createSuccessResult,
+  createFailureResult,
+  createAnalysisStats,
+  createSuggestedFix,
 } from './types/index.js';
+
+// Handle both ESM and CJS exports for @babel/traverse
+const traverseModuleRecord: Record<string, unknown> = traverseModule;
+type TraverseVisitor = {
+  [K in t.Node['type']]?: (path: NodePath<Extract<t.Node, { type: K }>>) => void;
+};
+type TraverseFunction = <T extends t.Node>(ast: T, opts: TraverseVisitor) => void;
+
+function isTraverseFunction(value: unknown): value is TraverseFunction {
+  return typeof value === 'function';
+}
+function getTraverseFunction(): TraverseFunction {
+  if (isTraverseFunction(traverseModuleRecord.default)) {
+    return traverseModuleRecord.default;
+  }
+  if (isTraverseFunction(traverseModule)) {
+    return traverseModule;
+  }
+  throw new Error('@babel/traverse module is not properly loaded');
+}
+const traverse = getTraverseFunction();
 
 /**
  * Main entry point for the regraft operation.
@@ -448,10 +457,11 @@ function executeCrossFileMove(
 
   // Get target scope for dependency analysis
   let targetScope = null;
-  if (parsedFiles.has(to.file)) {
-    const targetAst = parsedFiles.get(to.file)!;
-    const targetResult = resolver.resolve(to, targetAst);
-    if (targetResult.path) {
+  const targetAstMaybe = parsedFiles.get(to.file);
+  if (targetAstMaybe !== undefined) {
+    const targetResult = resolver.resolve(to, targetAstMaybe);
+    // targetResult.path is NodePath | null, so we only need to check for null
+    if (targetResult.path !== null) {
       targetScope = scopeManager.getScopeForPath(targetResult.path);
     }
   }
@@ -493,6 +503,18 @@ function moveWithHoisting(
   to: Selector,
   mode: Move
 ): Code[] {
+  // Type guard for location property
+  function hasPathProperty(loc: unknown): loc is { path: NodePath } {
+    return (
+      loc !== null &&
+      loc !== undefined &&
+      typeof loc === 'object' &&
+      'path' in loc &&
+      loc.path !== null &&
+      loc.path !== undefined
+    );
+  }
+
   // Create required instances
   const parser = createParser();
   const generator = new CodeGenerator();
@@ -500,7 +522,7 @@ function moveWithHoisting(
   const transformer = createJSXTransformer();
   const scopeManager = createScopeManager();
   const analyzer = new DependencyAnalyzer(scopeManager);
-  const planner = createConfiguredHoistPlanner(scopeManager);
+  const planner = createConfiguredHoistPlanner();
   const executor = createHoistExecutor();
 
   // Parse all files
@@ -571,8 +593,8 @@ function moveWithHoisting(
 
       // Collect dependency paths
       for (const dep of depAnalysis.dependencies) {
-        const location = dep.location as { path?: NodePath } | undefined;
-        if (location?.path) {
+        const location: unknown = 'location' in dep ? dep.location : undefined;
+        if (hasPathProperty(location)) {
           dependencyPaths.set(dep.id, location.path);
         }
       }
@@ -580,19 +602,33 @@ function moveWithHoisting(
       // Collect scope paths by traversing the AST
       traverse(sourceAst, {
         FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
-          if (path.node.id) {
+          if (path.node.id !== null && path.node.id !== undefined) {
             scopePaths.set(path.node.id.name, path);
           }
         },
         FunctionExpression(path: NodePath<t.FunctionExpression>) {
           const parent = path.parent;
-          if (parent && 'id' in parent && parent.id && 'name' in parent.id) {
+          // parent is always an object (t.Node), and typeof check excludes null
+          if (
+            typeof parent === 'object' &&
+            'id' in parent &&
+            typeof parent.id === 'object' &&
+            'name' in parent.id &&
+            typeof parent.id.name === 'string'
+          ) {
             scopePaths.set(parent.id.name, path);
           }
         },
         ArrowFunctionExpression(path: NodePath<t.ArrowFunctionExpression>) {
           const parent = path.parent;
-          if (parent && 'id' in parent && parent.id && 'name' in parent.id) {
+          // parent is always an object (t.Node), and typeof check excludes null
+          if (
+            typeof parent === 'object' &&
+            'id' in parent &&
+            typeof parent.id === 'object' &&
+            'name' in parent.id &&
+            typeof parent.id.name === 'string'
+          ) {
             scopePaths.set(parent.id.name, path);
           }
         },
@@ -667,7 +703,7 @@ export function analyze(
       reason: validation.reason,
       dependencies: [],
       hoistedDeps: [],
-      suggestedFixes: getSuggestedFixes(validation.errorCode as string),
+      suggestedFixes: typeof validation.errorCode === 'string' ? getSuggestedFixes(validation.errorCode) : undefined,
       stats: createAnalysisStats(),
     });
   }
@@ -756,20 +792,12 @@ export function optimize(
 // Helper Functions for regraft
 // =============================================================================
 
-import {
-  mergeOptions,
-  createMoveAnalysis,
-  createCode,
-  createSuccessResult,
-  createFailureResult,
-  createAnalysisStats,
- createSuggestedFix } from './types/index.js';
-
 /**
  * Get suggested fixes based on error code
  */
 function getSuggestedFixes(errorCode?: string): SuggestedFix[] | undefined {
-  if (!errorCode) return undefined;
+  // errorCode is string | undefined, so we only need to check for undefined and empty string
+  if (errorCode === undefined || errorCode === '') return undefined;
 
   // Map error codes to suggested fixes
   const fixMap: Record<string, SuggestedFix[]> = {

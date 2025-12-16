@@ -5,7 +5,8 @@
  * containing lazy-loaded components are moved across the component tree.
  */
 
-import traverse, { type NodePath } from '@babel/traverse';
+import traverse from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 
 import {
@@ -34,18 +35,6 @@ import type {
  * Default fallback component for generated Suspense boundaries
  */
 const DEFAULT_FALLBACK_TEXT = 'Loading...';
-
-/**
- * Pattern for detecting lazy function calls
- */
-const _LAZY_PATTERNS = {
-  /** React.lazy() call */
-  reactLazy: /^(React\.)?lazy$/,
-  /** next/dynamic import */
-  nextDynamic: /^dynamic$/,
-  /** @loadable/component */
-  loadable: /^loadable$/,
-};
 
 // ===============================================================================
 // SuspenseHandler Class
@@ -123,10 +112,6 @@ export class SuspenseHandler implements ISuspenseHandler {
 
     // Check if target already has a Suspense boundary
     const targetPath = context.targetScope.path;
-    if (!targetPath) {
-      return true; // Assume needed if we can't verify
-    }
-
     const existingSuspense = this.findSuspenseBoundary(targetPath);
     return existingSuspense === null;
   }
@@ -136,10 +121,10 @@ export class SuspenseHandler implements ISuspenseHandler {
    */
   createSuspenseWrapper(
     targetPath: NodePath,
-    fallback?: t.JSXElement | t.JSXFragment
+    fallback?: t.Expression
   ): t.JSXElement {
     // Create fallback element if not provided
-    const fallbackElement = fallback ?? this.createDefaultFallback();
+    const fallbackElement: t.Expression = fallback ?? this.createDefaultFallback();
 
     // Get the children to wrap
     const children: t.JSXElement['children'] = [];
@@ -154,7 +139,7 @@ export class SuspenseHandler implements ISuspenseHandler {
         [
           t.jsxAttribute(
             t.jsxIdentifier('fallback'),
-            t.jsxExpressionContainer(fallbackElement as t.Expression)
+            t.jsxExpressionContainer(fallbackElement)
           ),
         ],
         false
@@ -235,35 +220,35 @@ export class SuspenseHandler implements ISuspenseHandler {
    * Check if a node is a lazy() call
    */
   private isLazyCall(node: t.Node): boolean {
-    if (node.type !== 'CallExpression') {
+    if (!t.isCallExpression(node)) {
       return false;
     }
 
-    const callee = (node).callee;
+    const callee = node.callee;
 
     // React.lazy()
     if (
-      callee.type === 'MemberExpression' &&
-      callee.object.type === 'Identifier' &&
+      t.isMemberExpression(callee) &&
+      t.isIdentifier(callee.object) &&
       callee.object.name === 'React' &&
-      callee.property.type === 'Identifier' &&
+      t.isIdentifier(callee.property) &&
       callee.property.name === 'lazy'
     ) {
       return true;
     }
 
     // lazy()
-    if (callee.type === 'Identifier' && callee.name === 'lazy') {
+    if (t.isIdentifier(callee) && callee.name === 'lazy') {
       return true;
     }
 
     // dynamic() from next/dynamic
-    if (callee.type === 'Identifier' && callee.name === 'dynamic') {
+    if (t.isIdentifier(callee) && callee.name === 'dynamic') {
       return true;
     }
 
     // loadable() from @loadable/component
-    if (callee.type === 'Identifier' && callee.name === 'loadable') {
+    if (t.isIdentifier(callee) && callee.name === 'loadable') {
       return true;
     }
 
@@ -276,14 +261,10 @@ export class SuspenseHandler implements ISuspenseHandler {
   private isDependencyLazy(dependency: InternalDependency): boolean {
     const node = dependency.origin.node;
 
-    if (!node) {
-      return false;
-    }
-
     // Check if the dependency's origin node is a lazy declaration
-    if (node.type === 'VariableDeclarator') {
-      const init = (node).init;
-      if (init && this.isLazyCall(init)) {
+    if (t.isVariableDeclarator(node)) {
+      const init = node.init;
+      if (init !== null && init !== undefined && this.isLazyCall(init)) {
         return true;
       }
     }
@@ -307,21 +288,21 @@ export class SuspenseHandler implements ISuspenseHandler {
 
     // <Suspense>
     if (
-      openingElement.name.type === 'JSXIdentifier' &&
+      t.isJSXIdentifier(openingElement.name) &&
       openingElement.name.name === 'Suspense'
     ) {
       return true;
     }
 
     // <React.Suspense>
-    if (openingElement.name.type === 'JSXMemberExpression') {
+    if (t.isJSXMemberExpression(openingElement.name)) {
       const object = openingElement.name.object;
       const property = openingElement.name.property;
 
       if (
-        object.type === 'JSXIdentifier' &&
+        t.isJSXIdentifier(object) &&
         object.name === 'React' &&
-        property.type === 'JSXIdentifier' &&
+        t.isJSXIdentifier(property) &&
         property.name === 'Suspense'
       ) {
         return true;
@@ -351,14 +332,17 @@ export class SuspenseHandler implements ISuspenseHandler {
 
     for (const attr of openingElement.attributes) {
       if (
-        attr.type === 'JSXAttribute' &&
-        attr.name.type === 'JSXIdentifier' &&
+        t.isJSXAttribute(attr) &&
+        t.isJSXIdentifier(attr.name) &&
         attr.name.name === 'fallback'
       ) {
-        if (attr.value?.type === 'JSXExpressionContainer') {
-          return attr.value.expression as t.Expression;
+        if (attr.value && t.isJSXExpressionContainer(attr.value)) {
+          const expr = attr.value.expression;
+          if (!t.isJSXEmptyExpression(expr)) {
+            return expr;
+          }
         }
-        if (attr.value?.type === 'JSXElement') {
+        if (attr.value && t.isJSXElement(attr.value)) {
           return attr.value;
         }
       }
@@ -383,21 +367,21 @@ export function createSuspenseHandler(): SuspenseHandler {
  * Check if a node is a React.lazy call
  */
 export function isReactLazy(node: t.Node): boolean {
-  if (node.type !== 'CallExpression') {
+  if (!t.isCallExpression(node)) {
     return false;
   }
 
-  const callee = (node).callee;
+  const callee = node.callee;
 
-  if (callee.type === 'Identifier') {
+  if (t.isIdentifier(callee)) {
     return callee.name === 'lazy';
   }
 
   if (
-    callee.type === 'MemberExpression' &&
-    callee.object.type === 'Identifier' &&
+    t.isMemberExpression(callee) &&
+    t.isIdentifier(callee.object) &&
     callee.object.name === 'React' &&
-    callee.property.type === 'Identifier' &&
+    t.isIdentifier(callee.property) &&
     callee.property.name === 'lazy'
   ) {
     return true;
@@ -410,14 +394,12 @@ export function isReactLazy(node: t.Node): boolean {
  * Check if a node is a dynamic import
  */
 export function isDynamicImport(node: t.Node): boolean {
-  if (node.type !== 'CallExpression') {
+  if (!t.isCallExpression(node)) {
     return false;
   }
 
-  const call = node;
-
   // import() expression
-  if (call.callee.type === 'Import') {
+  if (t.isImport(node.callee)) {
     return true;
   }
 
@@ -435,9 +417,9 @@ export function findLazyComponents(
   traverse(ast, {
     VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
       const init = path.node.init;
-      if (init && isReactLazy(init)) {
+      if (init !== null && init !== undefined && isReactLazy(init)) {
         const id = path.node.id;
-        if (id.type === 'Identifier') {
+        if (t.isIdentifier(id)) {
           lazyComponents.push({ name: id.name, path });
         }
       }
@@ -459,7 +441,7 @@ export function findSuspenseBoundaries(ast: t.File): NodePath[] {
 
       // <Suspense>
       if (
-        openingElement.name.type === 'JSXIdentifier' &&
+        t.isJSXIdentifier(openingElement.name) &&
         openingElement.name.name === 'Suspense'
       ) {
         boundaries.push(path);
@@ -467,14 +449,14 @@ export function findSuspenseBoundaries(ast: t.File): NodePath[] {
       }
 
       // <React.Suspense>
-      if (openingElement.name.type === 'JSXMemberExpression') {
+      if (t.isJSXMemberExpression(openingElement.name)) {
         const object = openingElement.name.object;
         const property = openingElement.name.property;
 
         if (
-          object.type === 'JSXIdentifier' &&
+          t.isJSXIdentifier(object) &&
           object.name === 'React' &&
-          property.type === 'JSXIdentifier' &&
+          t.isJSXIdentifier(property) &&
           property.name === 'Suspense'
         ) {
           boundaries.push(path);
@@ -499,15 +481,15 @@ export function hasParentSuspense(
     if (current.isJSXElement()) {
       const name = current.node.openingElement.name;
 
-      if (name.type === 'JSXIdentifier' && name.name === 'Suspense') {
+      if (t.isJSXIdentifier(name) && name.name === 'Suspense') {
         return true;
       }
 
       if (
-        name.type === 'JSXMemberExpression' &&
-        name.object.type === 'JSXIdentifier' &&
+        t.isJSXMemberExpression(name) &&
+        t.isJSXIdentifier(name.object) &&
         name.object.name === 'React' &&
-        name.property.type === 'JSXIdentifier' &&
+        t.isJSXIdentifier(name.property) &&
         name.property.name === 'Suspense'
       ) {
         return true;
@@ -527,22 +509,19 @@ export function createSuspenseElement(
   children: t.JSXElement[],
   fallback?: t.Expression
 ): t.JSXElement {
-  const fallbackAttr = fallback
-    ? t.jsxAttribute(
-        t.jsxIdentifier('fallback'),
-        t.jsxExpressionContainer(fallback)
-      )
-    : t.jsxAttribute(
-        t.jsxIdentifier('fallback'),
-        t.jsxExpressionContainer(
-          t.jsxElement(
-            t.jsxOpeningElement(t.jsxIdentifier('div'), [], true),
-            null,
-            [t.jsxText(DEFAULT_FALLBACK_TEXT)],
-            true
-          )
-        )
-      );
+  const defaultFallback: t.Expression = t.jsxElement(
+    t.jsxOpeningElement(t.jsxIdentifier('div'), [], true),
+    null,
+    [t.jsxText(DEFAULT_FALLBACK_TEXT)],
+    true
+  );
+
+  const fallbackExpr: t.Expression = fallback ?? defaultFallback;
+
+  const fallbackAttr = t.jsxAttribute(
+    t.jsxIdentifier('fallback'),
+    t.jsxExpressionContainer(fallbackExpr)
+  );
 
   return t.jsxElement(
     t.jsxOpeningElement(t.jsxIdentifier('Suspense'), [fallbackAttr], false),

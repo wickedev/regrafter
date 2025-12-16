@@ -31,24 +31,6 @@ import type {
 } from './types.js';
 
 // ===============================================================================
-// Context Constants
-// ===============================================================================
-
-/**
- * Known React context-related patterns
- */
-const _CONTEXT_PATTERNS = {
-  /** createContext call */
-  createContext: /^(React\.)?createContext$/,
-  /** Context Provider pattern */
-  provider: /Provider$/,
-  /** Context Consumer pattern */
-  consumer: /Consumer$/,
-  /** useContext hook */
-  useContext: /^(React\.)?useContext$/,
-};
-
-// ===============================================================================
 // ContextHandler Class
 // ===============================================================================
 
@@ -90,16 +72,16 @@ export class ContextHandler implements IContextHandler {
 
         // Check for <Context.Provider>
         if (openingElement.name.type === 'JSXMemberExpression') {
-          const object = openingElement.name.object;
-          const property = openingElement.name.property;
+          const memberExpr = openingElement.name;
+          const object = memberExpr.object;
+          const property = memberExpr.property;
 
           if (
             object.type === 'JSXIdentifier' &&
-            property.type === 'JSXIdentifier' &&
             property.name === 'Provider'
           ) {
             // Check if this is the context we're looking for
-            if (!contextName || object.name === contextName) {
+            if (contextName === undefined || object.name === contextName) {
               providerPath = path;
               path.stop();
             }
@@ -110,7 +92,7 @@ export class ContextHandler implements IContextHandler {
         if (openingElement.name.type === 'JSXIdentifier') {
           const name = openingElement.name.name;
           if (name.endsWith("Provider")) {
-            if (!contextName || name === `${contextName}Provider`) {
+            if (contextName === undefined || name === `${contextName}Provider`) {
               providerPath = path;
               path.stop();
             }
@@ -129,10 +111,6 @@ export class ContextHandler implements IContextHandler {
     targetScope: ScopeInfo,
     providerPath: NodePath
   ): boolean {
-    if (!targetScope.path || !providerPath) {
-      return false;
-    }
-
     // Walk up from target scope to see if we encounter the provider
     let currentPath: NodePath | null = targetScope.path;
 
@@ -225,15 +203,15 @@ export class ContextHandler implements IContextHandler {
 
         // Check for <Context.Provider>
         if (openingElement.name.type === 'JSXMemberExpression') {
-          const object = openingElement.name.object;
-          const property = openingElement.name.property;
+          const memberExpr = openingElement.name;
+          const object = memberExpr.object;
+          const property = memberExpr.property;
 
           if (
             object.type === 'JSXIdentifier' &&
-            property.type === 'JSXIdentifier' &&
             property.name === 'Provider'
           ) {
-            if (!contextName || object.name === contextName) {
+            if (contextName === undefined || object.name === contextName) {
               return current;
             }
           }
@@ -259,7 +237,11 @@ export class ContextHandler implements IContextHandler {
         attr.name.name === 'value'
       ) {
         if (attr.value?.type === 'JSXExpressionContainer') {
-          return attr.value.expression as t.Expression;
+          const expr = attr.value.expression;
+          // JSXEmptyExpression is not a valid Expression
+          if (expr.type !== 'JSXEmptyExpression') {
+            return expr;
+          }
         }
       }
     }
@@ -298,13 +280,15 @@ export class ContextHandler implements IContextHandler {
 
           if (isUseContext && init.arguments.length > 0) {
             const arg = init.arguments[0];
-            const argName =
-              arg.type === 'Identifier' ? arg.name : undefined;
+            if (arg !== undefined) {
+              const argName =
+                arg.type === 'Identifier' ? arg.name : undefined;
 
-            if (!contextName || argName === contextName) {
-              const id = path.node.id;
-              if (id.type === 'Identifier') {
-                calls.push({ path, variableName: id.name });
+              if (contextName === undefined || argName === contextName) {
+                const id = path.node.id;
+                if (id.type === 'Identifier') {
+                  calls.push({ path, variableName: id.name });
+                }
               }
             }
           }
@@ -416,7 +400,7 @@ export class ContextHandler implements IContextHandler {
       const init = (node).init;
       if (init?.type === 'CallExpression' && init.arguments.length > 0) {
         const arg = init.arguments[0];
-        if (arg.type === 'Identifier') {
+        if (arg !== undefined && arg.type === 'Identifier') {
           return arg.name;
         }
       }
@@ -519,7 +503,7 @@ export function isContextProvider(element: t.JSXElement): boolean {
   // <Context.Provider>
   if (name.type === 'JSXMemberExpression') {
     const property = name.property;
-    if (property.type === 'JSXIdentifier' && property.name === 'Provider') {
+    if (property.name === 'Provider') {
       return true;
     }
   }
@@ -541,7 +525,7 @@ export function isContextConsumer(element: t.JSXElement): boolean {
   // <Context.Consumer>
   if (name.type === 'JSXMemberExpression') {
     const property = name.property;
-    if (property.type === 'JSXIdentifier' && property.name === 'Consumer') {
+    if (property.name === 'Consumer') {
       return true;
     }
   }
@@ -592,13 +576,13 @@ export function findProviderInstances(
 
       // <Context.Provider>
       if (openingElement.name.type === 'JSXMemberExpression') {
-        const object = openingElement.name.object;
-        const property = openingElement.name.property;
+        const memberExpr = openingElement.name;
+        const object = memberExpr.object;
+        const property = memberExpr.property;
 
         if (
           object.type === 'JSXIdentifier' &&
           object.name === contextName &&
-          property.type === 'JSXIdentifier' &&
           property.name === 'Provider'
         ) {
           providers.push(path);

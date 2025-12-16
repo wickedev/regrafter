@@ -32,6 +32,7 @@ import {
   detectCrossFileMove,
   analyzeDependencyExports,
   needsSharedModule,
+  type DependencyExportAnalysis,
 } from './detector.js';
 import {
   isNewFile,
@@ -111,6 +112,207 @@ export interface CrossFileOptions {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// Helper Functions
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Type guard for generateCode result.
+ */
+function isGeneratedCode(value: unknown): value is { code: string; map?: object } {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (!('code' in value)) {
+    return false;
+  }
+  // At this point, TypeScript knows value is an object with 'code' property
+  type ObjectWithCode = { code: unknown };
+  const obj: ObjectWithCode = value;
+  return typeof obj.code === 'string';
+}
+
+/**
+ * Safely generates code from AST.
+ */
+function safeGenerateCode(ast: t.Node, opts?: object): { code: string; map?: object } {
+  const result: unknown = generateCode(ast, opts);
+  if (isGeneratedCode(result)) {
+    return result;
+  }
+  throw new Error('Invalid generateCode result');
+}
+
+/**
+ * Handles shared module creation and source file updates.
+ */
+function handleSharedModuleCreation(
+  depsNeedingSharedModule: InternalDependency[],
+  sourceAst: t.File,
+  sourceFile: string,
+  newFiles: Map<string, t.File>,
+  modifiedAsts: Map<string, t.File>,
+  sharedModuleOperations: SharedModuleOperation[],
+  importOperations: ImportOperation[]
+): string {
+  const sharedModuleResult = generateSharedModule(
+    depsNeedingSharedModule,
+    sourceAst,
+    sourceFile
+  );
+
+  const sharedModulePath = sharedModuleResult.operation.newFilePath;
+  newFiles.set(sharedModulePath, sharedModuleResult.ast);
+  sharedModuleOperations.push(sharedModuleResult.operation);
+
+  const sourceUpdate = updateSourceFileReferences(
+    sourceAst,
+    sourceFile,
+    sharedModulePath,
+    depsNeedingSharedModule
+  );
+
+  modifiedAsts.set(sourceFile, sourceUpdate.ast);
+  importOperations.push(...sourceUpdate.imports);
+
+  return sharedModulePath;
+}
+
+/**
+ * Handles adding exports to source file for unexported dependencies.
+ */
+function handleExportAdditions(
+  exportAnalysis: DependencyExportAnalysis,
+  depsNeedingSharedModule: InternalDependency[],
+  sourceFile: string,
+  sourceAst: t.File,
+  modifiedAsts: Map<string, t.File>
+): void {
+  const unexportedNonShared = exportAnalysis.unexportedDeps.filter(
+    (dep) => !depsNeedingSharedModule.some((d) => d.id === dep.id)
+  );
+
+  if (unexportedNonShared.length > 0) {
+    const currentSourceAst = modifiedAsts.get(sourceFile) ?? sourceAst;
+    const exportedSourceAst = addExportsToSourceFile(
+      currentSourceAst,
+      unexportedNonShared.map((d) => d.symbol)
+    );
+    modifiedAsts.set(sourceFile, exportedSourceAst);
+  }
+}
+
+/**
+ * Handles circular dependency detection and resolution.
+ */
+function handleCircularDependencies(
+  context: CrossFileContext,
+  modifiedAsts: Map<string, t.File>,
+  newFiles: Map<string, t.File>,
+  resolveCircularDeps: boolean,
+  sharedModuleOperations: SharedModuleOperation[]
+): { success: boolean; error?: string } {
+  const allAsts = new Map([...context.asts, ...modifiedAsts, ...newFiles]);
+  const importGraph = buildImportGraph(allAsts);
+  const circularCheck = detectCircularDependencies(importGraph);
+
+  if (!circularCheck.hasCircular) {
+    return { success: true };
+  }
+
+  if (resolveCircularDeps) {
+    const resolution = resolveCircularDependencies(importGraph, allAsts);
+
+    if (!resolution.success) {
+      return {
+        success: false,
+        error: resolution.error ?? 'Failed to resolve circular dependencies',
+      };
+    }
+
+    for (const res of resolution.resolutions) {
+      const hasSharedPath = res.sharedModulePath !== undefined && res.sharedModulePath.length > 0;
+      if (hasSharedPath && res.type === 'extract_shared') {
+        sharedModuleOperations.push(...res.operations);
+      }
+    }
+
+    return { success: true };
+  }
+
+  const cycle = circularCheck.shortestCycle ?? [];
+  const cycleDescription = cycle.length > 0 ? cycle.join(' -> ') : 'unknown cycle';
+
+  return {
+    success: false,
+    error: `Circular dependency detected: ${cycleDescription}`,
+  };
+}
+
+/**
+ * Generates code for all modified, new, and unchanged files.
+ */
+function generateCodeForAllFiles(
+  context: CrossFileContext,
+  modifiedAsts: Map<string, t.File>,
+  newFiles: Map<string, t.File>
+): Code[] {
+  const codes: Code[] = [];
+
+  // Generate code for modified files
+  for (const [filePath, ast] of modifiedAsts) {
+    const originalContent = context.originalContents.get(filePath);
+    const generated = safeGenerateCode(ast, { comments: true });
+
+    codes.push(
+      createCode({
+        file: filePath,
+        content: generated.code,
+        changed: true,
+        original: originalContent,
+      })
+    );
+  }
+
+  // Generate code for new files
+  for (const [filePath, ast] of newFiles) {
+    if (modifiedAsts.has(filePath)) {
+      continue;
+    }
+
+    const generated = safeGenerateCode(ast, { comments: true });
+
+    codes.push(
+      createCode({
+        file: filePath,
+        content: generated.code,
+        changed: true,
+        isNew: true,
+      })
+    );
+  }
+
+  // Add unchanged files
+  for (const [filePath, _ast] of context.asts) {
+    if (modifiedAsts.has(filePath) || newFiles.has(filePath)) {
+      continue;
+    }
+
+    const originalContent = context.originalContents.get(filePath);
+    if (originalContent !== undefined) {
+      codes.push(
+        createCode({
+          file: filePath,
+          content: originalContent,
+          changed: false,
+        })
+      );
+    }
+  }
+
+  return codes;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // Main Integration (4.5.1)
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -167,35 +369,22 @@ export function executeCrossFileTransform(
       context.sourceFile
     );
 
-    // Step 3: Determine if shared module is needed
+    // Step 3: Determine if shared module is needed and create it
     const depsNeedingSharedModule = context.dependencies.filter(
       (dep) => needsSharedModule(dep, exportAnalysis)
     );
 
     let sharedModulePath: string | null = null;
-
     if (createSharedModules && depsNeedingSharedModule.length > 0) {
-      // Step 3a: Create shared module
-      const sharedModuleResult = generateSharedModule(
+      sharedModulePath = handleSharedModuleCreation(
         depsNeedingSharedModule,
         sourceAst,
-        context.sourceFile
-      );
-
-      sharedModulePath = sharedModuleResult.operation.newFilePath;
-      newFiles.set(sharedModulePath, sharedModuleResult.ast);
-      sharedModuleOperations.push(sharedModuleResult.operation);
-
-      // Step 3b: Update source file to import from shared module
-      const sourceUpdate = updateSourceFileReferences(
-        sourceAst,
         context.sourceFile,
-        sharedModulePath,
-        depsNeedingSharedModule
+        newFiles,
+        modifiedAsts,
+        sharedModuleOperations,
+        importOperations
       );
-
-      modifiedAsts.set(context.sourceFile, sourceUpdate.ast);
-      importOperations.push(...sourceUpdate.imports);
     }
 
     // Step 4: Generate imports for target file
@@ -209,19 +398,13 @@ export function executeCrossFileTransform(
     importOperations.push(...targetImports.imports);
 
     // Step 5: Add exports to source file for unexported dependencies
-    const unexportedNonShared = exportAnalysis.unexportedDeps.filter(
-      (dep) => !depsNeedingSharedModule.some((d) => d.id === dep.id)
+    handleExportAdditions(
+      exportAnalysis,
+      depsNeedingSharedModule,
+      context.sourceFile,
+      sourceAst,
+      modifiedAsts
     );
-
-    if (unexportedNonShared.length > 0) {
-      const currentSourceAst =
-        modifiedAsts.get(context.sourceFile) ?? sourceAst;
-      const exportedSourceAst = addExportsToSourceFile(
-        currentSourceAst,
-        unexportedNonShared.map((d) => d.symbol)
-      );
-      modifiedAsts.set(context.sourceFile, exportedSourceAst);
-    }
 
     // Step 6: Add imports to target file
     let targetAst = context.asts.get(context.targetFile);
@@ -241,97 +424,29 @@ export function executeCrossFileTransform(
     modifiedAsts.set(context.targetFile, targetAst);
 
     // Step 7: Check for circular dependencies
-    const allAsts = new Map([...context.asts, ...modifiedAsts, ...newFiles]);
-    const importGraph = buildImportGraph(allAsts);
-    const circularCheck = detectCircularDependencies(importGraph);
+    const circularResult = handleCircularDependencies(
+      context,
+      modifiedAsts,
+      newFiles,
+      resolveCircularDeps,
+      sharedModuleOperations
+    );
 
-    if (circularCheck.hasCircular) {
-      if (resolveCircularDeps) {
-        // Try to resolve circular dependencies
-        const resolution = resolveCircularDependencies(importGraph, allAsts);
-
-        if (!resolution.success) {
-          return {
-            success: false,
-            modifiedAsts,
-            newFiles,
-            codes,
-            importOperations,
-            sharedModuleOperations,
-            error: resolution.error ?? 'Failed to resolve circular dependencies',
-          };
-        }
-
-        // Add any new shared modules from resolution
-        for (const res of resolution.resolutions) {
-          if (res.sharedModulePath && res.type === 'extract_shared') {
-            sharedModuleOperations.push(...res.operations);
-          }
-        }
-      } else {
-        return {
-          success: false,
-          modifiedAsts,
-          newFiles,
-          codes,
-          importOperations,
-          sharedModuleOperations,
-          error: `Circular dependency detected: ${circularCheck.shortestCycle?.join(' -> ')}`,
-        };
-      }
+    if (!circularResult.success) {
+      return {
+        success: false,
+        modifiedAsts,
+        newFiles,
+        codes,
+        importOperations,
+        sharedModuleOperations,
+        error: circularResult.error,
+      };
     }
 
     // Step 8: Generate code for all files
-    // Generate code for modified files
-    for (const [filePath, ast] of modifiedAsts) {
-      const originalContent = context.originalContents.get(filePath);
-      const generated = generateCode(ast, { comments: true }) as { code: string; map?: object };
-
-      codes.push(
-        createCode({
-          file: filePath,
-          content: generated.code,
-          changed: true,
-          original: originalContent,
-        })
-      );
-    }
-
-    // Generate code for new files
-    for (const [filePath, ast] of newFiles) {
-      if (modifiedAsts.has(filePath)) {
-        continue; // Already added
-      }
-
-      const generated = generateCode(ast, { comments: true }) as { code: string; map?: object };
-
-      codes.push(
-        createCode({
-          file: filePath,
-          content: generated.code,
-          changed: true,
-          isNew: true,
-        })
-      );
-    }
-
-    // Add unchanged files
-    for (const [filePath, _ast] of context.asts) {
-      if (modifiedAsts.has(filePath) || newFiles.has(filePath)) {
-        continue;
-      }
-
-      const originalContent = context.originalContents.get(filePath);
-      if (originalContent) {
-        codes.push(
-          createCode({
-            file: filePath,
-            content: originalContent,
-            changed: false,
-          })
-        );
-      }
-    }
+    const generatedCodes = generateCodeForAllFiles(context, modifiedAsts, newFiles);
+    codes.push(...generatedCodes);
 
     return {
       success: true,
@@ -383,7 +498,7 @@ function handleNewTargetFile(
  * @param sourceFile - Source file path
  * @param targetFile - Target file path
  * @param sourceAst - Source file AST
- * @param targetAst - Target file AST (may be undefined if new file)
+ * @param _targetAst - Target file AST (may be undefined if new file)
  * @param dependencies - Dependencies of the element being moved
  * @param existingFiles - Set of existing file paths
  * @returns Validation result
@@ -392,7 +507,7 @@ export function validateCrossFileMove(
   sourceFile: string,
   targetFile: string,
   sourceAst: t.File,
-  targetAst: t.File | undefined,
+  _targetAst: t.File | undefined,
   dependencies: InternalDependency[],
   existingFiles: Set<string>
 ): { valid: boolean; errors: string[]; warnings: string[] } {
@@ -454,14 +569,14 @@ export function validateCrossFileMove(
  * Estimates the impact of a cross-file move.
  *
  * @param sourceFile - Source file path
- * @param targetFile - Target file path
+ * @param _targetFile - Target file path
  * @param sourceAst - Source file AST
  * @param dependencies - Dependencies of the element being moved
  * @returns Impact estimation
  */
 export function estimateCrossFileMoveImpact(
   sourceFile: string,
-  targetFile: string,
+  _targetFile: string,
   sourceAst: t.File,
   dependencies: InternalDependency[]
 ): {

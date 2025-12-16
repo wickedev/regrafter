@@ -5,9 +5,11 @@
  * Implements tasks 4.3.1 and 4.3.2 from the task list.
  */
 
-import type { NodePath } from '@babel/traverse';
+import type * as TraverseNS from '@babel/traverse';
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
+
+type NodePath<T = t.Node> = TraverseNS.NodePath<T>;
 
 import {
   createSharedModuleOperation,
@@ -136,8 +138,15 @@ export function addImportEdge(
   addFileToGraph(graph, normalizedTo);
 
   // Add edges
-  graph.imports.get(normalizedFrom)!.add(normalizedTo);
-  graph.importedBy.get(normalizedTo)!.add(normalizedFrom);
+  const fromImports = graph.imports.get(normalizedFrom);
+  const toImportedBy = graph.importedBy.get(normalizedTo);
+
+  if (fromImports) {
+    fromImports.add(normalizedTo);
+  }
+  if (toImportedBy) {
+    toImportedBy.add(normalizedFrom);
+  }
 
   // Add detailed edge
   graph.edges.push({
@@ -190,7 +199,8 @@ function extractImports(
           symbols.push(spec.local.name);
         } else if (spec.type === 'ImportDefaultSpecifier') {
           symbols.push('default');
-        } else if (spec.type === 'ImportNamespaceSpecifier') {
+        } else {
+          // ImportNamespaceSpecifier
           symbols.push('*');
         }
       }
@@ -208,7 +218,7 @@ function extractImports(
 function resolveImportPath(fromFile: string, importPath: string): string {
   const fromDir = fromFile.split('/').slice(0, -1).join('/');
   const parts = importPath.split('/');
-  const resultParts = fromDir.split('/').filter((p) => p);
+  const resultParts = fromDir.split('/').filter((p) => p.length > 0);
 
   for (const part of parts) {
     if (part === '.') {
@@ -222,7 +232,8 @@ function resolveImportPath(fromFile: string, importPath: string): string {
 
   // Add .ts extension if not present (simplified resolution)
   let result = resultParts.join('/');
-  if (!result.match(/\.(tsx?|jsx?|mjs)$/)) {
+  const hasExtension = /\.(tsx?|jsx?|mjs)$/.test(result);
+  if (!hasExtension) {
     result += '.ts';
   }
 
@@ -317,7 +328,10 @@ export function wouldCreateCycle(
   const queue = [normalizedTo];
 
   while (queue.length > 0) {
-    const current = queue.shift()!;
+    const current = queue.shift();
+    if (current === undefined) {
+      continue;
+    }
     if (current === normalizedFrom) {
       return true;
     }
@@ -426,6 +440,10 @@ function resolveSingleCycle(
   // Choose the best edge to break
   const edgeToBreak = edgesToBreak[0];
 
+  if (edgeToBreak === undefined) {
+    return null;
+  }
+
   // Get symbols that need to be extracted
   const symbolsToExtract = edgeToBreak.symbols;
 
@@ -484,29 +502,43 @@ function generateSharedModulePathForCycle(cycle: string[]): string {
 
   // Generate a name based on the cycle
   const fileNames = cycle.slice(0, -1).map((f) => {
-    const name = f.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'module';
+    const fileParts = f.split('/');
+    const fileName = fileParts[fileParts.length - 1];
+    const name = fileName !== undefined ? fileName.replace(/\.[^.]+$/, '') : 'module';
     return name;
   });
 
   const sharedName = `${fileNames.join('-')}.shared.ts`;
 
-  return commonDir ? `${commonDir}/${sharedName}` : sharedName;
+  const hasCommonDir = commonDir.length > 0;
+  return hasCommonDir ? `${commonDir}/${sharedName}` : sharedName;
 }
 
 /**
  * Finds the common prefix of an array of paths.
  */
 function findCommonPrefix(paths: string[]): string {
-  if (paths.length === 0) return '';
-  if (paths.length === 1) return paths[0];
+  if (paths.length === 0) {
+    return '';
+  }
+
+  const firstPath = paths[0];
+  if (paths.length === 1) {
+    return firstPath ?? '';
+  }
 
   const parts = paths.map((p) => p.split('/'));
   const minLength = Math.min(...parts.map((p) => p.length));
 
   const commonParts: string[] = [];
+  const firstParts = parts[0];
+  if (firstParts === undefined) {
+    return '';
+  }
+
   for (let i = 0; i < minLength; i++) {
-    const segment = parts[0][i];
-    if (parts.every((p) => p[i] === segment)) {
+    const segment = firstParts[i];
+    if (segment !== undefined && segment.length > 0 && parts.every((p) => p[i] === segment)) {
       commonParts.push(segment);
     } else {
       break;
@@ -520,18 +552,19 @@ function findCommonPrefix(paths: string[]): string {
  * Applies a resolution to the import graph.
  */
 function applyResolution(graph: ImportGraph, resolution: CycleResolution): void {
-  if (resolution.type !== 'extract_shared' || !resolution.sharedModulePath) {
+  const sharedPath = resolution.sharedModulePath;
+  if (resolution.type !== 'extract_shared' || sharedPath === undefined || sharedPath.length === 0) {
     return;
   }
 
   // Add the shared module to the graph
-  addFileToGraph(graph, resolution.sharedModulePath);
+  addFileToGraph(graph, sharedPath);
 
   // Update edges: remove direct import, add imports to shared module
   for (const file of resolution.files) {
     // Remove the edge being broken
     const otherFile = resolution.files.find((f) => f !== file);
-    if (otherFile) {
+    if (otherFile !== undefined && otherFile.length > 0) {
       const imports = graph.imports.get(file);
       if (imports) {
         imports.delete(otherFile);
@@ -543,7 +576,7 @@ function applyResolution(graph: ImportGraph, resolution: CycleResolution): void 
     }
 
     // Add edge to shared module
-    addImportEdge(graph, file, resolution.sharedModulePath, resolution.symbolsToExtract);
+    addImportEdge(graph, file, sharedPath, resolution.symbolsToExtract);
   }
 
   // Remove the broken edge from detailed edges

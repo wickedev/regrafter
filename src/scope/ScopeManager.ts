@@ -55,6 +55,13 @@ const REACT_HOOKS = new Set([
 ]);
 
 /**
+ * Type guard to check if a ScopeInfo is a ComponentScope
+ */
+function isComponentScope(scope: ScopeInfo): scope is ComponentScope {
+  return scope.type === ScopeType.Component;
+}
+
+/**
  * ScopeManager handles scope tracking and analysis
  */
 export class ScopeManager {
@@ -73,9 +80,12 @@ export class ScopeManager {
   buildScopeTree(ast: t.File): ScopeTree {
     // Initialize scope tree with module scope
     const rootPath = this.getRootPath(ast);
+    if (rootPath === null) {
+      throw new Error('Failed to find root Program path in AST');
+    }
     const rootScope = createScopeInfo({
       type: ScopeType.Module,
-      path: rootPath!,
+      path: rootPath,
       parent: null,
       depth: 0,
       id: generateId('module'),
@@ -169,7 +179,7 @@ export class ScopeManager {
     const name = this.getFunctionName(path);
 
     // React components start with uppercase
-    if (!name || !/^[A-Z]/.test(name)) {
+    if (name === null || !/^[A-Z]/.test(name)) {
       return false;
     }
 
@@ -312,14 +322,15 @@ export class ScopeManager {
     let lcaIndexB = -1;
 
     for (let i = 0; i < pathB.length; i++) {
-      if (pathASet.has(pathB[i]!.id)) {
-        lca = pathB[i]!;
+      const scopeB_i = pathB[i];
+      if (scopeB_i !== undefined && pathASet.has(scopeB_i.id)) {
+        lca = scopeB_i;
         lcaIndexB = i;
         break;
       }
     }
 
-    if (!lca) {
+    if (lca === null) {
       return {
         lca: null,
         distanceA: -1,
@@ -362,10 +373,10 @@ export class ScopeManager {
   findEnclosingComponent(path: NodePath): ComponentScope | null {
     let current: NodePath | null = path;
 
-    while (current) {
+    while (current !== null) {
       const scope = this.getScopeForNode(current.node);
-      if (scope && scope.type === ScopeType.Component) {
-        return scope as ComponentScope;
+      if (scope !== null && isComponentScope(scope)) {
+        return scope;
       }
       current = current.parentPath;
     }
@@ -688,10 +699,10 @@ export class ScopeManager {
   ): ComponentScope | null {
     let current: NodePath | null = path.parentPath;
 
-    while (current) {
+    while (current !== null) {
       const scope = scopeTree.nodeToScope.get(current.node);
-      if (scope && scope.type === ScopeType.Component) {
-        return scope as ComponentScope;
+      if (scope !== undefined && isComponentScope(scope)) {
+        return scope;
       }
       current = current.parentPath;
     }

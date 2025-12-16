@@ -26,6 +26,7 @@ module.exports = {
     // ========================================================================
     '@typescript-eslint/explicit-function-return-type': 'error',
     '@typescript-eslint/explicit-module-boundary-types': 'error',
+    '@typescript-eslint/no-explicit-any': 'error', // any 타입 완전 금지
     '@typescript-eslint/strict-boolean-expressions': 'warn', // 너무 엄격하여 warn으로 조정
 
     // TypeScript - Code Consistency (Tier 1)

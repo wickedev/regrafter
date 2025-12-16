@@ -6,12 +6,8 @@
  */
 
 import type { NodePath } from '@babel/traverse';
-import traverseModule from '@babel/traverse';
-import type * as t from '@babel/types';
-
-// Handle both ESM and CJS exports
-const traverse: typeof traverseModule =
-  (traverseModule as { default: typeof traverseModule }).default || traverseModule;
+import traverse from '@babel/traverse';
+import * as t from '@babel/types';
 
 import type { Parser} from '../parser/index.js';
 import { createParser } from '../parser/index.js';
@@ -152,11 +148,11 @@ function resolvePositionSelector(
   selector: { line: number; column: number },
   ast: t.File
 ): ResolveResult {
-  let foundPath: NodePath | null = null;
-  let foundNode: t.Node | null = null;
+  // Use object wrapper to avoid ESLint unnecessary-condition warning
+  const found: { path: NodePath | null } = { path: null };
 
   traverse(ast, {
-    enter(path: NodePath) {
+    enter(path: NodePath): void {
       const loc = path.node.loc;
       if (!loc) return;
 
@@ -176,15 +172,16 @@ function resolvePositionSelector(
 
       if (afterStart && beforeEnd) {
         // Prefer the most specific (deepest) node
-        if (!foundPath || isMoreSpecific(path, foundPath)) {
-          foundPath = path;
-          foundNode = path.node;
+        if (found.path === null || isMoreSpecific(path, found.path)) {
+          found.path = path;
         }
       }
     },
   });
 
-  if (!foundPath || !foundNode) {
+  // Extract found path from wrapper
+  const foundPath = found.path;
+  if (foundPath === null) {
     return createResolveResult({
       node: null,
       path: null,
@@ -203,8 +200,28 @@ function resolvePositionSelector(
   // Detect atomic unit
   const atomicUnit = detectAtomicUnit(foundPath);
 
+  // Extract node from path - foundPath.node may be typed as any by Babel
+  // We verify it's a valid Node using t.isNode
+  let node: t.Node | null = null;
+  const pathNodeValue: unknown = foundPath.node;
+  if (pathNodeValue !== null && pathNodeValue !== undefined && t.isNode(pathNodeValue)) {
+    node = pathNodeValue;
+  }
+
+  if (node === null) {
+    return createResolveResult({
+      node: null,
+      path: null,
+      atomicUnit: null,
+      error: createSelectorError({
+        message: `Found path does not contain a valid node`,
+        code: MoveValidationError.SOURCE_NOT_FOUND,
+      }),
+    });
+  }
+
   return createResolveResult({
-    node: foundNode,
+    node,
     path: foundPath,
     atomicUnit,
   });
@@ -220,14 +237,28 @@ function resolvePathSelector(
   try {
     const pathParts = parseASTPath(selector.path);
     let current: unknown = ast;
-    let currentPath: NodePath | null = null;
 
     // Use traverse to get the NodePath for the root
+    const programPathWrapper: { path: NodePath | null } = { path: null };
     traverse(ast, {
-      Program(path: NodePath<t.Program>) {
-        currentPath = path;
+      Program(path: NodePath<t.Program>): void {
+        programPathWrapper.path = path;
       },
     });
+
+    // Program visitor always executes, extract the path
+    const currentPath = programPathWrapper.path;
+    if (currentPath === null) {
+      return createResolveResult({
+        node: null,
+        path: null,
+        atomicUnit: null,
+        error: createSelectorError({
+          message: 'Failed to find Program node in AST',
+          code: MoveValidationError.SOURCE_NOT_FOUND,
+        }),
+      });
+    }
 
     for (const part of pathParts) {
       if (current === null || current === undefined) {
@@ -242,12 +273,35 @@ function resolvePathSelector(
         });
       }
 
-      const obj = current as Record<string, unknown>;
+      if (typeof current !== 'object') {
+        return createResolveResult({
+          node: null,
+          path: null,
+          atomicUnit: null,
+          error: createSelectorError({
+            message: `Path segment '${part.key}' does not refer to an object`,
+            code: MoveValidationError.SOURCE_NOT_FOUND,
+          }),
+        });
+      }
 
+      // At this point, current is an object (and not null due to previous check)
+      // Use Reflect.get to access properties dynamically without type assertions
       if (part.index !== undefined) {
         // Array access
-        const arr = obj[part.key];
-        if (!Array.isArray(arr)) {
+        if (!(part.key in current)) {
+          return createResolveResult({
+            node: null,
+            path: null,
+            atomicUnit: null,
+            error: createSelectorError({
+              message: `Property '${part.key}' not found`,
+              code: MoveValidationError.SOURCE_NOT_FOUND,
+            }),
+          });
+        }
+        const property: unknown = Reflect.get(current, part.key);
+        if (!Array.isArray(property)) {
           return createResolveResult({
             node: null,
             path: null,
@@ -258,14 +312,25 @@ function resolvePathSelector(
             }),
           });
         }
-        current = arr[part.index];
+        current = property[part.index];
       } else {
         // Property access
-        current = obj[part.key];
+        if (!(part.key in current)) {
+          return createResolveResult({
+            node: null,
+            path: null,
+            atomicUnit: null,
+            error: createSelectorError({
+              message: `Property '${part.key}' not found`,
+              code: MoveValidationError.SOURCE_NOT_FOUND,
+            }),
+          });
+        }
+        current = Reflect.get(current, part.key);
       }
     }
 
-    if (!current || typeof current !== 'object' || !('type' in current)) {
+    if (current === null || current === undefined || typeof current !== 'object' || !('type' in current)) {
       return createResolveResult({
         node: null,
         path: null,
@@ -277,29 +342,39 @@ function resolvePathSelector(
       });
     }
 
-    const node = current as t.Node;
+    if (!t.isNode(current)) {
+      return createResolveResult({
+        node: null,
+        path: null,
+        atomicUnit: null,
+        error: createSelectorError({
+          message: 'Path does not resolve to a valid AST node',
+          code: MoveValidationError.SOURCE_NOT_FOUND,
+        }),
+      });
+    }
+
+    const node = current;
 
     // Find the NodePath for this node
-    let foundPath: NodePath | null = null;
+    // currentPath is guaranteed to be non-null at this point
+    let resolvedPath: NodePath = currentPath;
     traverse(ast, {
-      enter(path: NodePath) {
+      enter(path: NodePath): void {
         if (path.node === node) {
-          foundPath = path;
+          resolvedPath = path;
           path.stop();
         }
       },
     });
 
-    if (!foundPath) {
-      foundPath = currentPath;
-    }
-
+    // resolvedPath is always non-null (initialized to currentPath)
     // Detect atomic unit
-    const atomicUnit = foundPath ? detectAtomicUnit(foundPath) : null;
+    const atomicUnit = detectAtomicUnit(resolvedPath);
 
     return createResolveResult({
       node,
-      path: foundPath,
+      path: resolvedPath,
       atomicUnit,
     });
   } catch (error) {
@@ -324,8 +399,12 @@ function parseASTPath(path: string): Array<{ key: string; index?: number }> {
   let match;
 
   while ((match = regex.exec(path)) !== null) {
+    const key = match[1];
+    if (key === undefined) {
+      continue;
+    }
     parts.push({
-      key: match[1],
+      key,
       index: match[2] !== undefined ? parseInt(match[2], 10) : undefined,
     });
   }
@@ -406,7 +485,7 @@ function checkAnalyzability(ast: t.File): AnalyzabilityResult {
 
   traverse(ast, {
     // Check for eval()
-    CallExpression(path: NodePath<t.CallExpression>) {
+    CallExpression(path: NodePath<t.CallExpression>): void {
       const callee = path.node.callee;
       if (callee.type === 'Identifier' && callee.name === 'eval') {
         blockers.push({
@@ -441,7 +520,7 @@ function checkAnalyzability(ast: t.File): AnalyzabilityResult {
     },
 
     // Check for new Function() constructor
-    NewExpression(path: NodePath<t.NewExpression>) {
+    NewExpression(path: NodePath<t.NewExpression>): void {
       const callee = path.node.callee;
       if (
         callee.type === 'Identifier' &&
@@ -462,13 +541,13 @@ function checkAnalyzability(ast: t.File): AnalyzabilityResult {
     },
 
     // Check for with statements
-    WithStatement(path: NodePath<t.WithStatement>) {
+    WithStatement(path: NodePath<t.WithStatement>): void {
       blockers.push({
         type: 'dynamicCode',
         location: path.node.loc
           ? {
-              start: { line: path.node.loc.start.line ?? 0, column: path.node.loc.start.column ?? 0 },
-              end: { line: path.node.loc.end.line ?? 0, column: path.node.loc.end.column ?? 0 },
+              start: { line: path.node.loc.start.line, column: path.node.loc.start.column },
+              end: { line: path.node.loc.end.line, column: path.node.loc.end.column },
             }
           : { start: { line: 0, column: 0 }, end: { line: 0, column: 0 } },
         description: 'with statement makes scope analysis impossible',
@@ -629,27 +708,24 @@ const hookRulesRule: ValidationRule = (source, target, _mode, _context) => {
     return { valid: true };
   }
 
-  // Check if source contains hooks
-  let hasHooks = false;
-  const sourceNode = source.node;
+  // Check if source contains hooks by traversing from the source path
+  // (source.path is guaranteed to be non-null due to check at function entry)
+  // Use object wrapper to avoid ESLint unnecessary-condition warning
+  const hooksCheck: { hasHooks: boolean } = { hasHooks: false };
 
-  if (sourceNode) {
-    traverse(
-      { type: 'File', program: { type: 'Program', body: [], sourceType: 'module', directives: [] } } as t.File,
-      {
-        CallExpression(path: NodePath<t.CallExpression>) {
-          const callee = path.node.callee;
-          if (callee.type === 'Identifier' && callee.name.startsWith('use')) {
-            hasHooks = true;
-            path.stop();
-          }
-        },
-      },
-      undefined,
-      { sourceNode }
-    );
-  }
+  // Traverse from the source path to find hook calls
+  source.path.traverse({
+    CallExpression(path: NodePath<t.CallExpression>): void {
+      const callee = path.node.callee;
+      if (callee.type === 'Identifier' && callee.name.startsWith('use')) {
+        hooksCheck.hasHooks = true;
+        path.stop();
+      }
+    },
+  });
 
+  // Extract hasHooks from wrapper
+  const hasHooks = hooksCheck.hasHooks;
   if (!hasHooks) {
     return { valid: true };
   }
@@ -768,7 +844,7 @@ export function validateMove(
 
   // Check source file exists
   const sourceContent = fileMap.get(sourceFile);
-  if (!sourceContent) {
+  if (sourceContent === undefined) {
     return {
       valid: false,
       reason: `Source file not found: ${sourceFile}`,
@@ -779,7 +855,7 @@ export function validateMove(
 
   // Check target file exists
   const targetContent = fileMap.get(targetFile);
-  if (!targetContent) {
+  if (targetContent === undefined) {
     return {
       valid: false,
       reason: `Target file not found: ${targetFile}`,
@@ -854,7 +930,16 @@ export function validateMove(
   source = normalizeToJSXElement(source);
 
   // Resolve target selector
-  let target = resolveSelector(to, targetParseResult.ast!, targetFile);
+  if (!targetParseResult.ast) {
+    return {
+      valid: false,
+      reason: 'Failed to parse target file AST',
+      errorCode: MoveValidationError.PARSE_ERROR,
+      warnings,
+    };
+  }
+
+  let target = resolveSelector(to, targetParseResult.ast, targetFile);
   if (target.error !== undefined || !target.node) {
     return {
       valid: false,
@@ -872,7 +957,7 @@ export function validateMove(
   // Build AST map
   const astMap = new Map<string, t.File>();
   astMap.set(sourceFile, sourceParseResult.ast);
-  if (targetFile !== sourceFile && targetParseResult.ast) {
+  if (targetFile !== sourceFile) {
     astMap.set(targetFile, targetParseResult.ast);
   }
 
@@ -900,7 +985,7 @@ export function validateMove(
       };
     }
 
-    if (result.warning) {
+    if (result.warning !== undefined && result.warning !== '') {
       warnings.push(result.warning);
     }
   }

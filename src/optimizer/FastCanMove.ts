@@ -227,6 +227,20 @@ export class FastCanMove {
   // Private Helper Methods
   // ═══════════════════════════════════════════════════════════════════════════
 
+  /**
+   * Safely access a property on an object using proper type guards
+   */
+  private getProperty(obj: unknown, key: string): unknown {
+    if (typeof obj !== 'object' || obj === null) {
+      return undefined;
+    }
+    if (!(key in obj)) {
+      return undefined;
+    }
+    // Use Reflect.get to avoid indexing errors
+    return Reflect.get(obj, key);
+  }
+
   private buildResult(
     canMove: boolean,
     blockingIssues: BlockingIssue[],
@@ -243,51 +257,93 @@ export class FastCanMove {
     };
   }
 
+  /**
+   * Get the Program NodePath from an AST
+   */
+  private getProgramPath(ast: t.File): NodePath {
+    const found: { path: NodePath | null } = { path: null };
+    traverse(ast, {
+      Program(nodePath: NodePath<t.Program>) {
+        found.path = nodePath;
+        nodePath.stop();
+      },
+    });
+    // Program visitor always executes for valid ASTs
+    // Use object wrapper to avoid ESLint unnecessary-condition warning
+    const result = found.path;
+    if (result === null) {
+      throw new Error('Failed to find Program node in AST');
+    }
+    return result;
+  }
+
   private findNodeByPath(ast: t.File, path: string): NodePath | null {
     // Parse path like "Program.body[0].declaration.body.body[2]"
     const parts = path.split('.').flatMap((p) => {
       const match = p.match(/^(\w+)(?:\[(\d+)\])?$/);
       if (!match) return [p];
       const [, name, index] = match;
-      return index !== undefined ? [name!, parseInt(index, 10)] : [name!];
+      if (index !== undefined && name !== undefined && name !== '') {
+        return [name, parseInt(index, 10)];
+      }
+      if (name !== undefined && name !== '') {
+        return [name];
+      }
+      return [p];
     });
 
-    let current: NodePath | null = null;
-
-    traverse(ast, {
-      Program(nodePath: NodePath<t.Program>) {
-        current = nodePath as NodePath;
-        nodePath.stop();
-      },
-    });
-
-    if (!current) return null;
+    // Get the Program NodePath
+    let currentPath: NodePath;
+    try {
+      currentPath = this.getProgramPath(ast);
+    } catch {
+      return null;
+    }
 
     // Navigate path
     for (let i = 1; i < parts.length; i++) {
       // Skip 'Program'
       const part = parts[i];
-      if (part === undefined) return null;
 
       if (typeof part === 'number') {
         // Array index - get the property name from previous part
-        const propertyName = parts[i - 1] as string;
-        const container = (current.node as Record<string, t.Node[]>)[propertyName];
-        if (!Array.isArray(container) || !container[part]) {
+        const prevPart = parts[i - 1];
+        if (typeof prevPart !== 'string') {
           return null;
         }
-        // Find the NodePath for this index
-        let found = false;
-        (current as NodePath).traverse({
+        const propertyName = prevPart;
+
+        // Type guard: access property safely
+        const containerValue: unknown = this.getProperty(currentPath.node, propertyName);
+
+        // Type guard: verify it's an array
+        if (!Array.isArray(containerValue) || part >= containerValue.length) {
+          return null;
+        }
+
+        const targetNodeValue: unknown = containerValue[part];
+        if (targetNodeValue === null || targetNodeValue === undefined) {
+          return null;
+        }
+
+        // Find the NodePath for this index by traversing children
+        const searchTarget = targetNodeValue;
+        const found: { path: NodePath | null } = { path: null };
+        currentPath.traverse({
           enter(childPath: NodePath) {
-            if (childPath.node === container[part]) {
-              current = childPath;
-              found = true;
+            if (childPath.node === searchTarget) {
+              found.path = childPath;
               childPath.stop();
             }
           },
         });
-        if (!found) return null;
+
+        // If we didn't find the child path, return null
+        const foundPath = found.path;
+        if (foundPath === null) {
+          return null;
+        }
+        currentPath = foundPath;
       } else if (typeof part === 'string' && !/^\d+$/.test(part)) {
         // Property access - check if next part is an array index
         const nextPart = parts[i + 1];
@@ -296,26 +352,36 @@ export class FastCanMove {
           continue;
         }
 
-        // Regular property access
-        const node = (current.node as unknown as Record<string, t.Node>)[part];
-        if (!node) return null;
+        // Regular property access using helper
+        const nodeValue: unknown = this.getProperty(currentPath.node, part);
 
-        // Find the NodePath for this property
-        let found = false;
-        (current as NodePath).traverse({
+        // Type guard: verify it's an object
+        if (nodeValue === null || nodeValue === undefined || typeof nodeValue !== 'object') {
+          return null;
+        }
+
+        // Find the NodePath for this property by traversing children
+        const searchTarget = nodeValue;
+        const found: { path: NodePath | null } = { path: null };
+        currentPath.traverse({
           enter(childPath: NodePath) {
-            if (childPath.node === node) {
-              current = childPath;
-              found = true;
+            if (childPath.node === searchTarget) {
+              found.path = childPath;
               childPath.stop();
             }
           },
         });
-        if (!found) return null;
+
+        // If we didn't find the child path, return null
+        const foundPath = found.path;
+        if (foundPath === null) {
+          return null;
+        }
+        currentPath = foundPath;
       }
     }
 
-    return current;
+    return currentPath;
   }
 
   private checkHookRules(sourcePath: NodePath, targetAst: t.File): BlockingIssue[] {
@@ -340,33 +406,32 @@ export class FastCanMove {
     }
 
     // Check if target is inside a conditional or loop
-    let targetInConditional = false;
-    let targetInLoop = false;
+    const targetFlags = { hasConditional: false, hasLoop: false };
 
     traverse(targetAst, {
       IfStatement(path: NodePath<t.IfStatement>) {
-        targetInConditional = true;
+        targetFlags.hasConditional = true;
         path.skip();
       },
       ConditionalExpression(path: NodePath<t.ConditionalExpression>) {
-        targetInConditional = true;
+        targetFlags.hasConditional = true;
         path.skip();
       },
       ForStatement(path: NodePath<t.ForStatement>) {
-        targetInLoop = true;
+        targetFlags.hasLoop = true;
         path.skip();
       },
       WhileStatement(path: NodePath<t.WhileStatement>) {
-        targetInLoop = true;
+        targetFlags.hasLoop = true;
         path.skip();
       },
       DoWhileStatement(path: NodePath<t.DoWhileStatement>) {
-        targetInLoop = true;
+        targetFlags.hasLoop = true;
         path.skip();
       },
     });
 
-    if (targetInConditional) {
+    if (targetFlags.hasConditional) {
       for (const hook of hooksUsed) {
         issues.push({
           type: 'conditional_hook',
@@ -377,7 +442,7 @@ export class FastCanMove {
       }
     }
 
-    if (targetInLoop) {
+    if (targetFlags.hasLoop) {
       for (const hook of hooksUsed) {
         issues.push({
           type: 'hook_rule_violation',
@@ -461,11 +526,11 @@ export class FastCanMove {
     });
 
     // Check for references to parent scope
-    for (const name of referencedIdentifiers) {
+    for (const name of Array.from(referencedIdentifiers)) {
       if (!declaredIdentifiers.has(name)) {
         // Check if this is a global or import
         const binding = sourcePath.scope.getBinding(name);
-        if (binding && !binding.path.isImportSpecifier()) {
+        if (binding !== undefined && !binding.path.isImportSpecifier()) {
           // This references a parent scope variable
           issues.push({
             type: 'scope_escape',

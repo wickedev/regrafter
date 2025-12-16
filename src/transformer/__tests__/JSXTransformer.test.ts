@@ -110,7 +110,7 @@ function findAllJSXElementsByTag(ast: t.File, tagName: string): NodePath[] {
 
 function getJSXElementTag(path: NodePath): string | null {
   if (path.node.type !== 'JSXElement') return null;
-  const element = path.node as t.JSXElement;
+  const element: t.JSXElement = path.node;
   if (element.openingElement.name.type === 'JSXIdentifier') {
     return element.openingElement.name.name;
   }

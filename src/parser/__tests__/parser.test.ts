@@ -533,7 +533,7 @@ describe('ASTStore', () => {
   });
 
   it('should invalidate specific entries', () => {
-    const result = { ast: {} as any, errors: [], success: true };
+    const result = { ast: {}, errors: [], success: true };
 
     store.set('a.js', 'const a = 1;', result);
     store.set('b.js', 'const b = 2;', result);
@@ -546,7 +546,7 @@ describe('ASTStore', () => {
   });
 
   it('should clear all entries', () => {
-    const result = { ast: {} as any, errors: [], success: true };
+    const result = { ast: {}, errors: [], success: true };
 
     store.set('a.js', 'const a = 1;', result);
     store.set('b.js', 'const b = 2;', result);

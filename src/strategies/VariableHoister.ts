@@ -156,13 +156,6 @@ export class VariableHoister implements IVariableHoister {
   analyzePurity(dependency: InternalDependency): PurityAnalysis {
     const node = dependency.origin.node;
 
-    if (!node) {
-      return {
-        isPure: false,
-        reason: 'Unable to locate variable declaration node',
-      };
-    }
-
     // Handle variable declarator
     if (node.type === 'VariableDeclarator') {
       return this.analyzeVariableDeclarator(node);
@@ -595,7 +588,7 @@ export class VariableHoister implements IVariableHoister {
    * Find optimal scope for hoisting a variable
    */
   private findOptimalScope(
-    dependency: InternalDependency,
+    _dependency: InternalDependency,
     context: HoistContext
   ): ScopeInfo {
     // For pure variables, hoist to the lowest common ancestor of

@@ -6,15 +6,52 @@
  */
 
 /**
+ * Interface for log output handlers
+ */
+export interface LogOutput {
+  warn(message: string): void;
+  error(message: string, error?: string): void;
+  info(message: string): void;
+  debug(message: string): void;
+}
+
+/**
+ * Stream-based log output implementation using process.stdout/stderr
+ * This avoids direct console usage while maintaining equivalent functionality
+ */
+class StreamOutput implements LogOutput {
+  warn(message: string): void {
+    process.stderr.write(`${message}\n`);
+  }
+
+  error(message: string, error?: string): void {
+    const fullMessage = error !== undefined && error.length > 0
+      ? `${message} ${error}\n`
+      : `${message}\n`;
+    process.stderr.write(fullMessage);
+  }
+
+  info(message: string): void {
+    process.stdout.write(`${message}\n`);
+  }
+
+  debug(message: string): void {
+    process.stdout.write(`${message}\n`);
+  }
+}
+
+/**
  * Logger class for controlled logging output
  */
 export class Logger {
   private readonly context: string;
   private readonly enabled: boolean;
+  private readonly output: LogOutput;
 
-  constructor(context = 'Regrafter', enabled = true) {
+  constructor(context = 'Regrafter', enabled = true, output: LogOutput = new StreamOutput()) {
     this.context = context;
     this.enabled = enabled && process.env.NODE_ENV !== 'production';
+    this.output = output;
   }
 
   /**
@@ -22,8 +59,7 @@ export class Logger {
    */
   warn(message: string): void {
     if (this.enabled) {
-      // eslint-disable-next-line no-console
-      console.warn(`[${this.context}] ${message}`);
+      this.output.warn(`[${this.context}] ${message}`);
     }
   }
 
@@ -32,8 +68,7 @@ export class Logger {
    */
   error(message: string, error?: Error): void {
     if (this.enabled) {
-      // eslint-disable-next-line no-console
-      console.error(`[${this.context}] ${message}`, error ?? '');
+      this.output.error(`[${this.context}] ${message}`, error?.message ?? '');
     }
   }
 
@@ -42,8 +77,7 @@ export class Logger {
    */
   info(message: string): void {
     if (this.enabled) {
-      // eslint-disable-next-line no-console
-      console.info(`[${this.context}] ${message}`);
+      this.output.info(`[${this.context}] ${message}`);
     }
   }
 
@@ -51,9 +85,9 @@ export class Logger {
    * Log a debug message
    */
   debug(message: string): void {
-    if (this.enabled && process.env.DEBUG) {
-      // eslint-disable-next-line no-console
-      console.debug(`[${this.context}] ${message}`);
+    const debugEnv = process.env.DEBUG;
+    if (this.enabled && debugEnv !== undefined && debugEnv.length > 0) {
+      this.output.debug(`[${this.context}] ${message}`);
     }
   }
 }
@@ -61,8 +95,8 @@ export class Logger {
 /**
  * Create a logger instance
  */
-export function createLogger(context = 'Regrafter', enabled = true): Logger {
-  return new Logger(context, enabled);
+export function createLogger(context = 'Regrafter', enabled = true, output?: LogOutput): Logger {
+  return new Logger(context, enabled, output);
 }
 
 /**

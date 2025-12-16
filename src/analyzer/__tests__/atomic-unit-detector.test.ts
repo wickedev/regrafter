@@ -488,7 +488,7 @@ describe('Atomic Unit Detector', () => {
       // Find the inner span element
       const jsxElements = findAllNodes(ast, 'JSXElement');
       const spanElement = jsxElements.find(p => {
-        const node = p.node as t.JSXElement;
+        const node: t.JSXElement = p.node;
         const name = node.openingElement.name;
         return name.type === 'JSXIdentifier' && name.name === 'span';
       });
@@ -504,7 +504,7 @@ describe('Atomic Unit Detector', () => {
       const ast = parseJSX('const x = items.map(i => <div><span /></div>);');
       const jsxElements = findAllNodes(ast, 'JSXElement');
       const spanElement = jsxElements.find(p => {
-        const node = p.node as t.JSXElement;
+        const node: t.JSXElement = p.node;
         const name = node.openingElement.name;
         return name.type === 'JSXIdentifier' && name.name === 'span';
       });
@@ -520,7 +520,7 @@ describe('Atomic Unit Detector', () => {
       const ast = parseJSX('const x = <div><span /></div>;');
       const jsxElements = findAllNodes(ast, 'JSXElement');
       const spanElement = jsxElements.find(p => {
-        const node = p.node as t.JSXElement;
+        const node: t.JSXElement = p.node;
         const name = node.openingElement.name;
         return name.type === 'JSXIdentifier' && name.name === 'span';
       });

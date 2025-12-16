@@ -92,35 +92,60 @@ function getParserOptions(filename: string): ParserOptions {
  * Convert Babel parser error to ParseError
  */
 function toBabelParseError(error: unknown, filename: string): ParseError {
-  if (error && typeof error === 'object') {
-    const babelError = error as {
-      message?: string;
-      loc?: { line: number; column: number };
-      code?: string;
-    };
+  if (error !== null && error !== undefined && typeof error === 'object') {
+    const babelError: unknown = error;
 
-    const message = babelError.message ?? 'Unknown parse error';
+    // Type guard to check if error has the expected properties
+    const hasMessage = babelError !== null &&
+      typeof babelError === 'object' &&
+      'message' in babelError &&
+      (typeof babelError.message === 'string' || babelError.message === undefined);
+
+    const hasLoc = babelError !== null &&
+      typeof babelError === 'object' &&
+      'loc' in babelError;
+
+    const message = hasMessage &&
+      typeof babelError === 'object' &&
+      'message' in babelError &&
+      typeof babelError.message === 'string'
+        ? babelError.message
+        : 'Unknown parse error';
+
     const code = message.includes('Unexpected token')
       ? ParseErrorCodes.UNEXPECTED_TOKEN
       : ParseErrorCodes.PARSE_ERROR;
 
+    let location: SourceLocation | null = null;
+
+    if (hasLoc &&
+        typeof babelError === 'object' &&
+        'loc' in babelError &&
+        babelError.loc !== null &&
+        typeof babelError.loc === 'object' &&
+        'line' in babelError.loc &&
+        'column' in babelError.loc &&
+        typeof babelError.loc.line === 'number' &&
+        typeof babelError.loc.column === 'number') {
+      location = {
+        start: {
+          line: babelError.loc.line,
+          column: babelError.loc.column,
+          index: 0,
+        },
+        end: {
+          line: babelError.loc.line,
+          column: babelError.loc.column,
+          index: 0,
+        },
+        filename,
+        identifierName: undefined,
+      };
+    }
+
     return {
       message: `Failed to parse ${filename}: ${message}`,
-      location: babelError.loc
-        ? {
-            start: {
-              line: babelError.loc.line,
-              column: babelError.loc.column,
-              index: 0,
-            },
-            end: {
-              line: babelError.loc.line,
-              column: babelError.loc.column,
-              index: 0,
-            },
-            filename,
-          }
-        : null,
+      location,
       code,
     };
   }
@@ -133,43 +158,93 @@ function toBabelParseError(error: unknown, filename: string): ParseError {
 }
 
 /**
+ * Type guard to check if a value has a message property
+ */
+function hasMessageProperty(value: unknown): value is { message?: string } {
+  if (value === null || typeof value !== 'object' || !('message' in value)) {
+    return false;
+  }
+  const messageValue = Reflect.get(value, 'message');
+  return (
+    typeof messageValue === 'string' || messageValue === undefined
+  );
+}
+
+/**
+ * Type guard to check if a value has a loc property with line and column
+ */
+function hasLocProperty(
+  value: unknown
+): value is { loc: { line: number; column: number } } {
+  if (value === null || typeof value !== 'object' || !('loc' in value)) {
+    return false;
+  }
+  const locValue: unknown = Reflect.get(value, 'loc');
+  if (locValue === null || typeof locValue !== 'object') {
+    return false;
+  }
+  const lineValue: unknown = Reflect.get(locValue, 'line');
+  const columnValue: unknown = Reflect.get(locValue, 'column');
+  return (
+    typeof lineValue === 'number' &&
+    typeof columnValue === 'number'
+  );
+}
+
+/**
  * Extract errors from Babel AST's error array (from error recovery)
  */
 function extractRecoveredErrors(ast: BabelFile, filename: string): ParseError[] {
   const errors: ParseError[] = [];
 
   // Babel stores recovered errors in ast.errors when errorRecovery is enabled
-  const astErrors = (ast as BabelFile & { errors?: unknown[] }).errors;
-  if (Array.isArray(astErrors)) {
-    for (const error of astErrors) {
-      if (error && typeof error === 'object') {
-        const babelError = error as {
-          message?: string;
-          loc?: { line: number; column: number };
-        };
+  const astWithErrors: unknown = ast;
+  if (
+    astWithErrors === null ||
+    typeof astWithErrors !== 'object' ||
+    !('errors' in astWithErrors)
+  ) {
+    return errors;
+  }
 
-        const location: SourceLocation | null = babelError.loc
-          ? {
-              start: {
-                line: babelError.loc.line,
-                column: babelError.loc.column,
-                index: 0,
-              },
-              end: {
-                line: babelError.loc.line,
-                column: babelError.loc.column,
-                index: 0,
-              },
-              filename,
-            }
-          : null;
-        errors.push({
-          message: babelError.message ?? 'Recovered parse error',
-          location,
-          code: ParseErrorCodes.PARSE_ERROR,
-        });
-      }
+  const errorsValue = Reflect.get(astWithErrors, 'errors');
+  if (!Array.isArray(errorsValue)) {
+    return errors;
+  }
+
+  for (const error of errorsValue) {
+    if (error === null || error === undefined || typeof error !== 'object') {
+      continue;
     }
+
+    const message = hasMessageProperty(error) && typeof error.message === 'string'
+      ? error.message
+      : 'Recovered parse error';
+
+    let location: SourceLocation | null = null;
+
+    if (hasLocProperty(error)) {
+      location = {
+        start: {
+          line: error.loc.line,
+          column: error.loc.column,
+          index: 0,
+        },
+        end: {
+          line: error.loc.line,
+          column: error.loc.column,
+          index: 0,
+        },
+        filename,
+        identifierName: undefined,
+      };
+    }
+
+    errors.push({
+      message,
+      location,
+      code: ParseErrorCodes.PARSE_ERROR,
+    });
   }
 
   return errors;

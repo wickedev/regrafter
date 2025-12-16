@@ -10,7 +10,7 @@
  */
 
 import type { NodePath } from '@babel/traverse';
-import type * as t from '@babel/types';
+import * as t from '@babel/types';
 
 import { createAtomicUnit } from '../types/factories.js';
 import { AtomicUnitType } from '../types/internal.js';
@@ -405,7 +405,7 @@ export function detectCompoundComponent(
 
   // Extract the namespace and member
   const { namespace, member } = extractMemberExpressionNames(name);
-  if (!namespace || !member) {
+  if (namespace === null || namespace === '' || member === null || member === '') {
     return null;
   }
 
@@ -429,7 +429,8 @@ function extractMemberExpressionNames(
   expr: t.JSXMemberExpression
 ): { namespace: string | null; member: string | null } {
   // Get the member name (rightmost part)
-  const member = expr.property.type === 'JSXIdentifier' ? expr.property.name : null;
+  // expr.property is always JSXIdentifier per Babel types
+  const member = expr.property.name;
 
   // Get the namespace (could be nested)
   let namespace: string | null = null;
@@ -437,21 +438,19 @@ function extractMemberExpressionNames(
 
   if (object.type === 'JSXIdentifier') {
     namespace = object.name;
-  } else if (object.type === 'JSXMemberExpression') {
-    // Handle deeper nesting like A.B.C - get the root
+  } else {
+    // object.type === 'JSXMemberExpression' - handle deeper nesting like A.B.C
     const names: string[] = [];
     let current: t.JSXMemberExpression['object'] = object;
 
     while (current.type === 'JSXMemberExpression') {
-      if (current.property.type === 'JSXIdentifier') {
-        names.unshift(current.property.name);
-      }
+      // current.property is always JSXIdentifier per Babel types
+      names.unshift(current.property.name);
       current = current.object;
     }
 
-    if (current.type === 'JSXIdentifier') {
-      names.unshift(current.name);
-    }
+    // After the while loop, current.type === 'JSXIdentifier'
+    names.unshift(current.name);
 
     namespace = names.join('.');
   }
@@ -553,27 +552,45 @@ export function getAtomicUnitType(node: t.Node | null | undefined): AtomicUnitTy
 // ============================================================================
 
 /**
+ * Helper to safely get a property value from an object using Reflect API
+ */
+function getPropertyValue(obj: object, key: string): unknown {
+  return Object.prototype.hasOwnProperty.call(obj, key)
+    ? Reflect.get(obj, key)
+    : undefined;
+}
+
+/**
  * Recursively collect all child nodes of a node
  */
 function collectChildNodes(node: t.Node, collected: t.Node[]): void {
-  const keys = Object.keys(node) as Array<keyof t.Node>;
+  // Iterate through node properties to find child nodes
+  const keys = Object.keys(node);
 
   for (const key of keys) {
     // Skip metadata keys
-    if (key === 'type' || key === 'loc' || key === 'start' || key === 'end' || key === 'range') {
+    if (
+      key === 'type' ||
+      key === 'loc' ||
+      key === 'start' ||
+      key === 'end' ||
+      key === 'range'
+    ) {
       continue;
     }
 
-    const value = node[key];
+    const value: unknown = getPropertyValue(node, key);
 
     if (Array.isArray(value)) {
       for (const item of value) {
-        if (item && typeof item === 'object' && 'type' in item) {
+        // Check if item is a valid Node (not Comment or other metadata)
+        if (item !== null && item !== undefined && typeof item === 'object' && t.isNode(item)) {
           collected.push(item);
           collectChildNodes(item, collected);
         }
       }
-    } else if (value && typeof value === 'object' && 'type' in value) {
+    } else if (value !== null && value !== undefined && typeof value === 'object' && t.isNode(value)) {
+      // Check if value is a valid Node (not Comment or other metadata)
       collected.push(value);
       collectChildNodes(value, collected);
     }
