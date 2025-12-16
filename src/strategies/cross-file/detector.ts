@@ -128,7 +128,7 @@ export function analyzeExports(ast: t.File): ExportInfo[] {
 
   traverse(ast, {
     // Named exports: export { foo, bar }
-    ExportNamedDeclaration(path) {
+    ExportNamedDeclaration(path: NodePath<t.ExportNamedDeclaration>) {
       const node = path.node;
 
       // Handle export specifiers: export { foo, bar as baz }
@@ -192,7 +192,7 @@ export function analyzeExports(ast: t.File): ExportInfo[] {
     },
 
     // Default export: export default foo
-    ExportDefaultDeclaration(path) {
+    ExportDefaultDeclaration(path: NodePath<t.ExportDefaultDeclaration>) {
       const node = path.node;
       let name = 'default';
 
@@ -217,7 +217,7 @@ export function analyzeExports(ast: t.File): ExportInfo[] {
     },
 
     // Export all: export * from './module'
-    ExportAllDeclaration(path) {
+    ExportAllDeclaration(path: NodePath<t.ExportAllDeclaration>) {
       exports.push({
         name: '*',
         localName: '*',
@@ -343,7 +343,7 @@ export function findSharedDependencies(
 
   // Count all identifier usages
   traverse(ast, {
-    Identifier(path) {
+    Identifier(path: NodePath<t.Identifier>) {
       const name = path.node.name;
       if (depSymbols.has(name)) {
         // Check if this is a reference (not a declaration)
@@ -501,7 +501,7 @@ export function computeImportPath(fromFile: string, toFile: string): string {
   } else if (upCount === 0) {
     relativePath = './' + [...downPath, toFileBase].join('/');
   } else {
-    relativePath = [...Array(upCount).fill('..'), ...downPath, toFileBase].join('/');
+    relativePath = [...(Array(upCount).fill('..') as string[]), ...downPath, toFileBase].join('/');
   }
 
   return relativePath;

@@ -5,6 +5,7 @@
  * and merging of duplicate import operations.
  */
 
+import type { NodePath } from '@babel/traverse';
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 
@@ -44,7 +45,7 @@ export class ImportManager implements IImportManager {
     let found = false;
 
     traverse(ast, {
-      ImportDeclaration(path) {
+      ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
         if (path.node.source.value === source) {
           for (const spec of path.node.specifiers) {
             if (spec.type === 'ImportDefaultSpecifier') {
@@ -82,7 +83,7 @@ export class ImportManager implements IImportManager {
     const specifiers: ImportSpecifier[] = [];
 
     traverse(ast, {
-      ImportDeclaration(path) {
+      ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
         if (path.node.source.value === source) {
           for (const spec of path.node.specifiers) {
             if (spec.type === 'ImportDefaultSpecifier') {
@@ -123,7 +124,7 @@ export class ImportManager implements IImportManager {
     const sources = new Set<string>();
 
     traverse(ast, {
-      ImportDeclaration(path) {
+      ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
         sources.add(path.node.source.value);
       },
     });
@@ -483,7 +484,7 @@ export function removeUnusedImports(
   usedIdentifiers: Set<string>
 ): void {
   traverse(ast, {
-    ImportDeclaration(path) {
+    ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
       const unusedSpecifiers: number[] = [];
 
       path.node.specifiers.forEach((spec, index) => {

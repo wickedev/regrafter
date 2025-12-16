@@ -40,7 +40,6 @@ import type {
   ScopeTree,
 } from './types.js';
 
-
 /**
  * Default options for sink analysis.
  */
@@ -278,7 +277,7 @@ export class SinkAnalyzer implements ISinkAnalyzer {
 
     // Traverse AST to build scope tree
     traverse(ast, {
-      enter(path) {
+      enter(path: NodePath) {
         // Update root scope path when we find Program
         if (path.isProgram()) {
           rootScope.path = path as NodePath;
@@ -300,20 +299,20 @@ export class SinkAnalyzer implements ISinkAnalyzer {
         } else if (path.isBlockStatement()) {
           // Block scope for if/for/while/etc.
           const parent = path.parentPath;
-          if (parent?.isIfStatement() || parent?.isConditionalExpression()) {
+          if (parent.isIfStatement() || parent.isConditionalExpression()) {
             scopeType = ScopeType.Conditional;
           } else if (
-            parent?.isForStatement() ||
-            parent?.isWhileStatement() ||
-            parent?.isDoWhileStatement() ||
-            parent?.isForInStatement() ||
-            parent?.isForOfStatement()
+            parent.isForStatement() ||
+            parent.isWhileStatement() ||
+            parent.isDoWhileStatement() ||
+            parent.isForInStatement() ||
+            parent.isForOfStatement()
           ) {
             scopeType = ScopeType.Loop;
           } else if (
-            !parent?.isFunction() &&
-            !parent?.isProgram() &&
-            !parent?.isCatchClause()
+            !parent.isFunction() &&
+            !parent.isProgram() &&
+            !parent.isCatchClause()
           ) {
             scopeType = ScopeType.Block;
           }
@@ -322,7 +321,7 @@ export class SinkAnalyzer implements ISinkAnalyzer {
         if (scopeType !== null) {
           const newScope = createScopeInfo({
             type: scopeType,
-            path: path as NodePath,
+            path,
             parent: currentScope,
             depth: currentScope.depth + 1,
             id: generateId('scope'),
@@ -342,7 +341,7 @@ export class SinkAnalyzer implements ISinkAnalyzer {
           currentScope = newScope;
         }
       },
-      exit(path) {
+      exit(path: NodePath) {
         // Pop scope when exiting scope-creating nodes
         if (
           path.isFunctionDeclaration() ||
@@ -407,14 +406,20 @@ export class SinkAnalyzer implements ISinkAnalyzer {
       }
 
       // Create an InternalDependency-like object from the node
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const emptyNode: t.Node = {} as t.Node; // Fallback for missing node
+      const originNode = node.path?.node ?? emptyNode;
+
       const dep: InternalDependency = {
         id: node.id,
         symbol: node.name,
-        type: node.metadata.isHook ? DependencyType.Hook : DependencyType.Variable,
+        type: node.metadata.isHook
+          ? DependencyType.Hook
+          : DependencyType.Variable,
         origin: {
-          node: node.path?.node ?? ({} as t.Node),
+          node: originNode,
           file: '', // Would need file context
-          location: node.path?.node?.loc ?? null,
+          location: node.path?.node.loc ?? null,
         },
         scope: node.scope,
         isTransitive: false,
@@ -482,7 +487,8 @@ export class SinkAnalyzer implements ISinkAnalyzer {
     }
 
     // Check minimum depth improvement
-    const improvement = candidate.currentScope.depth - candidate.optimalScope.depth;
+    const improvement =
+      candidate.currentScope.depth - candidate.optimalScope.depth;
     if (improvement < opts.minDepthImprovement) {
       return {
         sinkable: false,
@@ -491,10 +497,16 @@ export class SinkAnalyzer implements ISinkAnalyzer {
     }
 
     // Check hook rules
-    if (candidate.dependency.type === DependencyType.Hook && !opts.allowHookSinking) {
+    if (
+      candidate.dependency.type === DependencyType.Hook &&
+      !opts.allowHookSinking
+    ) {
       // Check if sinking would violate hook rules
       if (candidate.optimalScope.type === ScopeType.Conditional) {
-        return { sinkable: false, reason: 'Cannot sink hook into conditional scope' };
+        return {
+          sinkable: false,
+          reason: 'Cannot sink hook into conditional scope',
+        };
       }
       if (candidate.optimalScope.type === ScopeType.Loop) {
         return { sinkable: false, reason: 'Cannot sink hook into loop scope' };
@@ -582,17 +594,17 @@ function isReactComponent(path: NodePath): boolean {
   // Check for JSX return
   let hasJSXReturn = false;
   path.traverse({
-    ReturnStatement(returnPath) {
+    ReturnStatement(returnPath: NodePath<t.ReturnStatement>) {
       const argument = returnPath.node.argument;
       if (argument && (isJSXNode(argument) || isJSXFragment(argument))) {
         hasJSXReturn = true;
         returnPath.stop();
       }
     },
-    JSXElement() {
+    JSXElement(_path: NodePath<t.JSXElement>) {
       hasJSXReturn = true;
     },
-    JSXFragment() {
+    JSXFragment(_path: NodePath<t.JSXFragment>) {
       hasJSXReturn = true;
     },
   });

@@ -8,11 +8,9 @@
 import {
   createHoistOperation,
   createPropThreadOperation,
+  generateId,
 } from '../types/factories.js';
-import {
-  ScopeType,
-  HoistStrategy,
-} from '../types/internal.js';
+import { ScopeType, HoistStrategy } from '../types/internal.js';
 import type {
   ComponentScope,
   DependencyAnalysis,
@@ -24,11 +22,7 @@ import type {
 } from '../types/internal.js';
 import { DependencyType } from '../types/public.js';
 
-import type {
-  HoistContext,
-  HoistPlan,
-  HoistPlanItem,
-} from './types.js';
+import type { HoistContext, HoistPlan, HoistPlanItem } from './types.js';
 import { isHookName } from './types.js';
 
 // ===============================================================================
@@ -123,7 +117,11 @@ export class HoistPlanner {
     dep: InternalDependency,
     context: HoistContext
   ): HoistPlanItem | null {
-    const { sourceScope: _sourceScope, targetScope: _targetScope, targetComponent: _targetComponent } = context;
+    const {
+      sourceScope: _sourceScope,
+      targetScope: _targetScope,
+      targetComponent: _targetComponent,
+    } = context;
 
     // Determine the strategy based on dependency type
     switch (dep.type) {
@@ -145,13 +143,12 @@ export class HoistPlanner {
       case DependencyType.Import:
         // Imports are handled separately
         return null;
-
       default:
         return {
           dependency: dep,
           operation: this.createDefaultHoistOperation(dep, context),
           needsBackwardReference: false,
-          reason: `Unknown dependency type: ${dep.type}`,
+          reason: `Unknown dependency type: ${String(dep.type)}`,
         };
     }
   }
@@ -186,7 +183,8 @@ export class HoistPlanner {
           dependency: dep,
           operation: this.createDefaultHoistOperation(dep, context),
           needsBackwardReference: false,
-          reason: 'Cannot hoist hook to conditional or loop scope (Rules of Hooks)',
+          reason:
+            'Cannot hoist hook to conditional or loop scope (Rules of Hooks)',
         };
       }
     }
@@ -203,10 +201,17 @@ export class HoistPlanner {
     });
 
     // Check if original scope still needs access
-    const needsBackwardReference = this.checkNeedsBackwardReference(dep, context);
+    const needsBackwardReference = this.checkNeedsBackwardReference(
+      dep,
+      context
+    );
 
     let propThread: PropThreadOperation | undefined;
-    if (needsBackwardReference && context.sourceComponent && context.targetComponent) {
+    if (
+      needsBackwardReference &&
+      context.sourceComponent &&
+      context.targetComponent
+    ) {
       propThread = this.createBackwardPropThread(
         dep,
         context.targetComponent,
@@ -267,7 +272,10 @@ export class HoistPlanner {
           valueExpression: dep.symbol,
           fromComponent: context.sourceComponent.componentName,
           toComponent: context.targetComponent.componentName,
-          path: this.getComponentPath(context.sourceComponent, context.targetComponent),
+          path: this.getComponentPath(
+            context.sourceComponent,
+            context.targetComponent
+          ),
         });
       }
 
@@ -309,7 +317,10 @@ export class HoistPlanner {
         valueExpression: dep.symbol,
         fromComponent: context.sourceComponent.componentName,
         toComponent: context.targetComponent.componentName,
-        path: this.getComponentPath(context.sourceComponent, context.targetComponent),
+        path: this.getComponentPath(
+          context.sourceComponent,
+          context.targetComponent
+        ),
       });
     }
 
@@ -382,7 +393,10 @@ export class HoistPlanner {
         valueExpression: dep.symbol,
         fromComponent: context.sourceComponent.componentName,
         toComponent: context.targetComponent.componentName,
-        path: this.getComponentPath(context.sourceComponent, context.targetComponent),
+        path: this.getComponentPath(
+          context.sourceComponent,
+          context.targetComponent
+        ),
       });
     }
 
@@ -436,7 +450,10 @@ export class HoistPlanner {
       valueExpression: dep.symbol,
       fromComponent: context.sourceComponent.componentName,
       toComponent: context.targetComponent.componentName,
-      path: this.getComponentPath(context.sourceComponent, context.targetComponent),
+      path: this.getComponentPath(
+        context.sourceComponent,
+        context.targetComponent
+      ),
     });
   }
 
@@ -579,7 +596,7 @@ export class HoistPlanner {
         node.type === 'FunctionExpression') &&
       path.parentPath?.isVariableDeclarator()
     ) {
-      const id = (path.parentPath.node).id;
+      const id = path.parentPath.node.id;
       if (id.type === 'Identifier') {
         functionName = id.name;
       }
@@ -623,7 +640,7 @@ export class HoistPlanner {
 
     // If it's a variable declarator, check the init
     if (node.type === 'VariableDeclarator') {
-      const init = (node).init;
+      const init = node.init;
       if (!init) {
         return true; // Uninitialized is considered pure
       }
@@ -639,10 +656,7 @@ export class HoistPlanner {
       }
 
       // Template literals without expressions are pure
-      if (
-        init.type === 'TemplateLiteral' &&
-        init.expressions.length === 0
-      ) {
+      if (init.type === 'TemplateLiteral' && init.expressions.length === 0) {
         return true;
       }
 
@@ -687,10 +701,7 @@ export class HoistPlanner {
   /**
    * Get the component path from source to target
    */
-  private getComponentPath(
-    from: ComponentScope,
-    to: ComponentScope
-  ): string[] {
+  private getComponentPath(from: ComponentScope, to: ComponentScope): string[] {
     const path: string[] = [];
 
     // Build path by walking up from target to common ancestor, then down to source

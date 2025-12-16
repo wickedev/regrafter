@@ -27,15 +27,16 @@ module.exports = {
     '@typescript-eslint/explicit-function-return-type': 'error',
     '@typescript-eslint/explicit-module-boundary-types': 'error',
     '@typescript-eslint/strict-boolean-expressions': 'warn', // 너무 엄격하여 warn으로 조정
-    '@typescript-eslint/no-unsafe-assignment': 'warn', // any 타입 사용이 필요한 경우를 위해 warn
-    '@typescript-eslint/no-unsafe-call': 'warn',
-    '@typescript-eslint/no-unsafe-member-access': 'warn',
-    '@typescript-eslint/no-unsafe-return': 'warn',
-    '@typescript-eslint/no-unsafe-argument': 'warn', // any 타입 인자 전달이 필요한 경우를 위해 warn
 
     // TypeScript - Code Consistency (Tier 1)
     '@typescript-eslint/consistent-type-imports': 'error',
-    '@typescript-eslint/consistent-type-assertions': 'error',
+    '@typescript-eslint/consistent-type-assertions': [
+      'error',
+      {
+        assertionStyle: 'never', // 모든 타입 단언 완전 금지
+      },
+    ],
+    '@typescript-eslint/no-unnecessary-type-assertion': 'error', // 불필요한 타입 단언 금지
     '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
 
     // TypeScript - Existing Rules (strengthened)
@@ -43,12 +44,8 @@ module.exports = {
       'error',
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
     ],
-    '@typescript-eslint/no-explicit-any': 'error',
     '@typescript-eslint/prefer-nullish-coalescing': 'error',
     '@typescript-eslint/prefer-optional-chain': 'error',
-    '@typescript-eslint/no-floating-promises': 'error',
-    '@typescript-eslint/no-misused-promises': 'error',
-    '@typescript-eslint/restrict-template-expressions': 'warn', // 템플릿 리터럴 타입 제한
 
     // ========================================================================
     // TypeScript - Code Quality (Tier 2)

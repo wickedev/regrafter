@@ -5,6 +5,7 @@
  * Implements tasks 4.3.1 and 4.3.2 from the task list.
  */
 
+import type { NodePath } from '@babel/traverse';
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 
@@ -180,7 +181,7 @@ function extractImports(
   const imports: Array<{ source: string; symbols: string[] }> = [];
 
   traverse(ast, {
-    ImportDeclaration(path) {
+    ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
       const source = path.node.source.value;
       const symbols: string[] = [];
 

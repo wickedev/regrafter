@@ -209,19 +209,23 @@ import {
   executeCrossFileTransform,
   createCrossFileContext,
 } from './strategies/cross-file/index.js';
+import type { HoistExecutionContext } from './strategies/HoistExecutor.js';
 import {
   createConfiguredHoistPlanner,
   createHoistExecutor,
 } from './strategies/index.js';
+import type { HoistContext } from './strategies/types.js';
 import { createJSXTransformer } from './transformer/index.js';
 // eslint-disable-next-line import/order
-import {
-  type FileInput,
-  type Selector,
-  type Options,
-  type Result,
-  type Code,
-  type SuggestedFix,
+import type {
+  Move,
+  FileInput,
+  Selector,
+  Options,
+  Result,
+  Code,
+  SuggestedFix,
+  MoveAnalysis,
 } from './types/index.js';
 
 /**
@@ -567,25 +571,26 @@ function moveWithHoisting(
 
       // Collect dependency paths
       for (const dep of depAnalysis.dependencies) {
-        if (dep.location?.path) {
-          dependencyPaths.set(dep.id, dep.location.path);
+        const location = dep.location as { path?: NodePath } | undefined;
+        if (location?.path) {
+          dependencyPaths.set(dep.id, location.path);
         }
       }
 
       // Collect scope paths by traversing the AST
       traverse(sourceAst, {
-        FunctionDeclaration(path) {
+        FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
           if (path.node.id) {
             scopePaths.set(path.node.id.name, path);
           }
         },
-        FunctionExpression(path) {
+        FunctionExpression(path: NodePath<t.FunctionExpression>) {
           const parent = path.parent;
           if (parent && 'id' in parent && parent.id && 'name' in parent.id) {
             scopePaths.set(parent.id.name, path);
           }
         },
-        ArrowFunctionExpression(path) {
+        ArrowFunctionExpression(path: NodePath<t.ArrowFunctionExpression>) {
           const parent = path.parent;
           if (parent && 'id' in parent && parent.id && 'name' in parent.id) {
             scopePaths.set(parent.id.name, path);

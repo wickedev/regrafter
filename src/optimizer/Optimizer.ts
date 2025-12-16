@@ -45,6 +45,7 @@ import type {
   FastCanMoveResult,
   FastCanMoveOptions,
   DeadCodeInfo,
+  SinkAnalysisResult,
 } from './types.js';
 
 /**
@@ -140,7 +141,7 @@ export class Optimizer implements IOptimizer {
       return this.buildDependencyGraph(asts);
     });
 
-    let sinkAnalysis;
+    let sinkAnalysis: SinkAnalysisResult | undefined;
     const deadCode: DeadCodeInfo[] = [];
 
     // Sink analysis and execution
@@ -244,7 +245,7 @@ export class Optimizer implements IOptimizer {
 
       // Find all declarations and references
       traverse(ast, {
-        VariableDeclarator: (path) => {
+        VariableDeclarator: (path: NodePath<t.VariableDeclarator>) => {
           const id = path.node.id;
           if (id.type !== 'Identifier') return;
 
@@ -263,7 +264,7 @@ export class Optimizer implements IOptimizer {
           });
           addNodeToDependencyGraph(graph, node);
         },
-        FunctionDeclaration: (path) => {
+        FunctionDeclaration: (path: NodePath<t.FunctionDeclaration>) => {
           if (!path.node.id) return;
 
           const scope = this.findEnclosingScope(path, scopeTree.root);
@@ -281,7 +282,7 @@ export class Optimizer implements IOptimizer {
           });
           addNodeToDependencyGraph(graph, node);
         },
-        JSXElement: (path) => {
+        JSXElement: (path: NodePath<t.JSXElement>) => {
           const opening = path.node.openingElement;
           const name = opening.name;
           if (name.type !== 'JSXIdentifier') return;
@@ -403,7 +404,7 @@ export class Optimizer implements IOptimizer {
     let hasSideEffects = false;
 
     path.traverse({
-      CallExpression(callPath) {
+      CallExpression(callPath: NodePath<t.CallExpression>) {
         // Check for known side-effect functions
         const callee = callPath.node.callee;
         if (callee.type === 'Identifier') {
@@ -413,7 +414,7 @@ export class Optimizer implements IOptimizer {
           }
         }
       },
-      AssignmentExpression() {
+      AssignmentExpression(_path: NodePath<t.AssignmentExpression>) {
         hasSideEffects = true;
       },
     });

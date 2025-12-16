@@ -258,7 +258,7 @@ export function validateMove(value: unknown, paramName = 'mode'): ValidationResu
   if (!isValidMove(value)) {
     const validValues = ['inside', 'before', 'after'];
     return invalidResult(
-      `${paramName} must be one of: ${validValues.join(', ')}, got "${value}"`
+      `${paramName} must be one of: ${validValues.join(', ')}, got "${String(value)}"`
     );
   }
   return validResult(value);

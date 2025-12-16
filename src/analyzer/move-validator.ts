@@ -156,7 +156,7 @@ function resolvePositionSelector(
   let foundNode: t.Node | null = null;
 
   traverse(ast, {
-    enter(path) {
+    enter(path: NodePath) {
       const loc = path.node.loc;
       if (!loc) return;
 
@@ -224,7 +224,7 @@ function resolvePathSelector(
 
     // Use traverse to get the NodePath for the root
     traverse(ast, {
-      Program(path) {
+      Program(path: NodePath<t.Program>) {
         currentPath = path;
       },
     });
@@ -282,7 +282,7 @@ function resolvePathSelector(
     // Find the NodePath for this node
     let foundPath: NodePath | null = null;
     traverse(ast, {
-      enter(path) {
+      enter(path: NodePath) {
         if (path.node === node) {
           foundPath = path;
           path.stop();
@@ -406,7 +406,7 @@ function checkAnalyzability(ast: t.File): AnalyzabilityResult {
 
   traverse(ast, {
     // Check for eval()
-    CallExpression(path) {
+    CallExpression(path: NodePath<t.CallExpression>) {
       const callee = path.node.callee;
       if (callee.type === 'Identifier' && callee.name === 'eval') {
         blockers.push({
@@ -441,7 +441,7 @@ function checkAnalyzability(ast: t.File): AnalyzabilityResult {
     },
 
     // Check for new Function() constructor
-    NewExpression(path) {
+    NewExpression(path: NodePath<t.NewExpression>) {
       const callee = path.node.callee;
       if (
         callee.type === 'Identifier' &&
@@ -462,13 +462,13 @@ function checkAnalyzability(ast: t.File): AnalyzabilityResult {
     },
 
     // Check for with statements
-    WithStatement(path) {
+    WithStatement(path: NodePath<t.WithStatement>) {
       blockers.push({
         type: 'dynamicCode',
         location: path.node.loc
           ? {
-              start: { line: path.node.loc.start.line, column: path.node.loc.start.column },
-              end: { line: path.node.loc.end.line, column: path.node.loc.end.column },
+              start: { line: path.node.loc.start.line ?? 0, column: path.node.loc.start.column ?? 0 },
+              end: { line: path.node.loc.end.line ?? 0, column: path.node.loc.end.column ?? 0 },
             }
           : { start: { line: 0, column: 0 }, end: { line: 0, column: 0 } },
         description: 'with statement makes scope analysis impossible',
@@ -637,7 +637,7 @@ const hookRulesRule: ValidationRule = (source, target, _mode, _context) => {
     traverse(
       { type: 'File', program: { type: 'Program', body: [], sourceType: 'module', directives: [] } } as t.File,
       {
-        CallExpression(path) {
+        CallExpression(path: NodePath<t.CallExpression>) {
           const callee = path.node.callee;
           if (callee.type === 'Identifier' && callee.name.startsWith('use')) {
             hasHooks = true;

@@ -148,23 +148,24 @@ function extractRecoveredErrors(ast: BabelFile, filename: string): ParseError[] 
           loc?: { line: number; column: number };
         };
 
+        const location: SourceLocation | null = babelError.loc
+          ? {
+              start: {
+                line: babelError.loc.line,
+                column: babelError.loc.column,
+                index: 0,
+              },
+              end: {
+                line: babelError.loc.line,
+                column: babelError.loc.column,
+                index: 0,
+              },
+              filename,
+            }
+          : null;
         errors.push({
           message: babelError.message ?? 'Recovered parse error',
-          location: babelError.loc
-            ? ({
-                start: {
-                  line: babelError.loc.line,
-                  column: babelError.loc.column,
-                  index: 0,
-                },
-                end: {
-                  line: babelError.loc.line,
-                  column: babelError.loc.column,
-                  index: 0,
-                },
-                filename,
-              } as SourceLocation)
-            : null,
+          location,
           code: ParseErrorCodes.PARSE_ERROR,
         });
       }

@@ -159,7 +159,7 @@ export class JSXTransformer {
         return {
           success: false,
           ast,
-          error: `Unknown move mode: ${mode}`,
+          error: `Unknown move mode: ${String(mode)}`,
           errorCode: TransformerErrorCodes.INTERNAL_ERROR,
         };
     }

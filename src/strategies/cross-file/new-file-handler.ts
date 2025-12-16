@@ -213,12 +213,11 @@ export function generateEmptyComponentFile(
         ),
       ])
     );
-    propsType.leadingComments = [
-      {
-        type: 'CommentBlock',
-        value: `*\n * Props for ${componentName} component.\n `,
-      } as t.CommentBlock,
-    ];
+    const propsComment: t.CommentBlock = {
+      type: 'CommentBlock',
+      value: `*\n * Props for ${componentName} component.\n `,
+    };
+    propsType.leadingComments = [propsComment];
     statements.push(propsType);
   }
 
@@ -239,7 +238,7 @@ export function generateEmptyComponentFile(
     comments: true,
     compact: false,
     jsescOption: { quotes: 'single' },
-  });
+  }) as { code: string; map?: object };
 
   const codeResult = createCode({
     file: filePath,
@@ -301,12 +300,11 @@ function createComponentFunction(
   }
 
   // Add JSDoc comment
-  functionDecl.leadingComments = [
-    {
-      type: 'CommentBlock',
-      value: `*\n * ${name} component.\n `,
-    } as t.CommentBlock,
-  ];
+  const componentComment: t.CommentBlock = {
+    type: 'CommentBlock',
+    value: `*\n * ${name} component.\n `,
+  };
+  functionDecl.leadingComments = [componentComment];
 
   return functionDecl;
 }
@@ -352,18 +350,17 @@ export function generateEmptyFile(
   const ast = t.file(t.program(statements, [], 'module'));
 
   // Add file header comment
-  ast.comments = [
-    {
-      type: 'CommentBlock',
-      value: `*\n * Auto-generated file\n `,
-    } as t.CommentBlock,
-  ];
+  const autoGenComment: t.CommentBlock = {
+    type: 'CommentBlock',
+    value: `*\n * Auto-generated file\n `,
+  };
+  ast.comments = [autoGenComment];
 
   const result = generateCode(ast, {
     comments: true,
     compact: false,
     jsescOption: { quotes: 'single' },
-  });
+  }) as { code: string; map?: object };
 
   const codeResult = createCode({
     file: filePath,
@@ -412,7 +409,7 @@ export function generateSharedModuleFile(
     comments: true,
     compact: false,
     jsescOption: { quotes: 'single' },
-  });
+  }) as { code: string; map?: object };
 
   const codeResult = createCode({
     file: filePath,

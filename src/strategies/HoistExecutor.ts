@@ -10,14 +10,15 @@ import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 
 import type {
-  HoistPlan,
+  InternalDependency,
   HoistOperation,
   PropThreadOperation,
   ImportOperation,
-  InternalDependency,
 } from '../types/internal.js';
 import { HoistStrategy } from '../types/internal.js';
 import { createLogger } from '../utils/index.js';
+
+import type { HoistPlan } from './types.js';
 
 const logger = createLogger('HoistExecutor');
 
@@ -45,7 +46,7 @@ export class HoistExecutor {
   execute(plan: HoistPlan, context: HoistExecutionContext): void {
     if (!plan.valid) {
       throw new Error(
-        `Cannot execute invalid hoisting plan: ${plan.invalidReason || 'Unknown reason'}`
+        `Cannot execute invalid hoisting plan: ${plan.invalidReason ?? 'Unknown reason'}`
       );
     }
 
@@ -243,7 +244,7 @@ export class HoistExecutor {
     // For now, we'll implement basic prop passing
     traverse(context.ast, {
       // Find JSX elements for components in the threading path
-      JSXElement(path) {
+      JSXElement(path: NodePath<t.JSXElement>) {
         const openingElement = path.node.openingElement;
         if (t.isJSXIdentifier(openingElement.name)) {
           const componentName = openingElement.name.name;
@@ -270,13 +271,13 @@ export class HoistExecutor {
       },
 
       // Add prop to function parameters
-      FunctionDeclaration(path) {
+      FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
         if (path.node.id && operation.path.includes(path.node.id.name)) {
           addPropToFunctionParams(path, operation.propName);
         }
       },
 
-      FunctionExpression(path) {
+      FunctionExpression(path: NodePath<t.FunctionExpression>) {
         // Find parent variable declarator to get function name
         const parent = path.parent;
         if (t.isVariableDeclarator(parent) && t.isIdentifier(parent.id)) {
@@ -286,7 +287,7 @@ export class HoistExecutor {
         }
       },
 
-      ArrowFunctionExpression(path) {
+      ArrowFunctionExpression(path: NodePath<t.ArrowFunctionExpression>) {
         // Find parent variable declarator to get function name
         const parent = path.parent;
         if (t.isVariableDeclarator(parent) && t.isIdentifier(parent.id)) {

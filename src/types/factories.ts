@@ -254,7 +254,7 @@ export function createScopeInfo(params: {
     type: params.type,
     path: params.path,
     parent: params.parent,
-    bindings: params.bindings ?? new Map(),
+    bindings: params.bindings ?? new Map<string, Binding>(),
     depth: params.depth ?? (params.parent ? params.parent.depth + 1 : 0),
   };
 }
@@ -279,7 +279,7 @@ export function createComponentScope(params: {
     type: ScopeType.Component,
     path: params.path,
     parent: params.parent,
-    bindings: params.bindings ?? new Map(),
+    bindings: params.bindings ?? new Map<string, Binding>(),
     depth: params.depth ?? (params.parent ? params.parent.depth + 1 : 0),
     componentName: params.componentName,
     isConditionallyRendered: params.isConditionallyRendered ?? false,
@@ -634,8 +634,8 @@ export function createTransformResult(
   params?: Partial<TransformResult>
 ): TransformResult {
   return {
-    asts: params?.asts ?? new Map(),
-    newFiles: params?.newFiles ?? new Map(),
+    asts: params?.asts ?? new Map<string, t.File>(),
+    newFiles: params?.newFiles ?? new Map<string, t.File>(),
     modifications: params?.modifications ?? [],
     stats: params?.stats ?? createTransformStats(),
   };
@@ -790,7 +790,7 @@ export function createOptimizeResult(
   params?: Partial<OptimizeResult>
 ): OptimizeResult {
   return {
-    asts: params?.asts ?? new Map(),
+    asts: params?.asts ?? new Map<string, t.File>(),
     sunkDependencies: params?.sunkDependencies ?? [],
     removedProps: params?.removedProps ?? [],
     deadCodeRemoved: params?.deadCodeRemoved ?? [],

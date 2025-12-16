@@ -94,54 +94,54 @@ export class ScopeManager {
     // Traverse the AST to build scope tree
     traverse(ast, {
       // Track function declarations
-      FunctionDeclaration: (path) => {
+      FunctionDeclaration: (path: NodePath<t.FunctionDeclaration>) => {
         this.processFunctionScope(path, scopeTree);
       },
 
       // Track function expressions
-      FunctionExpression: (path) => {
+      FunctionExpression: (path: NodePath<t.FunctionExpression>) => {
         this.processFunctionScope(path, scopeTree);
       },
 
       // Track arrow functions
-      ArrowFunctionExpression: (path) => {
+      ArrowFunctionExpression: (path: NodePath<t.ArrowFunctionExpression>) => {
         this.processFunctionScope(path, scopeTree);
       },
 
       // Track block scopes
-      BlockStatement: (path) => {
+      BlockStatement: (path: NodePath<t.BlockStatement>) => {
         this.processBlockScope(path, scopeTree);
       },
 
       // Track for loops
-      ForStatement: (path) => {
+      ForStatement: (path: NodePath<t.ForStatement>) => {
         this.processLoopScope(path, scopeTree);
       },
-      ForInStatement: (path) => {
+      ForInStatement: (path: NodePath<t.ForInStatement>) => {
         this.processLoopScope(path, scopeTree);
       },
-      ForOfStatement: (path) => {
+      ForOfStatement: (path: NodePath<t.ForOfStatement>) => {
         this.processLoopScope(path, scopeTree);
       },
-      WhileStatement: (path) => {
+      WhileStatement: (path: NodePath<t.WhileStatement>) => {
         this.processLoopScope(path, scopeTree);
       },
-      DoWhileStatement: (path) => {
+      DoWhileStatement: (path: NodePath<t.DoWhileStatement>) => {
         this.processLoopScope(path, scopeTree);
       },
 
       // Track conditionals
-      IfStatement: (path) => {
+      IfStatement: (path: NodePath<t.IfStatement>) => {
         this.processConditionalScope(path, scopeTree);
       },
 
       // Track class declarations
-      ClassDeclaration: (path) => {
+      ClassDeclaration: (path: NodePath<t.ClassDeclaration>) => {
         this.processClassScope(path, scopeTree);
       },
 
       // Track class expressions
-      ClassExpression: (path) => {
+      ClassExpression: (path: NodePath<t.ClassExpression>) => {
         this.processClassScope(path, scopeTree);
       },
     });
@@ -377,8 +377,8 @@ export class ScopeManager {
    * Get all bindings in a scope
    */
   getBindingsInScope(scope: ScopeInfo): Map<string, BindingInfo> {
-    if (!this.scopeTree) return new Map();
-    return this.scopeTree.bindingsByScope.get(scope.id) ?? new Map();
+    if (!this.scopeTree) return new Map<string, BindingInfo>();
+    return this.scopeTree.bindingsByScope.get(scope.id) ?? new Map<string, BindingInfo>();
   }
 
   /**
@@ -422,7 +422,7 @@ export class ScopeManager {
     let rootPath: NodePath | null = null;
 
     traverse(ast, {
-      Program: (path) => {
+      Program: (path: NodePath<t.Program>) => {
         rootPath = path;
         path.stop();
       },

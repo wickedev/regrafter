@@ -115,7 +115,7 @@ export class SinkExecutor implements ISinkExecutor {
 
       traverse(ast, {
         // Check JSX attributes for orphaned props
-        JSXAttribute(path) {
+        JSXAttribute(path: NodePath<t.JSXAttribute>) {
           const name = path.node.name;
           if (!t.isJSXIdentifier(name)) return;
 
@@ -147,13 +147,13 @@ export class SinkExecutor implements ISinkExecutor {
         },
 
         // Check component prop destructuring
-        FunctionDeclaration(path) {
+        FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
           checkAndRemoveOrphanedPropParams(path, propsSet, usedIds, removedProps);
         },
-        FunctionExpression(path) {
+        FunctionExpression(path: NodePath<t.FunctionExpression>) {
           checkAndRemoveOrphanedPropParams(path, propsSet, usedIds, removedProps);
         },
-        ArrowFunctionExpression(path) {
+        ArrowFunctionExpression(path: NodePath<t.ArrowFunctionExpression>) {
           checkAndRemoveOrphanedPropParams(path, propsSet, usedIds, removedProps);
         },
       });
@@ -181,7 +181,7 @@ export class SinkExecutor implements ISinkExecutor {
       // Find and remove unused declarations
       traverse(ast, {
         // Check variable declarations
-        VariableDeclarator(path) {
+        VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
           const id = path.node.id;
           if (!t.isIdentifier(id)) return;
 
@@ -200,7 +200,7 @@ export class SinkExecutor implements ISinkExecutor {
             // Remove the declarator
             const parent = path.parentPath;
             if (
-              parent?.isVariableDeclaration() &&
+              parent.isVariableDeclaration() &&
               parent.node.declarations.length === 1
             ) {
               // If this is the only declarator, remove the whole declaration
@@ -212,7 +212,7 @@ export class SinkExecutor implements ISinkExecutor {
         },
 
         // Check unused imports
-        ImportSpecifier(path) {
+        ImportSpecifier(path: NodePath<t.ImportSpecifier>) {
           const local = path.node.local.name;
           if (!usedIds.has(local)) {
             deadCode.push({
@@ -225,7 +225,7 @@ export class SinkExecutor implements ISinkExecutor {
             // Remove the specifier
             const importDecl = path.parentPath;
             if (
-              importDecl?.isImportDeclaration() &&
+              importDecl.isImportDeclaration() &&
               importDecl.node.specifiers.length === 1
             ) {
               // If this is the only specifier, remove the whole import
@@ -236,7 +236,7 @@ export class SinkExecutor implements ISinkExecutor {
           }
         },
 
-        ImportDefaultSpecifier(path) {
+        ImportDefaultSpecifier(path: NodePath<t.ImportDefaultSpecifier>) {
           const local = path.node.local.name;
           if (!usedIds.has(local)) {
             deadCode.push({
@@ -249,7 +249,7 @@ export class SinkExecutor implements ISinkExecutor {
             // Only remove if there are other specifiers
             const importDecl = path.parentPath;
             if (
-              importDecl?.isImportDeclaration() &&
+              importDecl.isImportDeclaration() &&
               importDecl.node.specifiers.length === 1
             ) {
               importDecl.remove();
@@ -260,7 +260,7 @@ export class SinkExecutor implements ISinkExecutor {
         },
 
         // Check for unreachable code after return statements
-        ReturnStatement(path) {
+        ReturnStatement(path: NodePath<t.ReturnStatement>) {
           const siblings = path.getAllNextSiblings();
           for (const sibling of siblings) {
             // Skip if it's a function declaration (hoisted)
@@ -341,7 +341,7 @@ export class SinkExecutor implements ISinkExecutor {
 
     // Find and extract the declaration
     traverse(ast, {
-      VariableDeclaration(path) {
+      VariableDeclaration(path: NodePath<t.VariableDeclaration>) {
         for (let i = 0; i < path.node.declarations.length; i++) {
           const declarator = path.node.declarations[i];
           if (
@@ -372,7 +372,7 @@ export class SinkExecutor implements ISinkExecutor {
 
     // Insert at target scope
     traverse(ast, {
-      enter(path) {
+      enter(path: NodePath) {
         if (isSameScopeNode(path, targetScope)) {
           // Insert declaration at the beginning of the scope
           if (path.isBlockStatement()) {
@@ -421,22 +421,24 @@ export class SinkExecutor implements ISinkExecutor {
     const used = new Set<string>();
 
     traverse(ast, {
-      Identifier(path: NodePath) {
+      Identifier(path: NodePath<t.Identifier>) {
         // Skip binding declarations
         if (path.isBindingIdentifier()) return;
 
+        const parent = path.parentPath as NodePath | null;
+
         // Skip property access (obj.prop - skip prop)
         if (
-          path.parentPath?.isMemberExpression() &&
+          parent?.isMemberExpression() &&
           path.key === 'property' &&
-          !path.parentPath.node.computed
+          !parent.node.computed
         ) {
           return;
         }
 
         // Skip import specifier names
         if (
-          path.parentPath?.isImportSpecifier() &&
+          parent?.isImportSpecifier() &&
           path.key === 'imported'
         ) {
           return;
@@ -444,18 +446,19 @@ export class SinkExecutor implements ISinkExecutor {
 
         // Skip object property keys
         if (
-          path.parentPath?.isObjectProperty() &&
+          parent?.isObjectProperty() &&
           path.key === 'key' &&
-          !path.parentPath.node.computed
+          !parent.node.computed
         ) {
           return;
         }
 
-        used.add(path.node.name);
+        const nodeName = (path.node as t.Identifier).name;
+        used.add(nodeName);
       },
-      JSXIdentifier(path) {
+      JSXIdentifier(path: NodePath<t.JSXIdentifier>) {
         // JSX element names are used
-        if (path.parentPath?.isJSXOpeningElement()) {
+        if (path.parentPath.isJSXOpeningElement()) {
           used.add(path.node.name);
         }
       },

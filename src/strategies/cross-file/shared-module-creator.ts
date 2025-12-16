@@ -7,6 +7,7 @@
  */
 
 import generateCode from '@babel/generator';
+import type { NodePath } from '@babel/traverse';
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 
@@ -147,7 +148,7 @@ export function generateSharedModule(
   const result = generateCode(sharedAst, {
     comments: true,
     compact: false,
-  });
+  }) as { code: string; map?: object };
 
   const operation = createSharedModuleOperation({
     newFilePath: sharedModulePath,
@@ -281,7 +282,7 @@ function collectIdentifiersFromNode(node: t.Node, identifiers: Set<string>): voi
   const tempAst = t.file(t.program([t.expressionStatement(node as t.Expression)]));
 
   traverse(tempAst, {
-    Identifier(path) {
+    Identifier(path: NodePath<t.Identifier>) {
       identifiers.add(path.node.name);
     },
   });
@@ -297,13 +298,13 @@ function extractDeclaration(
   let declaration: t.Declaration | null = null;
 
   traverse(sourceAst, {
-    VariableDeclarator(path) {
+    VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
       if (
         path.node.id.type === 'Identifier' &&
         path.node.id.name === dep.symbol
       ) {
         const parentPath = path.parentPath;
-        if (parentPath?.isVariableDeclaration()) {
+        if (parentPath.isVariableDeclaration()) {
           // Clone the declaration with only this declarator
           declaration = t.variableDeclaration(parentPath.node.kind, [
             t.cloneNode(path.node, true),
@@ -312,13 +313,13 @@ function extractDeclaration(
         }
       }
     },
-    FunctionDeclaration(path) {
+    FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
       if (path.node.id?.name === dep.symbol) {
         declaration = t.cloneNode(path.node, true);
         path.stop();
       }
     },
-    ClassDeclaration(path) {
+    ClassDeclaration(path: NodePath<t.ClassDeclaration>) {
       if (path.node.id?.name === dep.symbol) {
         declaration = t.cloneNode(path.node, true);
         path.stop();

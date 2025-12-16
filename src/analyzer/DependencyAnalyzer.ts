@@ -21,7 +21,11 @@ import type { NodePath, Binding } from '@babel/traverse';
 import * as t from '@babel/types';
 
 import { ScopeType } from '../scope/index.js';
-import type { ScopeManager, type ScopeInfo, type ComponentScope } from '../scope/index.js';
+import type {
+  ScopeManager,
+  ScopeInfo,
+  ComponentScope,
+} from '../scope/index.js';
 import {
   createInternalDependency,
   createDependencyOrigin,
@@ -67,6 +71,23 @@ const REACT_HOOKS = new Set([
   'useSyncExternalStore',
   'useInsertionEffect',
 ]);
+
+/**
+ * Helper function to safely get the name from a SpecificDependency
+ */
+function getDependencyName(dep: SpecificDependency): string {
+  switch (dep.type) {
+    case DependencyType.Hook:
+      return dep.hookName;
+    case DependencyType.Import:
+      return dep.localName;
+    case DependencyType.Variable:
+    case DependencyType.Prop:
+    case DependencyType.Context:
+    case DependencyType.Ref:
+      return dep.name;
+  }
+}
 
 /**
  * DependencyAnalyzer class for analyzing JSX element dependencies
@@ -475,9 +496,7 @@ export class DependencyAnalyzer {
    * @param identifiers - Identifier references to analyze
    * @returns Array of ref dependencies
    */
-  detectRefDependencies(
-    identifiers: IdentifierReference[]
-  ): RefDependency[] {
+  detectRefDependencies(identifiers: IdentifierReference[]): RefDependency[] {
     const refDeps: RefDependency[] = [];
     const processed = new Set<string>();
 
@@ -532,13 +551,14 @@ export class DependencyAnalyzer {
 
       for (const trans of transitives) {
         // Mark as transitive
-        const scope = this.scopeManager.getScopeForPath(trans.path) ??
+        const scope =
+          this.scopeManager.getScopeForPath(trans.path) ??
           this.scopeManager.getScopeTree()?.root;
 
         if (scope) {
           transitiveDeps.push(
             createInternalDependency({
-              symbol: trans.name,
+              symbol: getDependencyName(trans),
               type: trans.type,
               origin: createDependencyOrigin({
                 node: trans.path.node,
@@ -580,7 +600,7 @@ export class DependencyAnalyzer {
     // Traverse looking for unanalyzable patterns
     scopeToCheck.traverse({
       // Check for eval()
-      CallExpression: (callPath) => {
+      CallExpression: (callPath: NodePath<t.CallExpression>) => {
         const callee = callPath.node.callee;
 
         // Direct eval call
@@ -588,24 +608,53 @@ export class DependencyAnalyzer {
           blockers.push({
             type: 'eval',
             location: {
-              start: { line: callPath.node.loc?.start.line ?? 0, column: callPath.node.loc?.start.column ?? 0 },
-              end: { line: callPath.node.loc?.end.line ?? 0, column: callPath.node.loc?.end.column ?? 0 },
+              start: {
+                line: callPath.node.loc?.start.line ?? 0,
+                column: callPath.node.loc?.start.column ?? 0,
+              },
+              end: {
+                line: callPath.node.loc?.end.line ?? 0,
+                column: callPath.node.loc?.end.column ?? 0,
+              },
             },
             description: 'Use of eval() makes static analysis impossible',
           });
         }
 
-        // new Function() constructor
-        if (
-          t.isNewExpression(callPath.node) &&
-          t.isIdentifier(callPath.node.callee) &&
-          callPath.node.callee.name === 'Function'
-        ) {
+        // Function() constructor call (non-new)
+        if (t.isIdentifier(callee) && callee.name === 'Function') {
           blockers.push({
             type: 'dynamicCode',
             location: {
-              start: { line: callPath.node.loc?.start.line || 0, column: callPath.node.loc?.start.column || 0 },
-              end: { line: callPath.node.loc?.end.line || 0, column: callPath.node.loc?.end.column || 0 },
+              start: {
+                line: callPath.node.loc?.start.line ?? 0,
+                column: callPath.node.loc?.start.column ?? 0,
+              },
+              end: {
+                line: callPath.node.loc?.end.line ?? 0,
+                column: callPath.node.loc?.end.column ?? 0,
+              },
+            },
+            description: 'Use of Function constructor creates dynamic code',
+          });
+        }
+      },
+
+      // Check for new Function() constructor
+      NewExpression: (newPath: NodePath<t.NewExpression>) => {
+        const callee = newPath.node.callee;
+        if (t.isIdentifier(callee) && callee.name === 'Function') {
+          blockers.push({
+            type: 'dynamicCode',
+            location: {
+              start: {
+                line: newPath.node.loc?.start.line ?? 0,
+                column: newPath.node.loc?.start.column ?? 0,
+              },
+              end: {
+                line: newPath.node.loc?.end.line ?? 0,
+                column: newPath.node.loc?.end.column ?? 0,
+              },
             },
             description: 'Use of Function constructor creates dynamic code',
           });
@@ -613,7 +662,7 @@ export class DependencyAnalyzer {
       },
 
       // Check for dynamic property access with non-literal keys
-      MemberExpression: (memberPath) => {
+      MemberExpression: (memberPath: NodePath<t.MemberExpression>) => {
         const node = memberPath.node;
         if (
           node.computed &&
@@ -630,10 +679,17 @@ export class DependencyAnalyzer {
             blockers.push({
               type: 'dynamicCode',
               location: {
-                start: { line: node.loc?.start.line ?? 0, column: node.loc?.start.column ?? 0 },
-                end: { line: node.loc?.end.line ?? 0, column: node.loc?.end.column ?? 0 },
+                start: {
+                  line: node.loc?.start.line ?? 0,
+                  column: node.loc?.start.column ?? 0,
+                },
+                end: {
+                  line: node.loc?.end.line ?? 0,
+                  column: node.loc?.end.column ?? 0,
+                },
               },
-              description: 'Dynamic property access with computed key cannot be statically analyzed',
+              description:
+                'Dynamic property access with computed key cannot be statically analyzed',
             });
           }
         }
@@ -662,7 +718,8 @@ export class DependencyAnalyzer {
     if (!analyzability.analyzable) {
       return createDependencyAnalysis({
         canResolve: false,
-        unresolvedReason: analyzability.blockers?.[0]?.description ??
+        unresolvedReason:
+          analyzability.blockers?.[0]?.description ??
           'Code contains unanalyzable patterns',
       });
     }
@@ -670,13 +727,23 @@ export class DependencyAnalyzer {
     // Collect all identifiers
     const collection = this.collectIdentifiers(elementPath);
     const elementScope = this.scopeManager.getScopeForPath(elementPath);
-    const componentScope = this.scopeManager.findEnclosingComponent(elementPath);
+    const componentScope =
+      this.scopeManager.findEnclosingComponent(elementPath);
 
     // Detect different types of dependencies
-    const hookDeps = this.detectHookDependencies(collection.identifiers, elementScope);
-    const varDeps = this.detectVariableDependencies(collection.identifiers, elementScope);
+    const hookDeps = this.detectHookDependencies(
+      collection.identifiers,
+      elementScope
+    );
+    const varDeps = this.detectVariableDependencies(
+      collection.identifiers,
+      elementScope
+    );
     const importDeps = this.detectImportDependencies(collection.identifiers);
-    const propDeps = this.detectPropDependencies(collection.identifiers, componentScope);
+    const propDeps = this.detectPropDependencies(
+      collection.identifiers,
+      componentScope
+    );
     const contextDeps = this.detectContextDependencies(collection.identifiers);
     const refDeps = this.detectRefDependencies(collection.identifiers);
 
@@ -698,13 +765,14 @@ export class DependencyAnalyzer {
     allDeps.push(...transitiveDeps);
 
     // Classify dependencies by what action is needed
-    const needsHoisting = allDeps.filter(d =>
+    const needsHoisting = allDeps.filter((d) =>
       this.needsHoisting(d, elementScope, targetScope)
     );
-    const needsImport = allDeps.filter(d =>
-      d.type === DependencyType.Import && this.needsImport(d, targetScope)
+    const needsImport = allDeps.filter(
+      (d) =>
+        d.type === DependencyType.Import && this.needsImport(d, targetScope)
     );
-    const needsPropThreading = allDeps.filter(d =>
+    const needsPropThreading = allDeps.filter((d) =>
       this.needsPropThreading(d, elementScope, targetScope)
     );
 
@@ -732,16 +800,23 @@ export class DependencyAnalyzer {
     const parent = path.parent;
     return (
       t.isJSXOpeningElement(parent) &&
-      (parent.name === path.node || this.isPartOfJSXName(parent.name, path.node))
+      (parent.name === path.node ||
+        this.isPartOfJSXName(parent.name, path.node))
     );
   }
 
   /**
    * Check if identifier is part of a JSX member expression name
    */
-  private isPartOfJSXName(name: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName, node: t.Identifier): boolean {
+  private isPartOfJSXName(
+    name: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName,
+    node: t.Identifier
+  ): boolean {
     if (t.isJSXMemberExpression(name)) {
-      if (t.isJSXIdentifier(name.property) && name.property.name === node.name) {
+      if (
+        t.isJSXIdentifier(name.property) &&
+        name.property.name === node.name
+      ) {
         return true;
       }
       if (t.isJSXIdentifier(name.object) && name.object.name === node.name) {
@@ -760,8 +835,12 @@ export class DependencyAnalyzer {
   private isPropertyKey(path: NodePath<t.Identifier>): boolean {
     const parent = path.parent;
     return (
-      (t.isObjectProperty(parent) && parent.key === path.node && !parent.computed) ||
-      (t.isMemberExpression(parent) && parent.property === path.node && !parent.computed)
+      (t.isObjectProperty(parent) &&
+        parent.key === path.node &&
+        !parent.computed) ||
+      (t.isMemberExpression(parent) &&
+        parent.property === path.node &&
+        !parent.computed)
     );
   }
 
@@ -771,9 +850,9 @@ export class DependencyAnalyzer {
   private isDeclaration(path: NodePath<t.Identifier>): boolean {
     const parent = path.parent;
     return (
-      t.isVariableDeclarator(parent) && parent.id === path.node ||
-      t.isFunctionDeclaration(parent) && parent.id === path.node ||
-      t.isClassDeclaration(parent) && parent.id === path.node ||
+      (t.isVariableDeclarator(parent) && parent.id === path.node) ||
+      (t.isFunctionDeclaration(parent) && parent.id === path.node) ||
+      (t.isClassDeclaration(parent) && parent.id === path.node) ||
       t.isImportSpecifier(parent) ||
       t.isImportDefaultSpecifier(parent) ||
       t.isImportNamespaceSpecifier(parent)
@@ -783,7 +862,9 @@ export class DependencyAnalyzer {
   /**
    * Get how an identifier is used
    */
-  private getIdentifierUsage(path: NodePath<t.Identifier>): IdentifierReference['usage'] {
+  private getIdentifierUsage(
+    path: NodePath<t.Identifier>
+  ): IdentifierReference['usage'] {
     const parent = path.parent;
 
     if (t.isCallExpression(parent) && parent.callee === path.node) {
@@ -804,9 +885,7 @@ export class DependencyAnalyzer {
   /**
    * Extract names from a JSX member expression
    */
-  private extractMemberExpressionNames(
-    node: t.JSXMemberExpression
-  ): string[] {
+  private extractMemberExpressionNames(node: t.JSXMemberExpression): string[] {
     const names: string[] = [];
 
     if (t.isJSXIdentifier(node.object)) {
@@ -892,7 +971,10 @@ export class DependencyAnalyzer {
         const callee = decl.init.callee;
         let hookName: string | null = null;
 
-        if (t.isIdentifier(callee) && (REACT_HOOKS.has(callee.name) || /^use[A-Z]/.test(callee.name))) {
+        if (
+          t.isIdentifier(callee) &&
+          (REACT_HOOKS.has(callee.name) || /^use[A-Z]/.test(callee.name))
+        ) {
           hookName = callee.name;
         } else if (
           t.isMemberExpression(callee) &&
@@ -925,7 +1007,9 @@ export class DependencyAnalyzer {
           let dependencies: string[] | undefined;
           const depsArg = decl.init.arguments[1];
           if (
-            ['useEffect', 'useLayoutEffect', 'useMemo', 'useCallback'].includes(hookName) &&
+            ['useEffect', 'useLayoutEffect', 'useMemo', 'useCallback'].includes(
+              hookName
+            ) &&
             t.isArrayExpression(depsArg)
           ) {
             dependencies = depsArg.elements
@@ -961,12 +1045,7 @@ export class DependencyAnalyzer {
    * Check if a binding is a function parameter
    */
   private isParameterBinding(binding: Binding): boolean {
-    return binding.path.isParameter?.() ||
-      t.isRestElement(binding.path.parent) ||
-      (t.isObjectPattern(binding.path.parent) &&
-        binding.path.parentPath?.parentPath?.isParameter?.()) ||
-      (t.isArrayPattern(binding.path.parent) &&
-        binding.path.parentPath?.parentPath?.isParameter?.());
+    return binding.kind === 'param';
   }
 
   /**
@@ -1068,8 +1147,11 @@ export class DependencyAnalyzer {
             t.isIdentifier(prop.value) &&
             prop.value.name === binding.identifier.name
           ) {
-            const propName = t.isIdentifier(prop.key) ? prop.key.name :
-              t.isStringLiteral(prop.key) ? prop.key.value : binding.identifier.name;
+            const propName = t.isIdentifier(prop.key)
+              ? prop.key.name
+              : t.isStringLiteral(prop.key)
+                ? prop.key.value
+                : binding.identifier.name;
             return {
               name: propName,
               component: componentScope?.componentName ?? 'Unknown',
@@ -1112,7 +1194,10 @@ export class DependencyAnalyzer {
         let contextName = 'UnknownContext';
         if (t.isIdentifier(contextArg)) {
           contextName = contextArg.name;
-        } else if (t.isMemberExpression(contextArg) && t.isIdentifier(contextArg.property)) {
+        } else if (
+          t.isMemberExpression(contextArg) &&
+          t.isIdentifier(contextArg.property)
+        ) {
           contextName = contextArg.property.name;
         }
 
@@ -1183,7 +1268,11 @@ export class DependencyAnalyzer {
     const transitives: SpecificDependency[] = [];
 
     // For variables, analyze their initializers
-    if (dep.type === DependencyType.Variable && 'initializer' in dep && dep.initializer) {
+    if (
+      dep.type === DependencyType.Variable &&
+      'initializer' in dep &&
+      dep.initializer
+    ) {
       const initPath = dep.path;
 
       // Traverse the initializer for identifiers
@@ -1224,13 +1313,19 @@ export class DependencyAnalyzer {
     elementScope: ScopeInfo | null
   ): InternalDependency[] {
     return deps.map((dep) => {
-      const scope = this.scopeManager.getScopeForPath(dep.path) ??
+      const scope =
+        this.scopeManager.getScopeForPath(dep.path) ??
         elementScope ??
         this.scopeManager.getScopeTree()?.root;
 
-      const name = 'name' in dep ? dep.name :
-        'bindings' in dep ? dep.bindings.join(', ') :
-        'localName' in dep ? dep.localName : 'unknown';
+      const name =
+        'name' in dep
+          ? dep.name
+          : 'bindings' in dep
+            ? dep.bindings.join(', ')
+            : 'localName' in dep
+              ? dep.localName
+              : 'unknown';
 
       return createInternalDependency({
         symbol: name,
@@ -1260,7 +1355,10 @@ export class DependencyAnalyzer {
     if (dep.type === DependencyType.Import) return false;
 
     // Check if dependency scope is accessible from target
-    const accessibility = this.scopeManager.checkAccessibility(dep.scope, targetScope);
+    const accessibility = this.scopeManager.checkAccessibility(
+      dep.scope,
+      targetScope
+    );
     return !accessibility.accessible;
   }
 
@@ -1301,7 +1399,10 @@ export class DependencyAnalyzer {
 
     // Hooks may need prop threading when moved out of component
     if (dep.type === DependencyType.Hook) {
-      const accessibility = this.scopeManager.checkAccessibility(dep.scope, targetScope);
+      const accessibility = this.scopeManager.checkAccessibility(
+        dep.scope,
+        targetScope
+      );
       return !accessibility.accessible;
     }
 

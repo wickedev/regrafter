@@ -40,6 +40,7 @@ import {
   isComponentFile,
   validateNewFilePath,
   type NewFileConfig,
+  type NewFileResult,
 } from './new-file-handler.js';
 import {
   generateSharedModule,
@@ -284,7 +285,7 @@ export function executeCrossFileTransform(
     // Generate code for modified files
     for (const [filePath, ast] of modifiedAsts) {
       const originalContent = context.originalContents.get(filePath);
-      const generated = generateCode(ast, { comments: true });
+      const generated = generateCode(ast, { comments: true }) as { code: string; map?: object };
 
       codes.push(
         createCode({
@@ -302,7 +303,7 @@ export function executeCrossFileTransform(
         continue; // Already added
       }
 
-      const generated = generateCode(ast, { comments: true });
+      const generated = generateCode(ast, { comments: true }) as { code: string; map?: object };
 
       codes.push(
         createCode({

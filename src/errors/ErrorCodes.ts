@@ -311,7 +311,7 @@ export const ERROR_CODES: Record<string, ErrorCodeDefinition> = {
  * Formats an error message template with provided values.
  */
 function formatMessage(template: string, values: Record<string, unknown>): string {
-  return template.replace(/\{(\w+)\}/g, (_, key) => {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => {
     const value = values[key];
     if (value === undefined) return `{${key}}`;
     return String(value);

@@ -29,7 +29,8 @@ import {
   ResolutionStrategy,
 } from '../types/public.js';
 
-import { DependencyAnalyzer, type AnalyzerOptions } from './DependencyAnalyzer.js';
+import { DependencyAnalyzer } from './DependencyAnalyzer.js';
+import type { AnalyzerOptions } from './types.js';
 
 /**
  * MoveAnalysisBuilder creates MoveAnalysis objects for the public API

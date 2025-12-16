@@ -1,4 +1,4 @@
-import generateCode from '@babel/generator';
+import generateCode, { type GeneratorResult } from '@babel/generator';
 import type * as t from '@babel/types';
 
 import type {
@@ -48,7 +48,7 @@ export class CodeGenerator {
       const babelGeneratorOptions = this.buildBabelGeneratorOptions(mergedOptions);
 
       // Generate code using @babel/generator
-      const result = generateCode(ast, babelGeneratorOptions);
+      const result: GeneratorResult = generateCode(ast, babelGeneratorOptions) as GeneratorResult;
 
       return {
         code: result.code,

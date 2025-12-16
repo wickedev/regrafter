@@ -255,7 +255,7 @@ export class FastCanMove {
     let current: NodePath | null = null;
 
     traverse(ast, {
-      Program(nodePath) {
+      Program(nodePath: NodePath<t.Program>) {
         current = nodePath as NodePath;
         nodePath.stop();
       },
@@ -278,8 +278,8 @@ export class FastCanMove {
         }
         // Find the NodePath for this index
         let found = false;
-        current.traverse({
-          enter(childPath) {
+        (current as NodePath).traverse({
+          enter(childPath: NodePath) {
             if (childPath.node === container[part]) {
               current = childPath;
               found = true;
@@ -302,8 +302,8 @@ export class FastCanMove {
 
         // Find the NodePath for this property
         let found = false;
-        current.traverse({
-          enter(childPath) {
+        (current as NodePath).traverse({
+          enter(childPath: NodePath) {
             if (childPath.node === node) {
               current = childPath;
               found = true;
@@ -324,7 +324,7 @@ export class FastCanMove {
 
     // Find hooks used in source element
     sourcePath.traverse({
-      CallExpression: (path) => {
+      CallExpression: (path: NodePath<t.CallExpression>) => {
         const callee = path.node.callee;
         if (callee.type === 'Identifier' && this.isHookName(callee.name)) {
           hooksUsed.push({
@@ -344,23 +344,23 @@ export class FastCanMove {
     let targetInLoop = false;
 
     traverse(targetAst, {
-      IfStatement(path) {
+      IfStatement(path: NodePath<t.IfStatement>) {
         targetInConditional = true;
         path.skip();
       },
-      ConditionalExpression(path) {
+      ConditionalExpression(path: NodePath<t.ConditionalExpression>) {
         targetInConditional = true;
         path.skip();
       },
-      ForStatement(path) {
+      ForStatement(path: NodePath<t.ForStatement>) {
         targetInLoop = true;
         path.skip();
       },
-      WhileStatement(path) {
+      WhileStatement(path: NodePath<t.WhileStatement>) {
         targetInLoop = true;
         path.skip();
       },
-      DoWhileStatement(path) {
+      DoWhileStatement(path: NodePath<t.DoWhileStatement>) {
         targetInLoop = true;
         path.skip();
       },
@@ -396,7 +396,7 @@ export class FastCanMove {
 
     sourcePath.traverse({
       // Check for eval
-      CallExpression(path) {
+      CallExpression(path: NodePath<t.CallExpression>) {
         const callee = path.node.callee;
         if (callee.type === 'Identifier' && callee.name === 'eval') {
           issues.push({
@@ -409,7 +409,7 @@ export class FastCanMove {
       },
 
       // Check for with statements
-      WithStatement(path) {
+      WithStatement(path: NodePath<t.WithStatement>) {
         issues.push({
           type: 'unanalyzable_code',
           description: 'Element contains with statement which cannot be analyzed',
@@ -419,7 +419,7 @@ export class FastCanMove {
       },
 
       // Check for dynamic property access on unknown objects
-      MemberExpression(path) {
+      MemberExpression(path: NodePath<t.MemberExpression>) {
         if (path.node.computed && path.node.property.type !== 'StringLiteral') {
           // Dynamic property access - warning, not error
           issues.push({
@@ -442,18 +442,18 @@ export class FastCanMove {
 
     // Collect all references and declarations
     sourcePath.traverse({
-      Identifier(path) {
+      Identifier(path: NodePath<t.Identifier>) {
         if (path.isReferencedIdentifier()) {
           referencedIdentifiers.add(path.node.name);
         }
       },
-      VariableDeclarator(path) {
+      VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
         const id = path.node.id;
         if (id.type === 'Identifier') {
           declaredIdentifiers.add(id.name);
         }
       },
-      FunctionDeclaration(path) {
+      FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
         if (path.node.id) {
           declaredIdentifiers.add(path.node.id.name);
         }
@@ -486,30 +486,30 @@ export class FastCanMove {
     let maxJsxDepth = 0;
 
     sourcePath.traverse({
-      CallExpression: (path) => {
+      CallExpression: (path: NodePath<t.CallExpression>) => {
         nodeCount++; // Count all nodes via specific visitors
         const callee = path.node.callee;
         if (callee.type === 'Identifier' && this.isHookName(callee.name)) {
           hookCount++;
         }
       },
-      Identifier: () => {
+      Identifier: (_path: NodePath<t.Identifier>) => {
         nodeCount++;
       },
       JSXElement: {
-        enter: () => {
+        enter: (_path: NodePath<t.JSXElement>) => {
           nodeCount++;
           jsxDepth++;
           maxJsxDepth = Math.max(maxJsxDepth, jsxDepth);
         },
-        exit: () => {
+        exit: (_path: NodePath<t.JSXElement>) => {
           jsxDepth--;
         },
       },
-      Statement: () => {
+      Statement: (_path: NodePath<t.Statement>) => {
         nodeCount++;
       },
-      Expression: () => {
+      Expression: (_path: NodePath<t.Expression>) => {
         nodeCount++;
       },
     });

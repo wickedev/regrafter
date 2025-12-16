@@ -85,7 +85,7 @@ export class ContextHandler implements IContextHandler {
     const contextName = this.extractContextName(dependency);
 
     traverse(sourceAst, {
-      JSXElement(path) {
+      JSXElement(path: NodePath<t.JSXElement>) {
         const openingElement = path.node.openingElement;
 
         // Check for <Context.Provider>
@@ -277,7 +277,7 @@ export class ContextHandler implements IContextHandler {
     const calls: Array<{ path: NodePath; variableName: string }> = [];
 
     traverse(ast, {
-      VariableDeclarator(path) {
+      VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
         const init = path.node.init;
 
         if (init?.type === 'CallExpression') {
@@ -563,7 +563,7 @@ export function findContextDefinitions(
   const contexts: Array<{ name: string; node: t.Node }> = [];
 
   traverse(ast, {
-    VariableDeclarator(path) {
+    VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
       const init = path.node.init;
       if (init && isCreateContextCall(init)) {
         const id = path.node.id;
@@ -587,7 +587,7 @@ export function findProviderInstances(
   const providers: NodePath[] = [];
 
   traverse(ast, {
-    JSXElement(path) {
+    JSXElement(path: NodePath<t.JSXElement>) {
       const openingElement = path.node.openingElement;
 
       // <Context.Provider>

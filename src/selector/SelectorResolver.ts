@@ -226,7 +226,7 @@ function findNodePath(ast: t.File, targetNode: t.Node): NodePath | null {
   let foundPath: NodePath | null = null;
 
   traverse(ast, {
-    enter(path) {
+    enter(path: NodePath) {
       if (path.node === targetNode) {
         foundPath = path;
         path.stop();
@@ -320,7 +320,7 @@ export class SelectorResolver implements ISelectorResolver {
 
     // Traverse AST to find JSX elements at the position
     traverse(ast, {
-      JSXElement(path) {
+      JSXElement(path: NodePath<t.JSXElement>) {
         const node = path.node;
         if (positionInNode(node, line, column)) {
           const spec = nodeSpecificity(node);
@@ -329,7 +329,7 @@ export class SelectorResolver implements ISelectorResolver {
           }
         }
       },
-      JSXFragment(path) {
+      JSXFragment(path: NodePath<t.JSXFragment>) {
         const node = path.node;
         if (positionInNode(node, line, column)) {
           const spec = nodeSpecificity(node);
@@ -338,7 +338,7 @@ export class SelectorResolver implements ISelectorResolver {
           }
         }
       },
-      JSXExpressionContainer(path) {
+      JSXExpressionContainer(path: NodePath<t.JSXExpressionContainer>) {
         const node = path.node;
         // Only match expression containers that contain JSX
         if (
@@ -373,17 +373,19 @@ export class SelectorResolver implements ISelectorResolver {
     }
 
     // Determine atomic unit
-    const atomicUnitType = determineAtomicUnitType(bestMatch.path);
-    const atomicUnitNodes = getAtomicUnitNodes(bestMatch.path);
+    const matchPath = bestMatch.path as NodePath;
+    const matchNode = bestMatch.node as t.Node;
+    const atomicUnitType = determineAtomicUnitType(matchPath);
+    const atomicUnitNodes = getAtomicUnitNodes(matchPath);
     const atomicUnit = createAtomicUnit({
       type: atomicUnitType,
-      path: bestMatch.path,
+      path: matchPath,
       nodes: atomicUnitNodes,
     });
 
     return createResolveResult({
-      node: bestMatch.node,
-      path: bestMatch.path,
+      node: matchNode,
+      path: matchPath,
       atomicUnit,
     });
   }
