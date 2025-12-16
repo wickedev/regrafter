@@ -10,7 +10,8 @@
  * - Parallel file processing
  */
 
-import traverse, { NodePath, Visitor } from '@babel/traverse';
+import type { NodePath, Visitor } from '@babel/traverse';
+import traverse from '@babel/traverse';
 import type * as t from '@babel/types';
 
 import type { FileInput } from '../types/public.js';
@@ -38,7 +39,7 @@ const DEFAULT_PERFORMANCE_CONFIG: Required<PerformanceConfig> = {
  * LRU Cache implementation with size limits and TTL support.
  */
 class LRUCache<K, V> {
-  private cache: Map<K, CacheEntry<V>> = new Map();
+  private readonly cache: Map<K, CacheEntry<V>> = new Map();
   private readonly maxSize: number;
   private readonly ttl: number;
 
@@ -68,7 +69,7 @@ class LRUCache<K, V> {
     return entry.value;
   }
 
-  set(key: K, value: V, sizeEstimate: number = 1): void {
+  set(key: K, value: V, sizeEstimate = 1): void {
     // Evict if at capacity
     while (this.cache.size >= this.maxSize) {
       const firstKey = this.cache.keys().next().value;
@@ -130,8 +131,8 @@ class LRUCache<K, V> {
  * PerformanceOptimizer provides optimized operations for AST processing.
  */
 export class PerformanceOptimizer implements IPerformanceOptimizer {
-  private config: Required<PerformanceConfig>;
-  private traversalCache: LRUCache<string, unknown[]>;
+  private readonly config: Required<PerformanceConfig>;
+  private readonly traversalCache: LRUCache<string, unknown[]>;
   private memoCache: WeakMap<t.File, Map<string, unknown>> = new WeakMap();
   private metrics: PerformanceMetrics;
 
@@ -337,7 +338,7 @@ export class PerformanceOptimizer implements IPerformanceOptimizer {
     const visitor: Visitor = {};
 
     for (const nodeType of nodeTypes) {
-      (visitor as Record<string, (path: NodePath) => void>)[nodeType] = (path: NodePath) => {
+      (visitor as Record<string, (path: NodePath) => void>)[nodeType] = (path: NodePath): void => {
         this.nodesProcessed++;
         handler(path, nodeType);
       };
@@ -411,7 +412,7 @@ export class PerformanceOptimizer implements IPerformanceOptimizer {
   }
 
   private getMemoryUsage(): number {
-    const heapUsed = process?.memoryUsage?.()?.heapUsed;
+    const heapUsed = process.memoryUsage().heapUsed;
     return heapUsed ?? 0;
   }
 
@@ -437,10 +438,10 @@ export function createPerformanceOptimizer(
  * Utility class for tracking operation performance.
  */
 export class PerformanceTracker {
-  private startTime: number = 0;
-  private phases: Map<string, number> = new Map();
+  private startTime = 0;
+  private readonly phases: Map<string, number> = new Map();
   private currentPhase: string | null = null;
-  private phaseStart: number = 0;
+  private phaseStart = 0;
 
   start(): void {
     this.startTime = performance.now();

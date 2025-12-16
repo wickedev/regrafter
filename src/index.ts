@@ -191,11 +191,17 @@ export {
 
 import type { NodePath } from '@babel/traverse';
 import traverse from '@babel/traverse';
+import type * as t from '@babel/types';
 
-import { validateMoveOperation, type MoveValidationResult } from './analyzer/index.js';
-import { createMoveAnalysisBuilder, DependencyAnalyzer } from './analyzer/index.js';
+import {
+  validateMoveOperation,
+  type MoveValidationResult,
+  createMoveAnalysisBuilder,
+  DependencyAnalyzer,
+} from './analyzer/index.js';
 import { CodeGenerator } from './generator/CodeGenerator.js';
 import { createOptimizer } from './optimizer/Optimizer.js';
+import type { OptimizeOptions } from './optimizer/types.js';
 import { createParser } from './parser/index.js';
 import { createScopeManager } from './scope/index.js';
 import { createSelectorResolver } from './selector/index.js';
@@ -206,15 +212,12 @@ import {
 import {
   createConfiguredHoistPlanner,
   createHoistExecutor,
-  type HoistContext,
-  type HoistExecutionContext,
 } from './strategies/index.js';
 import { createJSXTransformer } from './transformer/index.js';
 // eslint-disable-next-line import/order
 import {
   type FileInput,
   type Selector,
-  Move,
   type Options,
   type Result,
   type Code,
@@ -329,7 +332,7 @@ export function move(
   const transformer = createJSXTransformer();
 
   // Parse all files
-  const parsedFiles = new Map<string, import('@babel/types').File>();
+  const parsedFiles = new Map<string, t.File>();
   for (const file of files) {
     const result = parser.parse(file.content, file.path);
     if (!result.success || !result.ast) {
@@ -411,7 +414,7 @@ function executeCrossFileMove(
   const resolver = createSelectorResolver();
 
   // Parse all files
-  const parsedFiles = new Map<string, import('@babel/types').File>();
+  const parsedFiles = new Map<string, t.File>();
   const originalContents = new Map<string, string>();
 
   for (const file of files) {
@@ -497,7 +500,7 @@ function moveWithHoisting(
   const executor = createHoistExecutor();
 
   // Parse all files
-  const parsedFiles = new Map<string, import('@babel/types').File>();
+  const parsedFiles = new Map<string, t.File>();
   for (const file of files) {
     const result = parser.parse(file.content, file.path);
     if (!result.success || !result.ast) {
@@ -738,7 +741,7 @@ export function analyze(
  */
 export function optimize(
   files: FileInput[],
-  options?: import('./optimizer/types.js').OptimizeOptions
+  options?: OptimizeOptions
 ): Code[] {
   const optimizer = createOptimizer();
   return optimizer.optimize(files, options);

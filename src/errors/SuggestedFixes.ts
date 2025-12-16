@@ -7,7 +7,8 @@
 import type { SuggestedFix, Dependency } from '../types/public.js';
 import { DependencyType } from '../types/public.js';
 
-import { ErrorCategory, RegraffError } from './ErrorCategory.js';
+import type { RegraffError } from './ErrorCategory.js';
+import { ErrorCategory } from './ErrorCategory.js';
 
 // ===============================================================================
 // Fix Types

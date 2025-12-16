@@ -9,9 +9,10 @@
  */
 
 import type { NodePath } from '@babel/traverse';
-import * as t from '@babel/types';
+import type * as t from '@babel/types';
 
-import { ScopeManager, type ScopeInfo, ScopeType } from '../scope/index.js';
+import { ScopeType } from '../scope/index.js';
+import type { ScopeManager, type ScopeInfo } from '../scope/index.js';
 import {
   createMoveAnalysis,
   createAnalysisStats,
@@ -34,8 +35,8 @@ import { DependencyAnalyzer, type AnalyzerOptions } from './DependencyAnalyzer.j
  * MoveAnalysisBuilder creates MoveAnalysis objects for the public API
  */
 export class MoveAnalysisBuilder {
-  private scopeManager: ScopeManager;
-  private analyzer: DependencyAnalyzer;
+  private readonly scopeManager: ScopeManager;
+  private readonly analyzer: DependencyAnalyzer;
 
   constructor(scopeManager: ScopeManager, options?: AnalyzerOptions) {
     this.scopeManager = scopeManager;

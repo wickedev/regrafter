@@ -43,7 +43,7 @@ function hashString(str: string): string {
  * returning stale ASTs when file content has changed.
  */
 export class ASTStore {
-  private cache: Map<string, ASTCacheEntry> = new Map();
+  private readonly cache: Map<string, ASTCacheEntry> = new Map();
 
   /**
    * Get a cached parse result for a file

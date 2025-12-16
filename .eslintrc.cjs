@@ -21,26 +21,57 @@ module.exports = {
     'prettier',
   ],
   rules: {
-    // TypeScript specific rules
-    '@typescript-eslint/explicit-function-return-type': 'off',
+    // ========================================================================
+    // TypeScript - Type Safety (Tier 1)
+    // ========================================================================
+    '@typescript-eslint/explicit-function-return-type': 'error',
+    '@typescript-eslint/explicit-module-boundary-types': 'error',
+    '@typescript-eslint/strict-boolean-expressions': 'warn', // 너무 엄격하여 warn으로 조정
+    '@typescript-eslint/no-unsafe-assignment': 'warn', // any 타입 사용이 필요한 경우를 위해 warn
+    '@typescript-eslint/no-unsafe-call': 'warn',
+    '@typescript-eslint/no-unsafe-member-access': 'warn',
+    '@typescript-eslint/no-unsafe-return': 'warn',
+    '@typescript-eslint/no-unsafe-argument': 'warn', // any 타입 인자 전달이 필요한 경우를 위해 warn
+
+    // TypeScript - Code Consistency (Tier 1)
+    '@typescript-eslint/consistent-type-imports': 'error',
+    '@typescript-eslint/consistent-type-assertions': 'error',
+    '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
+
+    // TypeScript - Existing Rules (strengthened)
     '@typescript-eslint/no-unused-vars': [
       'error',
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
     ],
-    '@typescript-eslint/no-explicit-any': 'warn',
-    '@typescript-eslint/prefer-nullish-coalescing': 'warn',
-    '@typescript-eslint/prefer-optional-chain': 'warn',
-    '@typescript-eslint/strict-boolean-expressions': 'off',
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/prefer-nullish-coalescing': 'error',
+    '@typescript-eslint/prefer-optional-chain': 'error',
     '@typescript-eslint/no-floating-promises': 'error',
     '@typescript-eslint/no-misused-promises': 'error',
-    '@typescript-eslint/no-unsafe-argument': 'off',
-    '@typescript-eslint/no-unsafe-assignment': 'off',
-    '@typescript-eslint/no-unsafe-call': 'off',
-    '@typescript-eslint/no-unsafe-member-access': 'off',
-    '@typescript-eslint/no-unsafe-return': 'off',
-    '@typescript-eslint/restrict-template-expressions': 'off',
+    '@typescript-eslint/restrict-template-expressions': 'warn', // 템플릿 리터럴 타입 제한
 
-    // Import rules
+    // ========================================================================
+    // TypeScript - Code Quality (Tier 2)
+    // ========================================================================
+    '@typescript-eslint/no-unnecessary-condition': 'warn', // 일부 방어적 코드에서는 필요할 수 있음
+    '@typescript-eslint/no-inferrable-types': 'error',
+    '@typescript-eslint/no-non-null-assertion': 'warn', // 타입 단언이 필요한 경우를 위해 warn
+    '@typescript-eslint/prefer-for-of': 'error',
+    '@typescript-eslint/prefer-includes': 'error',
+    '@typescript-eslint/prefer-string-starts-ends-with': 'error',
+    '@typescript-eslint/prefer-readonly': 'error',
+    '@typescript-eslint/prefer-reduce-type-parameter': 'error',
+    '@typescript-eslint/switch-exhaustiveness-check': 'error',
+
+    // ========================================================================
+    // TypeScript - Advanced Protection (Tier 3)
+    // ========================================================================
+    '@typescript-eslint/no-shadow': 'error',
+    '@typescript-eslint/return-await': ['error', 'in-try-catch'],
+
+    // ========================================================================
+    // Import Rules
+    // ========================================================================
     'import/order': [
       'error',
       {
@@ -58,11 +89,19 @@ module.exports = {
     ],
     'import/no-duplicates': 'error',
 
-    // General rules
-    'no-console': 'warn',
+    // ========================================================================
+    // General Rules
+    // ========================================================================
+    'no-console': 'error',
     'prefer-const': 'error',
     'no-var': 'error',
-    eqeqeq: ['error', 'always'],
+    'eqeqeq': ['error', 'always'],
+    'no-param-reassign': 'error',
+
+    // Code Complexity (Tier 3) - 실용적인 수준으로 조정
+    'complexity': ['warn', 25], // 복잡한 분석 로직을 위해 25로 조정
+    'max-depth': ['warn', 5], // 5단계까지 허용
+    'max-lines-per-function': ['warn', 200], // 200줄까지 허용
   },
   settings: {
     'import/resolver': {
@@ -87,7 +126,6 @@ module.exports = {
       parserOptions: {
         ecmaVersion: 2022,
         sourceType: 'module',
-        // Don't use project for test files to avoid type-checking rules
       },
       extends: [
         'eslint:recommended',
@@ -95,18 +133,13 @@ module.exports = {
         'prettier',
       ],
       rules: {
-        // Override all rules from main config that require type information
+        // Relax type-checking rules for tests
         '@typescript-eslint/await-thenable': 'off',
         '@typescript-eslint/no-floating-promises': 'off',
         '@typescript-eslint/no-for-in-array': 'off',
         '@typescript-eslint/no-implied-eval': 'off',
         '@typescript-eslint/no-misused-promises': 'off',
         '@typescript-eslint/no-unnecessary-type-assertion': 'off',
-        '@typescript-eslint/no-unsafe-argument': 'off',
-        '@typescript-eslint/no-unsafe-assignment': 'off',
-        '@typescript-eslint/no-unsafe-call': 'off',
-        '@typescript-eslint/no-unsafe-member-access': 'off',
-        '@typescript-eslint/no-unsafe-return': 'off',
         '@typescript-eslint/prefer-nullish-coalescing': 'off',
         '@typescript-eslint/prefer-optional-chain': 'off',
         '@typescript-eslint/prefer-readonly': 'off',
@@ -116,9 +149,19 @@ module.exports = {
         '@typescript-eslint/require-array-sort-compare': 'off',
         '@typescript-eslint/require-await': 'off',
         '@typescript-eslint/restrict-plus-operands': 'off',
-        '@typescript-eslint/restrict-template-expressions': 'off',
-        '@typescript-eslint/strict-boolean-expressions': 'off',
         '@typescript-eslint/unbound-method': 'off',
+
+        // Allow any and unsafe operations in tests
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-return': 'off',
+
+        // Relax complexity rules for tests
+        'complexity': 'off',
+        'max-depth': 'off',
+        'max-lines-per-function': 'off',
       },
     },
   ],

@@ -5,7 +5,7 @@
  * and custom hooks while ensuring compliance with Rules of Hooks.
  */
 
-import * as t from '@babel/types';
+import type * as t from '@babel/types';
 
 import {
   createHoistOperation,
@@ -343,7 +343,7 @@ export class HookHoister implements IHookHoister {
     let dependencyArray: string[] | undefined;
 
     // Try to determine the hook name from the call expression
-    if (node?.type === 'VariableDeclarator') {
+    if (node.type === 'VariableDeclarator') {
       const init = (node).init;
       if (init?.type === 'CallExpression') {
         const callee = init.callee;
@@ -459,7 +459,7 @@ export class HookHoister implements IHookHoister {
    */
   private isCustomHookScope(scope: ScopeInfo): boolean {
     const path = scope.path;
-    if (!path?.node) {
+    if (!path.node) {
       return false;
     }
 

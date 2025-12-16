@@ -9,11 +9,13 @@
  * - Integrate into unified regraft() API
  */
 
-import traverse, { NodePath } from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
+import traverse from '@babel/traverse';
 import type * as t from '@babel/types';
 
 import { CodeGenerator } from '../generator/CodeGenerator.js';
-import { Parser, createParser } from '../parser/index.js';
+import type { Parser} from '../parser/index.js';
+import { createParser } from '../parser/index.js';
 import {
   createCode,
   createDependencyGraph,
@@ -25,13 +27,17 @@ import {
 import { ScopeType, type DependencyGraph, type ScopeInfo } from '../types/index.js';
 import type { FileInput, Code } from '../types/public.js';
 
-import { FastCanMove, createFastCanMove } from './FastCanMove.js';
+import type { FastCanMove} from './FastCanMove.js';
+import { createFastCanMove } from './FastCanMove.js';
+import type {
+  PerformanceOptimizer} from './PerformanceOptimizer.js';
 import {
-  PerformanceOptimizer,
   createPerformanceOptimizer,
 } from './PerformanceOptimizer.js';
-import { SinkAnalyzer, createSinkAnalyzer } from './SinkAnalyzer.js';
-import { SinkExecutor, createSinkExecutor } from './SinkExecutor.js';
+import type { SinkAnalyzer} from './SinkAnalyzer.js';
+import { createSinkAnalyzer } from './SinkAnalyzer.js';
+import type { SinkExecutor} from './SinkExecutor.js';
+import { createSinkExecutor } from './SinkExecutor.js';
 import type {
   IOptimizer,
   OptimizeOptions,
@@ -70,12 +76,12 @@ const DEFAULT_OPTIMIZE_OPTIONS: Required<OptimizeOptions> = {
  * dead code removal, and performance optimization.
  */
 export class Optimizer implements IOptimizer {
-  private parser: Parser;
-  private generator: CodeGenerator;
-  private sinkAnalyzer: SinkAnalyzer;
-  private sinkExecutor: SinkExecutor;
-  private performanceOptimizer: PerformanceOptimizer;
-  private fastCanMove: FastCanMove;
+  private readonly parser: Parser;
+  private readonly generator: CodeGenerator;
+  private readonly sinkAnalyzer: SinkAnalyzer;
+  private readonly sinkExecutor: SinkExecutor;
+  private readonly performanceOptimizer: PerformanceOptimizer;
+  private readonly fastCanMove: FastCanMove;
 
   constructor() {
     this.parser = createParser();
@@ -326,7 +332,7 @@ export class Optimizer implements IOptimizer {
       // Check for block scope
       if (current.isBlockStatement()) {
         const parent = current.parentPath;
-        if (parent?.isIfStatement()) {
+        if (parent.isIfStatement()) {
           return createScopeInfo({
             type: ScopeType.Conditional,
             path: current,
@@ -335,9 +341,9 @@ export class Optimizer implements IOptimizer {
           });
         }
         if (
-          parent?.isForStatement() ||
-          parent?.isWhileStatement() ||
-          parent?.isDoWhileStatement()
+          parent.isForStatement() ||
+          parent.isWhileStatement() ||
+          parent.isDoWhileStatement()
         ) {
           return createScopeInfo({
             type: ScopeType.Loop,

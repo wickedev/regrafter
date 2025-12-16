@@ -10,10 +10,12 @@
  * - Early return on blocking issues
  */
 
-import traverse, { NodePath } from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
+import traverse from '@babel/traverse';
 import type * as t from '@babel/types';
 
-import { Parser, createParser } from '../parser/index.js';
+import type { Parser} from '../parser/index.js';
+import { createParser } from '../parser/index.js';
 import type { FileInput } from '../types/public.js';
 
 import type {
@@ -36,8 +38,8 @@ const DEFAULT_FAST_CANMOVE_OPTIONS: Required<FastCanMoveOptions> = {
  * FastCanMove provides quick validation of move operations.
  */
 export class FastCanMove {
-  private parser: Parser;
-  private hookNames: Set<string>;
+  private readonly parser: Parser;
+  private readonly hookNames: Set<string>;
 
   constructor() {
     this.parser = createParser();
@@ -230,7 +232,7 @@ export class FastCanMove {
     blockingIssues: BlockingIssue[],
     complexityEstimate: number,
     startTime: number,
-    needsDetailedAnalysis: boolean = false
+    needsDetailedAnalysis = false
   ): FastCanMoveResult {
     return {
       canMove,

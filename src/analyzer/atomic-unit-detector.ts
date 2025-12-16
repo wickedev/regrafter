@@ -556,7 +556,7 @@ export function getAtomicUnitType(node: t.Node | null | undefined): AtomicUnitTy
  * Recursively collect all child nodes of a node
  */
 function collectChildNodes(node: t.Node, collected: t.Node[]): void {
-  const keys = Object.keys(node) as (keyof t.Node)[];
+  const keys = Object.keys(node) as Array<keyof t.Node>;
 
   for (const key of keys) {
     // Skip metadata keys

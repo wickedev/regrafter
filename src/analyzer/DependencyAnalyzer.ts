@@ -20,7 +20,8 @@
 import type { NodePath, Binding } from '@babel/traverse';
 import * as t from '@babel/types';
 
-import { ScopeManager, type ScopeInfo, type ComponentScope, ScopeType } from '../scope/index.js';
+import { ScopeType } from '../scope/index.js';
+import type { ScopeManager, type ScopeInfo, type ComponentScope } from '../scope/index.js';
 import {
   createInternalDependency,
   createDependencyOrigin,
@@ -71,9 +72,9 @@ const REACT_HOOKS = new Set([
  * DependencyAnalyzer class for analyzing JSX element dependencies
  */
 export class DependencyAnalyzer {
-  private scopeManager: ScopeManager;
-  private options: Required<AnalyzerOptions>;
-  private currentFile: string = '';
+  private readonly scopeManager: ScopeManager;
+  private readonly options: Required<AnalyzerOptions>;
+  private currentFile = '';
 
   constructor(scopeManager: ScopeManager, options?: AnalyzerOptions) {
     this.scopeManager = scopeManager;
@@ -103,7 +104,7 @@ export class DependencyAnalyzer {
     const errors: string[] = [];
     const seenIdentifiers = new Set<string>();
 
-    const addIdentifier = (ref: IdentifierReference) => {
+    const addIdentifier = (ref: IdentifierReference): void => {
       // Create unique key for deduplication
       const key = `${ref.name}:${ref.path.node.start}`;
       if (!seenIdentifiers.has(key)) {
@@ -514,7 +515,7 @@ export class DependencyAnalyzer {
    */
   detectTransitiveDependencies(
     dependencies: SpecificDependency[],
-    depth: number = 0
+    depth = 0
   ): InternalDependency[] {
     if (!this.options.trackTransitive) return [];
     if (depth >= this.options.maxTransitiveDepth) return [];

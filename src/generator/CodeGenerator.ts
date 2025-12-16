@@ -1,12 +1,13 @@
 import generateCode from '@babel/generator';
 import type * as t from '@babel/types';
 
-import {
+import type {
   GeneratorOptions,
   GenerateResult,
   GeneratorError,
   IndentationInfo,
-  CommentAttachment,
+  CommentAttachment} from './types.js';
+import {
   DEFAULT_GENERATOR_OPTIONS,
 } from './types.js';
 
@@ -393,7 +394,7 @@ export class CodeGenerator {
   adjustIndentation(
     code: string,
     targetIndent: IndentationInfo,
-    preserveRelative: boolean = true
+    preserveRelative = true
   ): string {
     const lines = code.split('\n');
     

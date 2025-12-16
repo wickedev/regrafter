@@ -11,7 +11,8 @@
  * - Compute LCA of consumer scopes
  */
 
-import traverse, { NodePath } from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
+import traverse from '@babel/traverse';
 import type * as t from '@babel/types';
 
 import {
@@ -56,7 +57,7 @@ const DEFAULT_SINK_OPTIONS: Required<SinkAnalysisOptions> = {
  */
 export class SinkAnalyzer implements ISinkAnalyzer {
   private scopeCache: WeakMap<t.File, ScopeTree> = new WeakMap();
-  private consumerCache: Map<string, ConsumerInfo[]> = new Map();
+  private readonly consumerCache: Map<string, ConsumerInfo[]> = new Map();
 
   /**
    * Analyze files for sink candidates.
@@ -411,9 +412,9 @@ export class SinkAnalyzer implements ISinkAnalyzer {
         symbol: node.name,
         type: node.metadata.isHook ? DependencyType.Hook : DependencyType.Variable,
         origin: {
-          node: (node.path?.node) || ({} as t.Node),
+          node: node.path?.node ?? ({} as t.Node),
           file: '', // Would need file context
-          location: node.path?.node ? (node.path.node).loc : null,
+          location: node.path?.node?.loc ?? null,
         },
         scope: node.scope,
         isTransitive: false,

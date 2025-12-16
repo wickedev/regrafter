@@ -13,7 +13,8 @@ import type * as t from '@babel/types';
 const traverse: typeof traverseModule =
   (traverseModule as { default: typeof traverseModule }).default || traverseModule;
 
-import { Parser, createParser } from '../parser/index.js';
+import type { Parser} from '../parser/index.js';
+import { createParser } from '../parser/index.js';
 import { createResolveResult, createSelectorError } from '../types/factories.js';
 import { AtomicUnitType } from '../types/internal.js';
 import type { ResolveResult, AnalyzabilityResult, UnanalyzableCode } from '../types/internal.js';
@@ -608,7 +609,7 @@ const targetSupportsChildrenRule: ValidationRule = (_source, target, mode, _cont
   if (openingElement.selfClosing && element.children.length === 0) {
     // This is a self-closing element, check if it's a known void element or custom component
     // For lowercase (HTML) elements that are self-closing, they shouldn't accept children
-    if (elementName && elementName[0] === elementName[0]?.toLowerCase()) {
+    if (elementName && /^[a-z]/.test(elementName)) {
       return {
         valid: false,
         reason: `<${elementName} /> is self-closing and cannot have children`,

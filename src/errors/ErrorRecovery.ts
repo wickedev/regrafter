@@ -6,7 +6,7 @@
 
 import type { SuggestedFix } from '../types/public.js';
 
-import {
+import type {
   RegraffError,
   CircularError,
   ValidationError,
@@ -65,7 +65,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 10,
       manualAction: 'Move the Hook call to the top level of the component',
-      recover: () => {
+      recover: (): RecoveryResult => {
         // In actual implementation, this would:
         // 1. Find the nearest valid ancestor scope
         // 2. Move the hook declaration there
@@ -85,7 +85,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 10,
       manualAction: 'Move the Hook call outside of the loop',
-      recover: () => {
+      recover: (): RecoveryResult => {
         return {
           success: true,
           action: 'Moved Hook outside loop scope',
@@ -101,7 +101,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 8,
       manualAction: 'Restructure Hook usage to comply with Rules of Hooks',
-      recover: () => {
+      recover: (): RecoveryResult => {
         return {
           success: true,
           action: 'Restructured Hook usage',
@@ -118,7 +118,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 5,
       manualAction: 'Consider using React Context instead of deep prop drilling',
-      recover: () => {
+      recover: (): RecoveryResult => {
         return {
           success: true,
           action: 'Created Context Provider for deep prop chain',
@@ -138,7 +138,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 10,
       manualAction: 'Extract shared dependencies to a common module',
-      recover: () => {
+      recover: (): RecoveryResult => {
         return {
           success: true,
           action: 'Created shared module to break circular dependency',
@@ -154,7 +154,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 10,
       manualAction: 'Restructure imports to eliminate circular dependency',
-      recover: () => {
+      recover: (): RecoveryResult => {
         return {
           success: true,
           action: 'Restructured imports to break cycle',
@@ -184,7 +184,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 8,
       manualAction: 'Add the missing import or define the symbol',
-      recover: () => {
+      recover: (): RecoveryResult => {
         return {
           success: true,
           action: 'Added missing import',
@@ -201,7 +201,7 @@ export const RECOVERY_STRATEGIES: Map<string, RecoveryStrategy> = new Map([
       canAutoRecover: true,
       priority: 7,
       manualAction: 'Refactor to eliminate circular dependencies',
-      recover: () => {
+      recover: (): RecoveryResult => {
         return {
           success: true,
           action: 'Extracted shared dependency to break cycle',

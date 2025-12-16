@@ -7,7 +7,7 @@
 
 import traverse from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
-import * as t from '@babel/types';
+import type * as t from '@babel/types';
 
 import {
   createHoistOperation,
@@ -37,7 +37,7 @@ import type {
 /**
  * Known React context-related patterns
  */
-const CONTEXT_PATTERNS = {
+const _CONTEXT_PATTERNS = {
   /** createContext call */
   createContext: /^(React\.)?createContext$/,
   /** Context Provider pattern */
@@ -109,7 +109,7 @@ export class ContextHandler implements IContextHandler {
         // Check for <XxxProvider> pattern (common naming convention)
         if (openingElement.name.type === 'JSXIdentifier') {
           const name = openingElement.name.name;
-          if (CONTEXT_PATTERNS.provider.test(name)) {
+          if (name.endsWith("Provider")) {
             if (!contextName || name === `${contextName}Provider`) {
               providerPath = path;
               path.stop();
@@ -412,7 +412,7 @@ export class ContextHandler implements IContextHandler {
     const node = dependency.origin.node;
 
     // Check if this is a useContext call
-    if (node?.type === 'VariableDeclarator') {
+    if (node.type === 'VariableDeclarator') {
       const init = (node).init;
       if (init?.type === 'CallExpression' && init.arguments.length > 0) {
         const arg = init.arguments[0];
@@ -526,7 +526,7 @@ export function isContextProvider(element: t.JSXElement): boolean {
 
   // <XxxProvider> naming convention
   if (name.type === 'JSXIdentifier') {
-    return CONTEXT_PATTERNS.provider.test(name.name);
+    return name.name.endsWith("Provider");
   }
 
   return false;
@@ -548,7 +548,7 @@ export function isContextConsumer(element: t.JSXElement): boolean {
 
   // <XxxConsumer> naming convention
   if (name.type === 'JSXIdentifier') {
-    return CONTEXT_PATTERNS.consumer.test(name.name);
+    return name.name.endsWith("Consumer");
   }
 
   return false;

@@ -10,7 +10,8 @@
  * - Dead code detection and removal
  */
 
-import traverse, { NodePath } from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
+import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 
 import { createPropRemoval , generateId } from '../types/factories.js';
@@ -34,7 +35,7 @@ import type {
  * declarations to their optimal locations.
  */
 export class SinkExecutor implements ISinkExecutor {
-  private usedIdentifiers: WeakMap<t.File, Set<string>> = new WeakMap();
+  private readonly usedIdentifiers: WeakMap<t.File, Set<string>> = new WeakMap();
 
   /**
    * Execute sink operations on the given candidates.
@@ -535,7 +536,7 @@ function getFunctionName(
   if (path.isFunctionDeclaration() && path.node.id) {
     return path.node.id.name;
   }
-  if (path.parentPath?.isVariableDeclarator()) {
+  if (path.parentPath.isVariableDeclarator()) {
     const id = path.parentPath.node.id;
     if (t.isIdentifier(id)) {
       return id.name;

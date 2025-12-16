@@ -351,7 +351,7 @@ export class ImportManager implements IImportManager {
     const node = dependency.origin.node;
 
     // If the dependency node is an import specifier, get the source
-    if (node?.type === 'ImportSpecifier' || node?.type === 'ImportDefaultSpecifier') {
+    if (node.type === 'ImportSpecifier' || node.type === 'ImportDefaultSpecifier') {
       // Need to find the parent ImportDeclaration
       // This would require path information, so for now we use the origin file
       return null;
@@ -370,11 +370,11 @@ export class ImportManager implements IImportManager {
     // Check the original node to determine type
     const node = dependency.origin.node;
 
-    if (node?.type === 'ImportDefaultSpecifier') {
+    if (node.type === 'ImportDefaultSpecifier') {
       return 'default';
     }
 
-    if (node?.type === 'ImportNamespaceSpecifier') {
+    if (node.type === 'ImportNamespaceSpecifier') {
       return 'namespace';
     }
 

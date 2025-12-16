@@ -135,18 +135,19 @@ export class PropThreader implements IPropThreader {
    */
   resolveNameConflict(propName: string, existingProps: Set<string>): string {
     // Check if name is reserved
-    if (RESERVED_PROP_NAMES.has(propName)) {
-      propName = `${propName}Value`;
+    let resolvedName = propName;
+    if (RESERVED_PROP_NAMES.has(resolvedName)) {
+      resolvedName = `${resolvedName}Value`;
     }
 
     // If no conflict, return as-is
-    if (!existingProps.has(propName)) {
-      return propName;
+    if (!existingProps.has(resolvedName)) {
+      return resolvedName;
     }
 
     // Try adding suffixes
     for (const suffix of PROP_SUFFIXES) {
-      const newName = `${propName}${suffix}`;
+      const newName = `${resolvedName}${suffix}`;
       if (!existingProps.has(newName)) {
         return newName;
       }
@@ -276,7 +277,7 @@ export class PropThreader implements IPropThreader {
    */
   generatePropType(
     propName: string,
-    propType: string = 'unknown'
+    propType = 'unknown'
   ): t.TSPropertySignature {
     return t.tsPropertySignature(
       t.identifier(propName),
@@ -318,10 +319,10 @@ export class PropThreader implements IPropThreader {
     const chain1Ids = new Set(chain1.map((c) => c.id));
 
     // Find first component in chain2 that's in chain1
-    for (let i = 0; i < chain2.length; i++) {
-      if (chain1Ids.has(chain2[i].id)) {
+    for (const component of chain2) {
+      if (chain1Ids.has(component.id)) {
         // Return position in chain1
-        return chain1.findIndex((c) => c.id === chain2[i].id);
+        return chain1.findIndex((c) => c.id === component.id);
       }
     }
 
@@ -356,19 +357,19 @@ export class PropThreader implements IPropThreader {
    */
   private sanitizePropName(name: string): string {
     // Remove invalid characters
-    name = name.replace(/[^a-zA-Z0-9_$]/g, '');
+    let sanitized = name.replace(/[^a-zA-Z0-9_$]/g, '');
 
     // Ensure it doesn't start with a number
-    if (/^[0-9]/.test(name)) {
-      name = `_${name}`;
+    if (/^[0-9]/.test(sanitized)) {
+      sanitized = `_${sanitized}`;
     }
 
     // Ensure it's not empty
-    if (!name) {
-      name = 'prop';
+    if (!sanitized) {
+      sanitized = 'prop';
     }
 
-    return name;
+    return sanitized;
   }
 }
 

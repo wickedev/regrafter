@@ -59,7 +59,7 @@ const REACT_HOOKS = new Set([
  */
 export class ScopeManager {
   private scopeTree: ScopeTree | null = null;
-  private components: Map<string, ComponentInfo> = new Map();
+  private readonly components: Map<string, ComponentInfo> = new Map();
 
   /**
    * Task 2.2.1: Build scope tree from AST

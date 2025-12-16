@@ -5,15 +5,17 @@
  * JSX, TypeScript, and modern JavaScript syntax.
  */
 
-import { parse as babelParse, ParserOptions, ParserPlugin } from '@babel/parser';
+import type { ParserOptions, ParserPlugin } from '@babel/parser';
+import { parse as babelParse } from '@babel/parser';
 import type { File as BabelFile, SourceLocation } from '@babel/types';
 
 import { ASTStore } from './ast-store.js';
-import {
+import type {
   FileInput,
   IParser,
   ParseError,
-  ParseResult,
+  ParseResult} from './types.js';
+import {
   getExtension,
   isTypeScriptFile,
 } from './types.js';
@@ -182,7 +184,7 @@ function extractRecoveredErrors(ast: BabelFile, filename: string): ParseError[] 
  * - Meaningful error messages with source locations
  */
 export class Parser implements IParser {
-  private astStore: ASTStore;
+  private readonly astStore: ASTStore;
 
   constructor() {
     this.astStore = new ASTStore();

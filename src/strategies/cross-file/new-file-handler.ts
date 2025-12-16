@@ -462,7 +462,7 @@ export function isComponentFile(filePath: string): boolean {
 
   // Check if file name starts with uppercase (convention for components)
   const baseName = fileName.replace(/\.[^.]+$/, '');
-  if (baseName.charAt(0) === baseName.charAt(0).toUpperCase()) {
+  if (/^[A-Z]/.test(baseName)) {
     return true;
   }
 

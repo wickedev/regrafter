@@ -14,10 +14,11 @@ import * as t from '@babel/types';
 
 import { Move } from '../types/public.js';
 
-import {
+import type {
   MoveResult,
   MoveOptions,
-  MoveContext,
+  MoveContext} from './types.js';
+import {
   mergeMoveOptions,
   TransformerErrorCodes,
 } from './types.js';
@@ -555,11 +556,11 @@ export class JSXTransformer {
     } else if (t.isJSXFragment(parent)) {
       parent.children = siblings as JSXChild[];
     } else if (t.isArrayExpression(parent)) {
-      parent.elements = siblings as (t.Expression | t.SpreadElement | null)[];
+      parent.elements = siblings as Array<t.Expression | t.SpreadElement | null>;
     } else if (t.isBlockStatement(parent)) {
       parent.body = siblings as t.Statement[];
     } else if (t.isProgram(parent)) {
-      parent.body = siblings as (t.Statement | t.ModuleDeclaration)[];
+      parent.body = siblings as Array<t.Statement | t.ModuleDeclaration>;
     }
   }
 

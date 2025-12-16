@@ -250,7 +250,7 @@ export class BenchmarkRunner {
   }
 
   private getMemoryUsage(): number {
-    const heapUsed = process?.memoryUsage?.()?.heapUsed;
+    const heapUsed = process.memoryUsage().heapUsed;
     return heapUsed ?? 0;
   }
 
@@ -286,15 +286,15 @@ export function createBenchmarkRunner(): BenchmarkRunner {
 export class MemoryTracker {
   private samples: number[] = [];
   private intervalId: ReturnType<typeof setInterval> | null = null;
-  private startMemory: number = 0;
-  private peakMemory: number = 0;
+  private startMemory = 0;
+  private peakMemory = 0;
 
   /**
    * Start tracking memory usage.
    *
    * @param intervalMs - Sampling interval in milliseconds
    */
-  start(intervalMs: number = 10): void {
+  start(intervalMs = 10): void {
     this.samples = [];
     this.startMemory = this.getHeapUsed();
     this.peakMemory = this.startMemory;
@@ -350,7 +350,7 @@ export class MemoryTracker {
   }
 
   private getHeapUsed(): number {
-    const heapUsed = process?.memoryUsage?.()?.heapUsed;
+    const heapUsed = process.memoryUsage().heapUsed;
     return heapUsed ?? 0;
   }
 }
