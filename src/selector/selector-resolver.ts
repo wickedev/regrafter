@@ -352,11 +352,11 @@ export class SelectorResolver implements ISelectorResolver {
       });
     }
 
-    // Track the best matching JSX element
+    // Track the best matching JSX element or child node
     // Use specific NodePath types to avoid any type issues
     const found: {
       node: t.Node | null;
-      path: NodePath<t.JSXElement> | NodePath<t.JSXFragment> | NodePath<t.JSXExpressionContainer> | null;
+      path: NodePath | null;
       specificity: number;
     } = {
       node: null,
@@ -388,22 +388,53 @@ export class SelectorResolver implements ISelectorResolver {
           }
         }
       },
-      JSXExpressionContainer(path: NodePath<t.JSXExpressionContainer>) {
+      JSXText(path: NodePath<t.JSXText>) {
         const node = path.node;
-        // Match expression containers that contain JSX or JSX-related expressions
-        if (
-          positionInNode(node, line, column) &&
-          (t.isJSXElement(node.expression) ||
-            t.isJSXFragment(node.expression) ||
-            t.isCallExpression(node.expression) ||
-            t.isLogicalExpression(node.expression) ||  // For {condition && <Element />}
-            t.isConditionalExpression(node.expression)) // For {condition ? <A /> : <B />}
-        ) {
+        if (positionInNode(node, line, column)) {
           const spec = nodeSpecificity(node);
           if (found.path === null || spec < found.specificity) {
             found.node = node;
             found.path = path;
             found.specificity = spec;
+          }
+        }
+      },
+      JSXExpressionContainer(path: NodePath<t.JSXExpressionContainer>) {
+        const node = path.node;
+        const expression = node.expression;
+
+        // Check if position is within the expression container
+        if (positionInNode(node, line, column)) {
+          // First, check if position is specifically in the inner expression
+          if (!t.isJSXEmptyExpression(expression) && positionInNode(expression, line, column)) {
+            const spec = nodeSpecificity(expression);
+            if (found.path === null || spec < found.specificity) {
+              // Find NodePath for the expression
+              path.traverse({
+                enter(innerPath: NodePath) {
+                  if (innerPath.node === expression) {
+                    found.node = expression;
+                    found.path = innerPath;
+                    found.specificity = spec;
+                    innerPath.stop();
+                  }
+                }
+              });
+            }
+          } else if (
+            // Otherwise, match the container itself if it contains JSX-related expressions
+            t.isJSXElement(expression) ||
+            t.isJSXFragment(expression) ||
+            t.isCallExpression(expression) ||
+            t.isLogicalExpression(expression) ||  // For {condition && <Element />}
+            t.isConditionalExpression(expression) // For {condition ? <A /> : <B />}
+          ) {
+            const spec = nodeSpecificity(node);
+            if (found.path === null || spec < found.specificity) {
+              found.node = node;
+              found.path = path;
+              found.specificity = spec;
+            }
           }
         }
       },

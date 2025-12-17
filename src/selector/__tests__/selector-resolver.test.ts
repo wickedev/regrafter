@@ -86,6 +86,22 @@ function App() {
 }
 `;
 
+const textNodeCode = `
+function App() {
+  return (
+    <p>Hello World</p>
+  );
+}
+`;
+
+const expressionCode = `
+function App({ user }) {
+  return (
+    <p>Hello, {user}</p>
+  );
+}
+`;
+
 // =============================================================================
 // Helper Functions
 // =============================================================================
@@ -191,6 +207,34 @@ describe('SelectorResolver', () => {
 
       expect(result.node).not.toBeNull();
       expect(result.error).toBeUndefined();
+    });
+
+    it('should resolve JSXText node inside element', () => {
+      const ast = parseCode(textNodeCode);
+      // Position at "Hello World" text
+      const result = resolver.resolveByPosition(
+        { file: 'test.tsx', line: 4, column: 10 },
+        ast
+      );
+
+      expect(result.node).not.toBeNull();
+      expect(result.error).toBeUndefined();
+      // Should resolve to JSXText node
+      expect(result.node?.type).toBe('JSXText');
+    });
+
+    it('should resolve expression inside JSXExpressionContainer', () => {
+      const ast = parseCode(expressionCode);
+      // Position at {user} expression - Identifier is at column 15-19
+      const result = resolver.resolveByPosition(
+        { file: 'test.tsx', line: 4, column: 17 },
+        ast
+      );
+
+      expect(result.node).not.toBeNull();
+      expect(result.error).toBeUndefined();
+      // Should resolve to the Identifier node inside the expression
+      expect(result.node?.type).toBe('Identifier');
     });
   });
 
