@@ -13,10 +13,10 @@
  * - Validate analyzability checks
  */
 
-import { describe, it, expect } from 'vitest';
-import { parse } from '@babel/parser';
-import traverseFn, { type NodePath } from '@babel/traverse';
-import * as t from '@babel/types';
+import { describe, it, expect } from "vitest";
+import { parse } from "@babel/parser";
+import traverseFn, { type NodePath } from "@babel/traverse";
+import * as t from "@babel/types";
 
 const traverse = traverseFn as any as typeof traverseFn.default;
 import {
@@ -32,7 +32,7 @@ import {
   createNodeMetadata,
   createScopeInfo,
   ScopeType,
-} from '../../types/index.js';
+} from "../../types/index.js";
 
 // =============================================================================
 // Test Cases Overview
@@ -71,8 +71,8 @@ import {
  */
 function parseCode(code: string): t.File {
   return parse(code, {
-    sourceType: 'module',
-    plugins: ['jsx', 'typescript'],
+    sourceType: "module",
+    plugins: ["jsx", "typescript"],
   });
 }
 
@@ -82,7 +82,6 @@ function parseCode(code: string): t.File {
  */
 class MockDependencyAnalyzer {
   private ast: t.File;
-  // @ts-expect-error unused test variable
   private _code: string;
   private dependencies: InternalDependency[] = [];
   private graph: DependencyGraph;
@@ -119,11 +118,20 @@ class MockDependencyAnalyzer {
         // Skip if this is a declaration, not a reference
         if (path.isBindingIdentifier()) return;
         const identifierPath = path as NodePath<t.Identifier>;
-        if (identifierPath.parentPath?.isVariableDeclarator() && identifierPath.key === 'id') return;
+        if (
+          identifierPath.parentPath?.isVariableDeclarator() &&
+          identifierPath.key === "id"
+        )
+          return;
 
-        const binding = identifierPath.scope.getBinding(identifierPath.node.name);
+        const binding = identifierPath.scope.getBinding(
+          identifierPath.node.name
+        );
         if (binding) {
-          self.addVariableDependency(identifierPath.node.name, identifierPath.node);
+          self.addVariableDependency(
+            identifierPath.node.name,
+            identifierPath.node
+          );
         }
       },
 
@@ -142,7 +150,7 @@ class MockDependencyAnalyzer {
    * Check if name is a React hook
    */
   private isHook(name: string): boolean {
-    return name.startsWith('use') && name.length > 3 && /^use[A-Z]/.test(name);
+    return name.startsWith("use") && name.length > 3 && /^use[A-Z]/.test(name);
   }
 
   /**
@@ -155,11 +163,11 @@ class MockDependencyAnalyzer {
       type: DependencyType.Hook,
       origin: createDependencyOrigin({
         node,
-        file: 'current-file.tsx',
+        file: "current-file.tsx",
         location: node.loc,
       }),
       scope: createScopeInfo({
-        id: 'component-scope',
+        id: "component-scope",
         type: ScopeType.Component,
         path: null as any,
         parent: null,
@@ -177,12 +185,20 @@ class MockDependencyAnalyzer {
    */
   private addVariableDependency(name: string, node: t.Node): void {
     // Skip React, common globals, etc.
-    if (['React', 'console', 'window', 'document', 'undefined', 'null'].includes(name)) {
+    if (
+      ["React", "console", "window", "document", "undefined", "null"].includes(
+        name
+      )
+    ) {
       return;
     }
 
     // Check if already added
-    if (this.dependencies.some(d => d.symbol === name && d.type === DependencyType.Variable)) {
+    if (
+      this.dependencies.some(
+        (d) => d.symbol === name && d.type === DependencyType.Variable
+      )
+    ) {
       return;
     }
 
@@ -192,11 +208,11 @@ class MockDependencyAnalyzer {
       type: DependencyType.Variable,
       origin: createDependencyOrigin({
         node,
-        file: 'current-file.tsx',
+        file: "current-file.tsx",
         location: node.loc,
       }),
       scope: createScopeInfo({
-        id: 'function-scope',
+        id: "function-scope",
         type: ScopeType.Function,
         path: null as any,
         parent: null,
@@ -219,11 +235,11 @@ class MockDependencyAnalyzer {
       type: DependencyType.Prop,
       origin: createDependencyOrigin({
         node,
-        file: 'current-file.tsx',
+        file: "current-file.tsx",
         location: node.loc,
       }),
       scope: createScopeInfo({
-        id: 'prop-scope',
+        id: "prop-scope",
         type: ScopeType.Component,
         path: null as any,
         parent: null,
@@ -240,10 +256,15 @@ class MockDependencyAnalyzer {
    * Build the final analysis result
    */
   private buildAnalysisResult(): DependencyAnalysis {
-    const needsHoisting = this.dependencies.filter(d => d.type === DependencyType.Hook);
-    const needsImport = this.dependencies.filter(d => d.type === DependencyType.Import);
+    const needsHoisting = this.dependencies.filter(
+      (d) => d.type === DependencyType.Hook
+    );
+    const needsImport = this.dependencies.filter(
+      (d) => d.type === DependencyType.Import
+    );
     const needsPropThreading = this.dependencies.filter(
-      d => d.type === DependencyType.Variable || d.type === DependencyType.Prop
+      (d) =>
+        d.type === DependencyType.Variable || d.type === DependencyType.Prop
     );
 
     const canResolve =
@@ -257,7 +278,7 @@ class MockDependencyAnalyzer {
       needsImport,
       needsPropThreading,
       canResolve,
-      unresolvedReason: canResolve ? undefined : 'Unanalyzable code detected',
+      unresolvedReason: canResolve ? undefined : "Unanalyzable code detected",
     });
   }
 
@@ -268,7 +289,10 @@ class MockDependencyAnalyzer {
     let hasEval = false;
     traverse(this.ast, {
       CallExpression(path) {
-        if (t.isIdentifier(path.node.callee) && path.node.callee.name === 'eval') {
+        if (
+          t.isIdentifier(path.node.callee) &&
+          path.node.callee.name === "eval"
+        ) {
           hasEval = true;
           path.stop();
         }
@@ -284,7 +308,10 @@ class MockDependencyAnalyzer {
     let hasDynamic = false;
     traverse(this.ast, {
       NewExpression(path) {
-        if (t.isIdentifier(path.node.callee) && path.node.callee.name === 'Function') {
+        if (
+          t.isIdentifier(path.node.callee) &&
+          path.node.callee.name === "Function"
+        ) {
           hasDynamic = true;
           path.stop();
         }
@@ -310,14 +337,14 @@ class MockDependencyAnalyzer {
     for (const dep of this.dependencies) {
       const node = createDependencyNode({
         id: dep.id,
-        type: 'symbol',
+        type: "symbol",
         name: dep.symbol,
         path: null as any,
         scope: dep.scope,
         metadata: createNodeMetadata({
           isHook: dep.type === DependencyType.Hook,
-          isPure: !['useState', 'useReducer'].includes(dep.symbol),
-          hasSideEffects: dep.symbol === 'useEffect',
+          isPure: !["useState", "useReducer"].includes(dep.symbol),
+          hasSideEffects: dep.symbol === "useEffect",
           isExported: false,
         }),
       });
@@ -477,7 +504,7 @@ const Dynamic = ({ code }) => {
 // Hook Dependency Detection Tests
 // =============================================================================
 
-describe('DependencyAnalyzer - Hook Detection', () => {
+describe("DependencyAnalyzer - Hook Detection", () => {
   /**
    * DEP-01: Detect useState hook dependency
    *
@@ -486,12 +513,14 @@ describe('DependencyAnalyzer - Hook Detection', () => {
    * Expected Results:
    * - Analysis contains Hook dependency for useState
    */
-  it('DEP-01: should detect useState hook dependency', () => {
+  it("DEP-01: should detect useState hook dependency", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithUseState);
     const analysis = analyzer.analyze();
 
-    const hookDeps = analysis.dependencies.filter(d => d.type === DependencyType.Hook);
-    expect(hookDeps.some(d => d.symbol === 'useState')).toBe(true);
+    const hookDeps = analysis.dependencies.filter(
+      (d) => d.type === DependencyType.Hook
+    );
+    expect(hookDeps.some((d) => d.symbol === "useState")).toBe(true);
   });
 
   /**
@@ -502,13 +531,15 @@ describe('DependencyAnalyzer - Hook Detection', () => {
    * Expected Results:
    * - Analysis contains Hook dependency for useEffect
    */
-  it('DEP-02: should detect useEffect hook dependency', () => {
+  it("DEP-02: should detect useEffect hook dependency", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithUseEffect);
     const analysis = analyzer.analyze();
 
-    const hookDeps = analysis.dependencies.filter(d => d.type === DependencyType.Hook);
-    expect(hookDeps.some(d => d.symbol === 'useEffect')).toBe(true);
-    expect(hookDeps.some(d => d.symbol === 'useState')).toBe(true);
+    const hookDeps = analysis.dependencies.filter(
+      (d) => d.type === DependencyType.Hook
+    );
+    expect(hookDeps.some((d) => d.symbol === "useEffect")).toBe(true);
+    expect(hookDeps.some((d) => d.symbol === "useState")).toBe(true);
   });
 
   /**
@@ -519,12 +550,14 @@ describe('DependencyAnalyzer - Hook Detection', () => {
    * Expected Results:
    * - Analysis contains Hook dependency for useContext
    */
-  it('DEP-03: should detect useContext hook dependency', () => {
+  it("DEP-03: should detect useContext hook dependency", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithUseContext);
     const analysis = analyzer.analyze();
 
-    const hookDeps = analysis.dependencies.filter(d => d.type === DependencyType.Hook);
-    expect(hookDeps.some(d => d.symbol === 'useContext')).toBe(true);
+    const hookDeps = analysis.dependencies.filter(
+      (d) => d.type === DependencyType.Hook
+    );
+    expect(hookDeps.some((d) => d.symbol === "useContext")).toBe(true);
   });
 
   /**
@@ -535,12 +568,14 @@ describe('DependencyAnalyzer - Hook Detection', () => {
    * Expected Results:
    * - Analysis contains Hook dependency for useRef
    */
-  it('DEP-04: should detect useRef hook dependency', () => {
+  it("DEP-04: should detect useRef hook dependency", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithUseRef);
     const analysis = analyzer.analyze();
 
-    const hookDeps = analysis.dependencies.filter(d => d.type === DependencyType.Hook);
-    expect(hookDeps.some(d => d.symbol === 'useRef')).toBe(true);
+    const hookDeps = analysis.dependencies.filter(
+      (d) => d.type === DependencyType.Hook
+    );
+    expect(hookDeps.some((d) => d.symbol === "useRef")).toBe(true);
   });
 
   /**
@@ -551,12 +586,14 @@ describe('DependencyAnalyzer - Hook Detection', () => {
    * Expected Results:
    * - Analysis contains Hook dependency for useLocalStorage
    */
-  it('DEP-05: should detect custom hook dependency', () => {
+  it("DEP-05: should detect custom hook dependency", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithCustomHook);
     const analysis = analyzer.analyze();
 
-    const hookDeps = analysis.dependencies.filter(d => d.type === DependencyType.Hook);
-    expect(hookDeps.some(d => d.symbol === 'useLocalStorage')).toBe(true);
+    const hookDeps = analysis.dependencies.filter(
+      (d) => d.type === DependencyType.Hook
+    );
+    expect(hookDeps.some((d) => d.symbol === "useLocalStorage")).toBe(true);
   });
 });
 
@@ -564,7 +601,7 @@ describe('DependencyAnalyzer - Hook Detection', () => {
 // Variable Dependency Detection Tests
 // =============================================================================
 
-describe('DependencyAnalyzer - Variable Detection', () => {
+describe("DependencyAnalyzer - Variable Detection", () => {
   /**
    * DEP-06: Detect local variable dependency
    *
@@ -573,11 +610,13 @@ describe('DependencyAnalyzer - Variable Detection', () => {
    * Expected Results:
    * - Analysis contains Variable dependency
    */
-  it('DEP-06: should detect local variable dependency', () => {
+  it("DEP-06: should detect local variable dependency", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithVariables);
     const analysis = analyzer.analyze();
 
-    const varDeps = analysis.dependencies.filter(d => d.type === DependencyType.Variable);
+    const varDeps = analysis.dependencies.filter(
+      (d) => d.type === DependencyType.Variable
+    );
     expect(varDeps.length).toBeGreaterThan(0);
   });
 
@@ -589,7 +628,7 @@ describe('DependencyAnalyzer - Variable Detection', () => {
    * Expected Results:
    * - Analysis includes import dependencies
    */
-  it('DEP-07: should detect imported variable usage', () => {
+  it("DEP-07: should detect imported variable usage", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithImports);
     const analysis = analyzer.analyze();
 
@@ -605,11 +644,13 @@ describe('DependencyAnalyzer - Variable Detection', () => {
    * Expected Results:
    * - Analysis contains Prop dependencies
    */
-  it('DEP-08: should detect prop dependency', () => {
+  it("DEP-08: should detect prop dependency", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithProps);
     const analysis = analyzer.analyze();
 
-    const propDeps = analysis.dependencies.filter(d => d.type === DependencyType.Prop);
+    const propDeps = analysis.dependencies.filter(
+      (d) => d.type === DependencyType.Prop
+    );
     expect(propDeps.length).toBeGreaterThan(0);
   });
 });
@@ -618,7 +659,7 @@ describe('DependencyAnalyzer - Variable Detection', () => {
 // Context Dependency Tests
 // =============================================================================
 
-describe('DependencyAnalyzer - Context Detection', () => {
+describe("DependencyAnalyzer - Context Detection", () => {
   /**
    * DEP-09: Detect context value dependency
    *
@@ -627,12 +668,14 @@ describe('DependencyAnalyzer - Context Detection', () => {
    * Expected Results:
    * - Context hook is detected
    */
-  it('DEP-09: should detect context value dependency', () => {
+  it("DEP-09: should detect context value dependency", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithUseContext);
     const analysis = analyzer.analyze();
 
-    const hookDeps = analysis.dependencies.filter(d => d.type === DependencyType.Hook);
-    expect(hookDeps.some(d => d.symbol === 'useContext')).toBe(true);
+    const hookDeps = analysis.dependencies.filter(
+      (d) => d.type === DependencyType.Hook
+    );
+    expect(hookDeps.some((d) => d.symbol === "useContext")).toBe(true);
   });
 });
 
@@ -640,7 +683,7 @@ describe('DependencyAnalyzer - Context Detection', () => {
 // Transitive Dependency Tests
 // =============================================================================
 
-describe('DependencyAnalyzer - Transitive Dependencies', () => {
+describe("DependencyAnalyzer - Transitive Dependencies", () => {
   /**
    * DEP-10: Detect transitive dependencies
    *
@@ -649,7 +692,7 @@ describe('DependencyAnalyzer - Transitive Dependencies', () => {
    * Expected Results:
    * - All levels of dependencies detected
    */
-  it('DEP-10: should detect transitive dependencies', () => {
+  it("DEP-10: should detect transitive dependencies", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithTransitive);
     const analysis = analyzer.analyze();
 
@@ -662,7 +705,7 @@ describe('DependencyAnalyzer - Transitive Dependencies', () => {
 // Hoisting Requirement Tests
 // =============================================================================
 
-describe('DependencyAnalyzer - Hoisting Requirements', () => {
+describe("DependencyAnalyzer - Hoisting Requirements", () => {
   /**
    * DEP-11: Mark hook as needing hoist
    *
@@ -671,12 +714,14 @@ describe('DependencyAnalyzer - Hoisting Requirements', () => {
    * Expected Results:
    * - needsHoisting includes hooks
    */
-  it('DEP-11: should mark hooks as needing hoist', () => {
+  it("DEP-11: should mark hooks as needing hoist", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithUseState);
     const analysis = analyzer.analyze();
 
     expect(analysis.needsHoisting.length).toBeGreaterThan(0);
-    expect(analysis.needsHoisting.every(d => d.type === DependencyType.Hook)).toBe(true);
+    expect(
+      analysis.needsHoisting.every((d) => d.type === DependencyType.Hook)
+    ).toBe(true);
   });
 
   /**
@@ -687,7 +732,7 @@ describe('DependencyAnalyzer - Hoisting Requirements', () => {
    * Expected Results:
    * - needsImport would include imports
    */
-  it('DEP-12: should track imports that may need adding', () => {
+  it("DEP-12: should track imports that may need adding", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithImports);
     const analysis = analyzer.analyze();
 
@@ -704,7 +749,7 @@ describe('DependencyAnalyzer - Hoisting Requirements', () => {
    * Expected Results:
    * - needsPropThreading includes variables
    */
-  it('DEP-13: should mark variables for potential prop threading', () => {
+  it("DEP-13: should mark variables for potential prop threading", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithVariables);
     const analysis = analyzer.analyze();
 
@@ -717,7 +762,7 @@ describe('DependencyAnalyzer - Hoisting Requirements', () => {
 // Unanalyzable Code Tests
 // =============================================================================
 
-describe('DependencyAnalyzer - Unanalyzable Code', () => {
+describe("DependencyAnalyzer - Unanalyzable Code", () => {
   /**
    * DEP-14: Detect unanalyzable eval code
    *
@@ -726,7 +771,7 @@ describe('DependencyAnalyzer - Unanalyzable Code', () => {
    * Expected Results:
    * - canResolve is false
    */
-  it('DEP-14: should flag eval as unanalyzable', () => {
+  it("DEP-14: should flag eval as unanalyzable", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithEval);
     const analysis = analyzer.analyze();
 
@@ -741,7 +786,7 @@ describe('DependencyAnalyzer - Unanalyzable Code', () => {
    * Expected Results:
    * - canResolve is false
    */
-  it('DEP-15: should flag dynamic code as unanalyzable', () => {
+  it("DEP-15: should flag dynamic code as unanalyzable", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithDynamicCode);
     const analysis = analyzer.analyze();
 
@@ -753,7 +798,7 @@ describe('DependencyAnalyzer - Unanalyzable Code', () => {
 // Dependency Graph Tests
 // =============================================================================
 
-describe('DependencyAnalyzer - Dependency Graph', () => {
+describe("DependencyAnalyzer - Dependency Graph", () => {
   /**
    * DEP-16: Build dependency graph correctly
    *
@@ -762,7 +807,7 @@ describe('DependencyAnalyzer - Dependency Graph', () => {
    * Expected Results:
    * - Graph has nodes for all dependencies
    */
-  it('DEP-16: should build correct dependency graph', () => {
+  it("DEP-16: should build correct dependency graph", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithUseState);
     analyzer.analyze();
     const graph = analyzer.buildGraph();
@@ -780,13 +825,13 @@ describe('DependencyAnalyzer - Dependency Graph', () => {
    * Expected Results:
    * - Node depths are tracked
    */
-  it('DEP-17: should track dependency depth via scopes', () => {
+  it("DEP-17: should track dependency depth via scopes", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithTransitive);
     analyzer.analyze();
     const graph = analyzer.buildGraph();
 
     // Each node has scope with depth
-    graph.nodes.forEach(node => {
+    graph.nodes.forEach((node) => {
       expect(node.scope.depth).toBeDefined();
     });
   });
@@ -796,7 +841,7 @@ describe('DependencyAnalyzer - Dependency Graph', () => {
 // Circular Dependency Tests
 // =============================================================================
 
-describe('DependencyAnalyzer - Circular Dependencies', () => {
+describe("DependencyAnalyzer - Circular Dependencies", () => {
   /**
    * DEP-18: Detect circular dependencies
    *
@@ -805,7 +850,7 @@ describe('DependencyAnalyzer - Circular Dependencies', () => {
    * Expected Results:
    * - Would flag circular references (not common in valid React code)
    */
-  it('DEP-18: should be able to detect circular dependencies', () => {
+  it("DEP-18: should be able to detect circular dependencies", () => {
     // Circular deps are rare in valid React code
     // But the analyzer should handle them if encountered
     const normalCode = `
@@ -826,7 +871,7 @@ describe('DependencyAnalyzer - Circular Dependencies', () => {
 // Multiple Consumer Tests
 // =============================================================================
 
-describe('DependencyAnalyzer - Multiple Consumers', () => {
+describe("DependencyAnalyzer - Multiple Consumers", () => {
   /**
    * DEP-19: Handle multiple consumers of dependency
    *
@@ -835,7 +880,7 @@ describe('DependencyAnalyzer - Multiple Consumers', () => {
    * Expected Results:
    * - Dependency has multiple consumers
    */
-  it('DEP-19: should handle dependencies with multiple consumers', () => {
+  it("DEP-19: should handle dependencies with multiple consumers", () => {
     const code = `
       const Multi = () => {
         const [value] = useState(0);
@@ -860,7 +905,7 @@ describe('DependencyAnalyzer - Multiple Consumers', () => {
 // Purity Detection Tests
 // =============================================================================
 
-describe('DependencyAnalyzer - Purity Detection', () => {
+describe("DependencyAnalyzer - Purity Detection", () => {
   /**
    * DEP-20: Mark dependencies as pure/impure
    *
@@ -870,15 +915,15 @@ describe('DependencyAnalyzer - Purity Detection', () => {
    * - Hooks like useState are marked impure
    * - Pure computations marked pure
    */
-  it('DEP-20: should mark dependencies with purity metadata', () => {
+  it("DEP-20: should mark dependencies with purity metadata", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithUseEffect);
     analyzer.analyze();
     const graph = analyzer.buildGraph();
 
     // useEffect should be marked with side effects
     let foundEffect = false;
-    graph.nodes.forEach(node => {
-      if (node.name === 'useEffect') {
+    graph.nodes.forEach((node) => {
+      if (node.name === "useEffect") {
         expect(node.metadata.hasSideEffects).toBe(true);
         foundEffect = true;
       }
@@ -886,7 +931,7 @@ describe('DependencyAnalyzer - Purity Detection', () => {
 
     if (graph.nodes.size > 0 && !foundEffect) {
       // At least verify metadata exists
-      graph.nodes.forEach(node => {
+      graph.nodes.forEach((node) => {
         expect(node.metadata).toBeDefined();
       });
     }
@@ -897,8 +942,8 @@ describe('DependencyAnalyzer - Purity Detection', () => {
 // Edge Cases
 // =============================================================================
 
-describe('DependencyAnalyzer - Edge Cases', () => {
-  it('should handle empty component', () => {
+describe("DependencyAnalyzer - Edge Cases", () => {
+  it("should handle empty component", () => {
     const code = `const Empty = () => null;`;
     const analyzer = new MockDependencyAnalyzer(code);
     const analysis = analyzer.analyze();
@@ -907,7 +952,7 @@ describe('DependencyAnalyzer - Edge Cases', () => {
     expect(analysis.dependencies).toBeDefined();
   });
 
-  it('should handle component with only JSX', () => {
+  it("should handle component with only JSX", () => {
     const code = `const JustJSX = () => <div>Static</div>;`;
     const analyzer = new MockDependencyAnalyzer(code);
     const analysis = analyzer.analyze();
@@ -915,7 +960,7 @@ describe('DependencyAnalyzer - Edge Cases', () => {
     expect(analysis.canResolve).toBe(true);
   });
 
-  it('should handle multiple hooks of same type', () => {
+  it("should handle multiple hooks of same type", () => {
     const code = `
       const MultiState = () => {
         const [a, setA] = useState(0);
@@ -928,12 +973,12 @@ describe('DependencyAnalyzer - Edge Cases', () => {
     const analysis = analyzer.analyze();
 
     const stateHooks = analysis.dependencies.filter(
-      d => d.type === DependencyType.Hook && d.symbol === 'useState'
+      (d) => d.type === DependencyType.Hook && d.symbol === "useState"
     );
     expect(stateHooks.length).toBe(3);
   });
 
-  it('should handle hooks inside callbacks', () => {
+  it("should handle hooks inside callbacks", () => {
     // This is actually invalid React, but analyzer should handle it
     const code = `
       const BadComponent = () => {
@@ -952,15 +997,17 @@ describe('DependencyAnalyzer - Edge Cases', () => {
     expect(analysis).toBeDefined();
   });
 
-  it('should handle spread props correctly', () => {
+  it("should handle spread props correctly", () => {
     const code = `
       const Spread = (props) => <div {...props} />;
     `;
     const analyzer = new MockDependencyAnalyzer(code);
     const analysis = analyzer.analyze();
 
-    const propDeps = analysis.dependencies.filter(d => d.type === DependencyType.Prop);
-    expect(propDeps.some(d => d.symbol === 'props')).toBe(true);
+    const propDeps = analysis.dependencies.filter(
+      (d) => d.type === DependencyType.Prop
+    );
+    expect(propDeps.some((d) => d.symbol === "props")).toBe(true);
   });
 });
 
@@ -968,39 +1015,39 @@ describe('DependencyAnalyzer - Edge Cases', () => {
 // Analysis Result Structure Tests
 // =============================================================================
 
-describe('DependencyAnalyzer - Result Structure', () => {
-  it('should return properly structured DependencyAnalysis', () => {
+describe("DependencyAnalyzer - Result Structure", () => {
+  it("should return properly structured DependencyAnalysis", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithUseState);
     const analysis = analyzer.analyze();
 
-    expect(analysis).toHaveProperty('dependencies');
-    expect(analysis).toHaveProperty('needsHoisting');
-    expect(analysis).toHaveProperty('needsImport');
-    expect(analysis).toHaveProperty('needsPropThreading');
-    expect(analysis).toHaveProperty('canResolve');
+    expect(analysis).toHaveProperty("dependencies");
+    expect(analysis).toHaveProperty("needsHoisting");
+    expect(analysis).toHaveProperty("needsImport");
+    expect(analysis).toHaveProperty("needsPropThreading");
+    expect(analysis).toHaveProperty("canResolve");
 
     expect(Array.isArray(analysis.dependencies)).toBe(true);
     expect(Array.isArray(analysis.needsHoisting)).toBe(true);
     expect(Array.isArray(analysis.needsImport)).toBe(true);
     expect(Array.isArray(analysis.needsPropThreading)).toBe(true);
-    expect(typeof analysis.canResolve).toBe('boolean');
+    expect(typeof analysis.canResolve).toBe("boolean");
   });
 
-  it('should include origin info for each dependency', () => {
+  it("should include origin info for each dependency", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithUseState);
     const analysis = analyzer.analyze();
 
-    analysis.dependencies.forEach(dep => {
+    analysis.dependencies.forEach((dep) => {
       expect(dep.origin).toBeDefined();
       expect(dep.origin.file).toBeDefined();
     });
   });
 
-  it('should include scope info for each dependency', () => {
+  it("should include scope info for each dependency", () => {
     const analyzer = new MockDependencyAnalyzer(componentWithUseState);
     const analysis = analyzer.analyze();
 
-    analysis.dependencies.forEach(dep => {
+    analysis.dependencies.forEach((dep) => {
       expect(dep.scope).toBeDefined();
       expect(dep.scope.type).toBeDefined();
     });

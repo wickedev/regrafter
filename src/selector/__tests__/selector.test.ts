@@ -13,9 +13,9 @@
  * - Test error handling for invalid selectors
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { parse } from '@babel/parser';
-import * as t from '@babel/types';
+import { describe, it, expect, beforeEach } from "vitest";
+import { parse } from "@babel/parser";
+import * as t from "@babel/types";
 import {
   type PositionSelector,
   type PathSelector,
@@ -28,7 +28,7 @@ import {
   createSelectorError,
   createAtomicUnit,
   createResolveResult,
-} from '../../types/index.js';
+} from "../../types/index.js";
 
 // =============================================================================
 // Test Cases Overview
@@ -65,8 +65,8 @@ import {
  */
 function parseCode(code: string): t.File {
   return parse(code, {
-    sourceType: 'module',
-    plugins: ['jsx', 'typescript'],
+    sourceType: "module",
+    plugins: ["jsx", "typescript"],
   });
 }
 
@@ -87,7 +87,7 @@ class MockSelectorResolver {
    * Resolve a PositionSelector to an AST node
    */
   resolvePosition(selector: PositionSelector): ResolveResult {
-    const lines = this.code.split('\n');
+    const lines = this.code.split("\n");
 
     // Validate position is within bounds
     if (selector.line < 1 || selector.line > lines.length) {
@@ -97,20 +97,24 @@ class MockSelectorResolver {
         atomicUnit: null,
         error: createSelectorError({
           message: `Line ${selector.line} is out of bounds (file has ${lines.length} lines)`,
-          code: 'POSITION_OUT_OF_BOUNDS',
+          code: "POSITION_OUT_OF_BOUNDS",
         }),
       });
     }
 
     const lineContent = lines[selector.line - 1];
-    if (lineContent === undefined || selector.column < 0 || selector.column > lineContent.length) {
+    if (
+      lineContent === undefined ||
+      selector.column < 0 ||
+      selector.column > lineContent.length
+    ) {
       return createResolveResult({
         node: null,
         path: null,
         atomicUnit: null,
         error: createSelectorError({
           message: `Column ${selector.column} is out of bounds for line ${selector.line}`,
-          code: 'POSITION_OUT_OF_BOUNDS',
+          code: "POSITION_OUT_OF_BOUNDS",
         }),
       });
     }
@@ -132,7 +136,7 @@ class MockSelectorResolver {
    * Resolve a PathSelector to an AST node
    */
   resolvePath(selector: PathSelector): ResolveResult {
-    const pathParts = selector.path.split('.');
+    const pathParts = selector.path.split(".");
 
     try {
       let current: any = this.ast;
@@ -157,7 +161,7 @@ class MockSelectorResolver {
             atomicUnit: null,
             error: createSelectorError({
               message: `Path segment '${part}' not found in AST`,
-              code: 'PATH_NOT_FOUND',
+              code: "PATH_NOT_FOUND",
             }),
           });
         }
@@ -179,7 +183,7 @@ class MockSelectorResolver {
         atomicUnit: null,
         error: createSelectorError({
           message: `Failed to resolve path: ${selector.path}`,
-          code: 'PATH_RESOLUTION_ERROR',
+          code: "PATH_RESOLUTION_ERROR",
         }),
       });
     }
@@ -192,7 +196,7 @@ class MockSelectorResolver {
     if (t.isJSXElement(node)) {
       return AtomicUnitType.Element;
     }
-    if (t.isLogicalExpression(node) && node.operator === '&&') {
+    if (t.isLogicalExpression(node) && node.operator === "&&") {
       return AtomicUnitType.Conditional;
     }
     if (t.isConditionalExpression(node)) {
@@ -203,7 +207,7 @@ class MockSelectorResolver {
       if (
         t.isMemberExpression(callee) &&
         t.isIdentifier(callee.property) &&
-        callee.property.name === 'map'
+        callee.property.name === "map"
       ) {
         return AtomicUnitType.MapExpression;
       }
@@ -226,8 +230,8 @@ class MockSelectorResolver {
       path: null,
       atomicUnit: null,
       error: createSelectorError({
-        message: 'Invalid selector type',
-        code: 'INVALID_SELECTOR',
+        message: "Invalid selector type",
+        code: "INVALID_SELECTOR",
       }),
     });
   }
@@ -346,7 +350,7 @@ const SelfClosingComponent = () => {
 // Position Selector Tests
 // =============================================================================
 
-describe('Selector - PositionSelector Resolution', () => {
+describe("Selector - PositionSelector Resolution", () => {
   let resolver: MockSelectorResolver;
 
   beforeEach(() => {
@@ -366,9 +370,9 @@ describe('Selector - PositionSelector Resolution', () => {
    * - Result.node is not null
    * - No error in result
    */
-  it('SEL-01: should resolve PositionSelector to JSX element', () => {
+  it("SEL-01: should resolve PositionSelector to JSX element", () => {
     const selector: PositionSelector = {
-      file: 'simple.tsx',
+      file: "simple.tsx",
       line: 6,
       column: 4,
     };
@@ -387,9 +391,9 @@ describe('Selector - PositionSelector Resolution', () => {
    * Expected Results:
    * - Resolves to correct element
    */
-  it('SEL-02: should resolve position at exact element start', () => {
+  it("SEL-02: should resolve position at exact element start", () => {
     const selector: PositionSelector = {
-      file: 'simple.tsx',
+      file: "simple.tsx",
       line: 7,
       column: 6,
     };
@@ -408,9 +412,9 @@ describe('Selector - PositionSelector Resolution', () => {
    * Expected Results:
    * - Resolves to containing element
    */
-  it('SEL-03: should resolve position within element bounds', () => {
+  it("SEL-03: should resolve position within element bounds", () => {
     const selector: PositionSelector = {
-      file: 'simple.tsx',
+      file: "simple.tsx",
       line: 9,
       column: 10,
     };
@@ -430,9 +434,9 @@ describe('Selector - PositionSelector Resolution', () => {
    * - Result.node is null
    * - Result.error contains appropriate message
    */
-  it('SEL-16: should return error for position outside file bounds', () => {
+  it("SEL-16: should return error for position outside file bounds", () => {
     const selector: PositionSelector = {
-      file: 'simple.tsx',
+      file: "simple.tsx",
       line: 1000,
       column: 0,
     };
@@ -441,7 +445,7 @@ describe('Selector - PositionSelector Resolution', () => {
 
     expect(result.node).toBeNull();
     expect(result.error).toBeDefined();
-    expect(result.error?.code).toBe('POSITION_OUT_OF_BOUNDS');
+    expect(result.error?.code).toBe("POSITION_OUT_OF_BOUNDS");
   });
 });
 
@@ -449,7 +453,7 @@ describe('Selector - PositionSelector Resolution', () => {
 // Path Selector Tests
 // =============================================================================
 
-describe('Selector - PathSelector Resolution', () => {
+describe("Selector - PathSelector Resolution", () => {
   let resolver: MockSelectorResolver;
 
   beforeEach(() => {
@@ -464,10 +468,10 @@ describe('Selector - PathSelector Resolution', () => {
    * Expected Results:
    * - Result.node matches path
    */
-  it('SEL-04: should resolve PathSelector to AST node', () => {
+  it("SEL-04: should resolve PathSelector to AST node", () => {
     const selector: PathSelector = {
-      file: 'simple.tsx',
-      path: 'program.body[0]',
+      file: "simple.tsx",
+      path: "program.body[0]",
     };
 
     const result = resolver.resolvePath(selector);
@@ -484,10 +488,10 @@ describe('Selector - PathSelector Resolution', () => {
    * Expected Results:
    * - Correctly indexes into arrays
    */
-  it('SEL-05: should resolve path with array indices', () => {
+  it("SEL-05: should resolve path with array indices", () => {
     const selector: PathSelector = {
-      file: 'simple.tsx',
-      path: 'program.body[1]',
+      file: "simple.tsx",
+      path: "program.body[1]",
     };
 
     const result = resolver.resolvePath(selector);
@@ -505,17 +509,17 @@ describe('Selector - PathSelector Resolution', () => {
    * - Result.node is null
    * - Result.error indicates path not found
    */
-  it('SEL-17: should return error for non-existent path', () => {
+  it("SEL-17: should return error for non-existent path", () => {
     const selector: PathSelector = {
-      file: 'simple.tsx',
-      path: 'program.nonExistent.path',
+      file: "simple.tsx",
+      path: "program.nonExistent.path",
     };
 
     const result = resolver.resolvePath(selector);
 
     expect(result.node).toBeNull();
     expect(result.error).toBeDefined();
-    expect(result.error?.code).toBe('PATH_NOT_FOUND');
+    expect(result.error?.code).toBe("PATH_NOT_FOUND");
   });
 });
 
@@ -523,7 +527,7 @@ describe('Selector - PathSelector Resolution', () => {
 // Atomic Unit Detection Tests
 // =============================================================================
 
-describe('Selector - Atomic Unit Detection', () => {
+describe("Selector - Atomic Unit Detection", () => {
   /**
    * SEL-08: Detect Element atomic unit
    *
@@ -532,9 +536,9 @@ describe('Selector - Atomic Unit Detection', () => {
    * Expected Results:
    * - AtomicUnitType is Element
    */
-  it('SEL-08: should detect Element atomic unit', () => {
+  it("SEL-08: should detect Element atomic unit", () => {
     const resolver = new MockSelectorResolver(simpleComponent);
-    const ast = parseCode('<div>Test</div>');
+    const ast = parseCode("<div>Test</div>");
     const stmt = ast.program.body[0];
     if (t.isExpressionStatement(stmt) && t.isJSXElement(stmt.expression)) {
       const unitType = resolver.detectAtomicUnit(stmt.expression);
@@ -550,9 +554,9 @@ describe('Selector - Atomic Unit Detection', () => {
    * Expected Results:
    * - AtomicUnitType is Conditional
    */
-  it('SEL-09: should detect Conditional atomic unit', () => {
+  it("SEL-09: should detect Conditional atomic unit", () => {
     const resolver = new MockSelectorResolver(componentWithConditional);
-    const ast = parseCode('show && <span>Test</span>');
+    const ast = parseCode("show && <span>Test</span>");
     const stmt = ast.program.body[0];
     if (t.isExpressionStatement(stmt)) {
       const unitType = resolver.detectAtomicUnit(stmt.expression);
@@ -568,9 +572,9 @@ describe('Selector - Atomic Unit Detection', () => {
    * Expected Results:
    * - AtomicUnitType is Ternary
    */
-  it('SEL-10: should detect Ternary atomic unit', () => {
+  it("SEL-10: should detect Ternary atomic unit", () => {
     const resolver = new MockSelectorResolver(componentWithTernary);
-    const ast = parseCode('loading ? <span>A</span> : <span>B</span>');
+    const ast = parseCode("loading ? <span>A</span> : <span>B</span>");
     const stmt = ast.program.body[0];
     if (t.isExpressionStatement(stmt)) {
       const unitType = resolver.detectAtomicUnit(stmt.expression);
@@ -586,9 +590,9 @@ describe('Selector - Atomic Unit Detection', () => {
    * Expected Results:
    * - AtomicUnitType is MapExpression
    */
-  it('SEL-11: should detect MapExpression atomic unit', () => {
+  it("SEL-11: should detect MapExpression atomic unit", () => {
     const resolver = new MockSelectorResolver(componentWithMap);
-    const ast = parseCode('items.map(x => <li>{x}</li>)');
+    const ast = parseCode("items.map(x => <li>{x}</li>)");
     const stmt = ast.program.body[0];
     if (t.isExpressionStatement(stmt)) {
       const unitType = resolver.detectAtomicUnit(stmt.expression);
@@ -601,7 +605,7 @@ describe('Selector - Atomic Unit Detection', () => {
 // Nested Component Tests
 // =============================================================================
 
-describe('Selector - Nested Component Resolution', () => {
+describe("Selector - Nested Component Resolution", () => {
   /**
    * SEL-12: Resolve selector in nested component
    *
@@ -610,10 +614,10 @@ describe('Selector - Nested Component Resolution', () => {
    * Expected Results:
    * - Correct node at nested position
    */
-  it('SEL-12: should resolve selector in nested component', () => {
+  it("SEL-12: should resolve selector in nested component", () => {
     const resolver = new MockSelectorResolver(nestedComponent);
     const selector: PositionSelector = {
-      file: 'nested.tsx',
+      file: "nested.tsx",
       line: 8,
       column: 10,
     };
@@ -628,7 +632,7 @@ describe('Selector - Nested Component Resolution', () => {
 // Fragment Tests
 // =============================================================================
 
-describe('Selector - Fragment Handling', () => {
+describe("Selector - Fragment Handling", () => {
   /**
    * SEL-13: Resolve selector in fragment
    *
@@ -637,10 +641,10 @@ describe('Selector - Fragment Handling', () => {
    * Expected Results:
    * - Correctly resolves elements in fragments
    */
-  it('SEL-13: should resolve selector in fragment', () => {
+  it("SEL-13: should resolve selector in fragment", () => {
     const resolver = new MockSelectorResolver(fragmentComponent);
     const selector: PositionSelector = {
-      file: 'fragment.tsx',
+      file: "fragment.tsx",
       line: 7,
       column: 6,
     };
@@ -655,7 +659,7 @@ describe('Selector - Fragment Handling', () => {
 // Self-Closing Element Tests
 // =============================================================================
 
-describe('Selector - Self-Closing Elements', () => {
+describe("Selector - Self-Closing Elements", () => {
   /**
    * SEL-14: Handle self-closing element
    *
@@ -664,10 +668,10 @@ describe('Selector - Self-Closing Elements', () => {
    * Expected Results:
    * - Self-closing element resolved as Element type
    */
-  it('SEL-14: should handle self-closing element', () => {
+  it("SEL-14: should handle self-closing element", () => {
     const resolver = new MockSelectorResolver(selfClosingComponent);
     const selector: PositionSelector = {
-      file: 'self-closing.tsx',
+      file: "self-closing.tsx",
       line: 6,
       column: 6,
     };
@@ -683,7 +687,7 @@ describe('Selector - Self-Closing Elements', () => {
 // Type Guard Tests
 // =============================================================================
 
-describe('Selector - Type Guards', () => {
+describe("Selector - Type Guards", () => {
   /**
    * SEL-18: Selector type guard accuracy
    *
@@ -693,16 +697,16 @@ describe('Selector - Type Guards', () => {
    * - isPositionSelector true for PositionSelector
    * - isPathSelector true for PathSelector
    */
-  it('SEL-18: should correctly identify selector types', () => {
+  it("SEL-18: should correctly identify selector types", () => {
     const posSelector: PositionSelector = {
-      file: 'test.tsx',
+      file: "test.tsx",
       line: 10,
       column: 5,
     };
 
     const pathSelector: PathSelector = {
-      file: 'test.tsx',
-      path: 'program.body[0]',
+      file: "test.tsx",
+      path: "program.body[0]",
     };
 
     expect(isPositionSelector(posSelector)).toBe(true);
@@ -722,16 +726,16 @@ describe('Selector - Type Guards', () => {
 // Invalid Selector Tests
 // =============================================================================
 
-describe('Selector - Error Handling', () => {
+describe("Selector - Error Handling", () => {
   /**
    * SEL-06: Invalid position returns null node
    *
    * Test Purpose: Verify error for position pointing to whitespace
    */
-  it('SEL-06: should handle position pointing to non-JSX', () => {
+  it("SEL-06: should handle position pointing to non-JSX", () => {
     const resolver = new MockSelectorResolver(simpleComponent);
     const selector: PositionSelector = {
-      file: 'test.tsx',
+      file: "test.tsx",
       line: 1,
       column: 0,
     };
@@ -747,11 +751,11 @@ describe('Selector - Error Handling', () => {
    *
    * Test Purpose: Verify error for malformed path
    */
-  it('SEL-07: should handle invalid path format', () => {
+  it("SEL-07: should handle invalid path format", () => {
     const resolver = new MockSelectorResolver(simpleComponent);
     const selector: PathSelector = {
-      file: 'test.tsx',
-      path: 'invalid..path',
+      file: "test.tsx",
+      path: "invalid..path",
     };
 
     const result = resolver.resolvePath(selector);
@@ -765,17 +769,17 @@ describe('Selector - Error Handling', () => {
 // JSX Expression Container Tests
 // =============================================================================
 
-describe('Selector - JSX Expression Containers', () => {
+describe("Selector - JSX Expression Containers", () => {
   /**
    * SEL-15: Handle JSX expression container
    *
    * Test Purpose: Verify selection of {expression} containers
    */
-  it('SEL-15: should handle JSX expression container', () => {
+  it("SEL-15: should handle JSX expression container", () => {
     const code = `const El = () => <div>{value}</div>;`;
     const resolver = new MockSelectorResolver(code);
     const selector: PositionSelector = {
-      file: 'test.tsx',
+      file: "test.tsx",
       line: 1,
       column: 22, // Inside {value}
     };
@@ -790,11 +794,11 @@ describe('Selector - JSX Expression Containers', () => {
 // Edge Cases
 // =============================================================================
 
-describe('Selector - Edge Cases', () => {
-  it('should handle empty file', () => {
-    const resolver = new MockSelectorResolver('');
+describe("Selector - Edge Cases", () => {
+  it("should handle empty file", () => {
+    const resolver = new MockSelectorResolver("");
     const selector: PositionSelector = {
-      file: 'empty.tsx',
+      file: "empty.tsx",
       line: 1,
       column: 0,
     };
@@ -804,12 +808,12 @@ describe('Selector - Edge Cases', () => {
     expect(result).toBeDefined();
   });
 
-  it('should handle file with only imports', () => {
+  it("should handle file with only imports", () => {
     const code = `import React from 'react';`;
     const resolver = new MockSelectorResolver(code);
     const selector: PathSelector = {
-      file: 'imports.tsx',
-      path: 'program.body[0]',
+      file: "imports.tsx",
+      path: "program.body[0]",
     };
 
     const result = resolver.resolvePath(selector);
@@ -817,11 +821,11 @@ describe('Selector - Edge Cases', () => {
     expect(result.node).not.toBeNull();
   });
 
-  it('should handle complex nested path', () => {
+  it("should handle complex nested path", () => {
     const resolver = new MockSelectorResolver(simpleComponent);
     const selector: PathSelector = {
-      file: 'simple.tsx',
-      path: 'program.body[0]',
+      file: "simple.tsx",
+      path: "program.body[0]",
     };
 
     const result = resolver.resolvePath(selector);
@@ -829,11 +833,11 @@ describe('Selector - Edge Cases', () => {
     expect(result).toBeDefined();
   });
 
-  it('should handle selector at end of line', () => {
+  it("should handle selector at end of line", () => {
     const code = `const x = 1;`;
     const resolver = new MockSelectorResolver(code);
     const selector: PositionSelector = {
-      file: 'test.tsx',
+      file: "test.tsx",
       line: 1,
       column: 12, // End of line
     };
@@ -848,11 +852,11 @@ describe('Selector - Edge Cases', () => {
 // Unified Resolver Tests
 // =============================================================================
 
-describe('Selector - Unified Resolution', () => {
-  it('should resolve PositionSelector via unified resolve()', () => {
+describe("Selector - Unified Resolution", () => {
+  it("should resolve PositionSelector via unified resolve()", () => {
     const resolver = new MockSelectorResolver(simpleComponent);
     const selector: PositionSelector = {
-      file: 'test.tsx',
+      file: "test.tsx",
       line: 6,
       column: 4,
     };
@@ -862,11 +866,11 @@ describe('Selector - Unified Resolution', () => {
     expect(result.node).not.toBeNull();
   });
 
-  it('should resolve PathSelector via unified resolve()', () => {
+  it("should resolve PathSelector via unified resolve()", () => {
     const resolver = new MockSelectorResolver(simpleComponent);
     const selector: PathSelector = {
-      file: 'test.tsx',
-      path: 'program.body[0]',
+      file: "test.tsx",
+      path: "program.body[0]",
     };
 
     const result = resolver.resolve(selector);
@@ -874,15 +878,15 @@ describe('Selector - Unified Resolution', () => {
     expect(result.node).not.toBeNull();
   });
 
-  it('should return error for invalid selector via resolve()', () => {
+  it("should return error for invalid selector via resolve()", () => {
     const resolver = new MockSelectorResolver(simpleComponent);
     // @ts-expect-error - intentional type mismatch for testing
-      const invalidSelector: Selector = { file: 'test.tsx' } as unknown;
+    const invalidSelector: Selector = { file: "test.tsx" } as unknown;
 
     const result = resolver.resolve(invalidSelector);
 
     expect(result.node).toBeNull();
     expect(result.error).toBeDefined();
-    expect(result.error?.code).toBe('INVALID_SELECTOR');
+    expect(result.error?.code).toBe("INVALID_SELECTOR");
   });
 });

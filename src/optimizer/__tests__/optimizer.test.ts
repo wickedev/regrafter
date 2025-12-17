@@ -13,10 +13,10 @@
  * - Validate optimization result structure
  */
 
-import { describe, it, expect } from 'vitest';
-import { parse } from '@babel/parser';
-import traverseFn from '@babel/traverse';
-import * as t from '@babel/types';
+import { describe, it, expect } from "vitest";
+import { parse } from "@babel/parser";
+import traverseFn, { NodePath } from "@babel/traverse";
+import * as t from "@babel/types";
 
 const traverse = traverseFn as any as typeof traverseFn.default;
 import {
@@ -34,7 +34,7 @@ import {
   createConsumerInfo,
   createPropRemoval,
   createOptimizeResult,
-} from '../../types/index.js';
+} from "../../types/index.js";
 
 // =============================================================================
 // Test Cases Overview
@@ -68,8 +68,8 @@ import {
  */
 function parseCode(code: string): t.File {
   return parse(code, {
-    sourceType: 'module',
-    plugins: ['jsx', 'typescript'],
+    sourceType: "module",
+    plugins: ["jsx", "typescript"],
   });
 }
 
@@ -79,11 +79,8 @@ function parseCode(code: string): t.File {
  */
 class MockOptimizer {
   private ast: t.File;
-  // @ts-expect-error unused test variable
-  private _code: string;
 
   constructor(code: string) {
-    this._code = code;
     this.ast = parseCode(code);
   }
 
@@ -92,14 +89,9 @@ class MockOptimizer {
    */
   findSinkCandidates(): SinkCandidate[] {
     const candidates: SinkCandidate[] = [];
-    // @ts-expect-error unused test variable
-    const _declarationUsages = new Map<
-      string,
-      { scope: ScopeInfo; consumers: ConsumerInfo[] }
-    >();
 
     const moduleScope = createScopeInfo({
-      id: 'module',
+      id: "module",
       type: ScopeType.Module,
       path: null as any,
       parent: null,
@@ -108,7 +100,7 @@ class MockOptimizer {
     });
 
     const componentScope = createScopeInfo({
-      id: 'component',
+      id: "component",
       type: ScopeType.Component,
       path: null as any,
       parent: moduleScope,
@@ -116,25 +108,13 @@ class MockOptimizer {
       depth: 1,
     });
 
-    // @ts-expect-error unused test variable
-    const _innerScope = createScopeInfo({
-      id: 'inner',
-      type: ScopeType.Function,
-      path: null as any,
-      parent: componentScope,
-      bindings: new Map(),
-      depth: 2,
-    });
-
     // Analyze declarations and their usages
-    // @ts-expect-error unused test variable
-    const _self = this;
     const scopeMap = new Map<any, ScopeInfo>();
-    scopeMap.set('module', moduleScope);
-    scopeMap.set('component', componentScope);
+    scopeMap.set("module", moduleScope);
+    scopeMap.set("component", componentScope);
 
     traverse(this.ast, {
-      VariableDeclaration(path) {
+      VariableDeclaration(path: NodePath<t.VariableDeclaration>) {
         for (const decl of path.node.declarations) {
           if (t.isIdentifier(decl.id)) {
             const name = decl.id.name;
@@ -175,7 +155,7 @@ class MockOptimizer {
                   createConsumerInfo({
                     path: refPath as any,
                     scope: consumerScope,
-                    usageType: 'direct',
+                    usageType: "direct",
                   })
                 );
               }
@@ -187,17 +167,17 @@ class MockOptimizer {
                   type: DependencyType.Variable,
                   origin: createDependencyOrigin({
                     node: decl,
-                    file: 'current.tsx',
+                    file: "current.tsx",
                     location: decl.loc,
                   }),
                   scope: componentScope,
                   isTransitive: false,
-                  consumers: consumers.map(c => c.scope.id),
+                  consumers: consumers.map((c) => c.scope.id),
                 });
 
                 // Check if declaration can be sunk
                 const allInSameScope = consumers.every(
-                  c => c.scope.id === consumers[0]?.scope.id
+                  (c) => c.scope.id === consumers[0]?.scope.id
                 );
 
                 if (allInSameScope && consumers.length > 0) {
@@ -236,7 +216,7 @@ class MockOptimizer {
     // Find all prop destructuring
     traverse(this.ast, {
       // Arrow function with destructured params
-      ArrowFunctionExpression(path) {
+      ArrowFunctionExpression(path: NodePath<t.ArrowFunctionExpression>) {
         const params = path.node.params;
         if (params.length > 0 && t.isObjectPattern(params[0])) {
           const pattern = params[0];
@@ -257,11 +237,11 @@ class MockOptimizer {
       },
 
       // Function declaration with destructured params
-      FunctionDeclaration(path) {
+      FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
         const params = path.node.params;
         if (params.length > 0 && t.isObjectPattern(params[0])) {
           const pattern = params[0];
-          const funcName = path.node.id?.name || 'anonymous';
+          const funcName = path.node.id?.name || "anonymous";
 
           for (const prop of pattern.properties) {
             if (t.isObjectProperty(prop) && t.isIdentifier(prop.key)) {
@@ -293,19 +273,24 @@ class MockOptimizer {
 
     traverse(this.ast, {
       // Check for unreachable code after return
-      ReturnStatement(path) {
+      ReturnStatement(path: NodePath<t.ReturnStatement>) {
         const siblings = path.getAllNextSiblings();
         for (const sibling of siblings) {
           if (!sibling.isEmptyStatement()) {
-            deadCode.push(`Unreachable code after return at line ${sibling.node.loc?.start.line}`);
+            deadCode.push(
+              `Unreachable code after return at line ${sibling.node.loc?.start.line}`
+            );
           }
         }
       },
 
       // Check for unused imports
-      ImportDeclaration(path) {
+      ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
         for (const specifier of path.node.specifiers) {
-          if (t.isImportSpecifier(specifier) || t.isImportDefaultSpecifier(specifier)) {
+          if (
+            t.isImportSpecifier(specifier) ||
+            t.isImportDefaultSpecifier(specifier)
+          ) {
             const localName = specifier.local.name;
             const binding = path.scope.getBinding(localName);
 
@@ -317,7 +302,7 @@ class MockOptimizer {
       },
 
       // Check for unused variables
-      VariableDeclarator(path) {
+      VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
         if (t.isIdentifier(path.node.id)) {
           const name = path.node.id.name;
           const binding = path.scope.getBinding(name);
@@ -350,12 +335,12 @@ class MockOptimizer {
     const deadCode = this.findDeadCode();
 
     // Execute sinking for candidates
-    const sunkDependencies = sinkCandidates.filter(c => c.sinkable);
+    const sunkDependencies = sinkCandidates.filter((c) => c.sinkable);
 
     // In real implementation, would modify AST here
 
     return createOptimizeResult({
-      asts: new Map([['current.tsx', this.ast]]),
+      asts: new Map([["current.tsx", this.ast]]),
       sunkDependencies,
       removedProps: unusedProps,
       deadCodeRemoved: deadCode,
@@ -375,12 +360,12 @@ class MockOptimizer {
    */
   hasSideEffects(code: string): boolean {
     return (
-      code.includes('console.') ||
-      code.includes('fetch') ||
-      code.includes('localStorage') ||
-      code.includes('sessionStorage') ||
-      code.includes('document.') ||
-      code.includes('window.')
+      code.includes("console.") ||
+      code.includes("fetch") ||
+      code.includes("localStorage") ||
+      code.includes("sessionStorage") ||
+      code.includes("document.") ||
+      code.includes("window.")
     );
   }
 }
@@ -487,7 +472,7 @@ const Component = () => {
 // Sink Candidate Detection Tests
 // =============================================================================
 
-describe('Optimizer - Sink Candidate Detection', () => {
+describe("Optimizer - Sink Candidate Detection", () => {
   /**
    * OPT-01: Identify sinkable declaration
    *
@@ -496,7 +481,7 @@ describe('Optimizer - Sink Candidate Detection', () => {
    * Expected Results:
    * - Candidates array includes sinkable items
    */
-  it('OPT-01: should identify sinkable declaration', () => {
+  it("OPT-01: should identify sinkable declaration", () => {
     const optimizer = new MockOptimizer(componentWithSinkable);
     const candidates = optimizer.findSinkCandidates();
 
@@ -512,11 +497,11 @@ describe('Optimizer - Sink Candidate Detection', () => {
    * Expected Results:
    * - Candidate has optimalScope set
    */
-  it('OPT-02: should find optimal scope for sinking', () => {
+  it("OPT-02: should find optimal scope for sinking", () => {
     const optimizer = new MockOptimizer(componentWithSinkable);
     const candidates = optimizer.findSinkCandidates();
 
-    candidates.forEach(candidate => {
+    candidates.forEach((candidate) => {
       expect(candidate.optimalScope).toBeDefined();
       expect(candidate.optimalScope.depth).toBeGreaterThanOrEqual(0);
     });
@@ -530,13 +515,13 @@ describe('Optimizer - Sink Candidate Detection', () => {
    * Expected Results:
    * - Variable used in multiple scopes is not sinkable
    */
-  it('OPT-04: should skip sinking when used in multiple scopes', () => {
+  it("OPT-04: should skip sinking when used in multiple scopes", () => {
     const optimizer = new MockOptimizer(componentMultiScope);
     const candidates = optimizer.findSinkCandidates();
 
     // sharedValue used in multiple scopes should not be sinkable
     const sharedCandidate = candidates.find(
-      c => c.dependency.symbol === 'sharedValue'
+      (c) => c.dependency.symbol === "sharedValue"
     );
 
     // If found, should not be sinkable (or not found at all)
@@ -550,7 +535,7 @@ describe('Optimizer - Sink Candidate Detection', () => {
 // Unused Prop Detection Tests
 // =============================================================================
 
-describe('Optimizer - Unused Prop Detection', () => {
+describe("Optimizer - Unused Prop Detection", () => {
   /**
    * OPT-05: Identify unused props after transform
    *
@@ -559,7 +544,7 @@ describe('Optimizer - Unused Prop Detection', () => {
    * Expected Results:
    * - Unused props appear in removal list
    */
-  it('OPT-05: should identify unused props after transform', () => {
+  it("OPT-05: should identify unused props after transform", () => {
     const optimizer = new MockOptimizer(componentWithUnusedProp);
     const unusedProps = optimizer.findUnusedProps();
 
@@ -575,11 +560,11 @@ describe('Optimizer - Unused Prop Detection', () => {
    * Expected Results:
    * - PropRemoval objects have component and propName
    */
-  it('OPT-06: should track unused props for removal', () => {
+  it("OPT-06: should track unused props for removal", () => {
     const optimizer = new MockOptimizer(componentWithUnusedProp);
     const unusedProps = optimizer.findUnusedProps();
 
-    unusedProps.forEach(prop => {
+    unusedProps.forEach((prop) => {
       expect(prop.component).toBeDefined();
       expect(prop.propName).toBeDefined();
     });
@@ -590,7 +575,7 @@ describe('Optimizer - Unused Prop Detection', () => {
 // Dead Code Detection Tests
 // =============================================================================
 
-describe('Optimizer - Dead Code Detection', () => {
+describe("Optimizer - Dead Code Detection", () => {
   /**
    * OPT-07: Identify dead code after transform
    *
@@ -599,7 +584,7 @@ describe('Optimizer - Dead Code Detection', () => {
    * Expected Results:
    * - Unused imports and variables identified
    */
-  it('OPT-07: should identify dead code after transform', () => {
+  it("OPT-07: should identify dead code after transform", () => {
     const optimizer = new MockOptimizer(componentWithDeadCode);
     const deadCode = optimizer.findDeadCode();
 
@@ -615,12 +600,12 @@ describe('Optimizer - Dead Code Detection', () => {
    * Expected Results:
    * - Dead code strings describe what to remove
    */
-  it('OPT-08: should track dead code for removal', () => {
+  it("OPT-08: should track dead code for removal", () => {
     const optimizer = new MockOptimizer(componentUnreachable);
     const deadCode = optimizer.findDeadCode();
 
     // Should find unreachable code after return
-    expect(deadCode.some(d => d.includes('Unreachable'))).toBe(true);
+    expect(deadCode.some((d) => d.includes("Unreachable"))).toBe(true);
   });
 });
 
@@ -628,7 +613,7 @@ describe('Optimizer - Dead Code Detection', () => {
 // Consumer Tracking Tests
 // =============================================================================
 
-describe('Optimizer - Consumer Tracking', () => {
+describe("Optimizer - Consumer Tracking", () => {
   /**
    * OPT-09: Track consumers of dependency
    *
@@ -637,13 +622,13 @@ describe('Optimizer - Consumer Tracking', () => {
    * Expected Results:
    * - Candidates have consumers array
    */
-  it('OPT-09: should track consumers of dependency', () => {
+  it("OPT-09: should track consumers of dependency", () => {
     const optimizer = new MockOptimizer(componentWithSinkable);
     const candidates = optimizer.findSinkCandidates();
 
-    candidates.forEach(candidate => {
+    candidates.forEach((candidate) => {
       expect(Array.isArray(candidate.consumers)).toBe(true);
-      candidate.consumers.forEach(consumer => {
+      candidate.consumers.forEach((consumer) => {
         expect(consumer.scope).toBeDefined();
         expect(consumer.usageType).toBeDefined();
       });
@@ -655,7 +640,7 @@ describe('Optimizer - Consumer Tracking', () => {
 // Hook Handling Tests
 // =============================================================================
 
-describe('Optimizer - Hook Handling', () => {
+describe("Optimizer - Hook Handling", () => {
   /**
    * OPT-10: Handle hooks (cannot sink below component)
    *
@@ -664,7 +649,7 @@ describe('Optimizer - Hook Handling', () => {
    * Expected Results:
    * - Hooks not in sink candidates OR marked unsinkable
    */
-  it('OPT-10: should not allow sinking hooks below component level', () => {
+  it("OPT-10: should not allow sinking hooks below component level", () => {
     const optimizer = new MockOptimizer(componentWithHook);
     const canSink = optimizer.canSinkHook();
 
@@ -672,12 +657,12 @@ describe('Optimizer - Hook Handling', () => {
     expect(canSink).toBe(false);
   });
 
-  it('should preserve hook declarations', () => {
+  it("should preserve hook declarations", () => {
     const optimizer = new MockOptimizer(componentWithHook);
     const deadCode = optimizer.findDeadCode();
 
     // useState result should not be marked as dead code
-    const hasHookInDeadCode = deadCode.some(d => d.includes('count'));
+    const hasHookInDeadCode = deadCode.some((d) => d.includes("count"));
     expect(hasHookInDeadCode).toBe(false);
   });
 });
@@ -686,7 +671,7 @@ describe('Optimizer - Hook Handling', () => {
 // Side Effects Tests
 // =============================================================================
 
-describe('Optimizer - Side Effects', () => {
+describe("Optimizer - Side Effects", () => {
   /**
    * OPT-12: Preserve side-effect code
    *
@@ -695,14 +680,14 @@ describe('Optimizer - Side Effects', () => {
    * Expected Results:
    * - Side-effect code detected and preserved
    */
-  it('OPT-12: should detect side-effect code', () => {
+  it("OPT-12: should detect side-effect code", () => {
     const optimizer = new MockOptimizer(componentWithSideEffects);
     const hasSideEffects = optimizer.hasSideEffects(componentWithSideEffects);
 
     expect(hasSideEffects).toBe(true);
   });
 
-  it('should not mark side-effect code as dead', () => {
+  it("should not mark side-effect code as dead", () => {
     const code = `
       import React from 'react';
 
@@ -715,7 +700,7 @@ describe('Optimizer - Side Effects', () => {
     const deadCode = optimizer.findDeadCode();
 
     // console.log should not be removed
-    const hasConsoleInDead = deadCode.some(d => d.includes('console'));
+    const hasConsoleInDead = deadCode.some((d) => d.includes("console"));
     expect(hasConsoleInDead).toBe(false);
   });
 });
@@ -724,7 +709,7 @@ describe('Optimizer - Side Effects', () => {
 // Optimization Execution Tests
 // =============================================================================
 
-describe('Optimizer - Optimization Execution', () => {
+describe("Optimizer - Optimization Execution", () => {
   /**
    * OPT-03: Sink declaration to lower scope
    *
@@ -733,7 +718,7 @@ describe('Optimizer - Optimization Execution', () => {
    * Expected Results:
    * - Result contains sunk dependencies
    */
-  it('OPT-03: should execute sinking optimization', () => {
+  it("OPT-03: should execute sinking optimization", () => {
     const optimizer = new MockOptimizer(componentWithSinkable);
     const result = optimizer.optimize();
 
@@ -749,7 +734,7 @@ describe('Optimizer - Optimization Execution', () => {
    * Expected Results:
    * - Result contains all optimization types
    */
-  it('OPT-13: should chain multiple optimizations', () => {
+  it("OPT-13: should chain multiple optimizations", () => {
     const code = `
       import React from 'react';
       import { unused } from './utils';
@@ -777,14 +762,14 @@ describe('Optimizer - Optimization Execution', () => {
    * Expected Results:
    * - OptimizeResult structure is complete
    */
-  it('OPT-14: should generate optimization result', () => {
+  it("OPT-14: should generate optimization result", () => {
     const optimizer = new MockOptimizer(componentWithSinkable);
     const result = optimizer.optimize();
 
-    expect(result).toHaveProperty('asts');
-    expect(result).toHaveProperty('sunkDependencies');
-    expect(result).toHaveProperty('removedProps');
-    expect(result).toHaveProperty('deadCodeRemoved');
+    expect(result).toHaveProperty("asts");
+    expect(result).toHaveProperty("sunkDependencies");
+    expect(result).toHaveProperty("removedProps");
+    expect(result).toHaveProperty("deadCodeRemoved");
 
     expect(result.asts).toBeInstanceOf(Map);
     expect(Array.isArray(result.sunkDependencies)).toBe(true);
@@ -797,8 +782,8 @@ describe('Optimizer - Optimization Execution', () => {
 // Edge Cases
 // =============================================================================
 
-describe('Optimizer - Edge Cases', () => {
-  it('should handle empty component', () => {
+describe("Optimizer - Edge Cases", () => {
+  it("should handle empty component", () => {
     const code = `const Empty = () => null;`;
     const optimizer = new MockOptimizer(code);
     const result = optimizer.optimize();
@@ -808,7 +793,7 @@ describe('Optimizer - Edge Cases', () => {
     expect(result.removedProps).toHaveLength(0);
   });
 
-  it('should handle component with no props', () => {
+  it("should handle component with no props", () => {
     const code = `
       const NoProps = () => {
         return <div>Static</div>;
@@ -820,7 +805,7 @@ describe('Optimizer - Edge Cases', () => {
     expect(unusedProps).toHaveLength(0);
   });
 
-  it('should handle deeply nested scopes', () => {
+  it("should handle deeply nested scopes", () => {
     const code = `
       const Deep = () => {
         const outer = 1;
@@ -845,7 +830,7 @@ describe('Optimizer - Edge Cases', () => {
     expect(Array.isArray(candidates)).toBe(true);
   });
 
-  it('should handle class components', () => {
+  it("should handle class components", () => {
     const code = `
       import React from 'react';
 
@@ -862,7 +847,7 @@ describe('Optimizer - Edge Cases', () => {
     expect(result).toBeDefined();
   });
 
-  it('should handle spread props', () => {
+  it("should handle spread props", () => {
     const code = `
       const Spread = (props) => {
         return <div {...props} />;
@@ -875,7 +860,7 @@ describe('Optimizer - Edge Cases', () => {
     expect(Array.isArray(unusedProps)).toBe(true);
   });
 
-  it('should handle rest props', () => {
+  it("should handle rest props", () => {
     const code = `
       const Rest = ({ used, ...rest }) => {
         return <div {...rest}>{used}</div>;
@@ -888,7 +873,7 @@ describe('Optimizer - Edge Cases', () => {
     expect(Array.isArray(unusedProps)).toBe(true);
   });
 
-  it('should handle conditional exports', () => {
+  it("should handle conditional exports", () => {
     const code = `
       const Component = () => <div />;
       if (process.env.NODE_ENV === 'development') {
@@ -902,7 +887,7 @@ describe('Optimizer - Edge Cases', () => {
     expect(result).toBeDefined();
   });
 
-  it('should handle multiple files concept', () => {
+  it("should handle multiple files concept", () => {
     const code = `
       import { helper } from './utils';
 
@@ -922,8 +907,8 @@ describe('Optimizer - Edge Cases', () => {
 // Result Structure Tests
 // =============================================================================
 
-describe('Optimizer - Result Structure', () => {
-  it('should return properly structured OptimizeResult', () => {
+describe("Optimizer - Result Structure", () => {
+  it("should return properly structured OptimizeResult", () => {
     const optimizer = new MockOptimizer(componentWithSinkable);
     const result = optimizer.optimize();
 
@@ -934,38 +919,38 @@ describe('Optimizer - Result Structure', () => {
     expect(result.deadCodeRemoved).toBeDefined();
   });
 
-  it('should return properly structured SinkCandidate', () => {
+  it("should return properly structured SinkCandidate", () => {
     const optimizer = new MockOptimizer(componentWithSinkable);
     const candidates = optimizer.findSinkCandidates();
 
-    candidates.forEach(candidate => {
+    candidates.forEach((candidate) => {
       expect(candidate.dependency).toBeDefined();
       expect(candidate.currentScope).toBeDefined();
       expect(candidate.optimalScope).toBeDefined();
       expect(candidate.consumers).toBeDefined();
-      expect(typeof candidate.sinkable).toBe('boolean');
+      expect(typeof candidate.sinkable).toBe("boolean");
     });
   });
 
-  it('should return properly structured ConsumerInfo', () => {
+  it("should return properly structured ConsumerInfo", () => {
     const optimizer = new MockOptimizer(componentWithSinkable);
     const candidates = optimizer.findSinkCandidates();
 
-    candidates.forEach(candidate => {
-      candidate.consumers.forEach(consumer => {
+    candidates.forEach((candidate) => {
+      candidate.consumers.forEach((consumer) => {
         expect(consumer.scope).toBeDefined();
-        expect(['direct', 'prop', 'closure']).toContain(consumer.usageType);
+        expect(["direct", "prop", "closure"]).toContain(consumer.usageType);
       });
     });
   });
 
-  it('should return properly structured PropRemoval', () => {
+  it("should return properly structured PropRemoval", () => {
     const optimizer = new MockOptimizer(componentWithUnusedProp);
     const unusedProps = optimizer.findUnusedProps();
 
-    unusedProps.forEach(prop => {
-      expect(typeof prop.component).toBe('string');
-      expect(typeof prop.propName).toBe('string');
+    unusedProps.forEach((prop) => {
+      expect(typeof prop.component).toBe("string");
+      expect(typeof prop.propName).toBe("string");
     });
   });
 });

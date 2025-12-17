@@ -16,7 +16,6 @@ import {
   Move,
   DependencyType,
   type PositionSelector,
-  type FileInput,
   createSelectorResolver,
   createScopeManager,
   createConfiguredHoistPlanner,
@@ -39,9 +38,6 @@ async function testHoisting(
   toSelector: PositionSelector,
   mode: Move
 ) {
-  // @ts-expect-error unused test variable
-  const _files: FileInput[] = [{ path: "test.tsx", content: code }];
-
   // Parse
   const parser = createParser();
   const parseResult = parser.parse(code, "test.tsx");

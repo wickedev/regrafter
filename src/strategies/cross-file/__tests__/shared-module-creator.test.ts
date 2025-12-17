@@ -2,9 +2,9 @@
  * Unit tests for Shared Module Creator
  */
 
-import { describe, it, expect } from 'vitest';
-import { parse } from '@babel/parser';
-import type * as t from '@babel/types';
+import { describe, it, expect } from "vitest";
+import { parse } from "@babel/parser";
+import type * as t from "@babel/types";
 
 import {
   generateSharedModule,
@@ -12,14 +12,14 @@ import {
   generateTargetImports,
   addImportsToAst,
   addExportsToSourceFile,
-} from '../shared-module-creator.js';
+} from "../shared-module-creator.js";
 import {
   createInternalDependency,
   createDependencyOrigin,
   createScopeInfo,
-} from '../../../types/factories.js';
-import { DependencyType } from '../../../types/public.js';
-import { ScopeType } from '../../../types/internal.js';
+} from "../../../types/factories.js";
+import { DependencyType } from "../../../types/public.js";
+import { ScopeType } from "../../../types/internal.js";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Test Utilities
@@ -27,8 +27,8 @@ import { ScopeType } from '../../../types/internal.js';
 
 function parseCode(code: string): t.File {
   return parse(code, {
-    sourceType: 'module',
-    plugins: ['jsx', 'typescript'],
+    sourceType: "module",
+    plugins: ["jsx", "typescript"],
   });
 }
 
@@ -51,7 +51,7 @@ function createMockDependency(
     symbol,
     type,
     origin: createDependencyOrigin({
-      node: { type: 'Identifier', name: symbol } as any,
+      node: { type: "Identifier", name: symbol } as any,
       file,
     }),
     scope: createScopeInfo({
@@ -66,25 +66,25 @@ function createMockDependency(
 // generateSharedModule Tests
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe('generateSharedModule', () => {
-  it('should generate shared module with dependencies', () => {
+describe("generateSharedModule", () => {
+  it("should generate shared module with dependencies", () => {
     const ast = parseCode(`
       const sharedVar = 1;
       const otherVar = 2;
     `);
 
-    const deps = [createMockDependency('sharedVar', 'src/A.ts')];
+    const deps = [createMockDependency("sharedVar", "src/A.ts")];
 
-    const result = generateSharedModule(deps, ast, 'src/A.ts');
+    const result = generateSharedModule(deps, ast, "src/A.ts");
 
     expect(result.ast).toBeDefined();
     expect(result.operation.newFilePath).toBe("src/A.shared.ts");
 
     // Document the complete generated shared module code
-    expect(result.code).toBe('export const sharedVar = 1;');
+    expect(result.code).toBe("export const sharedVar = 1;");
   });
 
-  it('should include all dependencies in the shared module', () => {
+  it("should include all dependencies in the shared module", () => {
     const ast = parseCode(`
       const foo = 1;
       const bar = 2;
@@ -92,20 +92,20 @@ describe('generateSharedModule', () => {
     `);
 
     const deps = [
-      createMockDependency('foo', 'src/A.ts'),
-      createMockDependency('bar', 'src/A.ts'),
+      createMockDependency("foo", "src/A.ts"),
+      createMockDependency("bar", "src/A.ts"),
     ];
 
-    const result = generateSharedModule(deps, ast, 'src/A.ts');
+    const result = generateSharedModule(deps, ast, "src/A.ts");
 
     expect(result.operation.exports.length).toBe(2);
   });
 
-  it('should generate appropriate file path for shared module', () => {
+  it("should generate appropriate file path for shared module", () => {
     const ast = parseCode(`const foo = 1;`);
-    const deps = [createMockDependency('foo', 'src/components/A.ts')];
+    const deps = [createMockDependency("foo", "src/components/A.ts")];
 
-    const result = generateSharedModule(deps, ast, 'src/components/A.ts');
+    const result = generateSharedModule(deps, ast, "src/components/A.ts");
 
     expect(result.operation.newFilePath).toBe("src/components/A.shared.ts");
   });
@@ -115,19 +115,19 @@ describe('generateSharedModule', () => {
 // updateSourceFileReferences Tests
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe('updateSourceFileReferences', () => {
-  it('should add import from shared module', () => {
+describe("updateSourceFileReferences", () => {
+  it("should add import from shared module", () => {
     const ast = parseCode(`
       const sharedVar = 1;
       console.log(sharedVar);
     `);
 
-    const deps = [createMockDependency('sharedVar', 'src/A.ts')];
+    const deps = [createMockDependency("sharedVar", "src/A.ts")];
 
     const result = updateSourceFileReferences(
       ast,
-      'src/A.ts',
-      'src/shared/A.shared.ts',
+      "src/A.ts",
+      "src/shared/A.shared.ts",
       deps
     );
 
@@ -136,18 +136,18 @@ describe('updateSourceFileReferences', () => {
     expect(result.imports[0]!.importSource).toBe("./shared/A.shared");
   });
 
-  it('should generate correct relative import path', () => {
+  it("should generate correct relative import path", () => {
     const ast = parseCode(`const foo = 1;`);
-    const deps = [createMockDependency('foo', 'src/components/A.ts')];
+    const deps = [createMockDependency("foo", "src/components/A.ts")];
 
     const result = updateSourceFileReferences(
       ast,
-      'src/components/A.ts',
-      'src/shared/utils.ts',
+      "src/components/A.ts",
+      "src/shared/utils.ts",
       deps
     );
 
-    expect(result.imports[0]!.importSource).toBe('../shared/utils');
+    expect(result.imports[0]!.importSource).toBe("../shared/utils");
   });
 });
 
@@ -155,33 +155,38 @@ describe('updateSourceFileReferences', () => {
 // generateTargetImports Tests
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe('generateTargetImports', () => {
-  it('should generate imports from source file for exported deps', () => {
-    const deps = [createMockDependency('exportedVar', 'src/A.ts')];
+describe("generateTargetImports", () => {
+  it("should generate imports from source file for exported deps", () => {
+    const deps = [createMockDependency("exportedVar", "src/A.ts")];
 
     const analysis = {
       exportedDeps: deps,
       unexportedDeps: [],
       sharedDeps: [],
       existingExports: [
-        { name: 'exportedVar', localName: 'exportedVar', type: 'named' as const, isReExport: false },
+        {
+          name: "exportedVar",
+          localName: "exportedVar",
+          type: "named" as const,
+          isReExport: false,
+        },
       ],
     };
 
     const result = generateTargetImports(
-      'src/B.ts',
-      'src/A.ts',
+      "src/B.ts",
+      "src/A.ts",
       null,
       deps,
       analysis
     );
 
     expect(result.imports.length).toBeGreaterThan(0);
-    expect(result.imports[0]!.importSource).toBe('./A');
+    expect(result.imports[0]!.importSource).toBe("./A");
   });
 
-  it('should generate imports from shared module for shared deps', () => {
-    const dep = createMockDependency('sharedVar', 'src/A.ts');
+  it("should generate imports from shared module for shared deps", () => {
+    const dep = createMockDependency("sharedVar", "src/A.ts");
 
     const analysis = {
       exportedDeps: [],
@@ -191,35 +196,40 @@ describe('generateTargetImports', () => {
     };
 
     const result = generateTargetImports(
-      'src/B.ts',
-      'src/A.ts',
-      'src/shared/A.shared.ts',
+      "src/B.ts",
+      "src/A.ts",
+      "src/shared/A.shared.ts",
       [dep],
       analysis
     );
 
-    expect(result.imports.some((i) => i.importSource.includes('shared'))).toBe(
+    expect(result.imports.some((i) => i.importSource.includes("shared"))).toBe(
       true
     );
   });
 
-  it('should handle mix of exported and shared deps', () => {
-    const exportedDep = createMockDependency('exported', 'src/A.ts');
-    const sharedDep = createMockDependency('shared', 'src/A.ts');
+  it("should handle mix of exported and shared deps", () => {
+    const exportedDep = createMockDependency("exported", "src/A.ts");
+    const sharedDep = createMockDependency("shared", "src/A.ts");
 
     const analysis = {
       exportedDeps: [exportedDep],
       unexportedDeps: [sharedDep],
       sharedDeps: [sharedDep],
       existingExports: [
-        { name: 'exported', localName: 'exported', type: 'named' as const, isReExport: false },
+        {
+          name: "exported",
+          localName: "exported",
+          type: "named" as const,
+          isReExport: false,
+        },
       ],
     };
 
     const result = generateTargetImports(
-      'src/B.ts',
-      'src/A.ts',
-      'src/shared/A.shared.ts',
+      "src/B.ts",
+      "src/A.ts",
+      "src/shared/A.shared.ts",
       [exportedDep, sharedDep],
       analysis
     );
@@ -233,62 +243,58 @@ describe('generateTargetImports', () => {
 // addImportsToAst Tests
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe('addImportsToAst', () => {
-  it('should add imports to the beginning of the file', () => {
+describe("addImportsToAst", () => {
+  it("should add imports to the beginning of the file", () => {
     const ast = parseCode(`
       const foo = 1;
     `);
 
     const imports = [
       {
-        id: 'import-1',
-        file: 'src/A.ts',
-        importSource: './utils',
-        specifiers: [
-          { type: 'named' as const, imported: 'bar', local: 'bar' },
-        ],
-        position: 'start' as const,
+        id: "import-1",
+        file: "src/A.ts",
+        importSource: "./utils",
+        specifiers: [{ type: "named" as const, imported: "bar", local: "bar" }],
+        position: "start" as const,
       },
     ];
 
     const result = addImportsToAst(ast, imports);
 
-    expect(result.program.body[0]!.type).toBe('ImportDeclaration');
+    expect(result.program.body[0]!.type).toBe("ImportDeclaration");
   });
 
-  it('should handle multiple imports', () => {
+  it("should handle multiple imports", () => {
     const ast = parseCode(`const foo = 1;`);
 
     const imports = [
       {
-        id: 'import-1',
-        file: 'src/A.ts',
-        importSource: './utils',
-        specifiers: [
-          { type: 'named' as const, imported: 'bar', local: 'bar' },
-        ],
-        position: 'start' as const,
+        id: "import-1",
+        file: "src/A.ts",
+        importSource: "./utils",
+        specifiers: [{ type: "named" as const, imported: "bar", local: "bar" }],
+        position: "start" as const,
       },
       {
-        id: 'import-2',
-        file: 'src/A.ts',
-        importSource: 'react',
+        id: "import-2",
+        file: "src/A.ts",
+        importSource: "react",
         specifiers: [
-          { type: 'default' as const, imported: 'React', local: 'React' },
+          { type: "default" as const, imported: "React", local: "React" },
         ],
-        position: 'start' as const,
+        position: "start" as const,
       },
     ];
 
     const result = addImportsToAst(ast, imports);
     const importDeclarations = result.program.body.filter(
-      (node) => node.type === 'ImportDeclaration'
+      (node) => node.type === "ImportDeclaration"
     );
 
     expect(importDeclarations.length).toBe(2);
   });
 
-  it('should preserve existing imports', () => {
+  it("should preserve existing imports", () => {
     const ast = parseCode(`
       import { existing } from './existing';
       const foo = 1;
@@ -296,36 +302,34 @@ describe('addImportsToAst', () => {
 
     const imports = [
       {
-        id: 'import-1',
-        file: 'src/A.ts',
-        importSource: './new',
-        specifiers: [
-          { type: 'named' as const, imported: 'bar', local: 'bar' },
-        ],
-        position: 'start' as const,
+        id: "import-1",
+        file: "src/A.ts",
+        importSource: "./new",
+        specifiers: [{ type: "named" as const, imported: "bar", local: "bar" }],
+        position: "start" as const,
       },
     ];
 
     const result = addImportsToAst(ast, imports);
     const importDeclarations = result.program.body.filter(
-      (node) => node.type === 'ImportDeclaration'
+      (node) => node.type === "ImportDeclaration"
     );
 
     expect(importDeclarations.length).toBe(2);
   });
 
-  it('should handle namespace imports', () => {
+  it("should handle namespace imports", () => {
     const ast = parseCode(`const foo = 1;`);
 
     const imports = [
       {
-        id: 'import-1',
-        file: 'src/A.ts',
-        importSource: './utils',
+        id: "import-1",
+        file: "src/A.ts",
+        importSource: "./utils",
         specifiers: [
-          { type: 'namespace' as const, imported: '*', local: 'utils' },
+          { type: "namespace" as const, imported: "*", local: "utils" },
         ],
-        position: 'start' as const,
+        position: "start" as const,
       },
     ];
 
@@ -333,7 +337,7 @@ describe('addImportsToAst', () => {
     // @ts-expect-error - type assertion for test
     const importDecl: t.ImportDeclaration = result.program.body[0]!;
 
-    expect(importDecl.specifiers[0]!.type).toBe('ImportNamespaceSpecifier');
+    expect(importDecl.specifiers[0]!.type).toBe("ImportNamespaceSpecifier");
   });
 });
 
@@ -341,52 +345,57 @@ describe('addImportsToAst', () => {
 // addExportsToSourceFile Tests
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe('addExportsToSourceFile', () => {
-  it('should add export specifiers for symbols', () => {
+describe("addExportsToSourceFile", () => {
+  it("should add export specifiers for symbols", () => {
     const ast = parseCode(`
       const foo = 1;
       const bar = 2;
     `);
 
-    const result = addExportsToSourceFile(ast, ['foo', 'bar']);
+    const result = addExportsToSourceFile(ast, ["foo", "bar"]);
 
     // Should have export statement (either with specifiers or declaration)
     const hasExport = result.program.body.some(
       (node) =>
-        node.type === 'ExportNamedDeclaration' &&
+        node.type === "ExportNamedDeclaration" &&
         (node.specifiers.length > 0 || node.declaration !== null)
     );
 
     expect(hasExport).toBe(true);
   });
 
-  it('should not duplicate already exported symbols', () => {
+  it("should not duplicate already exported symbols", () => {
     const ast = parseCode(`
       export const foo = 1;
       const bar = 2;
     `);
 
-    const result = addExportsToSourceFile(ast, ['foo', 'bar']);
+    const result = addExportsToSourceFile(ast, ["foo", "bar"]);
 
     // Count export declarations
     const exportDecls = result.program.body.filter(
-      (node) => node.type === 'ExportNamedDeclaration'
+      (node) => node.type === "ExportNamedDeclaration"
     );
 
     // Should not have duplicate for 'foo'
-    const allSpecifiers = exportDecls.flatMap((decl: t.ExportNamedDeclaration) =>
-      decl.specifiers
-        .filter((spec): spec is t.ExportSpecifier => spec.type === 'ExportSpecifier')
-        .map((spec) =>
-          spec.exported.type === 'Identifier' ? spec.exported.name : ''
-        )
+    const allSpecifiers = exportDecls.flatMap(
+      (decl: t.ExportNamedDeclaration) =>
+        decl.specifiers
+          .filter(
+            (spec): spec is t.ExportSpecifier => spec.type === "ExportSpecifier"
+          )
+          .map((spec) =>
+            spec.exported.type === "Identifier" ? spec.exported.name : ""
+          )
     );
 
-    const fooCount = allSpecifiers.filter((name: string) => name === 'foo').length;
+    const fooCount = allSpecifiers.filter(
+      (name: string) => name === "foo"
+    ).length;
     expect(fooCount).toBeLessThanOrEqual(1);
   });
 
-  it('should handle empty symbols array', () => {
+  it("should handle empty symbols array", () => {
     const ast = parseCode(`const foo = 1;`);
 
     const result = addExportsToSourceFile(ast, []);

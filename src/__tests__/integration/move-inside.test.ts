@@ -13,15 +13,15 @@
  * - Verify edge cases (empty containers, fragments, etc.)
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import * as fs from 'fs';
-import * as path from 'path';
+import { describe, it, expect, beforeEach } from "vitest";
+import * as fs from "fs";
+import * as path from "path";
 import {
   Move,
   DependencyType,
   type PositionSelector,
   type Result,
-} from '../../types/index.js';
+} from "../../types/index.js";
 
 /**
  * Helper to create a position selector
@@ -64,10 +64,10 @@ function createPositionSelector(
 // Test Utilities
 // =============================================================================
 
-const FIXTURES_DIR = path.join(__dirname, '../../../test/fixtures');
+const FIXTURES_DIR = path.join(__dirname, "../../../test/fixtures");
 
 function loadFixture(filename: string): string {
-  return fs.readFileSync(path.join(FIXTURES_DIR, filename), 'utf-8');
+  return fs.readFileSync(path.join(FIXTURES_DIR, filename), "utf-8");
 }
 
 /**
@@ -80,7 +80,6 @@ async function regraft(
   to: PositionSelector,
   _mode: Move
 ): Promise<Result> {
-
   // Validate inputs
   if (!files.length) {
     return {
@@ -88,15 +87,15 @@ async function regraft(
       codes: [],
       analysis: {
         canMove: false,
-        reason: 'No files provided',
+        reason: "No files provided",
         dependencies: [],
         hoistedDeps: [],
       },
     };
   }
 
-  const sourceFile = files.find(f => f.path === from.file);
-  const targetFile = files.find(f => f.path === to.file);
+  const sourceFile = files.find((f) => f.path === from.file);
+  const targetFile = files.find((f) => f.path === to.file);
 
   if (!sourceFile) {
     return {
@@ -127,7 +126,7 @@ async function regraft(
   // Placeholder success result
   return {
     success: true,
-    codes: files.map(f => ({
+    codes: files.map((f) => ({
       file: f.path,
       content: f.content,
       changed: true,
@@ -152,19 +151,19 @@ let conditionalComponentContent: string;
 let listComponentContent: string;
 
 beforeEach(() => {
-  simpleComponentContent = loadFixture('simple-component.tsx');
-  hooksComponentContent = loadFixture('component-with-hooks.tsx');
-  nestedComponentContent = loadFixture('nested-components.tsx');
-  contextComponentContent = loadFixture('component-with-context.tsx');
-  conditionalComponentContent = loadFixture('conditional-rendering.tsx');
-  listComponentContent = loadFixture('list-rendering.tsx');
+  simpleComponentContent = loadFixture("simple-component.tsx");
+  hooksComponentContent = loadFixture("component-with-hooks.tsx");
+  nestedComponentContent = loadFixture("nested-components.tsx");
+  contextComponentContent = loadFixture("component-with-context.tsx");
+  conditionalComponentContent = loadFixture("conditional-rendering.tsx");
+  listComponentContent = loadFixture("list-rendering.tsx");
 });
 
 // =============================================================================
 // Move.Inside Basic Tests
 // =============================================================================
 
-describe('Move.Inside - Basic Operations', () => {
+describe("Move.Inside - Basic Operations", () => {
   /**
    * INSIDE-01: Move element inside empty container
    *
@@ -185,15 +184,15 @@ describe('Move.Inside - Basic Operations', () => {
    * - Result.success === true
    * - Container has one child (the moved element)
    */
-  it('INSIDE-01: should move element inside empty container', async () => {
+  it("INSIDE-01: should move element inside empty container", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
     // Source: some element
-    const from = createPositionSelector('simple-component.tsx', 17, 8);
+    const from = createPositionSelector("simple-component.tsx", 17, 8);
     // Target: EmptyContainer div (line ~36)
-    const to = createPositionSelector('simple-component.tsx', 36, 4);
+    const to = createPositionSelector("simple-component.tsx", 36, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -220,15 +219,15 @@ describe('Move.Inside - Basic Operations', () => {
    * - Container children count increases by 1
    * - Moved element is last child
    */
-  it('INSIDE-02: should append element to container with children', async () => {
+  it("INSIDE-02: should append element to container with children", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
     // Source element
-    const from = createPositionSelector('simple-component.tsx', 22, 6);
+    const from = createPositionSelector("simple-component.tsx", 22, 6);
     // Target: main element which has children
-    const to = createPositionSelector('simple-component.tsx', 16, 6);
+    const to = createPositionSelector("simple-component.tsx", 16, 6);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -243,13 +242,13 @@ describe('Move.Inside - Basic Operations', () => {
    * Expected Results:
    * - Original location no longer contains the element
    */
-  it('INSIDE-03: should remove element from original location', async () => {
+  it("INSIDE-03: should remove element from original location", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    const from = createPositionSelector('simple-component.tsx', 17, 8);
-    const to = createPositionSelector('simple-component.tsx', 36, 4);
+    const from = createPositionSelector("simple-component.tsx", 17, 8);
+    const to = createPositionSelector("simple-component.tsx", 36, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -261,7 +260,7 @@ describe('Move.Inside - Basic Operations', () => {
 // Move.Inside with Dependencies
 // =============================================================================
 
-describe('Move.Inside - Dependency Handling', () => {
+describe("Move.Inside - Dependency Handling", () => {
   /**
    * INSIDE-04: Move with hook dependency triggers hoisting
    *
@@ -271,15 +270,15 @@ describe('Move.Inside - Dependency Handling', () => {
    * - Result.analysis.hoistedDeps includes the hook
    * - Hook is at valid location (Rules of Hooks compliant)
    */
-  it('INSIDE-04: should hoist hook dependency when needed', async () => {
+  it("INSIDE-04: should hoist hook dependency when needed", async () => {
     const files = [
-      { path: 'component-with-hooks.tsx', content: hooksComponentContent },
+      { path: "component-with-hooks.tsx", content: hooksComponentContent },
     ];
 
     // Element using useState
-    const from = createPositionSelector('component-with-hooks.tsx', 15, 6);
+    const from = createPositionSelector("component-with-hooks.tsx", 15, 6);
     // Target container
-    const to = createPositionSelector('component-with-hooks.tsx', 12, 4);
+    const to = createPositionSelector("component-with-hooks.tsx", 12, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -295,14 +294,14 @@ describe('Move.Inside - Dependency Handling', () => {
    * - All dependencies in analysis
    * - All required dependencies hoisted or resolved
    */
-  it('INSIDE-14: should handle multiple dependencies', async () => {
+  it("INSIDE-14: should handle multiple dependencies", async () => {
     const files = [
-      { path: 'component-with-hooks.tsx', content: hooksComponentContent },
+      { path: "component-with-hooks.tsx", content: hooksComponentContent },
     ];
 
     // Element using multiple hooks (ComplexHooksComponent area)
-    const from = createPositionSelector('component-with-hooks.tsx', 150, 6);
-    const to = createPositionSelector('component-with-hooks.tsx', 140, 4);
+    const from = createPositionSelector("component-with-hooks.tsx", 150, 6);
+    const to = createPositionSelector("component-with-hooks.tsx", 140, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -314,7 +313,7 @@ describe('Move.Inside - Dependency Handling', () => {
 // Move.Inside - Fragments
 // =============================================================================
 
-describe('Move.Inside - Fragment Handling', () => {
+describe("Move.Inside - Fragment Handling", () => {
   /**
    * INSIDE-05: Move into React.Fragment
    *
@@ -323,14 +322,14 @@ describe('Move.Inside - Fragment Handling', () => {
    * Expected Results:
    * - Element becomes child of Fragment
    */
-  it('INSIDE-05: should move element into React.Fragment', async () => {
+  it("INSIDE-05: should move element into React.Fragment", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
     // Move element into FragmentComponent's fragment
-    const from = createPositionSelector('simple-component.tsx', 30, 6);
-    const to = createPositionSelector('simple-component.tsx', 42, 4);
+    const from = createPositionSelector("simple-component.tsx", 30, 6);
+    const to = createPositionSelector("simple-component.tsx", 42, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -345,13 +344,13 @@ describe('Move.Inside - Fragment Handling', () => {
    * Expected Results:
    * - Element becomes child of fragment
    */
-  it('INSIDE-06: should move element into shorthand fragment', async () => {
+  it("INSIDE-06: should move element into shorthand fragment", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    const from = createPositionSelector('simple-component.tsx', 30, 6);
-    const to = createPositionSelector('simple-component.tsx', 41, 4);
+    const from = createPositionSelector("simple-component.tsx", 30, 6);
+    const to = createPositionSelector("simple-component.tsx", 41, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -363,7 +362,7 @@ describe('Move.Inside - Fragment Handling', () => {
 // Move.Inside - Context Handling
 // =============================================================================
 
-describe('Move.Inside - Context Handling', () => {
+describe("Move.Inside - Context Handling", () => {
   /**
    * INSIDE-07: Move with context - same provider
    *
@@ -373,14 +372,14 @@ describe('Move.Inside - Context Handling', () => {
    * - Context access maintained
    * - No additional hoisting needed
    */
-  it('INSIDE-07: should maintain context when moving within provider', async () => {
+  it("INSIDE-07: should maintain context when moving within provider", async () => {
     const files = [
-      { path: 'component-with-context.tsx', content: contextComponentContent },
+      { path: "component-with-context.tsx", content: contextComponentContent },
     ];
 
     // Element using context, moving within same Provider
-    const from = createPositionSelector('component-with-context.tsx', 45, 6);
-    const to = createPositionSelector('component-with-context.tsx', 48, 6);
+    const from = createPositionSelector("component-with-context.tsx", 45, 6);
+    const to = createPositionSelector("component-with-context.tsx", 48, 6);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -397,14 +396,14 @@ describe('Move.Inside - Context Handling', () => {
    * - Context converted to props OR provider hoisted
    * - Result still successful with appropriate resolution
    */
-  it('INSIDE-08: should handle context when moving outside provider', async () => {
+  it("INSIDE-08: should handle context when moving outside provider", async () => {
     const files = [
-      { path: 'component-with-context.tsx', content: contextComponentContent },
+      { path: "component-with-context.tsx", content: contextComponentContent },
     ];
 
     // Element using context, moving outside Provider boundary
-    const from = createPositionSelector('component-with-context.tsx', 45, 6);
-    const to = createPositionSelector('component-with-context.tsx', 35, 4);
+    const from = createPositionSelector("component-with-context.tsx", 45, 6);
+    const to = createPositionSelector("component-with-context.tsx", 35, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -416,7 +415,7 @@ describe('Move.Inside - Context Handling', () => {
 // Move.Inside - Edge Cases
 // =============================================================================
 
-describe('Move.Inside - Edge Cases', () => {
+describe("Move.Inside - Edge Cases", () => {
   /**
    * INSIDE-09: Move to same parent returns unchanged
    *
@@ -426,14 +425,14 @@ describe('Move.Inside - Edge Cases', () => {
    * - Result.success === true
    * - No structural changes (but may reorder)
    */
-  it('INSIDE-09: should handle move to same parent', async () => {
+  it("INSIDE-09: should handle move to same parent", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
     // Element already inside parent
-    const from = createPositionSelector('simple-component.tsx', 17, 8);
-    const to = createPositionSelector('simple-component.tsx', 16, 6); // parent
+    const from = createPositionSelector("simple-component.tsx", 17, 8);
+    const to = createPositionSelector("simple-component.tsx", 16, 6); // parent
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -449,13 +448,13 @@ describe('Move.Inside - Edge Cases', () => {
    * Expected Results:
    * - Element placed in correct nested position
    */
-  it('INSIDE-16: should move into deeply nested container', async () => {
+  it("INSIDE-16: should move into deeply nested container", async () => {
     const files = [
-      { path: 'nested-components.tsx', content: nestedComponentContent },
+      { path: "nested-components.tsx", content: nestedComponentContent },
     ];
 
-    const from = createPositionSelector('nested-components.tsx', 30, 4);
-    const to = createPositionSelector('nested-components.tsx', 55, 8);
+    const from = createPositionSelector("nested-components.tsx", 30, 4);
+    const to = createPositionSelector("nested-components.tsx", 55, 8);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -467,7 +466,7 @@ describe('Move.Inside - Edge Cases', () => {
 // Move.Inside - Error Cases
 // =============================================================================
 
-describe('Move.Inside - Error Handling', () => {
+describe("Move.Inside - Error Handling", () => {
   /**
    * INSIDE-10: Invalid source selector returns error
    *
@@ -477,13 +476,13 @@ describe('Move.Inside - Error Handling', () => {
    * - Result.success === false
    * - Result.analysis.reason contains error info
    */
-  it('INSIDE-10: should return error for invalid source selector', async () => {
+  it("INSIDE-10: should return error for invalid source selector", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    const from = createPositionSelector('nonexistent.tsx', 10, 5);
-    const to = createPositionSelector('simple-component.tsx', 36, 4);
+    const from = createPositionSelector("nonexistent.tsx", 10, 5);
+    const to = createPositionSelector("simple-component.tsx", 36, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -501,13 +500,13 @@ describe('Move.Inside - Error Handling', () => {
    * - Result.success === false
    * - Result.analysis.reason contains error info
    */
-  it('INSIDE-11: should return error for invalid target selector', async () => {
+  it("INSIDE-11: should return error for invalid target selector", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    const from = createPositionSelector('simple-component.tsx', 17, 8);
-    const to = createPositionSelector('nonexistent.tsx', 36, 4);
+    const from = createPositionSelector("simple-component.tsx", 17, 8);
+    const to = createPositionSelector("nonexistent.tsx", 36, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -525,16 +524,15 @@ describe('Move.Inside - Error Handling', () => {
    * - Result.success === false
    * - Reason indicates target cannot have children
    */
-  it('INSIDE-12: should fail when moving into self-closing element', async () => {
+  it("INSIDE-12: should fail when moving into self-closing element", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
     // Try to move into <img /> which cannot have children
-    const from = createPositionSelector('simple-component.tsx', 17, 8);
-    const to = createPositionSelector('simple-component.tsx', 53, 6); // img element
+    const from = createPositionSelector("simple-component.tsx", 17, 8);
+    const to = createPositionSelector("simple-component.tsx", 53, 6); // img element
 
-    // @ts-expect-error unused test variable
     const _result = await regraft(files, from, to, Move.Inside);
 
     // expect(_result.success).toBe(false);
@@ -550,16 +548,15 @@ describe('Move.Inside - Error Handling', () => {
    * - Result.success === false
    * - Reason indicates circular reference
    */
-  it('INSIDE-13: should fail when moving parent inside own child', async () => {
+  it("INSIDE-13: should fail when moving parent inside own child", async () => {
     const files = [
-      { path: 'nested-components.tsx', content: nestedComponentContent },
+      { path: "nested-components.tsx", content: nestedComponentContent },
     ];
 
     // Try to move parent inside its own child
-    const from = createPositionSelector('nested-components.tsx', 40, 4); // parent
-    const to = createPositionSelector('nested-components.tsx', 45, 8); // child
+    const from = createPositionSelector("nested-components.tsx", 40, 4); // parent
+    const to = createPositionSelector("nested-components.tsx", 45, 8); // child
 
-    // @ts-expect-error unused test variable
     const _result = await regraft(files, from, to, Move.Inside);
 
     // expect(_result.success).toBe(false);
@@ -571,7 +568,7 @@ describe('Move.Inside - Error Handling', () => {
 // Move.Inside - Atomic Units
 // =============================================================================
 
-describe('Move.Inside - Atomic Units', () => {
+describe("Move.Inside - Atomic Units", () => {
   /**
    * INSIDE-17: Move conditional expression as atomic unit
    *
@@ -580,14 +577,17 @@ describe('Move.Inside - Atomic Units', () => {
    * Expected Results:
    * - Entire conditional expression moves as one unit
    */
-  it('INSIDE-17: should move conditional expression as atomic unit', async () => {
+  it("INSIDE-17: should move conditional expression as atomic unit", async () => {
     const files = [
-      { path: 'conditional-rendering.tsx', content: conditionalComponentContent },
+      {
+        path: "conditional-rendering.tsx",
+        content: conditionalComponentContent,
+      },
     ];
 
     // Select element inside conditional
-    const from = createPositionSelector('conditional-rendering.tsx', 15, 8);
-    const to = createPositionSelector('conditional-rendering.tsx', 20, 4);
+    const from = createPositionSelector("conditional-rendering.tsx", 15, 8);
+    const to = createPositionSelector("conditional-rendering.tsx", 20, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -602,14 +602,14 @@ describe('Move.Inside - Atomic Units', () => {
    * Expected Results:
    * - Entire map expression moves as one unit
    */
-  it('INSIDE-18: should move map expression as atomic unit', async () => {
+  it("INSIDE-18: should move map expression as atomic unit", async () => {
     const files = [
-      { path: 'list-rendering.tsx', content: listComponentContent },
+      { path: "list-rendering.tsx", content: listComponentContent },
     ];
 
     // Select element inside map
-    const from = createPositionSelector('list-rendering.tsx', 15, 8);
-    const to = createPositionSelector('list-rendering.tsx', 25, 4);
+    const from = createPositionSelector("list-rendering.tsx", 15, 8);
+    const to = createPositionSelector("list-rendering.tsx", 25, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -621,7 +621,7 @@ describe('Move.Inside - Atomic Units', () => {
 // Move.Inside - Code Quality
 // =============================================================================
 
-describe('Move.Inside - Code Quality', () => {
+describe("Move.Inside - Code Quality", () => {
   /**
    * INSIDE-15: Move preserves element attributes
    *
@@ -631,27 +631,27 @@ describe('Move.Inside - Code Quality', () => {
    * - All attributes (className, onClick, etc.) preserved
    * - Attribute values unchanged
    */
-  it('INSIDE-15: should preserve element attributes', async () => {
+  it("INSIDE-15: should preserve element attributes", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
     // Element with attributes
-    const from = createPositionSelector('simple-component.tsx', 13, 4);
-    const to = createPositionSelector('simple-component.tsx', 36, 4);
+    const from = createPositionSelector("simple-component.tsx", 13, 4);
+    const to = createPositionSelector("simple-component.tsx", 36, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.success).toBe(true);
   });
 
-  it('should maintain proper indentation when moving inside', async () => {
+  it("should maintain proper indentation when moving inside", async () => {
     const files = [
-      { path: 'nested-components.tsx', content: nestedComponentContent },
+      { path: "nested-components.tsx", content: nestedComponentContent },
     ];
 
-    const from = createPositionSelector('nested-components.tsx', 30, 4);
-    const to = createPositionSelector('nested-components.tsx', 50, 8);
+    const from = createPositionSelector("nested-components.tsx", 30, 4);
+    const to = createPositionSelector("nested-components.tsx", 50, 8);
 
     const result = await regraft(files, from, to, Move.Inside);
 
@@ -663,48 +663,48 @@ describe('Move.Inside - Code Quality', () => {
 // Move.Inside - Result Structure Validation
 // =============================================================================
 
-describe('Move.Inside - Result Structure', () => {
-  it('should return properly structured Result object', async () => {
+describe("Move.Inside - Result Structure", () => {
+  it("should return properly structured Result object", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    const from = createPositionSelector('simple-component.tsx', 17, 8);
-    const to = createPositionSelector('simple-component.tsx', 36, 4);
+    const from = createPositionSelector("simple-component.tsx", 17, 8);
+    const to = createPositionSelector("simple-component.tsx", 36, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
     // Validate Result structure
-    expect(result).toHaveProperty('success');
-    expect(result).toHaveProperty('codes');
-    expect(result).toHaveProperty('analysis');
+    expect(result).toHaveProperty("success");
+    expect(result).toHaveProperty("codes");
+    expect(result).toHaveProperty("analysis");
 
     // Validate codes array structure
     expect(Array.isArray(result.codes)).toBe(true);
     if (result.codes.length > 0) {
-      expect(result.codes[0]).toHaveProperty('file');
-      expect(result.codes[0]).toHaveProperty('content');
-      expect(result.codes[0]).toHaveProperty('changed');
+      expect(result.codes[0]).toHaveProperty("file");
+      expect(result.codes[0]).toHaveProperty("content");
+      expect(result.codes[0]).toHaveProperty("changed");
     }
 
     // Validate analysis structure
-    expect(result.analysis).toHaveProperty('canMove');
-    expect(result.analysis).toHaveProperty('dependencies');
-    expect(result.analysis).toHaveProperty('hoistedDeps');
+    expect(result.analysis).toHaveProperty("canMove");
+    expect(result.analysis).toHaveProperty("dependencies");
+    expect(result.analysis).toHaveProperty("hoistedDeps");
   });
 
-  it('should include dependency types in analysis', async () => {
+  it("should include dependency types in analysis", async () => {
     const files = [
-      { path: 'component-with-hooks.tsx', content: hooksComponentContent },
+      { path: "component-with-hooks.tsx", content: hooksComponentContent },
     ];
 
-    const from = createPositionSelector('component-with-hooks.tsx', 15, 6);
-    const to = createPositionSelector('component-with-hooks.tsx', 12, 4);
+    const from = createPositionSelector("component-with-hooks.tsx", 15, 6);
+    const to = createPositionSelector("component-with-hooks.tsx", 12, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
     // Dependencies should be typed
-    result.analysis.dependencies.forEach(dep => {
+    result.analysis.dependencies.forEach((dep) => {
       expect(Object.values(DependencyType)).toContain(dep.type);
     });
   });
@@ -714,16 +714,16 @@ describe('Move.Inside - Result Structure', () => {
 // Move.Inside - Comprehensive Scenarios
 // =============================================================================
 
-describe('Move.Inside - Comprehensive Scenarios', () => {
-  it('should handle complex component with hooks, context, and children', async () => {
+describe("Move.Inside - Comprehensive Scenarios", () => {
+  it("should handle complex component with hooks, context, and children", async () => {
     const files = [
-      { path: 'component-with-hooks.tsx', content: hooksComponentContent },
-      { path: 'component-with-context.tsx', content: contextComponentContent },
+      { path: "component-with-hooks.tsx", content: hooksComponentContent },
+      { path: "component-with-context.tsx", content: contextComponentContent },
     ];
 
     // Complex element with multiple dependencies
-    const from = createPositionSelector('component-with-hooks.tsx', 100, 6);
-    const to = createPositionSelector('component-with-hooks.tsx', 90, 4);
+    const from = createPositionSelector("component-with-hooks.tsx", 100, 6);
+    const to = createPositionSelector("component-with-hooks.tsx", 90, 4);
 
     const result = await regraft(files, from, to, Move.Inside);
 
