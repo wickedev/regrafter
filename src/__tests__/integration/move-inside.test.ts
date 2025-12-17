@@ -533,10 +533,10 @@ describe("Move.Inside - Error Handling", () => {
     const from = createPositionSelector("simple-component.tsx", 17, 8);
     const to = createPositionSelector("simple-component.tsx", 53, 6); // img element
 
-    const _result = await regraft(files, from, to, Move.Inside);
+    await regraft(files, from, to, Move.Inside);
 
-    // expect(_result.success).toBe(false);
-    // expect(_result.analysis.reason).toContain('cannot have children');
+    // expect(result.success).toBe(false);
+    // expect(result.analysis.reason).toContain('cannot have children');
   });
 
   /**
@@ -557,10 +557,10 @@ describe("Move.Inside - Error Handling", () => {
     const from = createPositionSelector("nested-components.tsx", 40, 4); // parent
     const to = createPositionSelector("nested-components.tsx", 45, 8); // child
 
-    const _result = await regraft(files, from, to, Move.Inside);
+    await regraft(files, from, to, Move.Inside);
 
-    // expect(_result.success).toBe(false);
-    // expect(_result.analysis.reason).toContain('circular');
+    // expect(result.success).toBe(false);
+    // expect(result.analysis.reason).toContain('circular');
   });
 });
 

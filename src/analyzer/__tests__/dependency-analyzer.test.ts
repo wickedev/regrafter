@@ -82,12 +82,10 @@ function parseCode(code: string): t.File {
  */
 class MockDependencyAnalyzer {
   private ast: t.File;
-  private _code: string;
   private dependencies: InternalDependency[] = [];
   private graph: DependencyGraph;
 
   constructor(code: string) {
-    this._code = code;
     this.ast = parseCode(code);
     this.graph = createDependencyGraph();
   }
@@ -288,7 +286,7 @@ class MockDependencyAnalyzer {
   private hasEvalCode(): boolean {
     let hasEval = false;
     traverse(this.ast, {
-      CallExpression(path) {
+      CallExpression(path: NodePath<t.CallExpression>) {
         if (
           t.isIdentifier(path.node.callee) &&
           path.node.callee.name === "eval"
@@ -307,7 +305,7 @@ class MockDependencyAnalyzer {
   private hasDynamicCode(): boolean {
     let hasDynamic = false;
     traverse(this.ast, {
-      NewExpression(path) {
+      NewExpression(path: NodePath<t.NewExpression>) {
         if (
           t.isIdentifier(path.node.callee) &&
           path.node.callee.name === "Function"
