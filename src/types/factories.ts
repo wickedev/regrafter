@@ -702,18 +702,37 @@ export function createAtomicUnit(params: {
 }
 
 /**
- * Creates a ResolveResult object.
+ * Creates a ResolveResult object with lazy atomic unit evaluation.
+ *
+ * If computeAtomicUnit is provided, atomic unit will be computed lazily on first access.
+ * Otherwise, the provided atomicUnit value is used directly (but still wrapped in a getter).
  */
 export function createResolveResult(params: {
   node: t.Node | null;
   path: NodePath | null;
-  atomicUnit: AtomicUnit | null;
+  atomicUnit?: AtomicUnit | null;
   error?: SelectorError;
+  computeAtomicUnit?: () => AtomicUnit | null;
 }): ResolveResult {
+  let cachedAtomicUnit: AtomicUnit | null | undefined = undefined;
+  const hasComputeFunction = params.computeAtomicUnit !== undefined;
+
   return {
     node: params.node,
     path: params.path,
-    atomicUnit: params.atomicUnit,
+    get atomicUnit(): AtomicUnit | null {
+      // Lazy evaluation with memoization
+      if (cachedAtomicUnit === undefined) {
+        if (hasComputeFunction && params.computeAtomicUnit) {
+          // Lazy: compute on first access
+          cachedAtomicUnit = params.computeAtomicUnit();
+        } else {
+          // Eager: use provided value
+          cachedAtomicUnit = params.atomicUnit ?? null;
+        }
+      }
+      return cachedAtomicUnit;
+    },
     error: params.error,
   };
 }

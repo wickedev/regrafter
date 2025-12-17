@@ -258,6 +258,31 @@ function findNodePath(ast: t.File, targetNode: t.Node): NodePath | null {
 }
 
 /**
+ * Navigate to a node using an AST path and return both node and NodePath
+ * Optimized to use property-based navigation first, then single traversal
+ */
+function navigateToPathWithNodePath(
+  ast: t.File,
+  pathSegments: Array<{ key: string; index?: number }>
+): { node: t.Node | null; path: NodePath | null } {
+  // Step 1: Fast property-based navigation to find the target node
+  const targetNode = navigateToPath(ast, pathSegments);
+
+  if (!targetNode) {
+    return { node: null, path: null };
+  }
+
+  // Step 2: Single traversal to find NodePath
+  // Optimization: use early exit when found
+  const nodePath = findNodePath(ast, targetNode);
+
+  return {
+    node: targetNode,
+    path: nodePath,
+  };
+}
+
+/**
  * SelectorResolver class
  *
  * Resolves position-based and path-based selectors to AST nodes.
@@ -404,20 +429,19 @@ export class SelectorResolver implements ISelectorResolver {
       });
     }
 
-    // Determine atomic unit
-    // Note: determineAtomicUnitType and getAtomicUnitNodes accept NodePath
-    const atomicUnitType = determineAtomicUnitType(matchedPath);
-    const atomicUnitNodes = getAtomicUnitNodes(matchedPath);
-    const atomicUnit = createAtomicUnit({
-      type: atomicUnitType,
-      path: matchedPath,
-      nodes: atomicUnitNodes,
-    });
-
+    // Return result with lazy atomic unit computation
     return createResolveResult({
       node: matchedNode,
       path: matchedPath,
-      atomicUnit,
+      computeAtomicUnit: () => {
+        const atomicUnitType = determineAtomicUnitType(matchedPath);
+        const atomicUnitNodes = getAtomicUnitNodes(matchedPath);
+        return createAtomicUnit({
+          type: atomicUnitType,
+          path: matchedPath,
+          nodes: atomicUnitNodes,
+        });
+      },
     });
   }
 
@@ -459,9 +483,9 @@ export class SelectorResolver implements ISelectorResolver {
       });
     }
 
-    // Navigate to the target node
-    const targetNode = navigateToPath(ast, segments);
-    if (!targetNode) {
+    // Navigate to the target node and get NodePath in one traversal
+    const { node: targetNode, path: nodePath } = navigateToPathWithNodePath(ast, segments);
+    if (!targetNode || !nodePath) {
       return createResolveResult({
         node: null,
         path: null,
@@ -473,39 +497,25 @@ export class SelectorResolver implements ISelectorResolver {
       });
     }
 
-    // Find the NodePath for the target node
-    const nodePath = findNodePath(ast, targetNode);
-    if (!nodePath) {
-      return createResolveResult({
-        node: null,
-        path: null,
-        atomicUnit: null,
-        error: createSelectorError({
-          message: `Internal error: could not find NodePath for node at "${pathStr}"`,
-          code: SelectorErrorCodes.INTERNAL_ERROR,
-        }),
-      });
-    }
-
     // Verify the node is a JSX element (or related)
     if (!isJSXNode(targetNode) && !t.isJSXElement(targetNode) && !t.isJSXFragment(targetNode)) {
       // For non-JSX nodes, we still allow them but mark as Element type
       // This enables moving expressions and other nodes
     }
 
-    // Determine atomic unit
-    const atomicUnitType = determineAtomicUnitType(nodePath);
-    const atomicUnitNodes = getAtomicUnitNodes(nodePath);
-    const atomicUnit = createAtomicUnit({
-      type: atomicUnitType,
-      path: nodePath,
-      nodes: atomicUnitNodes,
-    });
-
+    // Return result with lazy atomic unit computation
     return createResolveResult({
       node: targetNode,
       path: nodePath,
-      atomicUnit,
+      computeAtomicUnit: () => {
+        const atomicUnitType = determineAtomicUnitType(nodePath);
+        const atomicUnitNodes = getAtomicUnitNodes(nodePath);
+        return createAtomicUnit({
+          type: atomicUnitType,
+          path: nodePath,
+          nodes: atomicUnitNodes,
+        });
+      },
     });
   }
 }

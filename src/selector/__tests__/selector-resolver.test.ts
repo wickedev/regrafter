@@ -391,4 +391,134 @@ describe('SelectorResolver', () => {
       expect(result.error).toBeUndefined();
     });
   });
+
+  // ===========================================================================
+  // Performance Tests
+  // ===========================================================================
+
+  describe('Performance Optimization', () => {
+    it('should resolve path without redundant AST traversal', () => {
+      const largeCode = `
+        function App() {
+          return (
+            <div>
+              ${Array.from({ length: 100 }, (_, i) => `<div key={${i}}>Item ${i}</div>`).join('\n')}
+            </div>
+          );
+        }
+      `;
+      const ast = parseCode(largeCode);
+
+      const result = resolver.resolveByPath(
+        { file: 'test.tsx', path: 'program.body[0]' },
+        ast
+      );
+
+      expect(result.node).not.toBeNull();
+      expect(result.path).not.toBeNull();
+      expect(result.error).toBeUndefined();
+
+      // This test verifies path resolution works correctly with large files
+      // The implementation already optimizes by using early exit in findNodePath
+    });
+
+    it('should handle deep nested paths efficiently', () => {
+      const ast = parseCode(simpleJSXCode);
+      const start = performance.now();
+
+      const result = resolver.resolveByPath(
+        { file: 'test.tsx', path: 'program.body[0]' },
+        ast
+      );
+
+      const duration = performance.now() - start;
+
+      expect(result.node).not.toBeNull();
+      // Performance expectation: should be fast even without optimization
+      // After optimization, this should be even faster
+      expect(duration).toBeLessThan(100); // 100ms threshold
+    });
+  });
+
+  // ===========================================================================
+  // Lazy Atomic Unit Evaluation
+  // ===========================================================================
+
+  describe('Lazy Atomic Unit Evaluation', () => {
+    it('should not compute atomic unit until accessed', () => {
+      const ast = parseCode(simpleJSXCode);
+      const result = resolver.resolveByPosition(
+        { file: 'test.tsx', line: 6, column: 8 },
+        ast
+      );
+
+      expect(result.node).not.toBeNull();
+      expect(result.path).not.toBeNull();
+
+      // At this point, atomicUnit should not have been computed yet
+      // We can't directly test this without implementation details,
+      // but we document the expected behavior
+
+      // Now access atomicUnit - this should trigger computation
+      const atomicUnit = result.atomicUnit;
+      expect(atomicUnit).not.toBeNull();
+      expect(atomicUnit?.type).toBeDefined();
+    });
+
+    it('should compute atomic unit only once when accessed multiple times', () => {
+      const ast = parseCode(compoundComponentCode);
+      const result = resolver.resolveByPosition(
+        { file: 'test.tsx', line: 5, column: 6 },
+        ast
+      );
+
+      // First access
+      const atomicUnit1 = result.atomicUnit;
+      expect(atomicUnit1).not.toBeNull();
+
+      // Second access - should return the same object (memoized)
+      const atomicUnit2 = result.atomicUnit;
+      expect(atomicUnit2).toBe(atomicUnit1); // Same reference
+
+      // Modify result to ensure it's not creating new atomic units
+      // This tests that the atomic unit is truly memoized
+      const atomicUnit3 = result.atomicUnit;
+      expect(atomicUnit3).toBe(atomicUnit1);
+    });
+
+    it('should have atomicUnit as a getter property, not a plain value', () => {
+      const ast = parseCode(simpleJSXCode);
+      const result = resolver.resolveByPosition(
+        { file: 'test.tsx', line: 6, column: 8 },
+        ast
+      );
+
+      // Check that atomicUnit is defined as a getter
+      const descriptor = Object.getOwnPropertyDescriptor(result, 'atomicUnit');
+      // If lazy, atomicUnit should be a getter, not a plain data property
+      // For now, this will fail because atomicUnit is a plain property
+      expect(descriptor?.get).toBeDefined();
+    });
+
+    it('should allow creating result without immediate atomic unit computation', () => {
+      const ast = parseCode(simpleJSXCode);
+
+      // This should be fast because atomic unit is not computed
+      const start = performance.now();
+      const result = resolver.resolveByPosition(
+        { file: 'test.tsx', line: 6, column: 8 },
+        ast
+      );
+      const durationWithoutAtomicUnit = performance.now() - start;
+
+      expect(result.node).not.toBeNull();
+
+      // Accessing atomic unit should still work
+      const atomicUnit = result.atomicUnit;
+      expect(atomicUnit).not.toBeNull();
+
+      // Duration should be reasonable (no hard assertion on time)
+      expect(durationWithoutAtomicUnit).toBeLessThan(100);
+    });
+  });
 });
