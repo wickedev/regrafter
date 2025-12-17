@@ -254,7 +254,11 @@ export class JSXTransformer {
    * @returns MoveResult with transformed AST
    */
   moveBefore(context: MoveContext): MoveResult {
-    const { ast, sourcePath, targetPath, options } = context;
+    const { ast, options } = context;
+
+    // Normalize paths to handle JSXExpressionContainer
+    const sourcePath = this.normalizePathForMove(context.sourcePath);
+    const targetPath = this.normalizePathForMove(context.targetPath);
 
     // Validate source is a JSX element
     if (!this.isValidJSXSource(sourcePath)) {
@@ -302,17 +306,39 @@ export class JSXTransformer {
         };
       }
 
+      // Check if source and target are in the same parent
+      const sourceParentPath = sourcePath.parentPath;
+      const sameParent = sourceParentPath && sourceParentPath.node === parentPath.node;
+
       // Wrap source in expression container if necessary
       const wrappedSource = this.wrapInExpressionContainer(sourceNode, parentPath);
 
-      // Insert before target
-      siblings.splice(targetIndex, 0, wrappedSource);
+      if (sameParent) {
+        // Same parent: remove source first, then insert at adjusted index
+        const sourceIndex = this.getIndexInParent(sourcePath);
 
-      // Update parent's children
-      this.setSiblings(targetPath, siblings);
+        // Remove source from siblings array
+        if (sourceIndex >= 0) {
+          siblings.splice(sourceIndex, 1);
+        }
 
-      // Remove the source from its original location
-      this.removeSource(sourcePath);
+        // Adjust target index if source was before target
+        const adjustedTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
+
+        // Insert before adjusted target
+        siblings.splice(adjustedTargetIndex, 0, wrappedSource);
+
+        // Update parent's children
+        this.setSiblings(targetPath, siblings);
+
+        // Remove from AST
+        this.removeSource(sourcePath);
+      } else {
+        // Different parents: insert first, then remove
+        siblings.splice(targetIndex, 0, wrappedSource);
+        this.setSiblings(targetPath, siblings);
+        this.removeSource(sourcePath);
+      }
 
       return {
         success: true,
@@ -337,7 +363,11 @@ export class JSXTransformer {
    * @returns MoveResult with transformed AST
    */
   moveAfter(context: MoveContext): MoveResult {
-    const { ast, sourcePath, targetPath, options } = context;
+    const { ast, options } = context;
+
+    // Normalize paths to handle JSXExpressionContainer
+    const sourcePath = this.normalizePathForMove(context.sourcePath);
+    const targetPath = this.normalizePathForMove(context.targetPath);
 
     // Validate source is a JSX element
     if (!this.isValidJSXSource(sourcePath)) {
@@ -385,17 +415,39 @@ export class JSXTransformer {
         };
       }
 
+      // Check if source and target are in the same parent
+      const sourceParentPath = sourcePath.parentPath;
+      const sameParent = sourceParentPath && sourceParentPath.node === parentPath.node;
+
       // Wrap source in expression container if necessary
       const wrappedSource = this.wrapInExpressionContainer(sourceNode, parentPath);
 
-      // Insert after target
-      siblings.splice(targetIndex + 1, 0, wrappedSource);
+      if (sameParent) {
+        // Same parent: remove source first, then insert at adjusted index
+        const sourceIndex = this.getIndexInParent(sourcePath);
 
-      // Update parent's children
-      this.setSiblings(targetPath, siblings);
+        // Remove source from siblings array
+        if (sourceIndex >= 0) {
+          siblings.splice(sourceIndex, 1);
+        }
 
-      // Remove the source from its original location
-      this.removeSource(sourcePath);
+        // Adjust target index if source was before target
+        const adjustedTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
+
+        // Insert after adjusted target
+        siblings.splice(adjustedTargetIndex + 1, 0, wrappedSource);
+
+        // Update parent's children
+        this.setSiblings(targetPath, siblings);
+
+        // Remove from AST (already removed from siblings)
+        this.removeSource(sourcePath);
+      } else {
+        // Different parents: insert first, then remove
+        siblings.splice(targetIndex + 1, 0, wrappedSource);
+        this.setSiblings(targetPath, siblings);
+        this.removeSource(sourcePath);
+      }
 
       return {
         success: true,
@@ -513,11 +565,116 @@ export class JSXTransformer {
   }
 
   /**
+   * Normalize a path to the outermost movable node
+   *
+   * If a path points to a node inside a JSXExpressionContainer (like the LogicalExpression
+   * in {condition && <Element/>}), we need to normalize it to point to the
+   * JSXExpressionContainer itself, since that's what we actually want to move.
+   */
+  private normalizePathForMove(path: NodePath): NodePath {
+    let currentPath = path;
+    let parent = currentPath.parent;
+
+    while (parent) {
+      // If parent is JSXExpressionContainer, that's what we should move
+      if (t.isJSXExpressionContainer(parent)) {
+        const parentPath = currentPath.parentPath;
+        if (parentPath) {
+          return parentPath;
+        }
+        break;
+      }
+
+      // If parent is already a JSX container, we're done
+      if (
+        t.isJSXElement(parent) ||
+        t.isJSXFragment(parent) ||
+        t.isArrayExpression(parent) ||
+        t.isBlockStatement(parent) ||
+        t.isProgram(parent)
+      ) {
+        break;
+      }
+
+      // Walk up through expressions
+      if (
+        t.isLogicalExpression(parent) ||
+        t.isConditionalExpression(parent) ||
+        t.isCallExpression(parent) ||
+        t.isMemberExpression(parent) ||
+        t.isArrowFunctionExpression(parent) ||
+        t.isFunctionExpression(parent)
+      ) {
+        const parentPath = currentPath.parentPath;
+        if (!parentPath) break;
+        currentPath = parentPath;
+        parent = currentPath.parent;
+        continue;
+      }
+
+      break;
+    }
+
+    return currentPath;
+  }
+
+  /**
    * Get siblings of a node
+   *
+   * For nodes inside JSXExpressionContainer (like {condition && <Element/>}),
+   * we need to get the siblings of the container itself, not the expression inside.
    */
   private getSiblings(path: NodePath): t.Node[] | null {
-    const parent = path.parent;
+    let currentPath = path;
+    let parent = currentPath.parent;
 
+    // If parent is an expression (LogicalExpression, ConditionalExpression, CallExpression, etc.),
+    // we need to walk up to find the JSXExpressionContainer, then get its siblings
+    while (parent) {
+      // If we found a JSXExpressionContainer, move up one more level to get its siblings
+      if (t.isJSXExpressionContainer(parent)) {
+        currentPath = currentPath.parentPath as NodePath;
+        parent = currentPath.parent;
+        // Continue to the sibling-getting logic below
+        break;
+      }
+
+      // If parent is a JSX container (Element/Fragment) or other sibling-having container, use it
+      if (
+        t.isJSXElement(parent) ||
+        t.isJSXFragment(parent) ||
+        t.isArrayExpression(parent) ||
+        t.isBlockStatement(parent) ||
+        t.isProgram(parent)
+      ) {
+        break;
+      }
+
+      // Walk up the tree for expression contexts
+      if (
+        t.isLogicalExpression(parent) ||
+        t.isConditionalExpression(parent) ||
+        t.isCallExpression(parent) ||
+        t.isMemberExpression(parent) ||
+        t.isArrowFunctionExpression(parent) ||
+        t.isFunctionExpression(parent)
+      ) {
+        const parentPath = currentPath.parentPath;
+        if (!parentPath) break;
+        currentPath = parentPath;
+        parent = currentPath.parent;
+        continue;
+      }
+
+      // For other parent types, stop here
+      break;
+    }
+
+    if (!parent) {
+      return null;
+    }
+
+    // Now get siblings from the appropriate container
     if (t.isJSXElement(parent)) {
       const siblings: t.Node[] = [...parent.children];
       return siblings;
@@ -585,10 +742,55 @@ export class JSXTransformer {
 
   /**
    * Get the index of a node in its parent's children
+   *
+   * For nodes inside JSXExpressionContainer, returns the index of the container.
    */
   private getIndexInParent(path: NodePath): number {
-    const parent = path.parent;
-    const node = path.node;
+    let currentPath = path;
+    let parent = currentPath.parent;
+    let nodeToFind = currentPath.node;
+
+    // Walk up to find the appropriate container, same logic as getSiblings()
+    while (parent) {
+      if (t.isJSXExpressionContainer(parent)) {
+        nodeToFind = parent;
+        currentPath = currentPath.parentPath as NodePath;
+        parent = currentPath.parent;
+        break;
+      }
+
+      if (
+        t.isJSXElement(parent) ||
+        t.isJSXFragment(parent) ||
+        t.isArrayExpression(parent) ||
+        t.isBlockStatement(parent) ||
+        t.isProgram(parent)
+      ) {
+        break;
+      }
+
+      if (
+        t.isLogicalExpression(parent) ||
+        t.isConditionalExpression(parent) ||
+        t.isCallExpression(parent) ||
+        t.isMemberExpression(parent) ||
+        t.isArrowFunctionExpression(parent) ||
+        t.isFunctionExpression(parent)
+      ) {
+        const parentPath = currentPath.parentPath;
+        if (!parentPath) break;
+        nodeToFind = currentPath.node;
+        currentPath = parentPath;
+        parent = currentPath.parent;
+        continue;
+      }
+
+      break;
+    }
+
+    if (!parent) {
+      return -1;
+    }
 
     let children: readonly t.Node[] | null = null;
 
@@ -605,7 +807,7 @@ export class JSXTransformer {
     }
 
     if (children) {
-      return children.findIndex(child => child === node);
+      return children.findIndex(child => child === nodeToFind);
     }
 
     return -1;

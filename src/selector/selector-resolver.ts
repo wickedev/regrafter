@@ -354,12 +354,14 @@ export class SelectorResolver implements ISelectorResolver {
       },
       JSXExpressionContainer(path: NodePath<t.JSXExpressionContainer>) {
         const node = path.node;
-        // Only match expression containers that contain JSX
+        // Match expression containers that contain JSX or JSX-related expressions
         if (
           positionInNode(node, line, column) &&
           (t.isJSXElement(node.expression) ||
             t.isJSXFragment(node.expression) ||
-            t.isCallExpression(node.expression))
+            t.isCallExpression(node.expression) ||
+            t.isLogicalExpression(node.expression) ||  // For {condition && <Element />}
+            t.isConditionalExpression(node.expression)) // For {condition ? <A /> : <B />}
         ) {
           const spec = nodeSpecificity(node);
           if (found.path === null || spec < found.specificity) {

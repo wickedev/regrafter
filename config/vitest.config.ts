@@ -8,8 +8,8 @@ const rootDir = resolve(__dirname, '..');
 
 export default defineConfig({
   test: {
-    include: ['src/**/*.test.ts', 'src/**/*.bench.ts'],
-    exclude: ['src/__tests__/e2e/**'],
+    include: ['src/**/*.test.ts'],
+    exclude: ['src/__tests__/e2e/**', 'src/**/*.bench.ts'],
     root: rootDir,
     globals: true,
     environment: 'node',
