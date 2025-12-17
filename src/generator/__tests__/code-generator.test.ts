@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
 import type * as t from '@babel/types';
 import { CodeGenerator } from '../code-generator.js';
-import type { GeneratorOptions, IndentationInfo } from '../types.js';
+import type { IndentationInfo } from '../types.js';
 
 /**
  * Unit tests for CodeGenerator
@@ -527,7 +527,7 @@ function Component() {
   // ============================================================
   describe('Error Handling', () => {
     it('should return error for invalid AST', () => {
-      const invalidAst: t.File = { type: 'Invalid' } as unknown;
+      const invalidAst: t.File = { type: 'Invalid' } as unknown as t.File;
       const result = generator.generate(invalidAst);
 
       expect(result.errors.length).toBeGreaterThan(0);
@@ -535,7 +535,7 @@ function Component() {
     });
 
     it('should include error code in generated errors', () => {
-      const invalidAst: t.File = { type: 'Invalid' } as unknown;
+      const invalidAst: t.File = { type: 'Invalid' } as unknown as t.File;
       const result = generator.generate(invalidAst);
 
       if (result.errors.length > 0) {

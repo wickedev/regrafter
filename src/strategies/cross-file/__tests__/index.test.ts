@@ -14,7 +14,6 @@ import {
   mergeTransformResults,
   toPublicDependencies,
   type CrossFileContext,
-  type CrossFileOptions,
 } from '../index.js';
 import {
   createInternalDependency,
@@ -453,15 +452,15 @@ describe('toPublicDependencies', () => {
   it('should convert internal dependencies to public format', () => {
     const internalDeps = [
       createMockDependency('foo', 'src/A.ts', DependencyType.Variable),
-      createMockDependency('bar', 'src/B.ts', DependencyType.Function),
+      createMockDependency('bar', 'src/B.ts', DependencyType.Variable),
     ];
 
     const publicDeps = toPublicDependencies(internalDeps);
 
     expect(publicDeps).toHaveLength(2);
-    expect(publicDeps[0].symbol).toBe('foo');
-    expect(publicDeps[0].type).toBe(DependencyType.Variable);
-    expect(publicDeps[0].origin).toBe('src/A.ts');
+    expect(publicDeps[0]!.symbol).toBe('foo');
+    expect(publicDeps[0]!.type).toBe(DependencyType.Variable);
+    expect(publicDeps[0]!.origin).toBe('src/A.ts');
   });
 
   it('should handle empty array', () => {

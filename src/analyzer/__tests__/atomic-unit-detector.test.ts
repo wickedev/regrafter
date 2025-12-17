@@ -10,9 +10,10 @@
 
 import { describe, it, expect } from 'vitest';
 import { parse } from '@babel/parser';
-import traverse from '@babel/traverse';
-import type { NodePath } from '@babel/traverse';
+import traverseFn, { type NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
+
+const traverse = traverseFn as any as typeof traverseFn.default;
 
 import {
   detectConditionalExpression,
@@ -488,7 +489,7 @@ describe('Atomic Unit Detector', () => {
       // Find the inner span element
       const jsxElements = findAllNodes(ast, 'JSXElement');
       const spanElement = jsxElements.find(p => {
-        const node: t.JSXElement = p.node;
+        const node = p.node as t.JSXElement;
         const name = node.openingElement.name;
         return name.type === 'JSXIdentifier' && name.name === 'span';
       });
@@ -504,7 +505,7 @@ describe('Atomic Unit Detector', () => {
       const ast = parseJSX('const x = items.map(i => <div><span /></div>);');
       const jsxElements = findAllNodes(ast, 'JSXElement');
       const spanElement = jsxElements.find(p => {
-        const node: t.JSXElement = p.node;
+        const node = p.node as t.JSXElement;
         const name = node.openingElement.name;
         return name.type === 'JSXIdentifier' && name.name === 'span';
       });
@@ -520,7 +521,7 @@ describe('Atomic Unit Detector', () => {
       const ast = parseJSX('const x = <div><span /></div>;');
       const jsxElements = findAllNodes(ast, 'JSXElement');
       const spanElement = jsxElements.find(p => {
-        const node: t.JSXElement = p.node;
+        const node = p.node as t.JSXElement;
         const name = node.openingElement.name;
         return name.type === 'JSXIdentifier' && name.name === 'span';
       });

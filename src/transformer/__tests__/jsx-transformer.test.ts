@@ -6,10 +6,12 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
-import traverse from '@babel/traverse';
-import generate from '@babel/generator';
+import traverseFn, { type NodePath } from '@babel/traverse';
+import generateFn from '@babel/generator';
 import type * as t from '@babel/types';
-import type { NodePath } from '@babel/traverse';
+
+const traverse = traverseFn as any as typeof traverseFn.default;
+const generate = generateFn as any as typeof generateFn.default;
 
 import { JSXTransformer, createJSXTransformer } from '../index.js';
 import { Move } from '../../types/index.js';
@@ -75,7 +77,7 @@ function findJSXElementByTag(ast: t.File, tagName: string): NodePath | null {
   let found: NodePath | null = null;
 
   traverse(ast, {
-    JSXElement(path) {
+    JSXElement(path: NodePath<t.JSXElement>) {
       const opening = path.node.openingElement;
       if (
         opening.name.type === 'JSXIdentifier' &&
@@ -94,7 +96,7 @@ function findAllJSXElementsByTag(ast: t.File, tagName: string): NodePath[] {
   const elements: NodePath[] = [];
 
   traverse(ast, {
-    JSXElement(path) {
+    JSXElement(path: NodePath<t.JSXElement>) {
       const opening = path.node.openingElement;
       if (
         opening.name.type === 'JSXIdentifier' &&
@@ -106,15 +108,6 @@ function findAllJSXElementsByTag(ast: t.File, tagName: string): NodePath[] {
   });
 
   return elements;
-}
-
-function getJSXElementTag(path: NodePath): string | null {
-  if (path.node.type !== 'JSXElement') return null;
-  const element: t.JSXElement = path.node;
-  if (element.openingElement.name.type === 'JSXIdentifier') {
-    return element.openingElement.name.name;
-  }
-  return null;
 }
 
 // =============================================================================
@@ -439,7 +432,7 @@ describe('JSXTransformer', () => {
       // Create a mock invalid path
       let invalidPath: NodePath | null = null;
       traverse(ast, {
-        FunctionDeclaration(path) {
+        FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
           invalidPath = path;
           path.stop();
         },

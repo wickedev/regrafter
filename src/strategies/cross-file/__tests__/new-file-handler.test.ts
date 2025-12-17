@@ -184,11 +184,13 @@ describe('generateEmptyFile', () => {
   it('should include provided imports', () => {
     const result = generateEmptyFile('src/utils/helpers.ts', [
       {
+        id: 'import-1',
+        file: 'src/utils/helpers.ts',
         importSource: 'lodash',
-        targetFile: 'src/utils/helpers.ts',
         specifiers: [
           { type: 'named', imported: 'debounce', local: 'debounce' },
         ],
+        position: 'start' as const,
       },
     ]);
 
@@ -199,9 +201,11 @@ describe('generateEmptyFile', () => {
   it('should handle default imports', () => {
     const result = generateEmptyFile('src/utils/helpers.ts', [
       {
+        id: 'import-2',
+        file: 'src/utils/helpers.ts',
         importSource: 'axios',
-        targetFile: 'src/utils/helpers.ts',
         specifiers: [{ type: 'default', imported: 'axios', local: 'axios' }],
+        position: 'start' as const,
       },
     ]);
 

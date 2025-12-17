@@ -4,7 +4,7 @@
  * Tests complete workflows from input to output.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   Move,
   validateRegraftInput,

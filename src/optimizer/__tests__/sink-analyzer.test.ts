@@ -13,7 +13,7 @@ import {
   createDependencyNode,
   createScopeInfo,
 } from '../../types/factories.js';
-import { ScopeType, type ScopeInfo, type DependencyGraph } from '../../types/index.js';
+import { ScopeType } from '../../types/index.js';
 import type { FileInput } from '../../types/public.js';
 
 describe('SinkAnalyzer', () => {
@@ -155,10 +155,10 @@ describe('SinkAnalyzer', () => {
 
   describe('analyze', () => {
     it('should return empty results for empty graph', () => {
-      const files: FileInput[] = [];
+      const _files: FileInput[] = [];
       const graph = createDependencyGraph();
 
-      const result = analyzer.analyze(files, graph);
+      const result = analyzer.analyze(_files, graph);
 
       expect(result.candidates).toHaveLength(0);
       expect(result.sinkable).toHaveLength(0);
@@ -166,7 +166,7 @@ describe('SinkAnalyzer', () => {
     });
 
     it('should identify sink candidates from dependency graph', () => {
-      const files: FileInput[] = [];
+      const _files: FileInput[] = [];
       const graph = createDependencyGraph();
 
       // Create a scope hierarchy
@@ -211,7 +211,7 @@ describe('SinkAnalyzer', () => {
       addNodeToDependencyGraph(graph, consumer);
       addEdgeToDependencyGraph(graph, 'consumer', 'sharedValue');
 
-      const result = analyzer.analyze(files, graph);
+      const result = analyzer.analyze(_files, graph);
 
       // The analysis should have processed the graph
       expect(result).toBeDefined();
@@ -266,7 +266,7 @@ describe('SinkAnalyzer', () => {
         id: 'value',
         symbol: 'value',
         type: 'Variable' as any,
-        origin: { node: {}, file: '', location: null },
+        origin: { node: null, file: '', location: null },
         scope: moduleScope,
         isTransitive: false,
         consumers: [],
@@ -291,7 +291,7 @@ describe('SinkAnalyzer', () => {
         id: 'unused',
         symbol: 'unused',
         type: 'Variable' as any,
-        origin: { node: {}, file: '', location: null },
+        origin: { node: null, file: '', location: null },
         scope: moduleScope,
         isTransitive: false,
         consumers: [],

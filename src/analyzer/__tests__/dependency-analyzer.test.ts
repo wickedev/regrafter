@@ -13,16 +13,17 @@
  * - Validate analyzability checks
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { parse } from '@babel/parser';
-import traverse from '@babel/traverse';
-import type * as t from '@babel/types';
+import traverseFn, { type NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
+
+const traverse = traverseFn as any as typeof traverseFn.default;
 import {
   DependencyType,
   type DependencyAnalysis,
   type InternalDependency,
   type DependencyGraph,
-  type DependencyNode,
   createDependencyGraph,
   createDependencyNode,
   createInternalDependency,
@@ -81,12 +82,13 @@ function parseCode(code: string): t.File {
  */
 class MockDependencyAnalyzer {
   private ast: t.File;
-  private code: string;
+  // @ts-expect-error unused test variable
+  private _code: string;
   private dependencies: InternalDependency[] = [];
   private graph: DependencyGraph;
 
   constructor(code: string) {
-    this.code = code;
+    this._code = code;
     this.ast = parseCode(code);
     this.graph = createDependencyGraph();
   }
@@ -94,7 +96,7 @@ class MockDependencyAnalyzer {
   /**
    * Analyze dependencies for a specific node/element
    */
-  analyze(targetNodePath?: string): DependencyAnalysis {
+  analyze(_targetNodePath?: string): DependencyAnalysis {
     this.dependencies = [];
 
     // Traverse AST to find all dependencies
@@ -102,7 +104,7 @@ class MockDependencyAnalyzer {
 
     traverse(this.ast, {
       // Detect hook calls
-      CallExpression(path) {
+      CallExpression(path: NodePath<t.CallExpression>) {
         const callee = path.node.callee;
         if (t.isIdentifier(callee)) {
           const name = callee.name;
@@ -113,19 +115,20 @@ class MockDependencyAnalyzer {
       },
 
       // Detect variable references
-      Identifier(path) {
+      Identifier(path: NodePath<t.Identifier>) {
         // Skip if this is a declaration, not a reference
         if (path.isBindingIdentifier()) return;
-        if (path.parentPath?.isVariableDeclarator() && path.key === 'id') return;
+        const identifierPath = path as NodePath<t.Identifier>;
+        if (identifierPath.parentPath?.isVariableDeclarator() && identifierPath.key === 'id') return;
 
-        const binding = path.scope.getBinding(path.node.name);
+        const binding = identifierPath.scope.getBinding(identifierPath.node.name);
         if (binding) {
-          self.addVariableDependency(path.node.name, path.node);
+          self.addVariableDependency(identifierPath.node.name, identifierPath.node);
         }
       },
 
       // Detect JSX attribute spreads
-      JSXSpreadAttribute(path) {
+      JSXSpreadAttribute(path: NodePath<t.JSXSpreadAttribute>) {
         if (t.isIdentifier(path.node.argument)) {
           self.addPropDependency(path.node.argument.name, path.node);
         }
@@ -332,9 +335,6 @@ class MockDependencyAnalyzer {
     return this.dependencies;
   }
 }
-
-// Import babel types
-import * as t from '@babel/types';
 
 // =============================================================================
 // Test Data

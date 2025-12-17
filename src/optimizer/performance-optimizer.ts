@@ -10,9 +10,9 @@ import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
 import type { FileInput } from '../types/public.js';
-import { loadTraverseFunction } from '../utils/index.js';
+import { loadTraverseFunction, type TraverseFunction } from '../utils/index.js';
 
-const traverse = loadTraverseFunction(traverseModule);
+const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
 
 import type {
   IPerformanceOptimizer,

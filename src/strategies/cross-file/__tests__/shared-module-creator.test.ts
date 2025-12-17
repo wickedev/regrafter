@@ -131,7 +131,7 @@ describe('updateSourceFileReferences', () => {
 
     expect(result.ast).toBeDefined();
     expect(result.imports.length).toBeGreaterThan(0);
-    expect(result.imports[0].importSource).toContain('shared');
+    expect(result.imports[0]!.importSource).toContain('shared');
   });
 
   it('should generate correct relative import path', () => {
@@ -145,7 +145,7 @@ describe('updateSourceFileReferences', () => {
       deps
     );
 
-    expect(result.imports[0].importSource).toBe('../shared/utils');
+    expect(result.imports[0]!.importSource).toBe('../shared/utils');
   });
 });
 
@@ -162,7 +162,7 @@ describe('generateTargetImports', () => {
       unexportedDeps: [],
       sharedDeps: [],
       existingExports: [
-        { name: 'exportedVar', localName: 'exportedVar', type: 'named' as const },
+        { name: 'exportedVar', localName: 'exportedVar', type: 'named' as const, isReExport: false },
       ],
     };
 
@@ -175,7 +175,7 @@ describe('generateTargetImports', () => {
     );
 
     expect(result.imports.length).toBeGreaterThan(0);
-    expect(result.imports[0].importSource).toBe('./A');
+    expect(result.imports[0]!.importSource).toBe('./A');
   });
 
   it('should generate imports from shared module for shared deps', () => {
@@ -210,7 +210,7 @@ describe('generateTargetImports', () => {
       unexportedDeps: [sharedDep],
       sharedDeps: [sharedDep],
       existingExports: [
-        { name: 'exported', localName: 'exported', type: 'named' as const },
+        { name: 'exported', localName: 'exported', type: 'named' as const, isReExport: false },
       ],
     };
 
@@ -239,17 +239,19 @@ describe('addImportsToAst', () => {
 
     const imports = [
       {
+        id: 'import-1',
+        file: 'src/A.ts',
         importSource: './utils',
-        targetFile: 'src/A.ts',
         specifiers: [
           { type: 'named' as const, imported: 'bar', local: 'bar' },
         ],
+        position: 'start' as const,
       },
     ];
 
     const result = addImportsToAst(ast, imports);
 
-    expect(result.program.body[0].type).toBe('ImportDeclaration');
+    expect(result.program.body[0]!.type).toBe('ImportDeclaration');
   });
 
   it('should handle multiple imports', () => {
@@ -257,18 +259,22 @@ describe('addImportsToAst', () => {
 
     const imports = [
       {
+        id: 'import-1',
+        file: 'src/A.ts',
         importSource: './utils',
-        targetFile: 'src/A.ts',
         specifiers: [
           { type: 'named' as const, imported: 'bar', local: 'bar' },
         ],
+        position: 'start' as const,
       },
       {
+        id: 'import-2',
+        file: 'src/A.ts',
         importSource: 'react',
-        targetFile: 'src/A.ts',
         specifiers: [
           { type: 'default' as const, imported: 'React', local: 'React' },
         ],
+        position: 'start' as const,
       },
     ];
 
@@ -288,11 +294,13 @@ describe('addImportsToAst', () => {
 
     const imports = [
       {
+        id: 'import-1',
+        file: 'src/A.ts',
         importSource: './new',
-        targetFile: 'src/A.ts',
         specifiers: [
           { type: 'named' as const, imported: 'bar', local: 'bar' },
         ],
+        position: 'start' as const,
       },
     ];
 
@@ -309,18 +317,21 @@ describe('addImportsToAst', () => {
 
     const imports = [
       {
+        id: 'import-1',
+        file: 'src/A.ts',
         importSource: './utils',
-        targetFile: 'src/A.ts',
         specifiers: [
           { type: 'namespace' as const, imported: '*', local: 'utils' },
         ],
+        position: 'start' as const,
       },
     ];
 
     const result = addImportsToAst(ast, imports);
-    const importDecl: t.ImportDeclaration = result.program.body[0];
+    // @ts-expect-error - type assertion for test
+    const importDecl: t.ImportDeclaration = result.program.body[0]!;
 
-    expect(importDecl.specifiers[0].type).toBe('ImportNamespaceSpecifier');
+    expect(importDecl.specifiers[0]!.type).toBe('ImportNamespaceSpecifier');
   });
 });
 
@@ -362,9 +373,11 @@ describe('addExportsToSourceFile', () => {
 
     // Should not have duplicate for 'foo'
     const allSpecifiers = exportDecls.flatMap((decl: t.ExportNamedDeclaration) =>
-      decl.specifiers.map((spec: t.ExportSpecifier) =>
-        spec.exported.type === 'Identifier' ? spec.exported.name : ''
-      )
+      decl.specifiers
+        .filter((spec): spec is t.ExportSpecifier => spec.type === 'ExportSpecifier')
+        .map((spec) =>
+          spec.exported.type === 'Identifier' ? spec.exported.name : ''
+        )
     );
 
     const fooCount = allSpecifiers.filter((name: string) => name === 'foo').length;

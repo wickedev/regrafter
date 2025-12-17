@@ -74,7 +74,7 @@ async function regraft(
   files: Array<{ path: string; content: string }>,
   from: PositionSelector,
   to: PositionSelector,
-  mode: Move
+  _mode: Move
 ): Promise<Result> {
   // TODO: Replace with actual regraft implementation
 
@@ -192,7 +192,7 @@ describe('Move.After - Basic Operations', () => {
 
     expect(result.success).toBe(true);
     expect(result.codes).toHaveLength(1);
-    expect(result.codes[0].file).toBe('simple-component.tsx');
+    expect(result.codes[0]!.file).toBe('simple-component.tsx');
     expect(result.analysis.canMove).toBe(true);
 
     // TODO: Once implementation is complete, verify:

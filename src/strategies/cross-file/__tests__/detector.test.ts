@@ -2,7 +2,7 @@
  * Unit tests for Cross-File Detection Module
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { parse } from '@babel/parser';
 import type * as t from '@babel/types';
 
@@ -145,8 +145,8 @@ describe('analyzeExports', () => {
     const exports = analyzeExports(ast);
 
     expect(exports).toHaveLength(1);
-    expect(exports[0].type).toBe('default');
-    expect(exports[0].localName).toBe('MyComponent');
+    expect(exports[0]!.type).toBe('default');
+    expect(exports[0]!.localName).toBe('MyComponent');
   });
 
   it('should detect re-exports', () => {
@@ -157,8 +157,8 @@ describe('analyzeExports', () => {
     const exports = analyzeExports(ast);
 
     expect(exports).toHaveLength(2);
-    expect(exports[0].isReExport).toBe(true);
-    expect(exports[0].reExportSource).toBe('./other');
+    expect(exports[0]!.isReExport).toBe(true);
+    expect(exports[0]!.reExportSource).toBe('./other');
   });
 
   it('should detect export all declarations', () => {
@@ -169,9 +169,9 @@ describe('analyzeExports', () => {
     const exports = analyzeExports(ast);
 
     expect(exports).toHaveLength(1);
-    expect(exports[0].type).toBe('namespace');
-    expect(exports[0].isReExport).toBe(true);
-    expect(exports[0].reExportSource).toBe('./utils');
+    expect(exports[0]!.type).toBe('namespace');
+    expect(exports[0]!.isReExport).toBe(true);
+    expect(exports[0]!.reExportSource).toBe('./utils');
   });
 
   it('should handle destructured exports', () => {
@@ -208,9 +208,9 @@ describe('analyzeDependencyExports', () => {
     );
 
     expect(analysis.exportedDeps).toHaveLength(1);
-    expect(analysis.exportedDeps[0].symbol).toBe('exportedVar');
+    expect(analysis.exportedDeps[0]!.symbol).toBe('exportedVar');
     expect(analysis.unexportedDeps).toHaveLength(1);
-    expect(analysis.unexportedDeps[0].symbol).toBe('localVar');
+    expect(analysis.unexportedDeps[0]!.symbol).toBe('localVar');
   });
 
   it('should ignore dependencies from other files', () => {
@@ -228,7 +228,7 @@ describe('analyzeDependencyExports', () => {
     );
 
     expect(analysis.unexportedDeps).toHaveLength(1);
-    expect(analysis.unexportedDeps[0].symbol).toBe('localVar');
+    expect(analysis.unexportedDeps[0]!.symbol).toBe('localVar');
   });
 });
 
@@ -249,7 +249,7 @@ describe('findSharedDependencies', () => {
     const sharedDeps = findSharedDependencies(ast, [sharedDep], 'test.ts');
 
     expect(sharedDeps).toHaveLength(1);
-    expect(sharedDeps[0].symbol).toBe('shared');
+    expect(sharedDeps[0]!.symbol).toBe('shared');
   });
 
   it('should not include dependencies used only once', () => {

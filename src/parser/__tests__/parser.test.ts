@@ -8,14 +8,14 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Parser, createParser, ParseErrorCodes } from '../parser';
-import { ASTStore, computeContentHash } from '../ast-store';
+import { Parser, createParser, ParseErrorCodes } from '../parser.js';
+import { ASTStore, computeContentHash } from '../ast-store.js';
 import {
   getExtension,
   isTypeScriptFile,
   isJSXFile,
   isSupportedFile,
-} from '../types';
+} from '../types.js';
 
 describe('Parser', () => {
   let parser: Parser;
@@ -307,7 +307,7 @@ describe('Parser', () => {
       expect(result.success).toBe(false);
       expect(result.ast).toBeNull();
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0].code).toBe(ParseErrorCodes.EMPTY_SOURCE);
+      expect(result.errors[0]!.code).toBe(ParseErrorCodes.EMPTY_SOURCE);
     });
 
     it('should return error for whitespace-only source', () => {
@@ -316,7 +316,7 @@ describe('Parser', () => {
       expect(result.success).toBe(false);
       expect(result.ast).toBeNull();
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0].code).toBe(ParseErrorCodes.EMPTY_SOURCE);
+      expect(result.errors[0]!.code).toBe(ParseErrorCodes.EMPTY_SOURCE);
     });
 
     it('should return error for unsupported file types', () => {
@@ -325,7 +325,7 @@ describe('Parser', () => {
       expect(result.success).toBe(false);
       expect(result.ast).toBeNull();
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0].code).toBe(ParseErrorCodes.UNSUPPORTED_FILE);
+      expect(result.errors[0]!.code).toBe(ParseErrorCodes.UNSUPPORTED_FILE);
     });
 
     it('should recover from syntax errors when possible', () => {
@@ -350,17 +350,17 @@ describe('Parser', () => {
       const result = parser.parse(source, 'test.js');
 
       // If there are errors, they should have location info
-      if (result.errors.length > 0 && result.errors[0].location) {
-        expect(result.errors[0].location).toHaveProperty('start');
-        expect(result.errors[0].location?.start).toHaveProperty('line');
-        expect(result.errors[0].location?.start).toHaveProperty('column');
+      if (result.errors.length > 0 && result.errors[0]!.location) {
+        expect(result.errors[0]!.location).toHaveProperty('start');
+        expect(result.errors[0]!.location?.start).toHaveProperty('line');
+        expect(result.errors[0]!.location?.start).toHaveProperty('column');
       }
     });
 
     it('should include filename in error messages', () => {
       const result = parser.parse('', 'my-component.tsx');
 
-      expect(result.errors[0].message).toContain('my-component.tsx');
+      expect(result.errors[0]!.message).toContain('my-component.tsx');
     });
   });
 
@@ -535,8 +535,10 @@ describe('ASTStore', () => {
   it('should invalidate specific entries', () => {
     const result = { ast: {}, errors: [], success: true };
 
-    store.set('a.js', 'const a = 1;', result);
-    store.set('b.js', 'const b = 2;', result);
+    // @ts-expect-error - intentional type mismatch for testing
+      store.set('a.js', 'const a = 1;', result);
+    // @ts-expect-error - intentional type mismatch for testing
+      store.set('b.js', 'const b = 2;', result);
     expect(store.size).toBe(2);
 
     store.invalidate('a.js');
@@ -548,8 +550,10 @@ describe('ASTStore', () => {
   it('should clear all entries', () => {
     const result = { ast: {}, errors: [], success: true };
 
-    store.set('a.js', 'const a = 1;', result);
-    store.set('b.js', 'const b = 2;', result);
+    // @ts-expect-error - intentional type mismatch for testing
+      store.set('a.js', 'const a = 1;', result);
+    // @ts-expect-error - intentional type mismatch for testing
+      store.set('b.js', 'const b = 2;', result);
     store.clear();
 
     expect(store.size).toBe(0);

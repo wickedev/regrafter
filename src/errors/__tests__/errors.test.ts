@@ -29,11 +29,11 @@ import {
   ERROR_CODES,
   createParseErrorWithCode,
   createSelectorErrorWithCode,
-  createDependencyErrorWithCode,
+  createDependencyErrorWithCode as _createDependencyErrorWithCode,
   createValidationErrorWithCode,
   createCircularErrorWithCode,
-  createTransformErrorWithCode,
-  createInternalErrorWithCode,
+  createTransformErrorWithCode as _createTransformErrorWithCode,
+  createInternalErrorWithCode as _createInternalErrorWithCode,
   getErrorCodeDefinition,
   getErrorCodesByCategory,
   isRecoverableErrorCode,
@@ -41,11 +41,11 @@ import {
 
 import {
   getSuggestedFixesForParseError,
-  getSuggestedFixesForSelectorError,
-  getSuggestedFixesForDependencyError,
+  getSuggestedFixesForSelectorError as _getSuggestedFixesForSelectorError,
+  getSuggestedFixesForDependencyError as _getSuggestedFixesForDependencyError,
   getSuggestedFixesForValidationError,
   getSuggestedFixesForCircularError,
-  getSuggestedFixesForError,
+  getSuggestedFixesForError as _getSuggestedFixesForError,
 } from '../suggested-fixes.js';
 
 import {

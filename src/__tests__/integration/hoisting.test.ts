@@ -19,7 +19,6 @@ import * as t from '@babel/types';
 import { createParser } from '../../parser/index.js';
 import { createScopeManager } from '../../scope/index.js';
 import {
-  DependencyAnalyzer,
   createDependencyAnalyzer,
 } from '../../analyzer/index.js';
 import {
@@ -34,7 +33,6 @@ import {
   classifyHook,
   HookCategory,
 } from '../../strategies/index.js';
-import { DependencyType } from '../../types/index.js';
 
 // =============================================================================
 // Helper Functions
@@ -71,8 +69,8 @@ describe('Hoist Planning', () => {
         return <div>{count}</div>;
       }
     `;
-    const { scopeManager } = createTestSetup(code);
-    const planner = createConfiguredHoistPlanner(scopeManager);
+    createTestSetup(code);
+    const planner = createConfiguredHoistPlanner();
 
     expect(planner).toBeDefined();
     expect(typeof planner.plan).toBe('function');
@@ -86,7 +84,7 @@ describe('Hoist Planning', () => {
         return <div>{count}</div>;
       }
     `;
-    const { ast, scopeManager, analyzer } = createTestSetup(code);
+    const { ast } = createTestSetup(code);
 
     // Find the JSX element
     let jsxPath: any = null;
@@ -149,8 +147,8 @@ describe('Hook Hoisting Strategies', () => {
   describe('HookHoister Strategy', () => {
     it('should create HookHoister instance', () => {
       const code = `function Component() { return <div />; }`;
-      const { scopeManager } = createTestSetup(code);
-      const hoister = new HookHoister(scopeManager);
+      createTestSetup(code);
+      const hoister = new HookHoister();
 
       expect(hoister).toBeDefined();
     });
@@ -163,8 +161,8 @@ describe('Hook Hoisting Strategies', () => {
           return <div>{count}</div>;
         }
       `;
-      const { scopeManager, analyzer } = createTestSetup(code);
-      const hoister = new HookHoister(scopeManager);
+      createTestSetup(code);
+      const hoister = new HookHoister();
 
       expect(hoister).toBeDefined();
       // Hook hoisting logic is tested through integration
@@ -179,8 +177,8 @@ describe('Hook Hoisting Strategies', () => {
 describe('Variable Hoisting', () => {
   it('should create VariableHoister instance', () => {
     const code = `function Component() { return <div />; }`;
-    const { scopeManager } = createTestSetup(code);
-    const hoister = new VariableHoister(scopeManager);
+    createTestSetup(code);
+    const hoister = new VariableHoister();
 
     expect(hoister).toBeDefined();
   });
@@ -193,7 +191,7 @@ describe('Variable Hoisting', () => {
         return <div>{doubled}</div>;
       }
     `;
-    const { scopeManager, analyzer } = createTestSetup(code);
+    const { scopeManager } = createTestSetup(code);
 
     // Variables should be detected by dependency analyzer
     expect(scopeManager).toBeDefined();
@@ -207,8 +205,8 @@ describe('Variable Hoisting', () => {
 describe('Prop Threading', () => {
   it('should create PropThreader instance', () => {
     const code = `function Component() { return <div />; }`;
-    const { scopeManager } = createTestSetup(code);
-    const threader = new PropThreader(scopeManager);
+    createTestSetup(code);
+    const threader = new PropThreader();
 
     expect(threader).toBeDefined();
   });
@@ -222,8 +220,8 @@ describe('Prop Threading', () => {
         return <div>{value}</div>;
       }
     `;
-    const { scopeManager } = createTestSetup(code);
-    const threader = new PropThreader(scopeManager);
+    createTestSetup(code);
+    const threader = new PropThreader();
 
     expect(threader).toBeDefined();
     // Prop threading logic tested through integration
@@ -237,8 +235,8 @@ describe('Prop Threading', () => {
 describe('Import Management', () => {
   it('should create ImportManager instance', () => {
     const code = `import React from 'react';`;
-    const { scopeManager } = createTestSetup(code);
-    const manager = new ImportManager(scopeManager);
+    createTestSetup(code);
+    const manager = new ImportManager();
 
     expect(manager).toBeDefined();
   });
@@ -253,11 +251,11 @@ describe('Import Management', () => {
         return <div>{now}</div>;
       }
     `;
-    const { ast, scopeManager, analyzer } = createTestSetup(code);
+    const { ast } = createTestSetup(code);
 
     // Imports should be detected by analyzer
-    expect(ast.program.body[0].type).toBe('ImportDeclaration');
-    expect(ast.program.body[1].type).toBe('ImportDeclaration');
+    expect(ast.program.body[0]!.type).toBe('ImportDeclaration');
+    expect(ast.program.body[1]!.type).toBe('ImportDeclaration');
   });
 });
 
@@ -268,8 +266,8 @@ describe('Import Management', () => {
 describe('Context Handler', () => {
   it('should create ContextHandler instance', () => {
     const code = `function Component() { return <div />; }`;
-    const { scopeManager } = createTestSetup(code);
-    const handler = new ContextHandler(scopeManager);
+    createTestSetup(code);
+    const handler = new ContextHandler();
 
     expect(handler).toBeDefined();
   });
@@ -284,8 +282,8 @@ describe('Context Handler', () => {
         return <div>{theme}</div>;
       }
     `;
-    const { scopeManager } = createTestSetup(code);
-    const handler = new ContextHandler(scopeManager);
+    createTestSetup(code);
+    const handler = new ContextHandler();
 
     expect(handler).toBeDefined();
   });
@@ -298,8 +296,8 @@ describe('Context Handler', () => {
 describe('Suspense Handler', () => {
   it('should create SuspenseHandler instance', () => {
     const code = `function Component() { return <div />; }`;
-    const { scopeManager } = createTestSetup(code);
-    const handler = new SuspenseHandler(scopeManager);
+    createTestSetup(code);
+    const handler = new SuspenseHandler();
 
     expect(handler).toBeDefined();
   });
@@ -317,8 +315,8 @@ describe('Suspense Handler', () => {
         );
       }
     `;
-    const { scopeManager } = createTestSetup(code);
-    const handler = new SuspenseHandler(scopeManager);
+    createTestSetup(code);
+    const handler = new SuspenseHandler();
 
     expect(handler).toBeDefined();
   });
@@ -348,8 +346,8 @@ describe('Full Integration', () => {
         );
       }
     `;
-    const { scopeManager } = createTestSetup(code);
-    const planner = createConfiguredHoistPlanner(scopeManager);
+    createTestSetup(code);
+    const planner = createConfiguredHoistPlanner();
 
     expect(planner).toBeDefined();
   });
@@ -364,8 +362,8 @@ describe('Full Integration', () => {
       }
     `;
 
-    const { scopeManager } = createTestSetup(validCode);
-    const planner = createConfiguredHoistPlanner(scopeManager);
+    createTestSetup(validCode);
+    const planner = createConfiguredHoistPlanner();
 
     // Planner should be created successfully for valid code
     expect(planner).toBeDefined();
@@ -385,8 +383,8 @@ describe('Full Integration', () => {
         return <div>{processed.length}</div>;
       }
     `;
-    const { scopeManager } = createTestSetup(code);
-    const planner = createConfiguredHoistPlanner(scopeManager);
+    createTestSetup(code);
+    const planner = createConfiguredHoistPlanner();
 
     expect(planner).toBeDefined();
   });
@@ -404,8 +402,8 @@ describe('Full Integration', () => {
         return <div>{items.length}</div>;
       }
     `;
-    const { scopeManager } = createTestSetup(code);
-    const planner = createConfiguredHoistPlanner(scopeManager);
+    createTestSetup(code);
+    const planner = createConfiguredHoistPlanner();
 
     expect(planner).toBeDefined();
   });
@@ -438,8 +436,8 @@ describe('Full Integration', () => {
         );
       }
     `;
-    const { scopeManager, analyzer } = createTestSetup(code);
-    const planner = createConfiguredHoistPlanner(scopeManager);
+    const { analyzer } = createTestSetup(code);
+    const planner = createConfiguredHoistPlanner();
 
     // All strategies should be available and integrated
     expect(planner).toBeDefined();
@@ -532,7 +530,7 @@ describe('Complete Pipeline', () => {
     `;
 
     const { ast, scopeManager, analyzer } = createTestSetup(code);
-    const planner = createConfiguredHoistPlanner(scopeManager);
+    const planner = createConfiguredHoistPlanner();
 
     // Should successfully analyze this complex component
     expect(ast).toBeDefined();
@@ -542,7 +540,7 @@ describe('Complete Pipeline', () => {
 
     // Verify AST structure
     expect(ast.program.body.length).toBeGreaterThanOrEqual(3); // imports + context + component
-    expect(ast.program.body[0].type).toBe('ImportDeclaration');
-    expect(ast.program.body[1].type).toBe('ImportDeclaration');
+    expect(ast.program.body[0]!.type).toBe('ImportDeclaration');
+    expect(ast.program.body[1]!.type).toBe('ImportDeclaration');
   });
 });

@@ -22,9 +22,9 @@ import {
 } from '../types/factories.js';
 import { ScopeType, type DependencyGraph, type ScopeInfo } from '../types/index.js';
 import type { FileInput, Code } from '../types/public.js';
-import { loadTraverseFunction } from '../utils/index.js';
+import { loadTraverseFunction, type TraverseFunction } from '../utils/index.js';
 
-const traverse = loadTraverseFunction(traverseModule);
+const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
 
 
 import type { FastCanMove} from './fast-can-move.js';

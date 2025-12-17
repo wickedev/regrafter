@@ -13,9 +13,9 @@
  * - Test error handling for invalid selectors
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
-import type * as t from '@babel/types';
+import * as t from '@babel/types';
 import {
   type PositionSelector,
   type PathSelector,
@@ -25,7 +25,6 @@ import {
   isValidSelector,
   AtomicUnitType,
   type ResolveResult,
-  type AtomicUnit,
   createSelectorError,
   createAtomicUnit,
   createResolveResult,
@@ -233,9 +232,6 @@ class MockSelectorResolver {
     });
   }
 }
-
-// Import babel types for type checking
-import * as t from '@babel/types';
 
 // =============================================================================
 // Test Data
@@ -880,7 +876,8 @@ describe('Selector - Unified Resolution', () => {
 
   it('should return error for invalid selector via resolve()', () => {
     const resolver = new MockSelectorResolver(simpleComponent);
-    const invalidSelector: Selector = { file: 'test.tsx' } as unknown;
+    // @ts-expect-error - intentional type mismatch for testing
+      const invalidSelector: Selector = { file: 'test.tsx' } as unknown;
 
     const result = resolver.resolve(invalidSelector);
 

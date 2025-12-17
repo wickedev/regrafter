@@ -112,10 +112,10 @@ describe('Basic Move Integration Tests', () => {
       const codes = move(files, from, to, Move.Before);
 
       expect(codes).toHaveLength(1);
-      expect(codes[0].changed).toBe(true);
+      expect(codes[0]!.changed).toBe(true);
 
       // Verify footer comes before header in output
-      const code = codes[0].content;
+      const code = codes[0]!.content;
       const footerIndex = code.indexOf('<footer>');
       const headerIndex = code.indexOf('<header>');
       expect(footerIndex).toBeLessThan(headerIndex);
@@ -129,9 +129,9 @@ describe('Basic Move Integration Tests', () => {
 
       const codes = move(files, from, to, Move.Before);
 
-      expect(codes[0].content).toContain('<footer>Footer</footer>');
-      expect(codes[0].content).toContain('<header>Header</header>');
-      expect(codes[0].content).toContain('<main>Main</main>');
+      expect(codes[0]!.content).toContain('<footer>Footer</footer>');
+      expect(codes[0]!.content).toContain('<header>Header</header>');
+      expect(codes[0]!.content).toContain('<main>Main</main>');
     });
 
     it('should remove element from original location (no duplicates)', () => {
@@ -143,7 +143,7 @@ describe('Basic Move Integration Tests', () => {
       const codes = move(files, from, to, Move.Before);
 
       // Footer should only appear once
-      const footerMatches = codes[0].content.match(/<footer>/g);
+      const footerMatches = codes[0]!.content.match(/<footer>/g);
       expect(footerMatches).toHaveLength(1);
     });
 
@@ -156,8 +156,8 @@ describe('Basic Move Integration Tests', () => {
 
       const codes = move(files, from, to, Move.Before);
 
-      expect(codes[0].changed).toBe(true);
-      const code = codes[0].content;
+      expect(codes[0]!.changed).toBe(true);
+      const code = codes[0]!.content;
       const pIndex = code.indexOf('<p>');
       const h1Index = code.indexOf('<h1>');
       expect(pIndex).toBeLessThan(h1Index);
@@ -179,10 +179,10 @@ describe('Basic Move Integration Tests', () => {
       const codes = move(files, from, to, Move.After);
 
       expect(codes).toHaveLength(1);
-      expect(codes[0].changed).toBe(true);
+      expect(codes[0]!.changed).toBe(true);
 
       // Verify header comes after footer in output
-      const code = codes[0].content;
+      const code = codes[0]!.content;
       const headerIndex = code.indexOf('<header>');
       const footerIndex = code.indexOf('<footer>');
       expect(headerIndex).toBeGreaterThan(footerIndex);
@@ -196,9 +196,9 @@ describe('Basic Move Integration Tests', () => {
 
       const codes = move(files, from, to, Move.After);
 
-      expect(codes[0].content).toContain('<header>Header</header>');
-      expect(codes[0].content).toContain('<main>Main</main>');
-      expect(codes[0].content).toContain('<footer>Footer</footer>');
+      expect(codes[0]!.content).toContain('<header>Header</header>');
+      expect(codes[0]!.content).toContain('<main>Main</main>');
+      expect(codes[0]!.content).toContain('<footer>Footer</footer>');
     });
   });
 
@@ -246,8 +246,8 @@ describe('Basic Move Integration Tests', () => {
 
       expect(result.success).toBe(true);
       expect(result.codes).toHaveLength(1);
-      expect(result.codes[0].file).toBe('test.tsx');
-      expect(result.codes[0].changed).toBe(true);
+      expect(result.codes[0]!.file).toBe('test.tsx');
+      expect(result.codes[0]!.changed).toBe(true);
       expect(result.analysis).toBeDefined();
     });
 
@@ -262,7 +262,7 @@ describe('Basic Move Integration Tests', () => {
       expect(result.success).toBe(true);
       expect(result.analysis).toBeDefined();
       // In dryRun, files should be unchanged
-      expect(result.codes[0].changed).toBe(false);
+      expect(result.codes[0]!.changed).toBe(false);
     });
   });
 
@@ -387,8 +387,8 @@ function App() {
 
       const codes = move(files, from, to, Move.Before);
 
-      expect(codes[0].changed).toBe(true);
-      const code = codes[0].content;
+      expect(codes[0]!.changed).toBe(true);
+      const code = codes[0]!.content;
       const thirdIndex = code.indexOf('Third');
       const firstIndex = code.indexOf('First');
       expect(thirdIndex).toBeLessThan(firstIndex);
@@ -410,9 +410,9 @@ function App() {
 
       const codes = move(files, from, to, Move.Before);
 
-      expect(codes[0].changed).toBe(true);
+      expect(codes[0]!.changed).toBe(true);
       // Verify the move happened
-      const code = codes[0].content;
+      const code = codes[0]!.content;
       expect(code).toContain('<footer>');
       expect(code).toContain('<main>');
     });

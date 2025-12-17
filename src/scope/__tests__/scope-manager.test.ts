@@ -13,15 +13,16 @@
  * - Validate Rules of Hooks compliance checking
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { parse } from '@babel/parser';
-import traverse, { NodePath, Binding } from '@babel/traverse';
-import type * as t from '@babel/types';
+import traverseFn, { type NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
+
+const traverse = traverseFn as any as typeof traverseFn.default;
 import {
   ScopeType,
   type ScopeInfo,
   type ComponentScope,
-  type HookUsage,
   createScopeInfo,
   createComponentScope,
 } from '../../types/index.js';
@@ -199,7 +200,6 @@ class MockScopeManager {
     const id = `component-${name}-${this.scopeIdCounter++}`;
     const scope = createComponentScope({
       id,
-      type: ScopeType.Component,
       path,
       parent,
       bindings: new Map(),
@@ -474,9 +474,6 @@ class MockScopeManager {
     return this.hookViolations.length === 0;
   }
 }
-
-// Import babel types
-import * as t from '@babel/types';
 
 // =============================================================================
 // Test Data

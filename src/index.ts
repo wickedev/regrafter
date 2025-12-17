@@ -215,27 +215,9 @@ import {
   createAnalysisStats,
   createSuggestedFix,
 } from './types/index.js';
+import { loadTraverseFunction, type TraverseFunction } from './utils/index.js';
 
-// Handle both ESM and CJS exports for @babel/traverse
-const traverseModuleRecord: Record<string, unknown> = traverseModule;
-type TraverseVisitor = {
-  [K in t.Node['type']]?: (path: NodePath<Extract<t.Node, { type: K }>>) => void;
-};
-type TraverseFunction = <T extends t.Node>(ast: T, opts: TraverseVisitor) => void;
-
-function isTraverseFunction(value: unknown): value is TraverseFunction {
-  return typeof value === 'function';
-}
-function getTraverseFunction(): TraverseFunction {
-  if (isTraverseFunction(traverseModuleRecord.default)) {
-    return traverseModuleRecord.default;
-  }
-  if (isTraverseFunction(traverseModule)) {
-    return traverseModule;
-  }
-  throw new Error('@babel/traverse module is not properly loaded');
-}
-const traverse = getTraverseFunction();
+const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
 
 /**
  * Main entry point for the regraft operation.
@@ -501,15 +483,16 @@ function moveWithHoisting(
   to: Selector,
   mode: Move
 ): Code[] {
-  // Type guard for location property
-  function hasPathProperty(loc: unknown): loc is { path: NodePath } {
+  // Type guard for dependencies with location property
+  function hasLocationProperty(obj: unknown): obj is { location: { path: NodePath } } {
     return (
-      loc !== null &&
-      loc !== undefined &&
-      typeof loc === 'object' &&
-      'path' in loc &&
-      loc.path !== null &&
-      loc.path !== undefined
+      obj !== null &&
+      obj !== undefined &&
+      typeof obj === 'object' &&
+      'location' in obj &&
+      typeof obj.location === 'object' &&
+      obj.location !== null &&
+      'path' in obj.location
     );
   }
 
@@ -591,9 +574,8 @@ function moveWithHoisting(
 
       // Collect dependency paths
       for (const dep of depAnalysis.dependencies) {
-        const location: unknown = 'location' in dep ? dep.location : undefined;
-        if (hasPathProperty(location)) {
-          dependencyPaths.set(dep.id, location.path);
+        if (hasLocationProperty(dep)) {
+          dependencyPaths.set(dep.id, dep.location.path);
         }
       }
 

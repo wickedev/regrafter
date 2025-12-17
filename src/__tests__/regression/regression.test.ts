@@ -21,7 +21,6 @@ import {
   createSuggestedFix,
   createMoveAnalysis,
   createCode,
-  createResult,
   createSuccessResult,
   createFailureResult,
   createAnalysisStats,

@@ -13,10 +13,12 @@
  * - Validate optimization result structure
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { parse } from '@babel/parser';
-import traverse from '@babel/traverse';
-import type * as t from '@babel/types';
+import traverseFn from '@babel/traverse';
+import * as t from '@babel/types';
+
+const traverse = traverseFn as any as typeof traverseFn.default;
 import {
   ScopeType,
   type OptimizeResult,
@@ -24,7 +26,6 @@ import {
   type ConsumerInfo,
   type PropRemoval,
   type ScopeInfo,
-  type InternalDependency,
   DependencyType,
   createScopeInfo,
   createInternalDependency,
@@ -78,10 +79,11 @@ function parseCode(code: string): t.File {
  */
 class MockOptimizer {
   private ast: t.File;
-  private code: string;
+  // @ts-expect-error unused test variable
+  private _code: string;
 
   constructor(code: string) {
-    this.code = code;
+    this._code = code;
     this.ast = parseCode(code);
   }
 
@@ -90,7 +92,8 @@ class MockOptimizer {
    */
   findSinkCandidates(): SinkCandidate[] {
     const candidates: SinkCandidate[] = [];
-    const declarationUsages = new Map<
+    // @ts-expect-error unused test variable
+    const _declarationUsages = new Map<
       string,
       { scope: ScopeInfo; consumers: ConsumerInfo[] }
     >();
@@ -113,7 +116,8 @@ class MockOptimizer {
       depth: 1,
     });
 
-    const innerScope = createScopeInfo({
+    // @ts-expect-error unused test variable
+    const _innerScope = createScopeInfo({
       id: 'inner',
       type: ScopeType.Function,
       path: null as any,
@@ -123,7 +127,8 @@ class MockOptimizer {
     });
 
     // Analyze declarations and their usages
-    const self = this;
+    // @ts-expect-error unused test variable
+    const _self = this;
     const scopeMap = new Map<any, ScopeInfo>();
     scopeMap.set('module', moduleScope);
     scopeMap.set('component', componentScope);
@@ -379,9 +384,6 @@ class MockOptimizer {
     );
   }
 }
-
-// Import babel types
-import * as t from '@babel/types';
 
 // =============================================================================
 // Test Data

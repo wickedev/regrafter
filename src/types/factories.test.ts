@@ -24,8 +24,7 @@ import {
   createTransformPlan,
   createTransformStats,
 } from './factories.js';
-import { DependencyType, Move } from './public.js';
-import { ScopeType, AtomicUnitType, HoistStrategy } from './internal.js';
+import { DependencyType } from './public.js';
 
 describe('generateId', () => {
   beforeEach(() => {

@@ -39,7 +39,8 @@ async function testHoisting(
   toSelector: PositionSelector,
   mode: Move
 ) {
-  const files: FileInput[] = [{ path: 'test.tsx', content: code }];
+  // @ts-expect-error unused test variable
+  const _files: FileInput[] = [{ path: 'test.tsx', content: code }];
 
   // Parse
   const parser = createParser();
@@ -77,16 +78,16 @@ async function testHoisting(
   const hoistContext = {
     sourceFile: 'test.tsx',
     targetFile: 'test.tsx',
-    sourceScope,
-    targetScope,
+    sourceScope: sourceScope!,
+    targetScope: targetScope!,
     sourceComponent,
     targetComponent,
     isCrossFile: false,
-    asts: new Map([[ast, 'test.tsx']]),
+    asts: new Map([['test.tsx', ast]]),
   };
 
   // Plan hoisting
-  const hoistPlanner = createConfiguredHoistPlanner(scopeManager);
+  const hoistPlanner = createConfiguredHoistPlanner();
   const plan = hoistPlanner.plan(analysis, hoistContext);
 
   // Execute hoisting transformations (if plan has operations)

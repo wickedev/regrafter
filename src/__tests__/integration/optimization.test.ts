@@ -14,20 +14,15 @@
  * - Verify dead code detection and removal
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import * as fs from 'fs';
-import * as path from 'path';
+import { describe, it, expect } from 'vitest';
 import {
   Move,
   DependencyType,
-  ResolutionStrategy,
   type PositionSelector,
   type Result,
-  type Dependency,
   createDependency,
   createMoveAnalysis,
   createSuccessResult,
-  createFailureResult,
   createCode,
 } from '../../types/index.js';
 
@@ -57,16 +52,6 @@ import {
 // =============================================================================
 // Test Utilities
 // =============================================================================
-
-const FIXTURES_DIR = path.join(__dirname, '../../../test/fixtures');
-
-function loadFixture(filename: string): string {
-  try {
-    return fs.readFileSync(path.join(FIXTURES_DIR, filename), 'utf-8');
-  } catch {
-    return '';
-  }
-}
 
 /**
  * Mock optimize function for optimization tests
@@ -129,9 +114,9 @@ async function regraftWithOptimize(
  */
 async function mockMove(
   files: Array<{ path: string; content: string }>,
-  from: PositionSelector,
-  to: PositionSelector,
-  mode: Move
+  _from: PositionSelector,
+  _to: PositionSelector,
+  _mode: Move
 ): Promise<Result> {
   return createSuccessResult(
     files.map(f =>
@@ -171,7 +156,7 @@ function analyzeSinkableDependencies(
         const symbolMatch = match.match(/const \[(\w+),/);
         if (symbolMatch) {
           deps.push({
-            symbol: symbolMatch[1],
+            symbol: symbolMatch[1]!,
             type: DependencyType.Hook,
             file: file.path,
           });
@@ -186,7 +171,7 @@ function analyzeSinkableDependencies(
         const symbolMatch = match.match(/const (\w+) =/);
         if (symbolMatch && symbolMatch[1] !== 'count' && file.content.includes(`${symbolMatch[1]}={`)) {
           deps.push({
-            symbol: symbolMatch[1],
+            symbol: symbolMatch[1]!,
             type: DependencyType.Variable,
             file: file.path,
           });
@@ -333,7 +318,7 @@ describe('Optimization - Single Consumer', () => {
     const result = await optimize(files);
 
     expect(result.success).toBe(true);
-    expect(result.codes[0].changed).toBe(true);
+    expect(result.codes[0]!.changed).toBe(true);
     // Dependency analysis should show sinkable deps
     expect(result.analysis.dependencies).toBeDefined();
   });
@@ -866,7 +851,7 @@ describe('Optimization - Edge Cases', () => {
     const result = await optimize(files);
 
     expect(result.success).toBe(true);
-    expect(result.codes[0].changed).toBe(false);
+    expect(result.codes[0]!.changed).toBe(false);
   });
 
   it('should handle deeply nested component trees', async () => {

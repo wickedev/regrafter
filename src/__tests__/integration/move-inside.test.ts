@@ -78,7 +78,7 @@ async function regraft(
   files: Array<{ path: string; content: string }>,
   from: PositionSelector,
   to: PositionSelector,
-  mode: Move
+  _mode: Move
 ): Promise<Result> {
   // TODO: Replace with actual regraft implementation
 
@@ -541,11 +541,12 @@ describe('Move.Inside - Error Handling', () => {
     const from = createPositionSelector('simple-component.tsx', 17, 8);
     const to = createPositionSelector('simple-component.tsx', 53, 6); // img element
 
-    const result = await regraft(files, from, to, Move.Inside);
+    // @ts-expect-error unused test variable
+    const _result = await regraft(files, from, to, Move.Inside);
 
     // TODO: Once implementation complete, this should fail
-    // expect(result.success).toBe(false);
-    // expect(result.analysis.reason).toContain('cannot have children');
+    // expect(_result.success).toBe(false);
+    // expect(_result.analysis.reason).toContain('cannot have children');
   });
 
   /**
@@ -566,11 +567,12 @@ describe('Move.Inside - Error Handling', () => {
     const from = createPositionSelector('nested-components.tsx', 40, 4); // parent
     const to = createPositionSelector('nested-components.tsx', 45, 8); // child
 
-    const result = await regraft(files, from, to, Move.Inside);
+    // @ts-expect-error unused test variable
+    const _result = await regraft(files, from, to, Move.Inside);
 
     // TODO: Once implementation complete, this should fail
-    // expect(result.success).toBe(false);
-    // expect(result.analysis.reason).toContain('circular');
+    // expect(_result.success).toBe(false);
+    // expect(_result.analysis.reason).toContain('circular');
   });
 });
 

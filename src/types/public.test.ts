@@ -2,7 +2,7 @@
  * Unit tests for public API type guards and utilities
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 import {
   Move,

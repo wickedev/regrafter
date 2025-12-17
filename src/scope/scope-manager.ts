@@ -13,7 +13,7 @@ import {
   createComponentScope,
   generateId,
 } from '../types/factories.js';
-import { loadTraverseFunction } from '../utils/index.js';
+import { loadTraverseFunction, type TraverseFunction } from '../utils/index.js';
 
 import {
   ScopeType,
@@ -27,7 +27,7 @@ import {
   type ScopeTree,
 } from './types.js';
 
-const traverse = loadTraverseFunction(traverseModule);
+const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
 
 
 /**

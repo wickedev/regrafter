@@ -13,9 +13,7 @@
  * - Verify dependencies are resolved across files
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import * as fs from 'fs';
-import * as path from 'path';
+import { describe, it, expect } from 'vitest';
 import {
   Move,
   DependencyType,
@@ -57,16 +55,6 @@ import {
 // Test Utilities
 // =============================================================================
 
-const FIXTURES_DIR = path.join(__dirname, '../../../test/fixtures');
-
-function loadFixture(filename: string): string {
-  try {
-    return fs.readFileSync(path.join(FIXTURES_DIR, filename), 'utf-8');
-  } catch {
-    return '';
-  }
-}
-
 /**
  * Mock regraft function for cross-file tests
  */
@@ -74,7 +62,7 @@ async function regraft(
   files: Array<{ path: string; content: string }>,
   from: PositionSelector | PathSelector,
   to: PositionSelector | PathSelector,
-  mode: Move
+  _mode: Move
 ): Promise<Result> {
   const sourceFilePath = from.file;
   const targetFilePath = to.file;

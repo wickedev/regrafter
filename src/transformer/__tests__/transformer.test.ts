@@ -14,10 +14,12 @@
  * - Validate transformation plan execution
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { parse } from '@babel/parser';
-import generate from '@babel/generator';
+import generateFn from '@babel/generator';
 import type * as t from '@babel/types';
+
+const generate = generateFn as any as typeof generateFn.default;
 import {
   Move,
   HoistStrategy,
@@ -281,7 +283,7 @@ class MockTransformer {
   /**
    * Execute a prop threading operation (mock)
    */
-  private executePropThread(prop: PropThreadOperation): void {
+  private executePropThread(_prop: PropThreadOperation): void {
     // In real implementation, this would:
     // 1. Add prop to source component JSX
     // 2. Add prop to intermediate components

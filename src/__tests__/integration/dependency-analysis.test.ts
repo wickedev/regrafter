@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { analyze, Move, DependencyType } from '../../index.js';
-import type { FileInput, MoveAnalysis } from '../../index.js';
+import type { FileInput } from '../../index.js';
 
 describe('Dependency Analysis Integration', () => {
   describe('analyze() API', () => {

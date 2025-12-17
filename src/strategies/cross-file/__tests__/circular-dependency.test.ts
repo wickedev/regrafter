@@ -2,7 +2,7 @@
  * Unit tests for Circular Dependency Module
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { parse } from '@babel/parser';
 import type * as t from '@babel/types';
 
@@ -78,7 +78,7 @@ describe('addImportEdge', () => {
     expect(graph.imports.get('src/A.ts')?.has('src/B.ts')).toBe(true);
     expect(graph.importedBy.get('src/B.ts')?.has('src/A.ts')).toBe(true);
     expect(graph.edges).toHaveLength(1);
-    expect(graph.edges[0].symbols).toEqual(['foo', 'bar']);
+    expect(graph.edges[0]!.symbols).toEqual(['foo', 'bar']);
   });
 
   it('should automatically add files when adding edges', () => {
@@ -276,7 +276,7 @@ describe('resolveCircularDependencies', () => {
     const result = resolveCircularDependencies(graph, new Map());
 
     expect(result.resolutions.length).toBeGreaterThan(0);
-    expect(result.resolutions[0].type).toBe('extract_shared');
+    expect(result.resolutions[0]!.type).toBe('extract_shared');
   });
 
   it('should include shared module path in resolution', () => {
@@ -287,7 +287,7 @@ describe('resolveCircularDependencies', () => {
     const result = resolveCircularDependencies(graph, new Map());
 
     if (result.resolutions.length > 0) {
-      expect(result.resolutions[0].sharedModulePath).toBeDefined();
+      expect(result.resolutions[0]!.sharedModulePath).toBeDefined();
     }
   });
 });

@@ -53,6 +53,7 @@ function App({ isLoggedIn }) {
 }
 `;
 
+// @ts-expect-error unused test variable
 const mapExpressionCode = `
 function List({ items }) {
   return (
