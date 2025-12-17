@@ -37,6 +37,7 @@ import {
   type AnalyzabilityResult,
   mergeAnalyzerOptions,
 } from './types.js';
+import { createDynamicCodeDetector } from './dynamic-code-detector.js';
 
 /**
  * Set of React hooks
@@ -555,119 +556,30 @@ export class DependencyAnalyzer {
    * @returns Analyzability result
    */
   checkAnalyzability(elementPath: NodePath): AnalyzabilityResult {
-    const blockers: UnanalyzableCode[] = [];
+    const detector = createDynamicCodeDetector();
+    const dynamicCode = detector.detect(elementPath);
 
-    // Find the containing function/component scope
-    let containerPath: NodePath | null = elementPath;
-    while (containerPath && !this.isFunctionOrComponentScope(containerPath)) {
-      containerPath = containerPath.parentPath;
+    if (dynamicCode.length === 0) {
+      return {
+        analyzable: true,
+      };
     }
 
-    // If no container found, use element path
-    const scopeToCheck = containerPath ?? elementPath;
-
-    // Traverse looking for unanalyzable patterns
-    scopeToCheck.traverse({
-      // Check for eval()
-      CallExpression: (callPath: NodePath<t.CallExpression>) => {
-        const callee = callPath.node.callee;
-
-        // Direct eval call
-        if (t.isIdentifier(callee) && callee.name === 'eval') {
-          blockers.push({
-            type: 'eval',
-            location: {
-              start: {
-                line: callPath.node.loc?.start.line ?? 0,
-                column: callPath.node.loc?.start.column ?? 0,
-              },
-              end: {
-                line: callPath.node.loc?.end.line ?? 0,
-                column: callPath.node.loc?.end.column ?? 0,
-              },
-            },
-            description: 'Use of eval() makes static analysis impossible',
-          });
-        }
-
-        // Function() constructor call (non-new)
-        if (t.isIdentifier(callee) && callee.name === 'Function') {
-          blockers.push({
-            type: 'dynamicCode',
-            location: {
-              start: {
-                line: callPath.node.loc?.start.line ?? 0,
-                column: callPath.node.loc?.start.column ?? 0,
-              },
-              end: {
-                line: callPath.node.loc?.end.line ?? 0,
-                column: callPath.node.loc?.end.column ?? 0,
-              },
-            },
-            description: 'Use of Function constructor creates dynamic code',
-          });
-        }
-      },
-
-      // Check for new Function() constructor
-      NewExpression: (newPath: NodePath<t.NewExpression>) => {
-        const callee = newPath.node.callee;
-        if (t.isIdentifier(callee) && callee.name === 'Function') {
-          blockers.push({
-            type: 'dynamicCode',
-            location: {
-              start: {
-                line: newPath.node.loc?.start.line ?? 0,
-                column: newPath.node.loc?.start.column ?? 0,
-              },
-              end: {
-                line: newPath.node.loc?.end.line ?? 0,
-                column: newPath.node.loc?.end.column ?? 0,
-              },
-            },
-            description: 'Use of Function constructor creates dynamic code',
-          });
-        }
-      },
-
-      // Check for dynamic property access with non-literal keys
-      MemberExpression: (memberPath: NodePath<t.MemberExpression>) => {
-        const node = memberPath.node;
-        if (
-          node.computed &&
-          !t.isLiteral(node.property) &&
-          !t.isIdentifier(node.property)
-        ) {
-          // This is something like obj[someVariable]
-          // We can still analyze this if the variable is trackable
-          // Only flag truly dynamic cases
-          if (
-            t.isCallExpression(node.property) ||
-            t.isNewExpression(node.property)
-          ) {
-            blockers.push({
-              type: 'dynamicCode',
-              location: {
-                start: {
-                  line: node.loc?.start.line ?? 0,
-                  column: node.loc?.start.column ?? 0,
-                },
-                end: {
-                  line: node.loc?.end.line ?? 0,
-                  column: node.loc?.end.column ?? 0,
-                },
-              },
-              description:
-                'Dynamic property access with computed key cannot be statically analyzed',
-            });
-          }
-        }
-      },
-    });
+    // Convert DynamicCodeInfo to UnanalyzableCode
+    const blockers: UnanalyzableCode[] = dynamicCode.map((dc) => ({
+      type: dc.type === 'eval' ? 'eval' : 'dynamicCode',
+      location: dc.location,
+      description:
+        dc.type === 'eval'
+          ? 'Use of eval() makes static analysis impossible'
+          : dc.type === 'Function'
+            ? 'Use of Function constructor creates dynamic code'
+            : 'Dynamic import with non-static argument cannot be statically analyzed',
+    }));
 
     return {
-      analyzable: blockers.length === 0,
-      blockers: blockers.length > 0 ? blockers : undefined,
+      analyzable: false,
+      blockers,
     };
   }
 
@@ -1345,20 +1257,6 @@ export class DependencyAnalyzer {
   ): boolean {
     // Only imports need import operations
     return dep.type === DependencyType.Import;
-  }
-
-  /**
-   * Check if a node path is a function or component scope
-   */
-  private isFunctionOrComponentScope(path: NodePath): boolean {
-    const node = path.node;
-    return (
-      node.type === 'FunctionDeclaration' ||
-      node.type === 'FunctionExpression' ||
-      node.type === 'ArrowFunctionExpression' ||
-      node.type === 'ClassMethod' ||
-      node.type === 'ClassPrivateMethod'
-    );
   }
 
   /**

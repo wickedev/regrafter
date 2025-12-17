@@ -101,6 +101,32 @@ export class SuspenseHandler implements ISuspenseHandler {
   }
 
   /**
+   * Check if element is within Suspense boundary (TASK-006)
+   */
+  isWithinSuspense(path: NodePath): boolean {
+    return this.findSuspenseBoundary(path) !== null;
+  }
+
+  /**
+   * Check if a scope has a Suspense boundary (TASK-006)
+   */
+  hasSuspenseBoundary(path: NodePath): boolean {
+    let found = false;
+
+    // Traverse the subtree to look for Suspense elements
+    path.traverse({
+      JSXElement: (innerPath: NodePath) => {
+        if (this.isSuspenseElement(innerPath)) {
+          found = true;
+          innerPath.stop();
+        }
+      },
+    });
+
+    return found;
+  }
+
+  /**
    * Check if a Suspense boundary is needed at the target
    */
   needsSuspenseBoundary(

@@ -8,7 +8,7 @@ const rootDir = resolve(__dirname, '..');
 
 export default defineConfig({
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.bench.ts'],
     exclude: ['src/__tests__/e2e/**'],
     root: rootDir,
     globals: true,
@@ -20,6 +20,7 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: [
         'src/**/*.test.ts',
+        'src/**/*.bench.ts',
         'src/**/__tests__/**',
         'src/**/index.ts',
       ],
@@ -29,6 +30,10 @@ export default defineConfig({
         functions: 70,
         lines: 70,
       },
+    },
+    benchmark: {
+      include: ['src/**/*.bench.ts'],
+      exclude: ['src/__tests__/e2e/**'],
     },
   },
 });

@@ -69,6 +69,11 @@ export class ContextHandler implements IContextHandler {
     let providerPath: NodePath | null = null;
     const contextName = this.extractContextName(dependency);
 
+    // If we can't extract a context name, we can't find the provider
+    if (!contextName) {
+      return null;
+    }
+
     traverse(sourceAst, {
       JSXElement(path: NodePath<t.JSXElement>) {
         const openingElement = path.node.openingElement;
@@ -81,24 +86,20 @@ export class ContextHandler implements IContextHandler {
 
           if (
             object.type === 'JSXIdentifier' &&
-            property.name === 'Provider'
+            property.name === 'Provider' &&
+            object.name === contextName
           ) {
-            // Check if this is the context we're looking for
-            if (contextName === undefined || object.name === contextName) {
-              providerPath = path;
-              path.stop();
-            }
+            providerPath = path;
+            path.stop();
           }
         }
 
         // Check for <XxxProvider> pattern (common naming convention)
         if (openingElement.name.type === 'JSXIdentifier') {
           const name = openingElement.name.name;
-          if (name.endsWith("Provider")) {
-            if (contextName === undefined || name === `${contextName}Provider`) {
-              providerPath = path;
-              path.stop();
-            }
+          if (name.endsWith("Provider") && name === `${contextName}Provider`) {
+            providerPath = path;
+            path.stop();
           }
         }
       },
@@ -190,6 +191,168 @@ export class ContextHandler implements IContextHandler {
   // ===========================================================================
   // Provider Analysis
   // ===========================================================================
+
+  /**
+   * Find all consumers of a context within an AST
+   */
+  findAllConsumers(
+    providerPath: NodePath,
+    ast: t.File
+  ): Array<{ path: NodePath; variableName: string; scope: any }> {
+    // Extract context name from provider
+    const contextName = this.extractContextNameFromProvider(providerPath);
+    if (!contextName) {
+      return [];
+    }
+
+    // Find all useContext calls for this context
+    const calls = this.findUseContextCalls(ast, contextName);
+
+    // Map to consumer format
+    return calls.map(call => ({
+      path: call.path,
+      variableName: call.variableName,
+      scope: call.path.scope,
+    }));
+  }
+
+  /**
+   * Check if a Provider can be safely hoisted to a target scope
+   */
+  canHoistProvider(
+    providerPath: NodePath,
+    targetScope: ScopeInfo,
+    ast: t.File
+  ): boolean {
+    // Find all consumers of this context
+    const consumers = this.findAllConsumers(providerPath, ast);
+
+    // If no consumers, hoisting is safe
+    if (consumers.length === 0) {
+      return true;
+    }
+
+    // Find all components that use this context
+    const consumerComponents = new Set<string>();
+    consumers.forEach(consumer => {
+      const componentName = this.findContainingComponentName(consumer.path);
+      if (componentName) {
+        consumerComponents.add(componentName);
+      }
+    });
+
+    // Find all components rendered within the target scope
+    const renderedComponents = this.findRenderedComponents(targetScope.path);
+
+    // Check if all consumer components are rendered within the target scope
+    for (const consumerComp of consumerComponents) {
+      if (!renderedComponents.has(consumerComp)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Find the name of the component containing a given path
+   */
+  private findContainingComponentName(path: NodePath): string | null {
+    let current: NodePath | null = path;
+
+    while (current !== null) {
+      // Check for function declaration
+      if (current.isFunctionDeclaration()) {
+        const id = (current.node as t.FunctionDeclaration).id;
+        if (id) {
+          return id.name;
+        }
+      }
+
+      // Check for variable declarator with function expression
+      if (current.isVariableDeclarator()) {
+        const id = (current.node as t.VariableDeclarator).id;
+        if (id.type === 'Identifier') {
+          return id.name;
+        }
+      }
+
+      // Check for arrow function in variable declarator
+      if (current.isArrowFunctionExpression()) {
+        const parent = current.parentPath;
+        if (parent && parent.isVariableDeclarator()) {
+          const id = (parent.node as t.VariableDeclarator).id;
+          if (id.type === 'Identifier') {
+            return id.name;
+          }
+        }
+      }
+
+      current = current.parentPath;
+    }
+
+    return null;
+  }
+
+  /**
+   * Find all component names rendered within a scope
+   */
+  private findRenderedComponents(scopePath: NodePath): Set<string> {
+    const components = new Set<string>();
+
+    // Helper function to recursively collect JSX elements
+    const collectJSXElements = (node: t.Node) => {
+      if (node.type === 'JSXElement') {
+        const name = node.openingElement.name;
+        if (name.type === 'JSXIdentifier') {
+          // Only add component names (start with uppercase)
+          if (/^[A-Z]/.test(name.name)) {
+            components.add(name.name);
+          }
+        }
+
+        // Recurse into children
+        if (node.children) {
+          node.children.forEach(child => {
+            if (typeof child === 'object' && child !== null && 'type' in child) {
+              collectJSXElements(child);
+            }
+          });
+        }
+      }
+
+      // Recurse into common node properties
+      if ('body' in node && node.body) {
+        if (Array.isArray(node.body)) {
+          node.body.forEach(item => {
+            if (typeof item === 'object' && item !== null && 'type' in item) {
+              collectJSXElements(item);
+            }
+          });
+        } else if (typeof node.body === 'object' && node.body !== null && 'type' in node.body) {
+          collectJSXElements(node.body);
+        }
+      }
+
+      if ('expression' in node && node.expression) {
+        const expr = node.expression as any;
+        if (typeof expr === 'object' && expr !== null && 'type' in expr) {
+          collectJSXElements(expr);
+        }
+      }
+
+      if ('argument' in node && node.argument) {
+        const arg = node.argument as any;
+        if (typeof arg === 'object' && arg !== null && 'type' in arg) {
+          collectJSXElements(arg);
+        }
+      }
+    };
+
+    collectJSXElements(scopePath.node);
+
+    return components;
+  }
 
   /**
    * Find the nearest context provider ancestor for a given path
@@ -398,9 +561,14 @@ export class ContextHandler implements IContextHandler {
   private extractContextName(dependency: InternalDependency): string | undefined {
     const node = dependency.origin.node;
 
-    // Handle null node
+    // Handle null node - try to extract from symbol name
     if (node === null) {
-      return undefined;
+      const symbol = dependency.symbol;
+      // If symbol ends with 'Context', use it as-is
+      if (symbol.endsWith('Context')) {
+        return symbol;
+      }
+      return symbol;
     }
 
     // Check if this is a useContext call
@@ -415,13 +583,14 @@ export class ContextHandler implements IContextHandler {
     }
 
     // Try to extract from symbol name
-    // Convention: ThemeContext, UserContext -> Theme, User
     const symbol = dependency.symbol;
+    // If symbol ends with 'Context', use it as-is
     if (symbol.endsWith('Context')) {
       return symbol;
     }
 
-    return undefined;
+    // Otherwise, just use the symbol as-is
+    return symbol;
   }
 
   /**
@@ -441,6 +610,56 @@ export class ContextHandler implements IContextHandler {
     }
 
     return false;
+  }
+
+  /**
+   * Check if a path is a descendant of another path
+   */
+  private isDescendantOfPath(
+    path: NodePath,
+    ancestorPath: NodePath
+  ): boolean {
+    let current: NodePath | null = path;
+
+    while (current !== null) {
+      if (current === ancestorPath) {
+        return true;
+      }
+      current = current.parentPath;
+    }
+
+    return false;
+  }
+
+  /**
+   * Extract context name from a Provider element
+   */
+  private extractContextNameFromProvider(providerPath: NodePath): string | null {
+    if (!providerPath.isJSXElement()) {
+      return null;
+    }
+
+    const openingElement = (providerPath.node as t.JSXElement).openingElement;
+
+    // Check for <Context.Provider>
+    if (openingElement.name.type === 'JSXMemberExpression') {
+      const object = openingElement.name.object;
+      if (object.type === 'JSXIdentifier') {
+        return object.name;
+      }
+    }
+
+    // Check for <XxxProvider> naming convention
+    if (openingElement.name.type === 'JSXIdentifier') {
+      const name = openingElement.name.name;
+      if (name.endsWith('Provider')) {
+        // Extract context name: ThemeProvider -> ThemeContext
+        const baseName = name.replace(/Provider$/, '');
+        return `${baseName}Context`;
+      }
+    }
+
+    return null;
   }
 
   /**
