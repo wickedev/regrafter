@@ -13,6 +13,7 @@ import {
   isValidSelector,
   isValidMove,
   isValidOptions,
+  regraft,
 } from '../../index.js';
 
 describe('E2E: Input Validation', () => {
@@ -323,6 +324,676 @@ describe('E2E: Complex Scenarios', () => {
           dryRun: true,
         }).valid
       ).toBe(true);
+    });
+  });
+});
+
+describe('E2E: Simple JSX Moves', () => {
+  describe('Move.Before operation', () => {
+    it('should move footer before header', () => {
+      const files = [
+        {
+          path: 'App.tsx',
+          content: `function App() {
+  return (
+    <div>
+      <header>Header</header>
+      <main>Main</main>
+      <footer>Footer</footer>
+    </div>
+  );
+}`,
+        },
+      ];
+
+      const from = { file: 'App.tsx', line: 6, column: 7 }; // footer
+      const to = { file: 'App.tsx', line: 4, column: 7 }; // header
+
+      const result = regraft(files, from, to, Move.Before);
+
+      expect(result.success).toBe(true);
+      expect(result.codes[0]?.content).toBe(`function App() {
+  return <div><footer>Footer</footer><header>Header</header>
+      <main>Main</main>
+      
+    </div>;
+}`);
+    });
+
+    it('should move nested element before sibling', () => {
+      const files = [
+        {
+          path: 'Component.tsx',
+          content: `function Component() {
+  return (
+    <section>
+      <h1>Title</h1>
+      <p>Paragraph</p>
+    </section>
+  );
+}`,
+        },
+      ];
+
+      const from = { file: 'Component.tsx', line: 5, column: 7 }; // p
+      const to = { file: 'Component.tsx', line: 4, column: 7 }; // h1
+
+      const result = regraft(files, from, to, Move.Before);
+
+      expect(result.success).toBe(true);
+      expect(result.codes[0]?.content).toBe(`function Component() {
+  return <section><p>Paragraph</p><h1>Title</h1>
+      
+    </section>;
+}`);
+    });
+  });
+
+  describe('Move.After operation', () => {
+    it('should move header after footer', () => {
+      const files = [
+        {
+          path: 'App.tsx',
+          content: `function App() {
+  return (
+    <div>
+      <header>Header</header>
+      <main>Main</main>
+      <footer>Footer</footer>
+    </div>
+  );
+}`,
+        },
+      ];
+
+      const from = { file: 'App.tsx', line: 4, column: 7 }; // header
+      const to = { file: 'App.tsx', line: 6, column: 7 }; // footer
+
+      const result = regraft(files, from, to, Move.After);
+
+      expect(result.success).toBe(true);
+      expect(result.codes[0]?.content).toBe(`function App() {
+  return <div>
+      <main>Main</main>
+      <footer>Footer</footer><header>Header</header>
+    </div>;
+}`);
+    });
+
+    it('should move first element after last in fragment', () => {
+      const files = [
+        {
+          path: 'Fragment.tsx',
+          content: `function Fragment() {
+  return (
+    <>
+      <div>First</div>
+      <div>Second</div>
+      <div>Third</div>
+    </>
+  );
+}`,
+        },
+      ];
+
+      const from = { file: 'Fragment.tsx', line: 4, column: 7 }; // First
+      const to = { file: 'Fragment.tsx', line: 6, column: 7 }; // Third
+
+      const result = regraft(files, from, to, Move.After);
+
+      expect(result.success).toBe(true);
+      expect(result.codes[0]?.content).toBe(`function Fragment() {
+  return <>
+      <div>Second</div>
+      <div>Third</div><div>First</div>
+    </>;
+}`);
+    });
+  });
+
+  describe('Move.Inside operation', () => {
+    it('should move element inside target container', () => {
+      const files = [
+        {
+          path: 'App.tsx',
+          content: `function App() {
+  return (
+    <div>
+      <section>
+        <h1>Title</h1>
+      </section>
+      <p>Paragraph</p>
+    </div>
+  );
+}`,
+        },
+      ];
+
+      const from = { file: 'App.tsx', line: 7, column: 7 }; // p
+      const to = { file: 'App.tsx', line: 4, column: 7 }; // section
+
+      const result = regraft(files, from, to, Move.Inside);
+
+      expect(result.success).toBe(true);
+      expect(result.codes[0]?.content).toBe(`function App() {
+  return <div>
+      <section>
+        <h1>Title</h1>
+      <p>Paragraph</p></section>
+      
+    </div>;
+}`);
+    });
+
+    it('should move element into empty container', () => {
+      const files = [
+        {
+          path: 'App.tsx',
+          content: `function App() {
+  return (
+    <div>
+      <section></section>
+      <p>Content</p>
+    </div>
+  );
+}`,
+        },
+      ];
+
+      const from = { file: 'App.tsx', line: 5, column: 7 }; // p
+      const to = { file: 'App.tsx', line: 4, column: 7 }; // section
+
+      const result = regraft(files, from, to, Move.Inside);
+
+      expect(result.success).toBe(true);
+      expect(result.codes[0]?.content).toBe(`function App() {
+  return <div>
+      <section><p>Content</p></section>
+      
+    </div>;
+}`);
+    });
+  });
+});
+
+describe('E2E: Moves with State Dependencies', () => {
+  describe('useState hoisting', () => {
+    // TODO: Cross-function moves with hoisting not yet fully implemented
+    it('should hoist useState when moving component with state', () => {
+      const files = [
+        {
+          path: 'App.tsx',
+          content: `function Parent() {
+  return (
+    <div>
+      <Child />
+    </div>
+  );
+}
+
+function Child() {
+  const [count, setCount] = useState(0);
+  return <button onClick={() => setCount(count + 1)}>{count}</button>;
+}`,
+        },
+      ];
+
+      const from = { file: 'App.tsx', line: 10, column: 10 }; // button with state
+      const to = { file: 'App.tsx', line: 3, column: 5 }; // inside Parent div
+
+      const result = regraft(files, from, to, Move.Inside);
+
+      expect(result.success).toBe(true);
+      // Should hoist useState to Parent component
+      expect(result.codes[0]?.content).toContain('useState');
+      expect(result.codes[0]?.content).toContain('Parent');
+    });
+
+    it('should hoist multiple useState hooks in order', () => {
+      const files = [
+        {
+          path: 'App.tsx',
+          content: `function Parent() {
+  return <div><Child /></div>;
+}
+
+function Child() {
+  const [name, setName] = useState('');
+  const [age, setAge] = useState(0);
+  const [email, setEmail] = useState('');
+  return (
+    <div>
+      <input value={name} onChange={e => setName(e.target.value)} />
+      <input value={age} onChange={e => setAge(Number(e.target.value))} />
+      <input value={email} onChange={e => setEmail(e.target.value)} />
+    </div>
+  );
+}`,
+        },
+      ];
+
+      const from = { file: 'App.tsx', line: 9, column: 5 }; // div with multiple states
+      const to = { file: 'App.tsx', line: 2, column: 15 }; // inside Parent div
+
+      const result = regraft(files, from, to, Move.Inside);
+
+      expect(result.success).toBe(true);
+      // All hooks should be hoisted in order
+      expect(result.codes[0]?.content).toContain('useState');
+    });
+  });
+
+  describe('useEffect hoisting', () => {
+    it('should hoist useEffect with dependencies', () => {
+      const files = [
+        {
+          path: 'App.tsx',
+          content: `function Parent() {
+  return <div><Child /></div>;
+}
+
+function Child() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    console.log('Count changed:', count);
+  }, [count]);
+
+  return <button onClick={() => setCount(count + 1)}>{count}</button>;
+}`,
+        },
+      ];
+
+      const from = { file: 'App.tsx', line: 12, column: 10 }; // button with effect
+      const to = { file: 'App.tsx', line: 2, column: 15 }; // inside Parent div
+
+      const result = regraft(files, from, to, Move.Inside);
+
+      expect(result.success).toBe(true);
+      expect(result.codes[0]?.content).toContain('useEffect');
+      expect(result.codes[0]?.content).toContain('useState');
+    });
+
+    it('should hoist useEffect with cleanup function', () => {
+      const files = [
+        {
+          path: 'App.tsx',
+          content: `function Parent() {
+  return <div><Timer /></div>;
+}
+
+function Timer() {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSeconds(s => s + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return <div>{seconds}</div>;
+}`,
+        },
+      ];
+
+      const from = { file: 'App.tsx', line: 16, column: 10 }; // timer div
+      const to = { file: 'App.tsx', line: 2, column: 15 }; // inside Parent div
+
+      const result = regraft(files, from, to, Move.Inside);
+
+      expect(result.success).toBe(true);
+      expect(result.codes[0]?.content).toContain('useEffect');
+      expect(result.codes[0]?.content).toContain('clearInterval');
+    });
+  });
+
+  describe('useRef hoisting', () => {
+    it('should hoist useRef when moving element with ref', () => {
+      const files = [
+        {
+          path: 'App.tsx',
+          content: `function Parent() {
+  return <div><Child /></div>;
+}
+
+function Child() {
+  const inputRef = useRef(null);
+
+  const focusInput = () => {
+    inputRef.current?.focus();
+  };
+
+  return (
+    <div>
+      <input ref={inputRef} />
+      <button onClick={focusInput}>Focus</button>
+    </div>
+  );
+}`,
+        },
+      ];
+
+      const from = { file: 'App.tsx', line: 12, column: 5 }; // div with ref
+      const to = { file: 'App.tsx', line: 2, column: 15 }; // inside Parent div
+
+      const result = regraft(files, from, to, Move.Inside);
+
+      expect(result.success).toBe(true);
+      expect(result.codes[0]?.content).toContain('useRef');
+    });
+  });
+
+  describe('Custom hooks hoisting', () => {
+    it('should hoist custom hook with internal state', () => {
+      const files = [
+        {
+          path: 'App.tsx',
+          content: `function Parent() {
+  return <div><Counter /></div>;
+}
+
+function useCounter(initial = 0) {
+  const [count, setCount] = useState(initial);
+  const increment = () => setCount(c => c + 1);
+  const decrement = () => setCount(c => c - 1);
+  return { count, increment, decrement };
+}
+
+function Counter() {
+  const { count, increment, decrement } = useCounter(0);
+
+  return (
+    <div>
+      <button onClick={decrement}>-</button>
+      <span>{count}</span>
+      <button onClick={increment}>+</button>
+    </div>
+  );
+}`,
+        },
+      ];
+
+      const from = { file: 'App.tsx', line: 15, column: 5 }; // Counter div
+      const to = { file: 'App.tsx', line: 2, column: 15 }; // inside Parent div
+
+      const result = regraft(files, from, to, Move.Inside);
+
+      expect(result.success).toBe(true);
+      expect(result.codes[0]?.content).toContain('useCounter');
+    });
+  });
+});
+
+describe('E2E: Moves with Variable Dependencies', () => {
+  it('should hoist const variable when moving dependent element', () => {
+    const files = [
+      {
+        path: 'App.tsx',
+        content: `function Parent() {
+  return <div><Child /></div>;
+}
+
+function Child() {
+  const message = 'Hello World';
+  return <div>{message}</div>;
+}`,
+      },
+    ];
+
+    const from = { file: 'App.tsx', line: 7, column: 10 }; // div with message
+    const to = { file: 'App.tsx', line: 2, column: 15 }; // inside Parent div
+
+    const result = regraft(files, from, to, Move.Inside);
+
+    expect(result.success).toBe(true);
+    expect(result.codes[0]?.content).toContain('message');
+  });
+
+  it('should hoist function when moving element that uses it', () => {
+    const files = [
+      {
+        path: 'App.tsx',
+        content: `function Parent() {
+  return <div><Child /></div>;
+}
+
+function Child() {
+  const handleClick = () => {
+    console.log('Clicked!');
+  };
+
+  return <button onClick={handleClick}>Click me</button>;
+}`,
+      },
+    ];
+
+    const from = { file: 'App.tsx', line: 10, column: 10 }; // button with handler
+    const to = { file: 'App.tsx', line: 2, column: 15 }; // inside Parent div
+
+    const result = regraft(files, from, to, Move.Inside);
+
+    expect(result.success).toBe(true);
+    expect(result.codes[0]?.content).toContain('handleClick');
+  });
+
+  it('should hoist multiple dependent variables in order', () => {
+    const files = [
+      {
+        path: 'App.tsx',
+        content: `function Parent() {
+  return <div><Child /></div>;
+}
+
+function Child() {
+  const firstName = 'John';
+  const lastName = 'Doe';
+  const fullName = firstName + ' ' + lastName;
+
+  return <div>{fullName}</div>;
+}`,
+      },
+    ];
+
+    const from = { file: 'App.tsx', line: 10, column: 10 }; // div with fullName
+    const to = { file: 'App.tsx', line: 2, column: 15 }; // inside Parent div
+
+    const result = regraft(files, from, to, Move.Inside);
+
+    expect(result.success).toBe(true);
+    expect(result.codes[0]?.content).toContain('firstName');
+    expect(result.codes[0]?.content).toContain('lastName');
+    expect(result.codes[0]?.content).toContain('fullName');
+  });
+});
+
+describe('E2E: Complex Component Moves', () => {
+  // TODO: Cross-function moves with hoisting not yet fully implemented
+  it('should move component with mixed hooks and variables', () => {
+    const files = [
+      {
+        path: 'App.tsx',
+        content: `function Parent() {
+  return <div><Form /></div>;
+}
+
+function Form() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const inputRef = useRef(null);
+
+  const validate = () => {
+    return name.length > 0 && email.includes('@');
+  };
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  return (
+    <form>
+      <input ref={inputRef} value={name} onChange={e => setName(e.target.value)} />
+      <input value={email} onChange={e => setEmail(e.target.value)} />
+      <button disabled={!validate()}>Submit</button>
+    </form>
+  );
+}`,
+      },
+    ];
+
+    const from = { file: 'App.tsx', line: 18, column: 5 }; // form element
+    const to = { file: 'App.tsx', line: 2, column: 15 }; // inside Parent div
+
+    const result = regraft(files, from, to, Move.Inside);
+
+    expect(result.success).toBe(true);
+    expect(result.codes[0]?.content).toContain('useState');
+    expect(result.codes[0]?.content).toContain('useRef');
+    expect(result.codes[0]?.content).toContain('useEffect');
+    expect(result.codes[0]?.content).toContain('validate');
+  });
+
+  it('should move component with nested state updates', () => {
+    const files = [
+      {
+        path: 'App.tsx',
+        content: `function Parent() {
+  return <div><TodoList /></div>;
+}
+
+function TodoList() {
+  const [todos, setTodos] = useState([]);
+  const [input, setInput] = useState('');
+
+  const addTodo = () => {
+    if (input.trim()) {
+      setTodos([...todos, { id: Date.now(), text: input }]);
+      setInput('');
+    }
+  };
+
+  const removeTodo = (id) => {
+    setTodos(todos.filter(todo => todo.id !== id));
+  };
+
+  return (
+    <div>
+      <input value={input} onChange={e => setInput(e.target.value)} />
+      <button onClick={addTodo}>Add</button>
+      <ul>
+        {todos.map(todo => (
+          <li key={todo.id}>
+            {todo.text}
+            <button onClick={() => removeTodo(todo.id)}>X</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}`,
+      },
+    ];
+
+    const from = { file: 'App.tsx', line: 20, column: 5 }; // todo list div
+    const to = { file: 'App.tsx', line: 2, column: 15 }; // inside Parent div
+
+    const result = regraft(files, from, to, Move.Inside);
+
+    expect(result.success).toBe(true);
+    expect(result.codes[0]?.content).toContain('useState');
+    expect(result.codes[0]?.content).toContain('addTodo');
+    expect(result.codes[0]?.content).toContain('removeTodo');
+  });
+});
+
+describe('E2E: Atomic Unit Moves', () => {
+  describe('Conditional expressions', () => {
+    // TODO: Hoisting state dependencies not yet fully implemented
+    it('should move conditional expression with state dependency', () => {
+      const files = [
+        {
+          path: 'App.tsx',
+          content: `function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  return (
+    <div>
+      {isLoggedIn ? <Dashboard /> : <Login />}
+      <footer>Footer</footer>
+    </div>
+  );
+}`,
+        },
+      ];
+
+      const from = { file: 'App.tsx', line: 6, column: 8 }; // conditional expression
+      const to = { file: 'App.tsx', line: 7, column: 7 }; // after footer
+
+      const result = regraft(files, from, to, Move.After);
+
+      expect(result.success).toBe(true);
+      expect(result.codes[0]?.content).toContain('isLoggedIn');
+    });
+  });
+
+  describe('Map expressions', () => {
+    it('should move map expression with array dependency', () => {
+      const files = [
+        {
+          path: 'App.tsx',
+          content: `function App() {
+  const items = ['Apple', 'Banana', 'Cherry'];
+
+  return (
+    <div>
+      <header>Header</header>
+      <ul>
+        {items.map(item => <li key={item}>{item}</li>)}
+      </ul>
+    </div>
+  );
+}`,
+        },
+      ];
+
+      const from = { file: 'App.tsx', line: 8, column: 9 }; // map expression
+      const to = { file: 'App.tsx', line: 6, column: 7 }; // before header
+
+      const result = regraft(files, from, to, Move.Before);
+
+      expect(result.success).toBe(true);
+      expect(result.codes[0]?.content).toContain('items');
+      expect(result.codes[0]?.content).toContain('map');
+    });
+  });
+
+  describe('Ternary expressions', () => {
+    // TODO: Hoisting state dependencies not yet fully implemented
+    it('should move ternary expression with state', () => {
+      const files = [
+        {
+          path: 'App.tsx',
+          content: `function App() {
+  const [loading, setLoading] = useState(true);
+
+  return (
+    <div>
+      <h1>Title</h1>
+      {loading ? <Spinner /> : <Content />}
+    </div>
+  );
+}`,
+        },
+      ];
+
+      const from = { file: 'App.tsx', line: 7, column: 8 }; // ternary expression
+      const to = { file: 'App.tsx', line: 6, column: 7 }; // before h1
+
+      const result = regraft(files, from, to, Move.Before);
+
+      expect(result.success).toBe(true);
+      expect(result.codes[0]?.content).toContain('loading');
     });
   });
 });
