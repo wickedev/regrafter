@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { analyze, Move, DependencyType } from '../../index.js';
+import { analyze, regraft, Move, DependencyType } from '../../index.js';
 import type { FileInput } from '../../index.js';
 
 describe('Dependency Analysis Integration', () => {
@@ -447,6 +447,174 @@ function App() {
       );
 
       expect(analysis).toBeDefined();
+    });
+  });
+
+  describe('dryRun mode (regraft with analyzeOnly)', () => {
+    it('should perform dependency analysis in dryRun mode', () => {
+      const code = `
+function App() {
+  const message = 'Hello';
+  return (
+    <div>
+      <span>{message}</span>
+      <section>Target</section>
+    </div>
+  );
+}
+`;
+
+      const files: FileInput[] = [
+        { path: 'App.tsx', content: code },
+      ];
+
+      const result = regraft(
+        files,
+        { file: 'App.tsx', line: 6, column: 7 }, // <span>
+        { file: 'App.tsx', line: 7, column: 7 }, // <section>
+        Move.Inside,
+        { dryRun: true }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.analysis).toBeDefined();
+      expect(result.analysis?.canMove).toBe(true);
+      expect(result.analysis?.dependencies).toBeDefined();
+
+      // Dependencies array should be defined (may be empty if moving within same scope)
+      expect(Array.isArray(result.analysis?.dependencies)).toBe(true);
+
+      // Stats should be defined
+      expect(result.analysis?.stats).toBeDefined();
+
+      // Code should not be changed in dryRun mode
+      expect(result.codes.every(c => !c.changed)).toBe(true);
+    });
+
+    it('should detect useState dependencies in dryRun mode', () => {
+      const code = `
+import React, { useState } from 'react';
+
+function Counter() {
+  const [count, setCount] = useState(0);
+  return (
+    <div>
+      <span>{count}</span>
+      <button onClick={() => setCount(c => c + 1)}>+</button>
+      <footer>Footer</footer>
+    </div>
+  );
+}
+`;
+
+      const files: FileInput[] = [
+        { path: 'Counter.tsx', content: code },
+      ];
+
+      const result = regraft(
+        files,
+        { file: 'Counter.tsx', line: 8, column: 7 }, // <span>
+        { file: 'Counter.tsx', line: 10, column: 7 }, // <footer>
+        Move.Inside,
+        { dryRun: true }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.analysis).toBeDefined();
+      expect(result.analysis?.dependencies.some(d => d.type === DependencyType.Hook)).toBe(true);
+
+      // Stats should be populated
+      expect(result.analysis?.stats).toBeDefined();
+      expect(result.analysis?.stats?.hookDependencies).toBeGreaterThan(0);
+    });
+
+    it('should provide stats in dryRun mode', () => {
+      const code = `
+import { Button } from '@ui/components';
+
+function App() {
+  const [count, setCount] = useState(0);
+  const label = 'Count:';
+  return (
+    <div>
+      <span>{label} {count}</span>
+      <Button onClick={() => setCount(c => c + 1)}>+</Button>
+      <section>Target</section>
+    </div>
+  );
+}
+`;
+
+      const files: FileInput[] = [
+        { path: 'App.tsx', content: code },
+      ];
+
+      const result = regraft(
+        files,
+        { file: 'App.tsx', line: 9, column: 7 }, // <span>
+        { file: 'App.tsx', line: 11, column: 7 }, // <section>
+        Move.Inside,
+        { dryRun: true }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.analysis?.stats).toBeDefined();
+      expect(result.analysis?.stats?.totalDependencies).toBeGreaterThan(0);
+      expect(result.analysis?.stats?.hookDependencies).toBeGreaterThan(0);
+      expect(result.analysis?.stats?.variableDependencies).toBeGreaterThan(0);
+    });
+
+    it('should return unchanged code in dryRun mode', () => {
+      const code = `
+function App() {
+  return (
+    <div>
+      <span>Source</span>
+      <section>Target</section>
+    </div>
+  );
+}
+`;
+
+      const files: FileInput[] = [
+        { path: 'App.tsx', content: code },
+      ];
+
+      const result = regraft(
+        files,
+        { file: 'App.tsx', line: 5, column: 7 },
+        { file: 'App.tsx', line: 6, column: 7 },
+        Move.Inside,
+        { dryRun: true }
+      );
+
+      expect(result.codes).toHaveLength(1);
+      expect(result.codes[0].changed).toBe(false);
+      expect(result.codes[0].content).toBe(code);
+    });
+
+    it('should handle invalid moves in dryRun mode', () => {
+      const code = `
+function App() {
+  return <div>Hello</div>;
+}
+`;
+
+      const files: FileInput[] = [
+        { path: 'App.tsx', content: code },
+      ];
+
+      const result = regraft(
+        files,
+        { file: 'App.tsx', line: 100, column: 1 }, // Invalid line
+        { file: 'App.tsx', line: 2, column: 10 },
+        Move.Inside,
+        { dryRun: true }
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.analysis?.canMove).toBe(false);
+      expect(result.analysis?.reason).toBeDefined();
     });
   });
 });

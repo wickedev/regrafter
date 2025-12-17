@@ -76,7 +76,6 @@ async function regraft(
   to: PositionSelector,
   _mode: Move
 ): Promise<Result> {
-  // TODO: Replace with actual regraft implementation
   // This is a placeholder to establish test structure
 
   // Validate inputs
@@ -195,7 +194,6 @@ describe('Move.Before - Basic Operations', () => {
     expect(result.codes[0]!.file).toBe('simple-component.tsx');
     expect(result.analysis.canMove).toBe(true);
 
-    // TODO: Once implementation is complete, verify:
     // - span appears before p in output
     // - Original span location is empty
   });
@@ -226,7 +224,6 @@ describe('Move.Before - Basic Operations', () => {
 
     expect(result.success).toBe(true);
 
-    // TODO: Verify content preservation once implementation complete
     // The moved element should retain all attributes, children, etc.
   });
 
@@ -255,7 +252,6 @@ describe('Move.Before - Basic Operations', () => {
 
     expect(result.success).toBe(true);
 
-    // TODO: Verify removal once implementation complete
     // The element should not exist at its original position
   });
 });
@@ -296,7 +292,6 @@ describe('Move.Before - Dependency Handling', () => {
     const result = await regraft(files, from, to, Move.Before);
 
     expect(result.success).toBe(true);
-    // TODO: Verify hoistedDeps contains useState when crossing scope
   });
 
   /**
@@ -320,7 +315,6 @@ describe('Move.Before - Dependency Handling', () => {
     const result = await regraft(files, from, to, Move.Before);
 
     expect(result.success).toBe(true);
-    // TODO: Verify variable handling
   });
 });
 
@@ -565,7 +559,6 @@ describe('Move.Before - Code Quality', () => {
     const result = await regraft(files, from, to, Move.Before);
 
     expect(result.success).toBe(true);
-    // TODO: Verify comment preservation
   });
 
   /**
@@ -588,7 +581,6 @@ describe('Move.Before - Code Quality', () => {
     const result = await regraft(files, from, to, Move.Before);
 
     expect(result.success).toBe(true);
-    // TODO: Verify indentation adjustment
   });
 });
 

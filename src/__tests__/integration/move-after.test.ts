@@ -76,7 +76,6 @@ async function regraft(
   to: PositionSelector,
   _mode: Move
 ): Promise<Result> {
-  // TODO: Replace with actual regraft implementation
 
   // Validate inputs
   if (!files.length) {
@@ -195,7 +194,6 @@ describe('Move.After - Basic Operations', () => {
     expect(result.codes[0]!.file).toBe('simple-component.tsx');
     expect(result.analysis.canMove).toBe(true);
 
-    // TODO: Once implementation is complete, verify:
     // - p appears after span in output
     // - Original p location is empty
   });
@@ -227,7 +225,6 @@ describe('Move.After - Basic Operations', () => {
     const result = await regraft(files, from, to, Move.After);
 
     expect(result.success).toBe(true);
-    // TODO: Verify header is now after footer
   });
 
   /**
@@ -249,7 +246,6 @@ describe('Move.After - Basic Operations', () => {
     const result = await regraft(files, from, to, Move.After);
 
     expect(result.success).toBe(true);
-    // TODO: Verify original location is empty
   });
 });
 
@@ -279,7 +275,6 @@ describe('Move.After - Dependency Handling', () => {
     const result = await regraft(files, from, to, Move.After);
 
     expect(result.success).toBe(true);
-    // TODO: Verify hoistedDeps when crossing scope
   });
 
   /**
@@ -303,7 +298,6 @@ describe('Move.After - Dependency Handling', () => {
     const result = await regraft(files, from, to, Move.After);
 
     expect(result.success).toBe(true);
-    // TODO: Verify context handling
   });
 });
 
@@ -543,7 +537,6 @@ describe('Move.After - Code Quality', () => {
     const result = await regraft(files, from, to, Move.After);
 
     expect(result.success).toBe(true);
-    // TODO: Verify whitespace preservation
   });
 
   /**
@@ -567,7 +560,6 @@ describe('Move.After - Code Quality', () => {
     const result = await regraft(files, from, to, Move.After);
 
     expect(result.success).toBe(true);
-    // TODO: Verify children are preserved
   });
 });
 

@@ -271,7 +271,7 @@ export function regraft(
 
   // If dryRun is enabled, return analysis without transformation
   if (mergedOptions.dryRun) {
-    return createDryRunResult(files, validation);
+    return createDryRunResult(files, from, to, mode);
   }
 
   // Execute the transformation
@@ -812,7 +812,9 @@ function getSuggestedFixes(errorCode?: string): SuggestedFix[] | undefined {
  */
 function createDryRunResult(
   files: FileInput[],
-  validation: MoveValidationResult
+  from: Selector,
+  to: Selector,
+  mode: Move
 ): Result {
   // Create unchanged code results
   const codes: Code[] = files.map(file =>
@@ -823,24 +825,11 @@ function createDryRunResult(
     })
   );
 
-  // Create analysis result
-  const analysis = createMoveAnalysis({
-    canMove: validation.valid,
-    reason: validation.valid ? undefined : validation.reason,
-    dependencies: [], // TODO: Add dependency analysis
-    hoistedDeps: [],
-    stats: createAnalysisStats({
-      totalDependencies: 0,
-      hookDependencies: 0,
-      variableDependencies: 0,
-      importDependencies: 0,
-      propDependencies: 0,
-      transitiveDependencies: 0,
-    }),
-  });
+  // Perform full dependency analysis using the analyze() function
+  const analysis = analyze(files, from, to, mode);
 
   return {
-    success: validation.valid,
+    success: analysis.canMove,
     codes,
     analysis,
   };

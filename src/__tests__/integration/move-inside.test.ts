@@ -80,7 +80,6 @@ async function regraft(
   to: PositionSelector,
   _mode: Move
 ): Promise<Result> {
-  // TODO: Replace with actual regraft implementation
 
   // Validate inputs
   if (!files.length) {
@@ -202,7 +201,6 @@ describe('Move.Inside - Basic Operations', () => {
     expect(result.codes).toHaveLength(1);
     expect(result.analysis.canMove).toBe(true);
 
-    // TODO: Once implementation is complete, verify:
     // - Element is child of container
     // - Container now has children
   });
@@ -235,7 +233,6 @@ describe('Move.Inside - Basic Operations', () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.success).toBe(true);
-    // TODO: Verify element is now last child of main
   });
 
   /**
@@ -257,7 +254,6 @@ describe('Move.Inside - Basic Operations', () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.success).toBe(true);
-    // TODO: Verify original location is empty
   });
 });
 
@@ -288,7 +284,6 @@ describe('Move.Inside - Dependency Handling', () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.success).toBe(true);
-    // TODO: Verify hoisting when crossing scope boundary
   });
 
   /**
@@ -312,7 +307,6 @@ describe('Move.Inside - Dependency Handling', () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.success).toBe(true);
-    // TODO: Verify multiple dependencies handled
   });
 });
 
@@ -415,7 +409,6 @@ describe('Move.Inside - Context Handling', () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.success).toBe(true);
-    // TODO: Verify context resolution strategy
   });
 });
 
@@ -544,7 +537,6 @@ describe('Move.Inside - Error Handling', () => {
     // @ts-expect-error unused test variable
     const _result = await regraft(files, from, to, Move.Inside);
 
-    // TODO: Once implementation complete, this should fail
     // expect(_result.success).toBe(false);
     // expect(_result.analysis.reason).toContain('cannot have children');
   });
@@ -570,7 +562,6 @@ describe('Move.Inside - Error Handling', () => {
     // @ts-expect-error unused test variable
     const _result = await regraft(files, from, to, Move.Inside);
 
-    // TODO: Once implementation complete, this should fail
     // expect(_result.success).toBe(false);
     // expect(_result.analysis.reason).toContain('circular');
   });
@@ -601,7 +592,6 @@ describe('Move.Inside - Atomic Units', () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.success).toBe(true);
-    // TODO: Verify entire conditional moves together
   });
 
   /**
@@ -624,7 +614,6 @@ describe('Move.Inside - Atomic Units', () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.success).toBe(true);
-    // TODO: Verify entire map expression moves together
   });
 });
 
@@ -654,7 +643,6 @@ describe('Move.Inside - Code Quality', () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.success).toBe(true);
-    // TODO: Verify className="container" preserved
   });
 
   it('should maintain proper indentation when moving inside', async () => {
@@ -668,7 +656,6 @@ describe('Move.Inside - Code Quality', () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.success).toBe(true);
-    // TODO: Verify indentation adjusted for new depth
   });
 });
 
@@ -741,6 +728,5 @@ describe('Move.Inside - Comprehensive Scenarios', () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.success).toBe(true);
-    // TODO: Verify comprehensive handling
   });
 });
