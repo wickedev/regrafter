@@ -294,6 +294,24 @@ describe('SelectorResolver', () => {
       }
     });
 
+    it('should include all nodes in compound component atomic unit', () => {
+      const ast = parseCode(compoundComponentCode);
+      // Position at Tabs.Panel
+      const result = resolver.resolveByPosition(
+        { file: 'test.tsx', line: 5, column: 6 },
+        ast
+      );
+
+      expect(result.atomicUnit).not.toBeNull();
+      if (result.atomicUnit) {
+        expect(result.atomicUnit.type).toBe(AtomicUnitType.CompoundComponent);
+        // Should include all nodes in the element (opening, children, closing)
+        expect(result.atomicUnit.nodes.length).toBeGreaterThan(1);
+        // First node should be the JSXElement itself
+        expect(result.atomicUnit.nodes[0]).toBe(result.node);
+      }
+    });
+
     it('should default to Element type for simple JSX', () => {
       const ast = parseCode(simpleJSXCode);
       const result = resolver.resolveByPosition(

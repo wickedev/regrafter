@@ -11,6 +11,7 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
+import { detectCompoundComponent } from '../analyzer/index.js';
 import {
   isPositionSelector,
   isPathSelector,
@@ -134,6 +135,16 @@ function determineAtomicUnitType(path: NodePath): AtomicUnitType {
  * Get all nodes that make up an atomic unit
  */
 function getAtomicUnitNodes(path: NodePath): t.Node[] {
+  const node = path.node;
+
+  // Check for compound component - use analyzer's logic for consistency
+  if (t.isJSXElement(node)) {
+    const compoundInfo = detectCompoundComponent(node);
+    if (compoundInfo) {
+      return compoundInfo.nodes;
+    }
+  }
+
   const nodes: t.Node[] = [path.node];
 
   // For conditional expressions, include the condition
