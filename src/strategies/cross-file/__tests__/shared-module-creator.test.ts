@@ -78,8 +78,10 @@ describe('generateSharedModule', () => {
     const result = generateSharedModule(deps, ast, 'src/A.ts');
 
     expect(result.ast).toBeDefined();
-    expect(result.code).toContain('export');
-    expect(result.operation.newFilePath).toContain('.shared');
+    expect(result.operation.newFilePath).toBe("src/A.shared.ts");
+
+    // Document the complete generated shared module code
+    expect(result.code).toBe('export const sharedVar = 1;');
   });
 
   it('should include all dependencies in the shared module', () => {
@@ -105,7 +107,7 @@ describe('generateSharedModule', () => {
 
     const result = generateSharedModule(deps, ast, 'src/components/A.ts');
 
-    expect(result.operation.newFilePath).toContain('src/components/');
+    expect(result.operation.newFilePath).toBe("src/components/A.shared.ts");
   });
 });
 
@@ -131,7 +133,7 @@ describe('updateSourceFileReferences', () => {
 
     expect(result.ast).toBeDefined();
     expect(result.imports.length).toBeGreaterThan(0);
-    expect(result.imports[0]!.importSource).toContain('shared');
+    expect(result.imports[0]!.importSource).toBe("./shared/A.shared");
   });
 
   it('should generate correct relative import path', () => {

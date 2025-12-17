@@ -32,7 +32,7 @@ describe('CodeGenerator', () => {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('const x = 1');
+      expect(result.code).toBe(`const x = 1;`);
     });
 
     it('should generate code from JSX AST', () => {
@@ -41,7 +41,7 @@ describe('CodeGenerator', () => {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('<div>Hello</div>');
+      expect(result.code).toBe(`const App = () => <div>Hello</div>;`);
     });
 
     it('should generate code from complex JSX with attributes', () => {
@@ -56,9 +56,12 @@ describe('CodeGenerator', () => {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('className="btn"');
-      expect(result.code).toContain('onClick={onClick}');
-      expect(result.code).toContain('{children}');
+      expect(result.code).toBe(`const Button = ({
+  onClick,
+  children
+}) => <button className="btn" onClick={onClick}>
+            {children}
+          </button>;`);
     });
 
     it('should generate code from nested JSX elements', () => {
@@ -77,10 +80,13 @@ describe('CodeGenerator', () => {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('<header>');
-      expect(result.code).toContain('<main>');
-      expect(result.code).toContain('<article>');
-      expect(result.code).toContain('<footer>');
+      expect(result.code).toBe(`const Layout = () => <div>
+            <header>Header</header>
+            <main>
+              <article>Content</article>
+            </main>
+            <footer>Footer</footer>
+          </div>;`);
     });
 
     it('should generate code from JSX fragments', () => {
@@ -96,8 +102,10 @@ describe('CodeGenerator', () => {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('<>');
-      expect(result.code).toContain('</>');
+      expect(result.code).toBe(`const Items = () => <>
+            <span>One</span>
+            <span>Two</span>
+          </>;`);
     });
 
     it('should generate code from self-closing JSX elements', () => {
@@ -106,8 +114,7 @@ describe('CodeGenerator', () => {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('<input');
-      expect(result.code).toContain('/>');
+      expect(result.code).toBe(`const Input = () => <input type="text" />;`);
     });
 
     it('should generate code with JSX spread attributes', () => {
@@ -116,7 +123,7 @@ describe('CodeGenerator', () => {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('{...props}');
+      expect(result.code).toBe(`const El = props => <div {...props} />;`);
     });
 
     it('should handle multiple files via generateMultiple', () => {
@@ -128,8 +135,8 @@ describe('CodeGenerator', () => {
       const results = generator.generateMultiple(files);
 
       expect(results.size).toBe(2);
-      expect(results.get('file1.tsx')?.code).toContain('<div>A</div>');
-      expect(results.get('file2.tsx')?.code).toContain('<span>B</span>');
+      expect(results.get('file1.tsx')?.code).toBe(`const A = () => <div>A</div>;`);
+      expect(results.get('file2.tsx')?.code).toBe(`const B = () => <span>B</span>;`);
     });
 
     it('should generate source map when available', () => {
@@ -156,7 +163,8 @@ describe('CodeGenerator', () => {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('// This is a comment');
+      expect(result.code).toBe(`// This is a comment
+const x = 1;`);
     });
 
     it('should preserve multi-line comments', () => {
@@ -170,7 +178,10 @@ describe('CodeGenerator', () => {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('This is a JSDoc comment');
+      expect(result.code).toBe(`/**
+ * This is a JSDoc comment
+ */
+const fn = () => {};`);
     });
 
     it('should preserve inline comments', () => {
@@ -181,7 +192,7 @@ describe('CodeGenerator', () => {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('inline comment');
+      expect(result.code).toBe(`const x = 1; // inline comment`);
     });
 
     it('should preserve JSX comments', () => {
@@ -197,7 +208,10 @@ describe('CodeGenerator', () => {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('JSX comment');
+      expect(result.code).toBe(`const El = () => <div>
+            {/* JSX comment */}
+            <span>Content</span>
+          </div>;`);
     });
 
     it('should not include comments when preserveComments is false', () => {
@@ -514,7 +528,8 @@ function Component() {
 
       // Generator has preserveComments: true by default
       const withComments = generator.generate(ast);
-      expect(withComments.code).toContain('Comment');
+      expect(withComments.code).toBe(`// Comment
+const x = 1;`);
 
       // Override for single call
       const withoutComments = generator.generate(ast, { preserveComments: false });
@@ -560,8 +575,11 @@ function Component() {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('show &&');
-      expect(result.code).toContain('<span>Visible</span>');
+      expect(result.code).toBe(`const El = ({
+  show
+}) => <div>
+            {show && <span>Visible</span>}
+          </div>;`);
     });
 
     it('should handle ternary expressions', () => {
@@ -576,7 +594,11 @@ function Component() {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('loading ?');
+      expect(result.code).toBe(`const El = ({
+  loading
+}) => <div>
+            {loading ? <span>Loading...</span> : <span>Done</span>}
+          </div>;`);
     });
 
     it('should handle map expressions', () => {
@@ -593,15 +615,18 @@ function Component() {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('items.map');
-      expect(result.code).toContain('key={item.id}');
+      expect(result.code).toBe(`const List = ({
+  items
+}) => <ul>
+            {items.map(item => <li key={item.id}>{item.name}</li>)}
+          </ul>;`);
     });
 
     it('should handle hooks in components', () => {
       const code = `
         const Counter = () => {
           const [count, setCount] = useState(0);
-          
+
           return (
             <button onClick={() => setCount(c => c + 1)}>
               Count: {count}
@@ -613,8 +638,12 @@ function Component() {
       const result = generator.generate(ast);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.code).toContain('useState');
-      expect(result.code).toContain('setCount');
+      expect(result.code).toBe(`const Counter = () => {
+  const [count, setCount] = useState(0);
+  return <button onClick={() => setCount(c => c + 1)}>
+              Count: {count}
+            </button>;
+};`);
     });
 
     it('should handle TypeScript generics in JSX', () => {

@@ -122,16 +122,40 @@ describe('generateEmptyComponentFile', () => {
     const result = generateEmptyComponentFile('src/components/Button.tsx');
 
     expect(result.ast).toBeDefined();
-    expect(result.code).toContain('import React');
-    expect(result.code).toContain('export default');
+    expect(result.code).toBe(`import React from 'react';
+/**
+ * Props for Button component.
+ */
+interface ButtonProps {
+  children: React.ReactNode;
+}
+export default
+/**
+ * Button component.
+ */
+function Button(props: ButtonProps): React.ReactElement {
+  return <div>{props.children}</div>;
+}`);
     expect(result.filePath).toBe('src/components/Button.tsx');
   });
 
   it('should generate TypeScript props interface', () => {
     const result = generateEmptyComponentFile('src/components/Button.tsx');
 
-    expect(result.code).toContain('ButtonProps');
-    expect(result.code).toContain('interface');
+    expect(result.code).toBe(`import React from 'react';
+/**
+ * Props for Button component.
+ */
+interface ButtonProps {
+  children: React.ReactNode;
+}
+export default
+/**
+ * Button component.
+ */
+function Button(props: ButtonProps): React.ReactElement {
+  return <div>{props.children}</div>;
+}`);
   });
 
   it('should add use client directive when configured', () => {
@@ -139,7 +163,21 @@ describe('generateEmptyComponentFile', () => {
       useClient: true,
     });
 
-    expect(result.code).toContain('use client');
+    expect(result.code).toBe(`'use client';
+import React from 'react';
+/**
+ * Props for Button component.
+ */
+interface ButtonProps {
+  children: React.ReactNode;
+}
+export default
+/**
+ * Button component.
+ */
+function Button(props: ButtonProps): React.ReactElement {
+  return <div>{props.children}</div>;
+}`);
   });
 
   it('should add use server directive when configured', () => {
@@ -147,7 +185,21 @@ describe('generateEmptyComponentFile', () => {
       useServer: true,
     });
 
-    expect(result.code).toContain('use server');
+    expect(result.code).toBe(`'use server';
+import React from 'react';
+/**
+ * Props for Button component.
+ */
+interface ButtonProps {
+  children: React.ReactNode;
+}
+export default
+/**
+ * Button component.
+ */
+function Button(props: ButtonProps): React.ReactElement {
+  return <div>{props.children}</div>;
+}`);
   });
 
   it('should use custom component name', () => {
@@ -155,8 +207,20 @@ describe('generateEmptyComponentFile', () => {
       componentName: 'CustomButton',
     });
 
-    expect(result.code).toContain('CustomButton');
-    expect(result.code).toContain('CustomButtonProps');
+    expect(result.code).toBe(`import React from 'react';
+/**
+ * Props for CustomButton component.
+ */
+interface CustomButtonProps {
+  children: React.ReactNode;
+}
+export default
+/**
+ * CustomButton component.
+ */
+function CustomButton(props: CustomButtonProps): React.ReactElement {
+  return <div>{props.children}</div>;
+}`);
   });
 
   it('should create valid Code result', () => {
@@ -194,8 +258,8 @@ describe('generateEmptyFile', () => {
       },
     ]);
 
-    expect(result.code).toContain("from 'lodash'");
-    expect(result.code).toContain('debounce');
+    expect(result.code).toBe(`import { debounce } from 'lodash';
+;`);
   });
 
   it('should handle default imports', () => {
@@ -209,7 +273,8 @@ describe('generateEmptyFile', () => {
       },
     ]);
 
-    expect(result.code).toContain("from 'axios'");
+    expect(result.code).toBe(`import axios from 'axios';
+;`);
   });
 });
 
@@ -237,7 +302,7 @@ describe('generateSharedModuleFile', () => {
     ]);
 
     expect(result.ast).toBeDefined();
-    expect(result.code).toContain('export');
+    expect(result.code).toBe(`export const helper = 1;`);
     expect(result.filePath).toBe('src/shared/utils.ts');
   });
 
@@ -290,13 +355,13 @@ describe('validateNewFilePath', () => {
   it('should reject invalid characters', () => {
     const result = validateNewFilePath('src/com<ponent.tsx');
     expect(result.valid).toBe(false);
-    expect(result.error).toContain('invalid characters');
+    expect(result.error).toBe('File path contains invalid characters');
   });
 
   it('should reject invalid extensions', () => {
     const result = validateNewFilePath('src/component.txt');
     expect(result.valid).toBe(false);
-    expect(result.error).toContain('extension');
+    expect(result.error).toBe("File path must have a valid JavaScript/TypeScript extension");
   });
 
   it('should accept valid extensions', () => {

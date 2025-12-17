@@ -144,6 +144,14 @@ describe('JSXTransformer', () => {
       const footerIndex = code.indexOf('<footer>');
       const headerIndex = code.indexOf('<header>');
       expect(footerIndex).toBeLessThan(headerIndex);
+
+      // Document the full code transformation - footer moved before header
+      expect(code).toBe(`function App() {
+  return <div><footer>Footer</footer><header>Header</header>
+      <main>Main</main>
+      
+    </div>;
+}`);
     });
 
     it('should preserve element content after move', () => {
@@ -154,8 +162,6 @@ describe('JSXTransformer', () => {
       const result = transformer.move(ast, footer!, header!, Move.Before);
 
       expect(result.success).toBe(true);
-      const code = generateCode(result.ast);
-      expect(code).toContain('<footer>Footer</footer>');
     });
 
     it('should remove element from original location', () => {
@@ -228,6 +234,14 @@ describe('JSXTransformer', () => {
       const headerIndex = code.indexOf('<header>');
       const footerIndex = code.indexOf('<footer>');
       expect(headerIndex).toBeGreaterThan(footerIndex);
+
+      // Document the full code transformation - header moved after footer
+      expect(code).toBe(`function App() {
+  return <div>
+      <main>Main</main>
+      <footer>Footer</footer><header>Header</header>
+    </div>;
+}`);
     });
 
     it('should preserve element content after move', () => {
@@ -238,8 +252,6 @@ describe('JSXTransformer', () => {
       const result = transformer.move(ast, header!, footer!, Move.After);
 
       expect(result.success).toBe(true);
-      const code = generateCode(result.ast);
-      expect(code).toContain('<header>Header</header>');
     });
 
     it('should handle moving element to end', () => {

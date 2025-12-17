@@ -95,13 +95,6 @@ function createFileInput(content: string, filename = 'Component.tsx'): FileInput
 }
 
 /**
- * Normalize code for comparison (remove whitespace differences)
- */
-function normalizeCode(code: string): string {
-  return code.replace(/\s+/g, ' ').trim();
-}
-
-/**
  * Get reverse mode for idempotency testing
  */
 function reverseMode(mode: Move): Move {
@@ -154,14 +147,14 @@ describe('Invariant: Idempotency', () => {
         return true;
       }
 
-      // Compare normalized code
-      const originalNormalized = normalizeCode(componentCode);
-      const finalNormalized = normalizeCode(result2.codes[0]?.content ?? '');
+      // Compare original code directly
+      const originalCode = componentCode;
+      const finalCode = result2.codes[0]?.content ?? '';
 
       // They should be semantically equivalent
       // Note: Perfect idempotency is hard due to formatting differences
       // We accept the test if either they match or both operations succeeded
-      return originalNormalized === finalNormalized || result2.success;
+      return originalCode === finalCode || result2.success;
     }
   );
 });

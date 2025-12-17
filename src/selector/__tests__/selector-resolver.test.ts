@@ -6,7 +6,10 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
+import generateFn from '@babel/generator';
 import type * as t from '@babel/types';
+
+const generate = generateFn as any as typeof generateFn.default;
 
 import { SelectorResolver, createSelectorResolver, SelectorErrorCodes } from '../index.js';
 import { AtomicUnitType } from '../../types/index.js';
@@ -140,6 +143,12 @@ describe('SelectorResolver', () => {
       expect(result.path).not.toBeNull();
       expect(result.error).toBeUndefined();
       expect(result.atomicUnit?.type).toBe(AtomicUnitType.Element);
+
+      // Document what code was actually found at this position
+      if (result.node) {
+        const foundCode = generate(result.node).code;
+        expect(foundCode).toBe('<h1>Title</h1>');
+      }
     });
 
     it('should find the most specific (innermost) element', () => {
@@ -221,6 +230,12 @@ describe('SelectorResolver', () => {
       expect(result.error).toBeUndefined();
       // Should resolve to JSXText node
       expect(result.node?.type).toBe('JSXText');
+
+      // Document what text was actually found
+      if (result.node) {
+        const foundCode = generate(result.node).code;
+        expect(foundCode).toBe('Hello World');
+      }
     });
 
     it('should resolve expression inside JSXExpressionContainer', () => {
@@ -235,6 +250,12 @@ describe('SelectorResolver', () => {
       expect(result.error).toBeUndefined();
       // Should resolve to the Identifier node inside the expression
       expect(result.node?.type).toBe('Identifier');
+
+      // Document what expression was actually found
+      if (result.node) {
+        const foundCode = generate(result.node).code;
+        expect(foundCode).toBe('user');
+      }
     });
   });
 
@@ -254,6 +275,13 @@ describe('SelectorResolver', () => {
       expect(result.node).not.toBeNull();
       expect(result.path).not.toBeNull();
       expect(result.error).toBeUndefined();
+
+      // Document what code was found at this path
+      if (result.node) {
+        const foundCode = generate(result.node).code;
+        expect(foundCode).toContain('function App()');
+        expect(foundCode).toContain('<div className="app">');
+      }
     });
 
     it('should return error for invalid path format', () => {
@@ -308,7 +336,19 @@ describe('SelectorResolver', () => {
 
       expect(result.node).not.toBeNull();
       expect(result.atomicUnit).not.toBeNull();
-      // The atomic unit type should be detected based on parent
+      expect(result.atomicUnit?.type).toBe(AtomicUnitType.Conditional);
+
+      // Document what code was found
+      if (result.node) {
+        const foundCode = generate(result.node).code;
+        expect(foundCode).toBe('<header>Header</header>');
+      }
+
+      // Document the full atomic unit (conditional expression)
+      if (result.atomicUnit && result.atomicUnit.nodes.length > 1) {
+        const atomicCode = generate(result.atomicUnit.nodes[0]!).code;
+        expect(atomicCode).toContain('showHeader && <header>Header</header>');
+      }
     });
 
     it('should detect ternary expression', () => {
@@ -321,6 +361,19 @@ describe('SelectorResolver', () => {
 
       expect(result.node).not.toBeNull();
       expect(result.atomicUnit).not.toBeNull();
+      expect(result.atomicUnit?.type).toBe(AtomicUnitType.Ternary);
+
+      // Document what code was found
+      if (result.node) {
+        const foundCode = generate(result.node).code;
+        expect(foundCode).toBe('<UserPanel />');
+      }
+
+      // Document the full atomic unit (ternary expression)
+      if (result.atomicUnit && result.atomicUnit.nodes.length > 1) {
+        const atomicCode = generate(result.atomicUnit.nodes[0]!).code;
+        expect(atomicCode).toContain('isLoggedIn ? <UserPanel /> : <LoginForm />');
+      }
     });
 
     it('should detect compound component', () => {
@@ -335,6 +388,12 @@ describe('SelectorResolver', () => {
       expect(result.atomicUnit).not.toBeNull();
       if (result.atomicUnit) {
         expect(result.atomicUnit.type).toBe(AtomicUnitType.CompoundComponent);
+      }
+
+      // Document what code was found
+      if (result.node) {
+        const foundCode = generate(result.node).code;
+        expect(foundCode).toBe('<Tabs.Panel>Panel 1</Tabs.Panel>');
       }
     });
 

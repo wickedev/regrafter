@@ -129,9 +129,7 @@ describe('Basic Move Integration Tests', () => {
 
       const codes = move(files, from, to, Move.Before);
 
-      expect(codes[0]!.content).toContain('<footer>Footer</footer>');
-      expect(codes[0]!.content).toContain('<header>Header</header>');
-      expect(codes[0]!.content).toContain('<main>Main</main>');
+      expect(codes[0]!.content).toBe("function App() {\n  return <div><footer>Footer</footer><header>Header</header>\n      <main>Main</main>\n      \n    </div>;\n}");
     });
 
     it('should remove element from original location (no duplicates)', () => {
@@ -196,9 +194,7 @@ describe('Basic Move Integration Tests', () => {
 
       const codes = move(files, from, to, Move.After);
 
-      expect(codes[0]!.content).toContain('<header>Header</header>');
-      expect(codes[0]!.content).toContain('<main>Main</main>');
-      expect(codes[0]!.content).toContain('<footer>Footer</footer>');
+      expect(codes[0]!.content).toBe("function App() {\n  return <div>\n      <main>Main</main>\n      <footer>Footer</footer><header>Header</header>\n    </div>;\n}");
     });
   });
 
@@ -413,8 +409,63 @@ function App() {
       expect(codes[0]!.changed).toBe(true);
       // Verify the move happened
       const code = codes[0]!.content;
-      expect(code).toContain('<footer>');
-      expect(code).toContain('<main>');
+      expect(code).toBe(`// @ts-nocheck
+/**
+ * Simple Component Fixture
+ *
+ * Purpose: Test basic JSX element movement without dependencies
+ * Scenarios:
+ * - Move sibling elements (before/after)
+ * - Move elements inside containers
+ * - Basic selector resolution (position and path)
+ */
+import React from 'react';
+export function SimpleComponent() {
+  return <div className="container">
+      <header>
+        <h1>Title</h1>
+      
+      </header>
+      <main>
+        <p>Content paragraph</p>
+        <span>Inline text</span></main>
+      <footer>
+        <small>Footer text</small>
+      </footer>
+    </div>;
+}
+export function ComponentWithProps({
+  title,
+  content
+}: {
+  title: string;
+  content: string;
+}) {
+  return <article>
+      <h2>{title}</h2>
+      <p>{content}</p>
+    </article>;
+}
+export function EmptyContainer() {
+  return <div className="empty-container">
+      {/* This container has no children */}
+    </div>;
+}
+export function FragmentComponent() {
+  return <>
+      <span>First</span>
+      <span>Second</span>
+      <span>Third</span>
+    </>;
+}
+export function SelfClosingElements() {
+  return <div>
+      <img src="/image.png" alt="Test" />
+      <input type="text" placeholder="Enter text" />
+      <br />
+      <hr />
+    </div>;
+}`);
     });
   });
 });
