@@ -589,8 +589,8 @@ function App() {
       );
 
       expect(result.codes).toHaveLength(1);
-      expect(result.codes[0].changed).toBe(false);
-      expect(result.codes[0].content).toBe(code);
+      expect(result.codes[0]?.changed).toBe(false);
+      expect(result.codes[0]?.content).toBe(code);
     });
 
     it('should handle invalid moves in dryRun mode', () => {

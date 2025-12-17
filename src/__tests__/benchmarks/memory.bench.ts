@@ -88,7 +88,6 @@ describe('Memory Usage Benchmarks', () => {
     const memBefore = process.memoryUsage().heapUsed;
 
     // Execute regraft - find the line with source element
-    const sourceLineMatch = content.match(/id="source"/);
     const linesBeforeSource = content.substring(0, content.indexOf('id="source"')).split('\n').length;
     const linesBeforeTarget = content.substring(0, content.indexOf('id="target"')).split('\n').length;
 
@@ -190,7 +189,7 @@ describe('Memory Usage Benchmarks', () => {
     const memBefore = process.memoryUsage().heapUsed;
 
     // Execute regraft (same-file move, but all files are parsed)
-    const content = files[0].content;
+    const content = files[0]?.content ?? '';
     const linesBeforeSource = content.substring(0, content.indexOf('id="source"')).split('\n').length;
     const linesBeforeTarget = content.substring(0, content.indexOf('id="target"')).split('\n').length;
 

@@ -561,6 +561,27 @@ function getPropertyValue(obj: object, key: string): unknown {
 }
 
 /**
+ * Type guard to check if a value is a Node but not a Comment
+ * Comments are metadata and should not be included in node collections
+ */
+function isNodeNotComment(value: unknown): value is t.Node {
+  if (!t.isNode(value)) {
+    return false;
+  }
+  // After t.isNode check, we know value is an object with a type property
+  // Exclude Comment nodes (CommentBlock and CommentLine)
+  // Comments have type 'CommentBlock' or 'CommentLine' which are not part of t.Node union
+  if (!('type' in value)) {
+    return false;
+  }
+  const typeValue: unknown = value.type;
+  if (typeof typeValue !== 'string') {
+    return false;
+  }
+  return typeValue !== 'CommentBlock' && typeValue !== 'CommentLine';
+}
+
+/**
  * Recursively collect all child nodes of a node
  */
 function collectChildNodes(node: t.Node, collected: t.Node[]): void {
@@ -568,13 +589,16 @@ function collectChildNodes(node: t.Node, collected: t.Node[]): void {
   const keys = Object.keys(node);
 
   for (const key of keys) {
-    // Skip metadata keys
+    // Skip metadata keys and comment properties
     if (
       key === 'type' ||
       key === 'loc' ||
       key === 'start' ||
       key === 'end' ||
-      key === 'range'
+      key === 'range' ||
+      key === 'leadingComments' ||
+      key === 'trailingComments' ||
+      key === 'innerComments'
     ) {
       continue;
     }
@@ -584,12 +608,12 @@ function collectChildNodes(node: t.Node, collected: t.Node[]): void {
     if (Array.isArray(value)) {
       for (const item of value) {
         // Check if item is a valid Node (not Comment or other metadata)
-        if (item !== null && item !== undefined && typeof item === 'object' && t.isNode(item)) {
+        if (item !== null && item !== undefined && typeof item === 'object' && isNodeNotComment(item)) {
           collected.push(item);
           collectChildNodes(item, collected);
         }
       }
-    } else if (value !== null && value !== undefined && typeof value === 'object' && t.isNode(value)) {
+    } else if (value !== null && value !== undefined && typeof value === 'object' && isNodeNotComment(value)) {
       // Check if value is a valid Node (not Comment or other metadata)
       collected.push(value);
       collectChildNodes(value, collected);

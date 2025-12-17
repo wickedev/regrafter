@@ -19,6 +19,7 @@ import {
   createDependencyAnalysis,
 } from '../types/factories.js';
 
+import { createDynamicCodeDetector } from './dynamic-code-detector.js';
 import {
   DependencyType,
   type IdentifierReference,
@@ -37,7 +38,6 @@ import {
   type AnalyzabilityResult,
   mergeAnalyzerOptions,
 } from './types.js';
-import { createDynamicCodeDetector } from './dynamic-code-detector.js';
 
 /**
  * Set of React hooks

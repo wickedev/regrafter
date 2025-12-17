@@ -83,15 +83,6 @@ ${hooks}
 }`;
   });
 
-/**
- * Generate valid position selector for a given file
- */
-const positionSelectorForFile = (file: string) =>
-  fc.record({
-    file: fc.constant(file),
-    line: fc.integer({ min: 1, max: 20 }),
-    column: fc.integer({ min: 0, max: 40 }),
-  });
 
 /**
  * Create file input from component code

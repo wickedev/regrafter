@@ -208,7 +208,7 @@ export class ImportManager implements IImportManager {
     }
 
     // Sort specifiers within each operation
-    for (const op of grouped.values()) {
+    for (const op of Array.from(grouped.values())) {
       op.specifiers.sort((a, b) => {
         // Default first, then named (alphabetically), then namespace
         if (a.type !== b.type) {

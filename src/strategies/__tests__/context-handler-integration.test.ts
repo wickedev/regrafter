@@ -5,14 +5,14 @@
  * in realistic scenarios.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
 import type * as t from '@babel/types';
 
 import { ContextHandler, createContextHandler } from '../context-handler.js';
 import { createInternalDependency, createScopeInfo } from '../../types/factories.js';
 import { DependencyType } from '../../types/public.js';
-import type { HoistContext } from '../../types/internal.js';
+import type { HoistContext } from '../types.js';
 
 // =============================================================================
 // Test Fixtures - Real-world React Context Patterns
@@ -213,6 +213,8 @@ function createContextDependency(
       location: {
         start: { line: 1, column: 0, index: 0 },
         end: { line: 1, column: 10, index: 10 },
+        filename: 'test.tsx',
+        identifierName: undefined,
       },
     },
     scope: createScopeInfo({
@@ -359,9 +361,13 @@ describe('ContextHandler - Integration Tests', () => {
       const provider = handler.findProvider(dependency, context);
       expect(provider).not.toBeNull();
 
-      const consumers = handler.findAllConsumers(provider!, ast);
-      expect(consumers.length).toBe(1);
-      expect(consumers[0].variableName).toBe('value');
+      if (provider !== null) {
+        const consumers = handler.findAllConsumers(provider, ast);
+        expect(consumers.length).toBe(1);
+        if (consumers[0] !== undefined) {
+          expect(consumers[0].variableName).toBe('value');
+        }
+      }
     });
 
     it('should handle multiple consumers correctly', () => {
@@ -476,9 +482,13 @@ describe('ContextHandler - Integration Tests', () => {
       const provider = handler.findProvider(dependency, context);
       expect(provider).not.toBeNull();
 
-      const consumers = handler.findAllConsumers(provider!, ast);
-      expect(consumers.length).toBe(1);
-      expect(consumers[0].variableName).toBe('value');
+      if (provider !== null) {
+        const consumers = handler.findAllConsumers(provider, ast);
+        expect(consumers.length).toBe(1);
+        if (consumers[0] !== undefined) {
+          expect(consumers[0].variableName).toBe('value');
+        }
+      }
     });
   });
 });

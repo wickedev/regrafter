@@ -345,7 +345,7 @@ export function findSharedDependencies(
   const usageCount = new Map<string, number>();
 
   // Initialize counts
-  for (const symbol of depSymbols) {
+  for (const symbol of Array.from(depSymbols)) {
     usageCount.set(symbol, 0);
   }
 

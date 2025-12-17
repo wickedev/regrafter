@@ -2,20 +2,40 @@ import generateCodeModule, { type GeneratorResult } from '@babel/generator';
 import type * as t from '@babel/types';
 
 // Handle both ESM and CJS exports
-const generateCodeModuleRecord: Record<string, unknown> = generateCodeModule;
 type GenerateFunction = (ast: t.File, options?: Record<string, unknown>) => GeneratorResult;
+
 function isGenerateFunction(value: unknown): value is GenerateFunction {
   return typeof value === 'function';
 }
+
 function getGenerateFunction(): GenerateFunction {
-  if (isGenerateFunction(generateCodeModuleRecord.default)) {
-    return generateCodeModuleRecord.default;
+  // Store the module value to help TypeScript narrow the type
+  const module: unknown = generateCodeModule;
+
+  // Check for null/undefined
+  if (module === null || module === undefined) {
+    throw new Error('@babel/generator module is not properly loaded');
   }
-  if (isGenerateFunction(generateCodeModule)) {
-    return generateCodeModule;
+
+  // Type guard to check if module has default export
+  if (
+    typeof module === 'object' &&
+    'default' in module
+  ) {
+    const defaultExport: unknown = module.default;
+    if (isGenerateFunction(defaultExport)) {
+      return defaultExport;
+    }
   }
+
+  // Check if module itself is a function
+  if (isGenerateFunction(module)) {
+    return module;
+  }
+
   throw new Error('@babel/generator module is not properly loaded');
 }
+
 const generateCode = getGenerateFunction();
 
 import type {
@@ -97,7 +117,7 @@ export class CodeGenerator {
   ): Map<string, GenerateResult> {
     const results = new Map<string, GenerateResult>();
 
-    for (const [filename, ast] of asts) {
+    for (const [filename, ast] of Array.from(asts)) {
       results.set(filename, this.generate(ast, options));
     }
 

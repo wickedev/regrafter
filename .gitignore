@@ -3,6 +3,9 @@
 !.claude/CLAUDE.md
 !.claude/specs/
 !.claude/steering/
+!.claude/agents/
+!.claude/agents/typescript/
+!.claude/commands/
 
 # Dependencies
 node_modules/

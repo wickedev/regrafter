@@ -211,7 +211,9 @@ function Target() {
       if (newFiles.length > 0) {
         // If a shared module was created, verify it exports
         const sharedModule = newFiles[0];
-        expect(sharedModule.content).toContain('export');
+        if (sharedModule) {
+          expect(sharedModule.content).toContain('export');
+        }
       }
     }
   });
@@ -268,9 +270,11 @@ function Target() {
       const newFiles = result.codes.filter(c => c.isNew);
       if (newFiles.length > 0) {
         const sharedModule = newFiles[0];
-        // Count exports (could be export const helper1, helper2, helper3)
-        const exportCount = (sharedModule.content.match(/export/g) || []).length;
-        expect(exportCount).toBeGreaterThan(0);
+        if (sharedModule) {
+          // Count exports (could be export const helper1, helper2, helper3)
+          const exportCount = (sharedModule.content.match(/export/g) || []).length;
+          expect(exportCount).toBeGreaterThan(0);
+        }
       }
     }
   });
@@ -392,7 +396,9 @@ export function B({ data }: { data: { value: number } }) {
       const newFiles = result.codes.filter(c => c.isNew);
       if (newFiles.length > 0) {
         const sharedModule = newFiles[0];
-        expect(sharedModule.content).toContain('export');
+        if (sharedModule) {
+          expect(sharedModule.content).toContain('export');
+        }
       }
 
       // Verify A and B were both updated
@@ -524,11 +530,9 @@ function Target() {
         // (merged or separate both acceptable, just not duplicated badly)
         expect(reactImports.length).toBeLessThanOrEqual(3);
 
-        // Verify both hooks are imported
-        const hasUseState = targetResult.content.includes('useState');
+        // Verify useEffect is imported
         const hasUseEffect = targetResult.content.includes('useEffect');
 
-        // If the element using useState was moved, useState should be in target
         // useEffect should definitely be there
         expect(hasUseEffect).toBe(true);
       }
@@ -601,9 +605,8 @@ function Target() {
       expect(sourceResult).toBeDefined();
 
       if (sourceResult) {
-        // If helper was extracted to shared module, source should import it
-        // Otherwise, helper might have been hoisted or kept local
-        const hasImport = sourceResult.content.includes('import');
+        // Verify helper is still accessible
+        // (either imported from shared module or kept local)
         const hasHelper = sourceResult.content.includes('helper');
 
         // At minimum, helper should still be accessible

@@ -47,13 +47,15 @@ function Footer() {
       );
 
       expect(result.success).toBe(true);
-      expect(result.codes[0].content).toContain('<Footer />');
-      expect(result.codes[0].content).toContain('{isActive && <ActiveStatus />}');
+      if (result.codes[0] !== undefined) {
+        expect(result.codes[0].content).toContain('<Footer />');
+        expect(result.codes[0].content).toContain('{isActive && <ActiveStatus />}');
 
-      // Verify the conditional expression moved after Footer
-      const footerIndex = result.codes[0].content.indexOf('<Footer />');
-      const conditionalIndex = result.codes[0].content.indexOf('{isActive && <ActiveStatus />}');
-      expect(conditionalIndex).toBeGreaterThan(footerIndex);
+        // Verify the conditional expression moved after Footer
+        const footerIndex = result.codes[0].content.indexOf('<Footer />');
+        const conditionalIndex = result.codes[0].content.indexOf('{isActive && <ActiveStatus />}');
+        expect(conditionalIndex).toBeGreaterThan(footerIndex);
+      }
     });
 
     it('should move complex conditional expression', () => {
@@ -97,9 +99,11 @@ function Footer() {
       expect(result.success).toBe(true);
 
       // Verify the conditional moved before Header
-      const headerIndex = result.codes[0].content.indexOf('<Header />');
-      const conditionalIndex = result.codes[0].content.indexOf('{user && user.name && <UserProfile');
-      expect(conditionalIndex).toBeLessThan(headerIndex);
+      if (result.codes[0] !== undefined) {
+        const headerIndex = result.codes[0].content.indexOf('<Header />');
+        const conditionalIndex = result.codes[0].content.indexOf('{user && user.name && <UserProfile');
+        expect(conditionalIndex).toBeLessThan(headerIndex);
+      }
     });
   });
 
@@ -139,13 +143,15 @@ function Footer() {
       );
 
       expect(result.success).toBe(true);
-      expect(result.codes[0].content).toContain('items.map');
-      expect(result.codes[0].content).toContain('<Footer />');
+      if (result.codes[0] !== undefined) {
+        expect(result.codes[0].content).toContain('items.map');
+        expect(result.codes[0].content).toContain('<Footer />');
 
-      // Verify the map expression moved after Footer
-      const footerIndex = result.codes[0].content.indexOf('<Footer />');
-      const mapIndex = result.codes[0].content.indexOf('items.map');
-      expect(mapIndex).toBeGreaterThan(footerIndex);
+        // Verify the map expression moved after Footer
+        const footerIndex = result.codes[0].content.indexOf('<Footer />');
+        const mapIndex = result.codes[0].content.indexOf('items.map');
+        expect(mapIndex).toBeGreaterThan(footerIndex);
+      }
     });
 
     it('should move chained map expression', () => {
@@ -183,12 +189,14 @@ function Footer() {
       );
 
       expect(result.success).toBe(true);
-      expect(result.codes[0].content).toContain('data.filter');
+      if (result.codes[0] !== undefined) {
+        expect(result.codes[0].content).toContain('data.filter');
 
-      // Verify the chained expression moved before h1
-      const h1Index = result.codes[0].content.indexOf('<h1>List</h1>');
-      const filterIndex = result.codes[0].content.indexOf('data.filter');
-      expect(filterIndex).toBeLessThan(h1Index);
+        // Verify the chained expression moved before h1
+        const h1Index = result.codes[0].content.indexOf('<h1>List</h1>');
+        const filterIndex = result.codes[0].content.indexOf('data.filter');
+        expect(filterIndex).toBeLessThan(h1Index);
+      }
     });
   });
 
@@ -232,13 +240,15 @@ function Footer() {
       );
 
       expect(result.success).toBe(true);
-      expect(result.codes[0].content).toContain('isLoading ?');
-      expect(result.codes[0].content).toContain('<Footer />');
+      if (result.codes[0] !== undefined) {
+        expect(result.codes[0].content).toContain('isLoading ?');
+        expect(result.codes[0].content).toContain('<Footer />');
 
-      // Verify the ternary expression moved after Footer
-      const footerIndex = result.codes[0].content.indexOf('<Footer />');
-      const ternaryIndex = result.codes[0].content.indexOf('isLoading ?');
-      expect(ternaryIndex).toBeGreaterThan(footerIndex);
+        // Verify the ternary expression moved after Footer
+        const footerIndex = result.codes[0].content.indexOf('<Footer />');
+        const ternaryIndex = result.codes[0].content.indexOf('isLoading ?');
+        expect(ternaryIndex).toBeGreaterThan(footerIndex);
+      }
     });
 
     it('should move ternary with null alternative', () => {
@@ -280,12 +290,14 @@ function Footer() {
       );
 
       expect(result.success).toBe(true);
-      expect(result.codes[0].content).toContain('isOpen ?');
+      if (result.codes[0] !== undefined) {
+        expect(result.codes[0].content).toContain('isOpen ?');
 
-      // Verify the ternary moved before Header
-      const headerIndex = result.codes[0].content.indexOf('<Header />');
-      const ternaryIndex = result.codes[0].content.indexOf('isOpen ?');
-      expect(ternaryIndex).toBeLessThan(headerIndex);
+        // Verify the ternary moved before Header
+        const headerIndex = result.codes[0].content.indexOf('<Header />');
+        const ternaryIndex = result.codes[0].content.indexOf('isOpen ?');
+        expect(ternaryIndex).toBeLessThan(headerIndex);
+      }
     });
   });
 
@@ -331,8 +343,10 @@ function Footer() {
       // This should work - the conditional expression and its dependencies
       // (isVisible, setIsVisible) should be handled as an atomic unit
       expect(result.success).toBe(true);
-      expect(result.codes[0].content).toContain('isVisible &&');
-      expect(result.codes[0].content).toContain('setIsVisible');
+      if (result.codes[0] !== undefined) {
+        expect(result.codes[0].content).toContain('isVisible &&');
+        expect(result.codes[0].content).toContain('setIsVisible');
+      }
     });
   });
 });

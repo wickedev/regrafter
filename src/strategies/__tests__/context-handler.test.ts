@@ -6,14 +6,18 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
-import traverse from '@babel/traverse';
+import traverseModule from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
 
 import { ContextHandler, createContextHandler } from '../context-handler.js';
 import { DependencyType } from '../../types/public.js';
-import { createInternalDependency, createScopeInfo, createComponentScope } from '../../types/factories.js';
-import type { HoistContext, InternalDependency } from '../../types/internal.js';
+import { createInternalDependency, createScopeInfo } from '../../types/factories.js';
+import type { InternalDependency } from '../../types/internal.js';
+import type { HoistContext } from '../types.js';
+import { loadTraverseFunction } from '../../utils/babel-loader.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 // =============================================================================
 // Test Fixtures
@@ -148,6 +152,8 @@ function createContextDependency(
       location: {
         start: { line: 1, column: 0, index: 0 },
         end: { line: 1, column: 10, index: 10 },
+        filename: 'test.tsx',
+        identifierName: undefined,
       },
     },
     scope: createScopeInfo({
@@ -191,6 +197,8 @@ describe('ContextHandler', () => {
           location: {
             start: { line: 1, column: 0, index: 0 },
             end: { line: 1, column: 10, index: 10 },
+            filename: 'test.tsx',
+            identifierName: undefined,
           },
         },
         scope: createScopeInfo({
@@ -357,7 +365,7 @@ describe('ContextHandler', () => {
       const calls = handler.findUseContextCalls(ast);
 
       expect(calls.length).toBeGreaterThan(0);
-      expect(calls[0].variableName).toBe('value');
+      expect(calls[0]?.variableName).toBe('value');
     });
 
     it('should find useContext calls for specific context', () => {
@@ -368,8 +376,8 @@ describe('ContextHandler', () => {
 
       expect(themeCalls.length).toBe(1);
       expect(userCalls.length).toBe(1);
-      expect(themeCalls[0].variableName).toBe('theme');
-      expect(userCalls[0].variableName).toBe('user');
+      expect(themeCalls[0]?.variableName).toBe('theme');
+      expect(userCalls[0]?.variableName).toBe('user');
     });
   });
 

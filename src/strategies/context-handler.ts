@@ -7,7 +7,7 @@
 
 import traverseModule from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
-import type * as t from '@babel/types';
+import * as t from '@babel/types';
 
 import {
   createHoistOperation,
@@ -70,7 +70,7 @@ export class ContextHandler implements IContextHandler {
     const contextName = this.extractContextName(dependency);
 
     // If we can't extract a context name, we can't find the provider
-    if (!contextName) {
+    if (contextName === undefined) {
       return null;
     }
 
@@ -198,10 +198,10 @@ export class ContextHandler implements IContextHandler {
   findAllConsumers(
     providerPath: NodePath,
     ast: t.File
-  ): Array<{ path: NodePath; variableName: string; scope: any }> {
+  ): Array<{ path: NodePath; variableName: string; scope: NodePath['scope'] }> {
     // Extract context name from provider
     const contextName = this.extractContextNameFromProvider(providerPath);
-    if (!contextName) {
+    if (contextName === null) {
       return [];
     }
 
@@ -236,7 +236,7 @@ export class ContextHandler implements IContextHandler {
     const consumerComponents = new Set<string>();
     consumers.forEach(consumer => {
       const componentName = this.findContainingComponentName(consumer.path);
-      if (componentName) {
+      if (componentName !== null) {
         consumerComponents.add(componentName);
       }
     });
@@ -263,15 +263,15 @@ export class ContextHandler implements IContextHandler {
     while (current !== null) {
       // Check for function declaration
       if (current.isFunctionDeclaration()) {
-        const id = (current.node as t.FunctionDeclaration).id;
-        if (id) {
+        const id = current.node.id;
+        if (id !== null && id !== undefined) {
           return id.name;
         }
       }
 
       // Check for variable declarator with function expression
       if (current.isVariableDeclarator()) {
-        const id = (current.node as t.VariableDeclarator).id;
+        const id = current.node.id;
         if (id.type === 'Identifier') {
           return id.name;
         }
@@ -280,8 +280,8 @@ export class ContextHandler implements IContextHandler {
       // Check for arrow function in variable declarator
       if (current.isArrowFunctionExpression()) {
         const parent = current.parentPath;
-        if (parent && parent.isVariableDeclarator()) {
-          const id = (parent.node as t.VariableDeclarator).id;
+        if (parent.isVariableDeclarator()) {
+          const id = parent.node.id;
           if (id.type === 'Identifier') {
             return id.name;
           }
@@ -301,8 +301,8 @@ export class ContextHandler implements IContextHandler {
     const components = new Set<string>();
 
     // Helper function to recursively collect JSX elements
-    const collectJSXElements = (node: t.Node) => {
-      if (node.type === 'JSXElement') {
+    const collectJSXElements = (node: t.Node): void => {
+      if (t.isJSXElement(node)) {
         const name = node.openingElement.name;
         if (name.type === 'JSXIdentifier') {
           // Only add component names (start with uppercase)
@@ -312,40 +312,46 @@ export class ContextHandler implements IContextHandler {
         }
 
         // Recurse into children
-        if (node.children) {
-          node.children.forEach(child => {
-            if (typeof child === 'object' && child !== null && 'type' in child) {
-              collectJSXElements(child);
-            }
+        node.children.forEach(child => {
+          if (t.isJSXElement(child) || t.isJSXExpressionContainer(child)) {
+            collectJSXElements(child);
+          }
+        });
+      }
+
+      // Recurse into function bodies
+      if (t.isFunctionDeclaration(node) || t.isFunctionExpression(node) || t.isArrowFunctionExpression(node)) {
+        const body = node.body;
+        if (t.isBlockStatement(body)) {
+          body.body.forEach(statement => {
+            collectJSXElements(statement);
           });
+        } else if (t.isExpression(body)) {
+          collectJSXElements(body);
         }
       }
 
-      // Recurse into common node properties
-      if ('body' in node && node.body) {
-        if (Array.isArray(node.body)) {
-          node.body.forEach(item => {
-            if (typeof item === 'object' && item !== null && 'type' in item) {
-              collectJSXElements(item);
-            }
-          });
-        } else if (typeof node.body === 'object' && node.body !== null && 'type' in node.body) {
-          collectJSXElements(node.body);
-        }
-      }
-
-      if ('expression' in node && node.expression) {
-        const expr = node.expression as any;
-        if (typeof expr === 'object' && expr !== null && 'type' in expr) {
+      // Recurse into JSX expression containers
+      if (t.isJSXExpressionContainer(node)) {
+        const expr = node.expression;
+        if (expr.type !== 'JSXEmptyExpression') {
           collectJSXElements(expr);
         }
       }
 
-      if ('argument' in node && node.argument) {
-        const arg = node.argument as any;
-        if (typeof arg === 'object' && arg !== null && 'type' in arg) {
+      // Recurse into return statements
+      if (t.isReturnStatement(node)) {
+        const arg = node.argument;
+        if (arg !== null && arg !== undefined) {
           collectJSXElements(arg);
         }
+      }
+
+      // Recurse into block statements
+      if (t.isBlockStatement(node)) {
+        node.body.forEach(statement => {
+          collectJSXElements(statement);
+        });
       }
     };
 
@@ -613,25 +619,6 @@ export class ContextHandler implements IContextHandler {
   }
 
   /**
-   * Check if a path is a descendant of another path
-   */
-  private isDescendantOfPath(
-    path: NodePath,
-    ancestorPath: NodePath
-  ): boolean {
-    let current: NodePath | null = path;
-
-    while (current !== null) {
-      if (current === ancestorPath) {
-        return true;
-      }
-      current = current.parentPath;
-    }
-
-    return false;
-  }
-
-  /**
    * Extract context name from a Provider element
    */
   private extractContextNameFromProvider(providerPath: NodePath): string | null {
@@ -639,7 +626,7 @@ export class ContextHandler implements IContextHandler {
       return null;
     }
 
-    const openingElement = (providerPath.node as t.JSXElement).openingElement;
+    const openingElement = providerPath.node.openingElement;
 
     // Check for <Context.Provider>
     if (openingElement.name.type === 'JSXMemberExpression') {

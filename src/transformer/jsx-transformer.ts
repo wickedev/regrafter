@@ -313,7 +313,7 @@ export class JSXTransformer {
       // Wrap source in expression container if necessary
       const wrappedSource = this.wrapInExpressionContainer(sourceNode, parentPath);
 
-      if (sameParent) {
+      if (sameParent === true) {
         // Same parent: remove source first, then insert at adjusted index
         const sourceIndex = this.getIndexInParent(sourcePath);
 
@@ -422,7 +422,7 @@ export class JSXTransformer {
       // Wrap source in expression container if necessary
       const wrappedSource = this.wrapInExpressionContainer(sourceNode, parentPath);
 
-      if (sameParent) {
+      if (sameParent === true) {
         // Same parent: remove source first, then insert at adjusted index
         const sourceIndex = this.getIndexInParent(sourcePath);
 
@@ -573,31 +573,28 @@ export class JSXTransformer {
    */
   private normalizePathForMove(path: NodePath): NodePath {
     let currentPath = path;
-    let parent = currentPath.parent;
+    let shouldContinue = true;
 
-    while (parent) {
+    while (shouldContinue) {
+      const parent = currentPath.parent;
       // If parent is JSXExpressionContainer, that's what we should move
       if (t.isJSXExpressionContainer(parent)) {
         const parentPath = currentPath.parentPath;
         if (parentPath) {
           return parentPath;
         }
-        break;
-      }
-
-      // If parent is already a JSX container, we're done
-      if (
+        shouldContinue = false;
+      } else if (
         t.isJSXElement(parent) ||
         t.isJSXFragment(parent) ||
         t.isArrayExpression(parent) ||
         t.isBlockStatement(parent) ||
         t.isProgram(parent)
       ) {
-        break;
-      }
-
-      // Walk up through expressions
-      if (
+        // If parent is already a JSX container, we're done
+        shouldContinue = false;
+      } else if (
+        // Walk up through expressions
         t.isLogicalExpression(parent) ||
         t.isConditionalExpression(parent) ||
         t.isCallExpression(parent) ||
@@ -606,13 +603,14 @@ export class JSXTransformer {
         t.isFunctionExpression(parent)
       ) {
         const parentPath = currentPath.parentPath;
-        if (!parentPath) break;
-        currentPath = parentPath;
-        parent = currentPath.parent;
-        continue;
+        if (!parentPath) {
+          shouldContinue = false;
+        } else {
+          currentPath = parentPath;
+        }
+      } else {
+        shouldContinue = false;
       }
-
-      break;
     }
 
     return currentPath;
@@ -626,17 +624,21 @@ export class JSXTransformer {
    */
   private getSiblings(path: NodePath): t.Node[] | null {
     let currentPath = path;
-    let parent = currentPath.parent;
+    let shouldContinue = true;
 
     // If parent is an expression (LogicalExpression, ConditionalExpression, CallExpression, etc.),
     // we need to walk up to find the JSXExpressionContainer, then get its siblings
-    while (parent) {
+    while (shouldContinue) {
+      const parent = currentPath.parent;
       // If we found a JSXExpressionContainer, move up one more level to get its siblings
       if (t.isJSXExpressionContainer(parent)) {
-        currentPath = currentPath.parentPath as NodePath;
-        parent = currentPath.parent;
+        const parentPath = currentPath.parentPath;
+        if (parentPath === null) {
+          throw new Error('Unexpected null parent path for JSXExpressionContainer');
+        }
+        currentPath = parentPath;
         // Continue to the sibling-getting logic below
-        break;
+        shouldContinue = false;
       }
 
       // If parent is a JSX container (Element/Fragment) or other sibling-having container, use it
@@ -647,11 +649,8 @@ export class JSXTransformer {
         t.isBlockStatement(parent) ||
         t.isProgram(parent)
       ) {
-        break;
-      }
-
-      // Walk up the tree for expression contexts
-      if (
+        shouldContinue = false;
+      } else if (
         t.isLogicalExpression(parent) ||
         t.isConditionalExpression(parent) ||
         t.isCallExpression(parent) ||
@@ -659,22 +658,21 @@ export class JSXTransformer {
         t.isArrowFunctionExpression(parent) ||
         t.isFunctionExpression(parent)
       ) {
+        // Walk up the tree for expression contexts
         const parentPath = currentPath.parentPath;
-        if (!parentPath) break;
-        currentPath = parentPath;
-        parent = currentPath.parent;
-        continue;
+        if (!parentPath) {
+          shouldContinue = false;
+        } else {
+          currentPath = parentPath;
+        }
+      } else {
+        // For other parent types, stop here
+        shouldContinue = false;
       }
-
-      // For other parent types, stop here
-      break;
-    }
-
-    if (!parent) {
-      return null;
     }
 
     // Now get siblings from the appropriate container
+    const parent = currentPath.parent;
     if (t.isJSXElement(parent)) {
       const siblings: t.Node[] = [...parent.children];
       return siblings;
@@ -747,29 +745,29 @@ export class JSXTransformer {
    */
   private getIndexInParent(path: NodePath): number {
     let currentPath = path;
-    let parent = currentPath.parent;
     let nodeToFind = currentPath.node;
+    let shouldContinue = true;
 
     // Walk up to find the appropriate container, same logic as getSiblings()
-    while (parent) {
+    while (shouldContinue) {
+      const parent = currentPath.parent;
       if (t.isJSXExpressionContainer(parent)) {
         nodeToFind = parent;
-        currentPath = currentPath.parentPath as NodePath;
-        parent = currentPath.parent;
-        break;
-      }
-
-      if (
+        const parentPath = currentPath.parentPath;
+        if (parentPath === null) {
+          throw new Error('Unexpected null parent path for JSXExpressionContainer');
+        }
+        currentPath = parentPath;
+        shouldContinue = false;
+      } else if (
         t.isJSXElement(parent) ||
         t.isJSXFragment(parent) ||
         t.isArrayExpression(parent) ||
         t.isBlockStatement(parent) ||
         t.isProgram(parent)
       ) {
-        break;
-      }
-
-      if (
+        shouldContinue = false;
+      } else if (
         t.isLogicalExpression(parent) ||
         t.isConditionalExpression(parent) ||
         t.isCallExpression(parent) ||
@@ -778,20 +776,18 @@ export class JSXTransformer {
         t.isFunctionExpression(parent)
       ) {
         const parentPath = currentPath.parentPath;
-        if (!parentPath) break;
-        nodeToFind = currentPath.node;
-        currentPath = parentPath;
-        parent = currentPath.parent;
-        continue;
+        if (!parentPath) {
+          shouldContinue = false;
+        } else {
+          nodeToFind = currentPath.node;
+          currentPath = parentPath;
+        }
+      } else {
+        shouldContinue = false;
       }
-
-      break;
     }
 
-    if (!parent) {
-      return -1;
-    }
-
+    const parent = currentPath.parent;
     let children: readonly t.Node[] | null = null;
 
     if (t.isJSXElement(parent)) {

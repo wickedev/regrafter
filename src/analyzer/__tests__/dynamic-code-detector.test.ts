@@ -6,10 +6,13 @@
 
 import { describe, it, expect } from 'vitest';
 import { parse } from '@babel/parser';
-import traverse, { type NodePath } from '@babel/traverse';
-import * as t from '@babel/types';
+import type { NodePath } from '@babel/traverse';
+import traverseModule from '@babel/traverse';
 
 import { createDynamicCodeDetector } from '../dynamic-code-detector.js';
+import { loadTraverseFunction } from '../../utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 /**
  * Helper to parse code and get the first JSX element
@@ -23,7 +26,7 @@ function parseAndGetElement(code: string): NodePath | null {
   let elementPath: NodePath | null = null;
 
   traverse(ast, {
-    JSXElement(path) {
+    JSXElement(path: NodePath) {
       if (!elementPath) {
         elementPath = path;
       }
