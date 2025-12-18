@@ -223,11 +223,15 @@ export {
   type StrategyRegistry,
 } from './strategies/index.js';
 
-import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
 import * as t_factory from '@babel/types';
 
+import { findComponentDefinition } from './analyzer/component-detector.js';
+import { loadTraverseFunction } from './utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 import { DependencyAnalyzer, createMoveAnalysisBuilder, validateMoveOperation } from './analyzer/index.js';
 import type { MoveValidationResult } from './analyzer/index.js';
 import {
@@ -236,24 +240,23 @@ import {
   createErrorFromException,
 } from './api/result-helpers.js';
 import type { TransformedCode } from './api/types.js';
-import { createValidationError, createTransformError, createSelectorError } from './errors/index.js';
+import { createValidationError, createTransformError, createSelectorError, createInternalError } from './errors/index.js';
 import type { RegraffError, SelectorErrorType } from './errors/index.js';
 import { CodeGenerator } from './generator/code-generator.js';
 import { createOptimizer } from './optimizer/optimizer.js';
 import type { OptimizeOptions } from './optimizer/types.js';
 import { parseFile } from './parser/parse-file.js';
-import { ok, err, isErr, type Result } from './result/index.js';
+import { ok, err, isErr } from './result/index.js';
+import type { Result } from './result/index.js';
 import { createScopeManager } from './scope/index.js';
 import type { ScopeManager } from './scope/index.js';
-import { ComponentInliner } from './transformer/component-inliner.js';
-import type { InlineResult as InlinerResult } from './transformer/component-inliner.js';
-import { findComponentDefinition } from './analyzer/component-detector.js';
 import { createSelectorResolver } from './selector/index.js';
 import type { ElementData } from './selector/index.js';
 import { createCrossFileContext, executeCrossFileTransform } from './strategies/cross-file/index.js';
 import type { HoistExecutionContext } from './strategies/hoist-executor.js';
 import { createConfiguredHoistPlanner, createHoistExecutor } from './strategies/index.js';
 import type { HoistContext } from './strategies/types.js';
+import { ComponentInliner } from './transformer/component-inliner.js';
 import { createJSXTransformer } from './transformer/index.js';
 import {
   mergeOptions,
@@ -262,9 +265,6 @@ import {
 } from './types/index.js';
 import type { Code, FileInput, MoveAnalysis, Move, Options, Selector, SuggestedFix } from './types/index.js';
 import type { ScopeInfo } from './types/internal.js';
-import { loadTraverseFunction } from './utils/index.js';
-
-const traverse = loadTraverseFunction(traverseModule);
 
 /**
  * Main entry point for the regraft operation.
@@ -1200,6 +1200,14 @@ export interface InlineResult {
 }
 
 /**
+ * Options for component inline operation
+ */
+export interface InlineOptions {
+  /** Optional file path to specify which file contains the component to inline */
+  fromFile?: string;
+}
+
+/**
  * Inline a React component by replacing its usage with its implementation.
  *
  * This function finds a component definition by name and replaces all usages
@@ -1213,6 +1221,7 @@ export interface InlineResult {
  *
  * @param files - Array of file inputs with path and content
  * @param componentName - Name of the component to inline
+ * @param options - Optional configuration for inline operation
  * @returns Result containing transformed codes and inline count, or error
  *
  * @example
@@ -1241,11 +1250,12 @@ export interface InlineResult {
  */
 export function inline(
   files: FileInput[],
-  componentName: string
+  componentName: string,
+  options?: InlineOptions
 ): Result<InlineResult, RegraffError> {
   try {
     // Validate inputs
-    if (!files || files.length === 0) {
+    if (files.length === 0) {
       return err(createValidationError({
         code: 'EMPTY_INPUT',
         message: 'No files provided',
@@ -1254,7 +1264,7 @@ export function inline(
       }));
     }
 
-    if (!componentName || componentName.trim() === '') {
+    if (componentName.trim() === '') {
       return err(createValidationError({
         code: 'EMPTY_INPUT',
         message: 'Component name cannot be empty',
@@ -1282,32 +1292,96 @@ export function inline(
     let componentFile: string | null = null;
     let componentDefAst: t.File | null = null;
 
-    for (const [filePath, ast] of parsedFiles.entries()) {
-      // Check if this file contains the component definition
-      const componentInfo = findComponentDefinition(ast, componentName);
-      if (componentInfo) {
-        componentFile = filePath;
-        // Clone the AST so we preserve the original component definition
-        const generateResult = generator.generate(ast);
-        if (isErr(generateResult)) {
-          return err(generateResult.error);
-        }
-        const parseResult = parseFile(filePath, generateResult.value.code);
-        if (isErr(parseResult)) {
-          return err(parseResult.error);
-        }
-        componentDefAst = parseResult.value;
-        break;
+    // Helper function to clone AST
+    const cloneAst = (ast: t.File, filePath: string): Result<t.File, RegraffError> => {
+      const generateResult = generator.generate(ast);
+      if (isErr(generateResult)) {
+        return err(generateResult.error);
       }
-    }
+      const parseResult = parseFile(filePath, generateResult.value.code);
+      if (isErr(parseResult)) {
+        return err(parseResult.error);
+      }
+      return ok(parseResult.value);
+    };
 
-    if (!componentFile || !componentDefAst) {
-      return err(createValidationError({
-        code: 'ELEMENT_NOT_FOUND',
-        message: `Component '${componentName}' not found in any file`,
-        constraint: 'element_exists',
-        details: `The component '${componentName}' could not be found in the provided files`,
-      }));
+    // If fromFile option is specified, only search in that file
+    if (options?.fromFile !== undefined && options.fromFile !== '') {
+      const targetFile = options.fromFile;
+      const ast = parsedFiles.get(targetFile);
+
+      if (!ast) {
+        return err(createValidationError({
+          code: 'ELEMENT_NOT_FOUND',
+          message: `Component '${componentName}' not found in file '${targetFile}'`,
+          constraint: 'element_exists',
+          details: `The specified file '${targetFile}' does not exist in the files array`,
+        }));
+      }
+
+      const componentInfo = findComponentDefinition(ast, componentName);
+      if (!componentInfo) {
+        return err(createValidationError({
+          code: 'ELEMENT_NOT_FOUND',
+          message: `Component '${componentName}' not found in file '${targetFile}'`,
+          constraint: 'element_exists',
+          details: `The component '${componentName}' could not be found in the specified file '${targetFile}'`,
+        }));
+      }
+
+      componentFile = targetFile;
+      const cloneResult = cloneAst(ast, targetFile);
+      if (isErr(cloneResult)) {
+        return err(cloneResult.error);
+      }
+      componentDefAst = cloneResult.value;
+    } else {
+      // Original behavior: search all files
+      // First, find all files that contain the component
+      const filesWithComponent: string[] = [];
+      for (const [filePath, ast] of parsedFiles.entries()) {
+        const componentInfo = findComponentDefinition(ast, componentName);
+        if (componentInfo) {
+          filesWithComponent.push(filePath);
+        }
+      }
+
+      if (filesWithComponent.length === 0) {
+        return err(createValidationError({
+          code: 'ELEMENT_NOT_FOUND',
+          message: `Component '${componentName}' not found in any file`,
+          constraint: 'element_exists',
+          details: `The component '${componentName}' could not be found in the provided files`,
+        }));
+      }
+
+      if (filesWithComponent.length > 1) {
+        return err(createValidationError({
+          code: 'AMBIGUOUS_COMPONENT',
+          message: `Component '${componentName}' found in multiple files: ${filesWithComponent.join(', ')}. Please specify 'fromFile' option to disambiguate.`,
+          constraint: 'unique_component',
+          details: `Multiple files contain a component named '${componentName}'. Use the 'fromFile' option to specify which file to inline from.`,
+        }));
+      }
+
+      // Exactly one file contains the component
+      componentFile = filesWithComponent[0]!;
+      const ast = parsedFiles.get(componentFile);
+      if (!ast) {
+        // This should never happen since we just found it
+        return err(createValidationError({
+          code: 'ELEMENT_NOT_FOUND',
+          message: `Component '${componentName}' not found in any file`,
+          constraint: 'element_exists',
+          details: `The component '${componentName}' could not be found in the provided files`,
+        }));
+      }
+
+      const cloneResult = cloneAst(ast, componentFile);
+      if (isErr(cloneResult)) {
+        return err(cloneResult.error);
+      }
+      componentDefAst = cloneResult.value;
     }
 
     // Step 2: Inline the component in all files (including the definition file)
@@ -1318,7 +1392,9 @@ export function inline(
     for (const [filePath, ast] of parsedFiles.entries()) {
       // Pass componentDefAst for all files (including definition file)
       // ComponentInliner will handle finding component in cross-file scenario
-      const result = inliner.inline(ast, componentName, componentDefAst);
+      // Only remove component definition in the file that contains it
+      const shouldRemoveDefinition = filePath === componentFile;
+      const result = inliner.inline(ast, componentName, componentDefAst, shouldRemoveDefinition);
 
       if (result.success && result.inlinedCount > 0) {
         // This file had usages that were inlined
@@ -1327,8 +1403,8 @@ export function inline(
         modifiedAsts.set(filePath, result.ast);
 
         // Copy transitive imports from component definition file (if cross-file)
-        if (filePath !== componentFile && componentDefAst) {
-          copyTransitiveImports(result.ast, componentDefAst, componentName);
+        if (filePath !== componentFile) {
+          copyTransitiveImports(result.ast, componentDefAst);
         }
 
         // Remove import statement for the component if it exists
@@ -1345,8 +1421,8 @@ export function inline(
     // Generate code for all files
     const codes: Code[] = [];
     for (const file of files) {
-      const ast = modifiedAsts.get(file.path) || parsedFiles.get(file.path);
-      if (!ast) {
+      const ast = modifiedAsts.get(file.path) ?? parsedFiles.get(file.path);
+      if (ast === undefined) {
         codes.push({
           file: file.path,
           content: file.content,
@@ -1377,22 +1453,25 @@ export function inline(
       inlinedCount: totalInlinedCount,
     });
   } catch (error) {
-    return createErrorFromException(error, {
-      file: files[0]?.path,
-      operation: 'inline',
-    });
+    const message = error instanceof Error ? error.message : String(error);
+    return err(createInternalError({
+      code: 'INTERNAL_ERROR',
+      message: `Internal error during inline operation: ${message}`,
+      file: files[0]?.path ?? 'unknown',
+      cause: error instanceof Error ? error : new Error(message),
+    }));
   }
 }
 
 /**
  * Helper function to copy imports from component definition file to target file
  */
-function copyTransitiveImports(targetAst: t.File, sourceAst: t.File, componentName: string): void {
+function copyTransitiveImports(targetAst: t.File, sourceAst: t.File): void {
   const importsToAdd: t.ImportDeclaration[] = [];
 
   // Extract all imports from the source file (component definition file)
-  traverseModule(sourceAst, {
-    ImportDeclaration(path) {
+  traverse(sourceAst, {
+    ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
       // Don't copy imports of the component itself or React imports (already present)
       const source = path.node.source.value;
       if (source !== 'react' && source !== 'React') {
@@ -1408,7 +1487,8 @@ function copyTransitiveImports(targetAst: t.File, sourceAst: t.File, componentNa
     // Find the position after existing imports
     let insertPosition = 0;
     for (let i = 0; i < programBody.length; i++) {
-      if (programBody[i].type === 'ImportDeclaration') {
+      const node = programBody[i];
+      if (node?.type === 'ImportDeclaration') {
         insertPosition = i + 1;
       } else {
         break;
@@ -1424,8 +1504,8 @@ function copyTransitiveImports(targetAst: t.File, sourceAst: t.File, componentNa
  * Helper function to remove import statements for an inlined component
  */
 function removeImportForComponent(ast: t.File, componentName: string): void {
-  traverseModule(ast, {
-    ImportDeclaration(path) {
+  traverse(ast, {
+    ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
       const specifiers = path.node.specifiers;
 
       // Remove the specifier for the component

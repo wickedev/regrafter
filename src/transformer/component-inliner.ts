@@ -7,17 +7,23 @@
  * Phase 1: Simple components without props or hooks
  */
 
-import type * as t from '@babel/types';
-import traverse from '@babel/traverse';
+import traverseModule from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
 import * as t_factory from '@babel/types';
-import { findComponentDefinition, type ComponentInfo, ComponentComplexity } from '../analyzer/component-detector.js';
-import { extractPropsFromElement, substituteProps } from './prop-substituter.js';
+import type * as t from '@babel/types';
+
+import { findComponentDefinition, ComponentComplexity } from '../analyzer/component-detector.js';
 import {
   extractHookStatements,
   removeHookStatements,
   substituteDependencies,
   insertHooksIntoParent,
 } from '../strategies/hook-merger.js';
+
+import { extractPropsFromElement, substituteProps } from './prop-substituter.js';
+import { loadTraverseFunction } from '../utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 /**
  * Result of an inline operation
@@ -46,9 +52,10 @@ export class ComponentInliner {
    * @param ast - The AST to transform (usage file)
    * @param componentName - Name of the component to inline
    * @param componentDefAst - Optional AST containing component definition (for cross-file)
+   * @param removeDefinition - Whether to remove the component definition (default: true)
    * @returns Result of the inline operation
    */
-  inline(ast: t.File, componentName: string, componentDefAst?: t.File): InlineResult {
+  inline(ast: t.File, componentName: string, componentDefAst?: t.File, removeDefinition = true): InlineResult {
     // Step 1: Find the component definition
     // First try in the provided componentDefAst (cross-file case)
     let componentInfo = componentDefAst
@@ -56,11 +63,9 @@ export class ComponentInliner {
       : null;
 
     // If not found and no componentDefAst provided, try in the same file
-    if (!componentInfo) {
-      componentInfo = findComponentDefinition(ast, componentName);
-    }
+    componentInfo ??= findComponentDefinition(ast, componentName);
 
-    if (!componentInfo) {
+    if (componentInfo === null) {
       return {
         success: false,
         ast,
@@ -75,7 +80,7 @@ export class ComponentInliner {
         success: false,
         ast,
         inlinedCount: 0,
-        error: componentInfo.reason || 'Component cannot be inlined',
+        error: componentInfo.reason ?? 'Component cannot be inlined',
       };
     }
 
@@ -84,23 +89,28 @@ export class ComponentInliner {
     let hookStatements: t.Statement[] = [];
     let componentBodyNode = componentInfo.node.body;
 
-    if (hasHooks && componentInfo.hooks && componentInfo.hooks.length > 0) {
-      // Extract hook statements
-      hookStatements = extractHookStatements(componentBodyNode, componentInfo.hooks);
+    if (hasHooks && componentInfo.hooks !== undefined && componentInfo.hooks.length > 0) {
+      // Only process if body is a BlockStatement
+      if (t_factory.isBlockStatement(componentBodyNode)) {
+        // Extract hook statements
+        hookStatements = extractHookStatements(componentBodyNode, componentInfo.hooks);
 
-      // Remove hooks from component body to get just the JSX part
-      componentBodyNode = removeHookStatements(componentBodyNode, componentInfo.hooks);
+        // Remove hooks from component body to get just the JSX part
+        componentBodyNode = removeHookStatements(componentBodyNode, componentInfo.hooks);
+      }
     }
 
     // Step 3: Find all usages and replace with implementation
     let inlinedCount = 0;
-    let parentFunctionPath: any = null;
-    const componentBody = this.extractComponentBody({
-      ...componentInfo.node,
-      body: componentBodyNode,
-    } as t.FunctionDeclaration);
+    let parentFunctionPath: NodePath<
+      t.FunctionDeclaration | t.FunctionExpression | t.ArrowFunctionExpression
+    > | null = null;
 
-    if (!componentBody) {
+    // Extract component body using potentially modified componentBodyNode
+    // Pass the componentInfo.node and separately handle the body replacement
+    const componentBody = this.extractComponentBody(componentInfo.node);
+
+    if (componentBody === null) {
       return {
         success: false,
         ast,
@@ -110,7 +120,7 @@ export class ComponentInliner {
     }
 
     traverse(ast, {
-      JSXElement(path) {
+      JSXElement(path: NodePath<t.JSXElement>) {
         const openingElement = path.node.openingElement;
         const name = openingElement.name;
 
@@ -127,22 +137,32 @@ export class ComponentInliner {
           }
 
           // Step 3c: Insert hooks into parent function (if any)
-          if (hasHooks && finalHookStatements.length > 0 && !parentFunctionPath) {
+          if (hasHooks && finalHookStatements.length > 0 && parentFunctionPath === null) {
             // Find the parent function
-            let currentPath = path;
-            while (currentPath.parentPath) {
+            let currentPath: NodePath = path;
+            while (currentPath.parentPath !== null) {
               currentPath = currentPath.parentPath;
               if (
-                currentPath.isFunctionDeclaration() ||
-                currentPath.isFunctionExpression() ||
-                currentPath.isArrowFunctionExpression()
+                currentPath.isFunctionDeclaration() === true ||
+                currentPath.isFunctionExpression() === true ||
+                currentPath.isArrowFunctionExpression() === true
               ) {
-                parentFunctionPath = currentPath;
+                // Use type guard to ensure correct type
+                if (
+                  currentPath.isFunctionDeclaration() ||
+                  currentPath.isFunctionExpression() ||
+                  currentPath.isArrowFunctionExpression()
+                ) {
+                  parentFunctionPath = currentPath;
+                }
                 break;
               }
             }
 
-            if (parentFunctionPath && parentFunctionPath.node.body.type === 'BlockStatement') {
+            if (
+              parentFunctionPath !== null &&
+              t_factory.isBlockStatement(parentFunctionPath.node.body)
+            ) {
               const newBody = insertHooksIntoParent(
                 parentFunctionPath.node.body,
                 finalHookStatements
@@ -166,8 +186,10 @@ export class ComponentInliner {
       },
     });
 
-    // Step 3: Remove the component definition
-    this.removeComponentDefinition(ast, componentName);
+    // Step 3: Remove the component definition (if requested)
+    if (removeDefinition) {
+      this.removeComponentDefinition(ast, componentName);
+    }
 
     return {
       success: true,
@@ -202,7 +224,7 @@ export class ComponentInliner {
    */
   private removeComponentDefinition(ast: t.File, componentName: string): void {
     traverse(ast, {
-      FunctionDeclaration(path) {
+      FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
         const node = path.node;
         if (node.id?.name === componentName) {
           path.remove();

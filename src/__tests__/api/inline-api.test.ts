@@ -39,9 +39,10 @@ describe('inline() API', () => {
       if (result.ok) {
         expect(result.value.codes).toHaveLength(1);
         expect(result.value.inlinedCount).toBe(1);
-        expect(result.value.codes[0].changed).toBe(true);
-        expect(result.value.codes[0].content).toContain('Hello World');
-        expect(result.value.codes[0].content).not.toContain('function Greeting');
+        expect(result.value.codes[0]).toBeDefined();
+        expect(result.value.codes[0]!.changed).toBe(true);
+        expect(result.value.codes[0]!.content).toContain('Hello World');
+        expect(result.value.codes[0]!.content).not.toContain('function Greeting');
       }
     });
 
@@ -73,8 +74,9 @@ describe('inline() API', () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.inlinedCount).toBe(1);
-        expect(result.value.codes[0].content).toContain('Hello');
-        expect(result.value.codes[0].content).not.toContain('function Greeting');
+        expect(result.value.codes[0]).toBeDefined();
+        expect(result.value.codes[0]!.content).toContain('Hello');
+        expect(result.value.codes[0]!.content).not.toContain('function Greeting');
       }
     });
 
@@ -108,7 +110,8 @@ describe('inline() API', () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.inlinedCount).toBe(3);
-        expect(result.value.codes[0].changed).toBe(true);
+        expect(result.value.codes[0]).toBeDefined();
+        expect(result.value.codes[0]!.changed).toBe(true);
       }
     });
 
@@ -144,8 +147,10 @@ describe('inline() API', () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.codes).toHaveLength(2);
-        expect(result.value.codes[0].changed).toBe(true);
-        expect(result.value.codes[1].changed).toBe(false);
+        expect(result.value.codes[0]).toBeDefined();
+        expect(result.value.codes[0]!.changed).toBe(true);
+        expect(result.value.codes[1]).toBeDefined();
+        expect(result.value.codes[1]!.changed).toBe(false);
       }
     });
   });
@@ -273,7 +278,8 @@ describe('inline() API', () => {
       // ASSERT
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.codes[0].changed).toBe(true);
+        expect(result.value.codes[0]).toBeDefined();
+        expect(result.value.codes[0]!.changed).toBe(true);
       }
     });
 
@@ -296,8 +302,10 @@ describe('inline() API', () => {
       // ASSERT
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.codes[0].changed).toBe(true); // Button.tsx changed
-        expect(result.value.codes[1].changed).toBe(false); // Other.tsx not changed
+        expect(result.value.codes[0]).toBeDefined();
+        expect(result.value.codes[0]!.changed).toBe(true); // Button.tsx changed
+        expect(result.value.codes[1]).toBeDefined();
+        expect(result.value.codes[1]!.changed).toBe(false); // Other.tsx not changed
       }
     });
   });
@@ -399,6 +407,147 @@ describe('inline() API', () => {
         expect(appFile?.content).not.toContain('import { Button }');
         expect(appFile?.content).not.toContain('<Button');
         expect(appFile?.content).toContain('<Icon />');
+      }
+    });
+  });
+
+  describe('fromFile Option', () => {
+    it('should return error when duplicate component names exist without fromFile option', () => {
+      // ARRANGE - Two files with same component name "Greeting"
+      const files = [
+        {
+          path: 'components/Greeting.tsx',
+          content: `
+            export function Greeting() {
+              return <div>Hello from components</div>;
+            }
+          `,
+        },
+        {
+          path: 'shared/Greeting.tsx',
+          content: `
+            export function Greeting() {
+              return <div>Hello from shared</div>;
+            }
+          `,
+        },
+        {
+          path: 'App.tsx',
+          content: `
+            import { Greeting } from './components/Greeting';
+
+            function App() {
+              return <Greeting />;
+            }
+          `,
+        },
+      ];
+
+      // ACT - Try to inline without specifying fromFile
+      const result = inline(files, 'Greeting');
+
+      // ASSERT
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('AMBIGUOUS_COMPONENT');
+        expect(result.error.message).toContain("Component 'Greeting' found in multiple files");
+        expect(result.error.message).toContain('components/Greeting.tsx');
+        expect(result.error.message).toContain('shared/Greeting.tsx');
+      }
+    });
+
+    it('should inline component from specified file when duplicate names exist', () => {
+      // ARRANGE - Two files with same component name "Greeting"
+      const files = [
+        {
+          path: 'components/Greeting.tsx',
+          content: `
+            export function Greeting() {
+              return <div>Hello from components</div>;
+            }
+          `,
+        },
+        {
+          path: 'shared/Greeting.tsx',
+          content: `
+            export function Greeting() {
+              return <div>Hello from shared</div>;
+            }
+          `,
+        },
+        {
+          path: 'App.tsx',
+          content: `
+            import { Greeting } from './components/Greeting';
+
+            function App() {
+              return <Greeting />;
+            }
+          `,
+        },
+      ];
+
+      // ACT - Specify to inline from 'components/Greeting.tsx'
+      const result = inline(files, 'Greeting', { fromFile: 'components/Greeting.tsx' });
+
+      // ASSERT
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.inlinedCount).toBe(1);
+
+        // App.tsx should have the component from components/Greeting.tsx inlined
+        const appFile = result.value.codes.find(c => c.file === 'App.tsx');
+        expect(appFile).toBeDefined();
+        expect(appFile?.changed).toBe(true);
+        expect(appFile?.content).toContain('Hello from components');
+        expect(appFile?.content).not.toContain('Hello from shared');
+        expect(appFile?.content).not.toContain('import { Greeting }');
+
+        // components/Greeting.tsx should be marked as changed (component removed)
+        const componentsFile = result.value.codes.find(c => c.file === 'components/Greeting.tsx');
+        expect(componentsFile).toBeDefined();
+        expect(componentsFile?.changed).toBe(true);
+        expect(componentsFile?.content).not.toContain('function Greeting');
+
+        // shared/Greeting.tsx should remain unchanged
+        const sharedFile = result.value.codes.find(c => c.file === 'shared/Greeting.tsx');
+        expect(sharedFile).toBeDefined();
+        expect(sharedFile?.changed).toBe(false);
+        expect(sharedFile?.content).toContain('function Greeting');
+      }
+    });
+
+    it('should return error when fromFile is specified but component not found in that file', () => {
+      // ARRANGE
+      const files = [
+        {
+          path: 'components/Button.tsx',
+          content: `
+            export function Button() {
+              return <button>Click</button>;
+            }
+          `,
+        },
+        {
+          path: 'App.tsx',
+          content: `
+            import { Button } from './components/Button';
+
+            function App() {
+              return <Button />;
+            }
+          `,
+        },
+      ];
+
+      // ACT - Try to inline from wrong file
+      const result = inline(files, 'Button', { fromFile: 'other/Button.tsx' });
+
+      // ASSERT
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('ELEMENT_NOT_FOUND');
+        expect(result.error.message).toContain("Component 'Button' not found in file 'other/Button.tsx'");
       }
     });
   });
