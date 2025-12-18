@@ -768,3 +768,73 @@ export { mapAsync } from './async.js';
  * ```
  */
 export { flatMapAsync } from './async.js';
+
+// ============================================================================
+// Batch Processing
+// ============================================================================
+
+/**
+ * Result of batch processing operations containing successes and failures.
+ *
+ * @typeParam T - The type of successful values
+ * @typeParam E - The type of error values
+ *
+ * @example
+ * ```typescript
+ * const result: BatchResult<User, ValidationError> = processBatch(
+ *   users,
+ *   validateUser
+ * );
+ *
+ * console.log(`Validated ${result.successes.length} users`);
+ * console.log(`Found ${result.failures.length} errors`);
+ * ```
+ */
+export type { BatchResult } from './batch.js';
+
+/**
+ * Process a batch of items, collecting both successes and failures.
+ *
+ * Executes a processor function on each item and separates successful results
+ * from errors. Unlike `all()` which fails on the first error, this processes
+ * all items and returns both successes and failures.
+ *
+ * @typeParam T - The type of input items
+ * @typeParam U - The type of successful output values
+ * @typeParam E - The type of error values
+ * @param items - Array of items to process
+ * @param processor - Function that processes each item and returns a Result
+ * @returns BatchResult containing separate arrays of successes and failures
+ *
+ * @example
+ * ```typescript
+ * // Validate multiple inputs
+ * const inputs = ['valid1', 'invalid', 'valid2'];
+ *
+ * const result = processBatch(inputs, (input) => {
+ *   return input.startsWith('valid')
+ *     ? ok(input.toUpperCase())
+ *     : err(`Invalid input: ${input}`);
+ * });
+ *
+ * // result.successes: ['VALID1', 'VALID2']
+ * // result.failures: ['Invalid input: invalid']
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Parse multiple files, collecting both successes and errors
+ * const files = ['a.json', 'b.json', 'invalid.json'];
+ *
+ * const result = processBatch(files, (path) =>
+ *   tryCatch(() => JSON.parse(readFileSync(path, 'utf-8')))
+ * );
+ *
+ * // Process valid files
+ * result.successes.forEach(data => console.log('Parsed:', data));
+ *
+ * // Report errors without stopping
+ * result.failures.forEach(error => console.error('Failed:', error.message));
+ * ```
+ */
+export { processBatch } from './batch.js';

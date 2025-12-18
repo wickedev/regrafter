@@ -15,6 +15,7 @@ const generate = generateFn as any as typeof generateFn.default;
 
 import { JSXTransformer, createJSXTransformer } from '../index.js';
 import { Move } from '../../types/index.js';
+import { isOk, isErr } from '../../result/index.js';
 
 // =============================================================================
 // Test Fixtures
@@ -136,11 +137,11 @@ describe('JSXTransformer', () => {
 
       const result = transformer.move(ast, footer!, header!, Move.Before);
 
-      expect(result.success).toBe(true);
-      expect(result.error).toBeUndefined();
+      expect(isOk(result)).toBe(true);
+      if (!isOk(result)) return;
 
       // Verify the order in output code
-      const code = generateCode(result.ast);
+      const code = generateCode(result.value.ast);
       const footerIndex = code.indexOf('<footer>');
       const headerIndex = code.indexOf('<header>');
       expect(footerIndex).toBeLessThan(headerIndex);
@@ -158,7 +159,7 @@ describe('JSXTransformer', () => {
 
       const result = transformer.move(ast, footer!, header!, Move.Before);
 
-      expect(result.success).toBe(true);
+      expect(isOk(result)).toBe(true);
     });
 
     it('should remove element from original location', () => {
@@ -168,8 +169,8 @@ describe('JSXTransformer', () => {
 
       const result = transformer.move(ast, footer!, header!, Move.Before);
 
-      expect(result.success).toBe(true);
-      const code = generateCode(result.ast);
+      expect(isOk(result)).toBe(true);
+      const code = generateCode(result.ok ? result.value.ast : ast);
       // Footer should only appear once
       const footerCount = (code.match(/<footer>/g) || []).length;
       expect(footerCount).toBe(1);
@@ -185,8 +186,8 @@ describe('JSXTransformer', () => {
 
       const result = transformer.move(ast, paragraph!, title!, Move.Before);
 
-      expect(result.success).toBe(true);
-      const code = generateCode(result.ast);
+      expect(isOk(result)).toBe(true);
+      const code = generateCode(result.ok ? result.value.ast : ast);
       const pIndex = code.indexOf('<p>');
       const h1Index = code.indexOf('<h1>');
       expect(pIndex).toBeLessThan(h1Index);
@@ -200,8 +201,8 @@ describe('JSXTransformer', () => {
       // Move third div before first
       const result = transformer.move(ast, divs[2]!, divs[0]!, Move.Before);
 
-      expect(result.success).toBe(true);
-      const code = generateCode(result.ast);
+      expect(isOk(result)).toBe(true);
+      const code = generateCode(result.ok ? result.value.ast : ast);
       const thirdIndex = code.indexOf('Third');
       const firstIndex = code.indexOf('First');
       expect(thirdIndex).toBeLessThan(firstIndex);
@@ -223,11 +224,11 @@ describe('JSXTransformer', () => {
 
       const result = transformer.move(ast, header!, footer!, Move.After);
 
-      expect(result.success).toBe(true);
+      expect(isOk(result)).toBe(true);
       expect(result.error).toBeUndefined();
 
       // Verify the order in output code
-      const code = generateCode(result.ast);
+      const code = generateCode(result.ok ? result.value.ast : ast);
       const headerIndex = code.indexOf('<header>');
       const footerIndex = code.indexOf('<footer>');
       expect(headerIndex).toBeGreaterThan(footerIndex);
@@ -245,7 +246,7 @@ describe('JSXTransformer', () => {
 
       const result = transformer.move(ast, header!, footer!, Move.After);
 
-      expect(result.success).toBe(true);
+      expect(isOk(result)).toBe(true);
     });
 
     it('should handle moving element to end', () => {
@@ -255,8 +256,8 @@ describe('JSXTransformer', () => {
 
       const result = transformer.move(ast, header!, footer!, Move.After);
 
-      expect(result.success).toBe(true);
-      const code = generateCode(result.ast);
+      expect(isOk(result)).toBe(true);
+      const code = generateCode(result.ok ? result.value.ast : ast);
       // Header should be after footer (at the end)
       const headerIndex = code.indexOf('<header>');
       const footerIndex = code.indexOf('<footer>');
@@ -271,8 +272,8 @@ describe('JSXTransformer', () => {
       // Move first div after third
       const result = transformer.move(ast, divs[0]!, divs[2]!, Move.After);
 
-      expect(result.success).toBe(true);
-      const code = generateCode(result.ast);
+      expect(isOk(result)).toBe(true);
+      const code = generateCode(result.ok ? result.value.ast : ast);
       const firstIndex = code.indexOf('First');
       const thirdIndex = code.indexOf('Third');
       expect(firstIndex).toBeGreaterThan(thirdIndex);
@@ -359,8 +360,10 @@ describe('JSXTransformer', () => {
 
       const result = transformer.move(ast, header!, header!, Move.Before);
 
-      expect(result.success).toBe(true);
-      expect(result.wasNoOp).toBe(true);
+      expect(isOk(result)).toBe(true);
+      if (isOk(result)) {
+        expect(result.value.wasNoOp).toBe(true);
+      }
     });
   });
 
@@ -408,7 +411,7 @@ describe('JSXTransformer', () => {
       expect(footer).not.toBeNull();
 
       const result = transformer.validateMove(header!, footer!, Move.Before);
-      expect(result.valid).toBe(true);
+      expect(isOk(result)).toBe(true);
     });
 
     it('should reject circular moves', () => {
@@ -420,9 +423,11 @@ describe('JSXTransformer', () => {
       expect(h1).not.toBeNull();
 
       const result = transformer.validateMove(section!, h1!, Move.Inside);
-      expect(result.valid).toBe(false);
-      // Error message describes the circular move scenario
-      expect(result.error).toContain('Cannot move an element into itself or its descendants');
+      expect(isErr(result)).toBe(true);
+      if (isErr(result)) {
+        // Error message describes the circular move scenario
+        expect(result.error.message).toContain('Cannot move an element into itself or its descendants');
+      }
     });
   });
 
@@ -467,10 +472,10 @@ describe('JSXTransformer', () => {
 
       // Move map expression before header
       const result = transformer.move(ast, mapExpression!, header!, Move.Before);
-      expect(result.success).toBe(true);
+      expect(isOk(result)).toBe(true);
 
       // Generate code
-      const generatedCode = generate(result.ast).code;
+      const generatedCode = generate(result.ok ? result.value.ast : ast).code;
 
       // The <ul> should not have lines with only whitespace
       const lines = generatedCode.split('\n');
@@ -505,7 +510,7 @@ describe('JSXTransformer', () => {
       expect(header).not.toBeNull();
 
       const result = transformer.move(ast, invalidPath!, header!, Move.Before);
-      expect(result.success).toBe(false);
+      expect(isErr(result)).toBe(true);
       expect(result.error).toBeDefined();
     });
   });

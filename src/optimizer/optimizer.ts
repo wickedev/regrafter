@@ -9,9 +9,11 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
+import { createTransformError, type RegraffError } from '../errors/index.js';
 import { CodeGenerator } from '../generator/code-generator.js';
 import type { Parser} from '../parser/index.js';
 import { createParser } from '../parser/index.js';
+import { ok, err, type Result } from '../result/index.js';
 import {
   createCode,
   createDependencyGraph,
@@ -98,11 +100,16 @@ export class Optimizer implements IOptimizer {
    *
    * @param files - Input files to optimize
    * @param options - Optimization options
-   * @returns Array of optimized file contents
+   * @returns Result with array of optimized file contents, or RegraffError on failure
    */
-  optimize(files: FileInput[], options?: OptimizeOptions): Code[] {
+  optimize(files: FileInput[], options?: OptimizeOptions): Result<Code[], RegraffError> {
     const result = this.optimizeWithDetails(files, options);
-    return this.convertToCodeArray(result);
+
+    if (!result.ok) {
+      return result;
+    }
+
+    return ok(this.convertToCodeArray(result.value));
   }
 
   /**
@@ -110,12 +117,12 @@ export class Optimizer implements IOptimizer {
    *
    * @param files - Input files to optimize
    * @param options - Optimization options
-   * @returns Extended optimize result with all details
+   * @returns Result with extended optimize result details, or RegraffError on failure
    */
   optimizeWithDetails(
     files: FileInput[],
     options?: OptimizeOptions
-  ): ExtendedOptimizeResult {
+  ): Result<ExtendedOptimizeResult, RegraffError> {
     const opts = this.mergeOptions(options);
 
     // Parse all files
@@ -167,10 +174,17 @@ export class Optimizer implements IOptimizer {
       deadCode.push(...removedDeadCode);
     }
 
-    // Generate code
-    const generatedCode = this.performanceOptimizer.timePhase('generate', () => {
+    // Generate code - now returns Result
+    const generatedCodeResult = this.performanceOptimizer.timePhase('generate', () => {
       return this.generator.generateMultiple(asts);
     });
+
+    // Handle generation errors
+    if (!generatedCodeResult.ok) {
+      return err(generatedCodeResult.error);
+    }
+
+    const generatedCode = generatedCodeResult.value;
 
     // Build result
     const result = createOptimizeResult({
@@ -183,13 +197,13 @@ export class Optimizer implements IOptimizer {
     // Determine if changes were made
     const hasChanges = this.checkForChanges(files, generatedCode);
 
-    return {
+    return ok({
       ...result,
       sinkAnalysis,
       deadCode,
       metrics: this.performanceOptimizer.getMetrics(),
       hasChanges,
-    };
+    });
   }
 
   /**

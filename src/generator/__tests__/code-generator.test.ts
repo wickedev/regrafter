@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
 import type * as t from '@babel/types';
 import { CodeGenerator } from '../code-generator.js';
-import type { IndentationInfo } from '../types.js';
+import type { IndentationInfo, GenerateResult } from '../types.js';
+import { unwrap } from '../../result/index.js';
 
 /**
  * Unit tests for CodeGenerator
@@ -18,6 +19,11 @@ describe('CodeGenerator', () => {
     });
   };
 
+  // Helper to unwrap Result for simpler test assertions
+  const generateAndUnwrap = (ast: t.File): GenerateResult => {
+    return unwrap(generator.generate(ast));
+  };
+
   beforeEach(() => {
     generator = new CodeGenerator();
   });
@@ -29,7 +35,7 @@ describe('CodeGenerator', () => {
     it('should generate code from a simple AST', () => {
       const code = `const x = 1;`;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const x = 1;`);
@@ -38,7 +44,7 @@ describe('CodeGenerator', () => {
     it('should generate code from JSX AST', () => {
       const code = `const App = () => <div>Hello</div>;`;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const App = () => <div>Hello</div>;`);
@@ -53,7 +59,7 @@ describe('CodeGenerator', () => {
         );
       `;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const Button = ({
@@ -77,7 +83,7 @@ describe('CodeGenerator', () => {
         );
       `;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const Layout = () => <div>
@@ -99,7 +105,7 @@ describe('CodeGenerator', () => {
         );
       `;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const Items = () => <>
@@ -111,7 +117,7 @@ describe('CodeGenerator', () => {
     it('should generate code from self-closing JSX elements', () => {
       const code = `const Input = () => <input type="text" />;`;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const Input = () => <input type="text" />;`);
@@ -120,7 +126,7 @@ describe('CodeGenerator', () => {
     it('should generate code with JSX spread attributes', () => {
       const code = `const El = (props) => <div {...props} />;`;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const El = props => <div {...props} />;`);
@@ -136,7 +142,7 @@ describe('CodeGenerator', () => {
     </div>;
 }`;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       // Should not contain lines with only whitespace
@@ -156,7 +162,7 @@ describe('CodeGenerator', () => {
         ['file2.tsx', parseCode('const B = () => <span>B</span>;')],
       ]);
 
-      const results = generator.generateMultiple(files);
+      const results = unwrap(generator.generateMultiple(files));
 
       expect(results.size).toBe(2);
       expect(results.get('file1.tsx')?.code).toBe(`const A = () => <div>A</div>;`);
@@ -166,7 +172,7 @@ describe('CodeGenerator', () => {
     it('should generate source map when available', () => {
       const code = `const x = 1;`;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       // Source map should be present
       expect(result.map).toBeDefined();
@@ -184,7 +190,7 @@ describe('CodeGenerator', () => {
         const x = 1;
       `;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`// This is a comment
@@ -199,7 +205,7 @@ const x = 1;`);
         const fn = () => {};
       `;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`/**
@@ -213,7 +219,7 @@ const fn = () => {};`);
         const x = 1; // inline comment
       `;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const x = 1; // inline comment`);
@@ -229,7 +235,7 @@ const fn = () => {};`);
         );
       `;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const El = () => <div>
@@ -244,7 +250,7 @@ const fn = () => {};`);
         const x = 1;
       `;
       const ast = parseCode(code);
-      const result = generator.generate(ast, { preserveComments: false });
+      const result = unwrap(generator.generate(ast, { preserveComments: false }));
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).not.toContain('Comment to remove');
@@ -551,12 +557,12 @@ function Component() {
       const ast = parseCode(code);
 
       // Generator has preserveComments: true by default
-      const withComments = generator.generate(ast);
+      const withComments = unwrap(generator.generate(ast));
       expect(withComments.code).toBe(`// Comment
 const x = 1;`);
 
       // Override for single call
-      const withoutComments = generator.generate(ast, { preserveComments: false });
+      const withoutComments = unwrap(generator.generate(ast, { preserveComments: false }));
       expect(withoutComments.code).not.toContain('Comment');
     });
   });
@@ -565,20 +571,24 @@ const x = 1;`);
   // Error Handling Tests
   // ============================================================
   describe('Error Handling', () => {
-    it('should return error for invalid AST', () => {
+    it('should return Err for invalid AST', () => {
       const invalidAst: t.File = { type: 'Invalid' } as unknown as t.File;
       const result = generator.generate(invalidAst);
 
-      expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.code).toBe('');
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error._tag).toBe('TransformError');
+        expect(result.error.code).toBe('E060');
+      }
     });
 
-    it('should include error code in generated errors', () => {
+    it('should include error code in TransformError', () => {
       const invalidAst: t.File = { type: 'Invalid' } as unknown as t.File;
       const result = generator.generate(invalidAst);
 
-      if (result.errors.length > 0) {
-        expect(result.errors[0]?.code).toBeDefined();
+      if (!result.ok) {
+        expect(result.error.code).toBeDefined();
+        expect(result.error.message).toContain('Code generation failed');
       }
     });
   });
@@ -596,7 +606,7 @@ const x = 1;`);
         );
       `;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const El = ({
@@ -615,7 +625,7 @@ const x = 1;`);
         );
       `;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const El = ({
@@ -636,7 +646,7 @@ const x = 1;`);
         );
       `;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const List = ({
@@ -659,7 +669,7 @@ const x = 1;`);
         };
       `;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const Counter = () => {
@@ -679,9 +689,140 @@ const x = 1;`);
         );
       `;
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      const result = generateAndUnwrap(ast);
 
       expect(result.errors).toHaveLength(0);
+    });
+  });
+
+  // ============================================================
+  // Result-Based Code Generation Tests (Task 13.5)
+  // ============================================================
+  describe('generateCode (Result-based)', () => {
+    it('should return Ok<string> for valid AST', async () => {
+      const code = `const x = 1;`;
+      const ast = parseCode(code);
+
+      // Import the generateCode function
+      const { generateCode } = await import('../index.js');
+
+      const result = generateCode(ast);
+
+      // Debug: log the result
+      if (!result.ok) {
+        console.log('Error:', result.error);
+      }
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toBe(`const x = 1;`);
+      }
+    });
+
+    it('should return Ok<string> for valid JSX AST', async () => {
+      const code = `const App = () => <div>Hello</div>;`;
+      const ast = parseCode(code);
+
+      const { generateCode } = await import('../index.js');
+
+      const result = generateCode(ast);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toBe(`const App = () => <div>Hello</div>;`);
+      }
+    });
+
+    it('should return Err<TransformError> for generation failures', async () => {
+      const invalidAst: t.File = { type: 'Invalid' } as unknown as t.File;
+
+      const { generateCode } = await import('../index.js');
+
+      const result = generateCode(invalidAst);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error._tag).toBe('TransformError');
+        expect(result.error.code).toBeDefined();
+        expect(result.error.message).toContain('Code generation failed');
+      }
+    });
+
+    it('should return Err with proper error details for invalid AST', async () => {
+      // Use the same clearly invalid AST structure as the earlier error test
+      const invalidAst: t.File = { type: 'Invalid' } as unknown as t.File;
+
+      const { generateCode } = await import('../index.js');
+
+      const result = generateCode(invalidAst);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error._tag).toBe('TransformError');
+        expect(result.error.message).toBeDefined();
+        expect(result.error.code).toBe('E060');
+      }
+    });
+
+    it('should preserve comments in generated code when successful', async () => {
+      const code = `
+        // This is a comment
+        const x = 1;
+      `;
+      const ast = parseCode(code);
+
+      const { generateCode } = await import('../index.js');
+
+      const result = generateCode(ast);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toContain('// This is a comment');
+      }
+    });
+
+    it('should accept optional generator options', async () => {
+      const code = `
+        // Comment to remove
+        const x = 1;
+      `;
+      const ast = parseCode(code);
+
+      const { generateCode } = await import('../index.js');
+
+      const result = generateCode(ast, { preserveComments: false });
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).not.toContain('Comment to remove');
+        expect(result.value).toBe('const x = 1;');
+      }
+    });
+
+    it('should handle complex nested JSX structures', async () => {
+      const code = `
+        const Layout = () => (
+          <div>
+            <header>Header</header>
+            <main>
+              <article>Content</article>
+            </main>
+            <footer>Footer</footer>
+          </div>
+        );
+      `;
+      const ast = parseCode(code);
+
+      const { generateCode } = await import('../index.js');
+
+      const result = generateCode(ast);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toContain('<header>Header</header>');
+        expect(result.value).toContain('<main>');
+        expect(result.value).toContain('<footer>Footer</footer>');
+      }
     });
   });
 });

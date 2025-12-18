@@ -8,6 +8,8 @@
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
 
+import type { RegraffError } from '../errors/index.js';
+import type { Result } from '../result/types.js';
 import type {
   ScopeInfo,
   InternalDependency,
@@ -464,13 +466,13 @@ export interface IPerformanceOptimizer {
  */
 export interface IOptimizer {
   /** Run optimization on files */
-  optimize(files: FileInput[], options?: OptimizeOptions): Code[];
+  optimize(files: FileInput[], options?: OptimizeOptions): Result<Code[], RegraffError>;
 
   /** Run optimization with extended results */
   optimizeWithDetails(
     files: FileInput[],
     options?: OptimizeOptions
-  ): ExtendedOptimizeResult;
+  ): Result<ExtendedOptimizeResult, RegraffError>;
 
   /** Fast canMove check */
   canMove(

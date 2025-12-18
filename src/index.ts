@@ -112,6 +112,38 @@ export {
   assertOptions,
 } from './validation/index.js';
 
+// Export Result type and helpers (Task 17.1-17.5)
+export {
+  type Result as FunctionalResult,
+  type Ok,
+  type Err,
+  ok,
+  err,
+  isOk,
+  isErr,
+  map,
+  flatMap,
+  mapErr,
+  unwrap,
+  unwrapOr,
+  unwrapOrElse,
+  all,
+  any,
+  tryCatch,
+  tryCatchAsync,
+  mapAsync,
+  flatMapAsync,
+  // Batch processing (Task 17.3-17.4)
+  type BatchResult,
+  processBatch,
+} from './result/index.js';
+
+// Export new API types (Task 17.2)
+export {
+  type RegraftResult,
+  type TransformedCode,
+} from './api/types.js';
+
 // Export analyzer utilities
 export {
   // Atomic unit detection
@@ -195,6 +227,12 @@ import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
 import { DependencyAnalyzer, createMoveAnalysisBuilder, validateMoveOperation, type MoveValidationResult } from './analyzer/index.js';
+import {
+  createSuccessResult,
+  createErrorResult,
+  createErrorFromException,
+} from './api/result-helpers.js';
+import type { RegraftResult } from './api/types.js';
 import { CodeGenerator } from './generator/code-generator.js';
 import { createOptimizer } from './optimizer/optimizer.js';
 import type { OptimizeOptions } from './optimizer/types.js';
@@ -211,8 +249,8 @@ import {
   mergeOptions,
   createMoveAnalysis,
   createCode,
-  createSuccessResult,
-  createFailureResult,
+  createSuccessResult as createLegacySuccessResult,
+  createFailureResult as createLegacyFailureResult,
   createAnalysisStats,
   createSuggestedFix,
 } from './types/index.js';
@@ -223,6 +261,9 @@ const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
 /**
  * Main entry point for the regraft operation.
  *
+ * **BREAKING CHANGE (v2.0.0)**: This function now returns `Result<TransformedCode, RegraffError>` directly
+ * instead of the legacy `{ success: boolean, codes: Code[], analysis: MoveAnalysis }` format.
+ *
  * Performs element relocation with automatic dependency analysis,
  * hoisting, and optional optimization.
  *
@@ -231,11 +272,12 @@ const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
  * @param to - Selector identifying the target location
  * @param mode - How to position the element relative to target
  * @param options - Optional configuration
- * @returns Result containing transformed files and analysis
+ * @returns Result<TransformedCode, RegraffError> - Ok with transformed code or Err with error details
  *
  * @example
+ * **New API (v2.0.0+)**
  * ```typescript
- * import { regraft, Move } from 'regrafter';
+ * import { regraft, Move, isOk } from 'regrafter';
  *
  * const result = regraft(
  *   [{ path: 'App.tsx', content: sourceCode }],
@@ -244,10 +286,36 @@ const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
  *   Move.Inside
  * );
  *
- * if (result.success) {
- *   console.log('Transformed code:', result.codes[0].content);
+ * if (result.ok) {
+ *   console.log('Transformed code:', result.value.codes[0].content);
+ *   console.log('Analysis:', result.value.analysis);
+ * } else {
+ *   console.error('Error:', result.error.message);
+ *   console.error('Suggestions:', result.error.suggestions);
  * }
  * ```
+ *
+ * @example
+ * **Using type guards**
+ * ```typescript
+ * import { regraft, Move, isOk, isErr } from 'regrafter';
+ *
+ * const result = regraft(files, from, to, Move.Inside);
+ *
+ * if (isOk(result)) {
+ *   // TypeScript knows result.value exists
+ *   result.value.codes.forEach(code => console.log(code.file));
+ * }
+ *
+ * if (isErr(result)) {
+ *   // TypeScript knows result.error exists
+ *   console.error(`[${result.error.code}] ${result.error.message}`);
+ * }
+ * ```
+ *
+ * @see {@link ../api/types.js!RegraftResult} for the return type
+ * @see {@link ../api/types.js!TransformedCode} for the success value type
+ * @see {@link ../errors/index.js!RegraffError} for the error type
  */
 export function regraft(
   files: FileInput[],
@@ -255,15 +323,15 @@ export function regraft(
   to: Selector,
   mode: Move,
   options?: Options
-): Result {
+): RegraftResult {
   const mergedOptions = mergeOptions(options);
 
   // Validate the move first
   const validation = validateMoveOperation(files, from, to, mode);
 
   if (!validation.valid) {
-    // Return failure result with reason
-    return createFailureResult(
+    // Return error result with reason
+    return createErrorResult(
       validation.reason ?? 'Move validation failed',
       [],
       getSuggestedFixes(validation.errorCode)
@@ -369,8 +437,9 @@ export function move(
       mode
     );
 
-    if (!moveResult.success) {
-      throw new Error(`Move failed: ${moveResult.error ?? 'Unknown error'}`);
+    if (!moveResult.ok) {
+      const error = moveResult.error;
+      throw new Error(`Move failed: ${error.message}`);
     }
 
     // Generate code for all files
@@ -379,7 +448,13 @@ export function move(
       const ast = parsedFiles.get(file.path);
       if (!ast) continue;
 
-      const generated = generator.generate(ast);
+      const generateResult = generator.generate(ast);
+      if (!generateResult.ok) {
+        const error = generateResult.error;
+        throw new Error(`Code generation failed: ${error.message}`);
+      }
+
+      const generated = generateResult.value;
       codes.push(createCode({
         file: file.path,
         content: generated.code,
@@ -671,8 +746,9 @@ function moveWithHoisting(
     mode
   );
 
-  if (!moveResult.success) {
-    throw new Error(`Move failed: ${moveResult.error ?? 'Unknown error'}`);
+  if (!moveResult.ok) {
+    const error = moveResult.error;
+    throw new Error(`Move failed: ${error.message}`);
   }
 
   // Generate code for all files
@@ -681,7 +757,13 @@ function moveWithHoisting(
     const ast = parsedFiles.get(file.path);
     if (!ast) continue;
 
-    const generated = generator.generate(ast);
+    const generateResult = generator.generate(ast);
+    if (!generateResult.ok) {
+      const error = generateResult.error;
+      throw new Error(`Code generation failed: ${error.message}`);
+    }
+
+    const generated = generateResult.value;
     codes.push(createCode({
       file: file.path,
       content: generated.code,
@@ -853,7 +935,7 @@ function createDryRunResult(
   from: Selector,
   to: Selector,
   mode: Move
-): Result {
+): RegraftResult {
   // Create unchanged code results
   const codes: Code[] = files.map(file =>
     createCode({
@@ -866,11 +948,17 @@ function createDryRunResult(
   // Perform full dependency analysis using the analyze() function
   const analysis = analyze(files, from, to, mode);
 
-  return {
-    success: analysis.canMove,
-    codes,
-    analysis,
-  };
+  // If the move cannot be performed, return error
+  if (!analysis.canMove) {
+    return createErrorResult(
+      analysis.reason ?? 'Move is not possible',
+      codes,
+      analysis.suggestedFixes
+    );
+  }
+
+  // Return success with analysis
+  return createSuccessResult(codes, analysis);
 }
 
 /**
@@ -883,14 +971,14 @@ function executeTransformation(
   mode: Move,
   options: Required<Options>,
   _validation: MoveValidationResult
-): Result {
+): RegraftResult {
   try {
     // Perform dependency analysis
     const fullAnalysis = analyze(files, from, to, mode);
 
-    // If analysis shows the move isn't possible, return failure
+    // If analysis shows the move isn't possible, return error
     if (!fullAnalysis.canMove) {
-      return createFailureResult(
+      return createErrorResult(
         fullAnalysis.reason ?? 'Move is not possible',
         [],
         fullAnalysis.suggestedFixes
@@ -927,7 +1015,9 @@ function executeTransformation(
     // Return success with the real analysis
     return createSuccessResult(codes, fullAnalysis);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createFailureResult(message);
+    return createErrorFromException(error, {
+      file: files[0]?.path,
+      operation: 'transformation',
+    });
   }
 }

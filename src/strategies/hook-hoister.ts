@@ -7,6 +7,8 @@
 
 import type * as t from '@babel/types';
 
+import { createTransformError, type TransformError } from '../errors/index.js';
+import { ok, err, type Result } from '../result/index.js';
 import {
   createHoistOperation,
   createPropThreadOperation,
@@ -147,16 +149,28 @@ export class HookHoister implements IHookHoister {
   /**
    * Execute the hoisting operation (AST mutation)
    */
-  execute(operation: HoistOperation, _context: HoistContext): void {
+  execute(operation: HoistOperation, _context: HoistContext): Result<void, TransformError> {
     // This will be implemented in the transformation pipeline integration
     // For now, this is a placeholder that validates the operation
     if (!operation.dependencyId) {
-      throw new Error('Invalid hoist operation: missing dependency ID');
+      return err(createTransformError({
+        code: 'T099',
+        message: 'Invalid hoist operation: missing dependency ID',
+        file: '',
+        suggestions: [],
+      }));
     }
 
     if (operation.strategy !== HoistStrategy.Hoist) {
-      throw new Error(`HookHoister cannot execute strategy: ${operation.strategy}`);
+      return err(createTransformError({
+        code: 'T099',
+        message: `HookHoister cannot execute strategy: ${operation.strategy}`,
+        file: '',
+        suggestions: [],
+      }));
     }
+
+    return ok(undefined);
   }
 
   // ===========================================================================

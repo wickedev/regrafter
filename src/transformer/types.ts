@@ -7,6 +7,9 @@
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
 
+import type { TransformError, ValidationError } from '../errors/error-category.js';
+import type { Result } from '../result/index.js';
+
 /**
  * Error codes for transformer errors
  */
@@ -34,6 +37,31 @@ export const TransformerErrorCodes = {
 } as const;
 
 export type TransformerErrorCode = (typeof TransformerErrorCodes)[keyof typeof TransformerErrorCodes];
+
+/**
+ * Result of a successful transformation operation
+ */
+export interface TransformedCode {
+  /** The transformed AST */
+  ast: t.File;
+  /** The moved node (if applicable) */
+  movedNode?: t.Node;
+  /** The new location of the moved node */
+  newPath?: NodePath;
+  /** Whether this was a no-op (source and target are same) */
+  wasNoOp?: boolean;
+}
+
+/**
+ * Information about where an element was inserted
+ * This is the success data for insertion strategies
+ */
+export type InsertionPoint = TransformedCode;
+
+/**
+ * Result type for insertion strategies using functional error handling
+ */
+export type InsertionResult = Result<InsertionPoint, TransformError | ValidationError>;
 
 /**
  * Result of a move operation

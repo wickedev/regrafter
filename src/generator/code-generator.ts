@@ -38,6 +38,9 @@ function getGenerateFunction(): GenerateFunction {
 
 const generateCode = getGenerateFunction();
 
+import { createTransformError, type TransformErrorType } from '../errors/index.js';
+import { ok, err, type Result } from '../result/index.js';
+
 import type {
   GeneratorOptions,
   GenerateResult,
@@ -72,9 +75,9 @@ export class CodeGenerator {
    *
    * @param ast - The Babel AST to generate code from
    * @param options - Optional generation options to override defaults
-   * @returns GenerateResult with code, optional source map, and any errors
+   * @returns Result with GenerateResult on success, or TransformError on failure
    */
-  generate(ast: t.File, options?: GeneratorOptions): GenerateResult {
+  generate(ast: t.File, options?: GeneratorOptions): Result<GenerateResult, TransformErrorType> {
     const mergedOptions = { ...this.options, ...options };
     const errors: GeneratorError[] = [];
 
@@ -88,22 +91,19 @@ export class CodeGenerator {
       // Remove trailing whitespace from all lines
       const cleanedCode = result.code.split('\n').map(line => line.trimEnd()).join('\n');
 
-      return {
+      return ok({
         code: cleanedCode,
         map: result.map ? this.convertSourceMap(result.map) : undefined,
         errors,
-      };
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      errors.push({
-        message: `Code generation failed: ${errorMessage}`,
-        code: 'E060',
-      });
 
-      return {
-        code: '',
-        errors,
-      };
+      return err(createTransformError({
+        code: 'E060',
+        message: `Code generation failed: ${errorMessage}`,
+        file: 'unknown',
+      }));
     }
   }
 
@@ -112,19 +112,30 @@ export class CodeGenerator {
    *
    * @param asts - Map of filename to AST
    * @param options - Optional generation options
-   * @returns Map of filename to GenerateResult
+   * @returns Result with Map of filename to GenerateResult on success, or TransformError on failure
    */
   generateMultiple(
     asts: Map<string, t.File>,
     options?: GeneratorOptions
-  ): Map<string, GenerateResult> {
+  ): Result<Map<string, GenerateResult>, TransformErrorType> {
     const results = new Map<string, GenerateResult>();
 
     for (const [filename, ast] of Array.from(asts)) {
-      results.set(filename, this.generate(ast, options));
+      const result = this.generate(ast, options);
+
+      if (!result.ok) {
+        // If any generation fails, return the error with the filename
+        return err(createTransformError({
+          code: result.error.code,
+          message: result.error.message,
+          file: filename,
+        }));
+      }
+
+      results.set(filename, result.value);
     }
 
-    return results;
+    return ok(results);
   }
 
   /**
