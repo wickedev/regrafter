@@ -10,9 +10,11 @@
 
 import { describe, it, expect } from 'vitest';
 import { parse } from '@babel/parser';
-import generate from '@babel/generator';
+import generator from '@babel/generator';
 import type * as t from '@babel/types';
 import { ComponentInliner } from '../component-inliner.js';
+
+const generate = generator.default || generator;
 
 // =============================================================================
 // Test Fixtures - Simple React Components
@@ -144,23 +146,6 @@ function App() {
 }
 `;
 
-const expectedInlinedUseState = `
-import { useState } from 'react';
-
-function App() {
-  const [count, setCount] = useState(0);
-  return (
-    <div>
-      <h1>My App</h1>
-      <div>
-        <p>Count: {count}</p>
-        <button onClick={() => setCount(count + 1)}>Increment</button>
-      </div>
-    </div>
-  );
-}
-`;
-
 const componentWithUseEffect = `
 import { useState, useEffect } from 'react';
 
@@ -180,24 +165,6 @@ function Timer({ interval }) {
 
 function App() {
   return <Timer interval={1000} />;
-}
-`;
-
-const expectedInlinedUseEffect = `
-import { useState, useEffect } from 'react';
-
-function App() {
-  const [seconds, setSeconds] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setSeconds(s => s + 1);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [1000]);
-
-  return <div>Seconds: {seconds}</div>;
 }
 `;
 
@@ -234,39 +201,6 @@ function App() {
   };
 
   return <SearchBox onSearch={handleSearch} />;
-}
-`;
-
-// Phase 3: Cross-File Components
-const buttonComponentFile = `
-export function Button({ label, onClick }) {
-  return <button onClick={onClick}>{label}</button>;
-}
-`;
-
-const appFileUsingButton = `
-import { Button } from './Button';
-
-function App() {
-  const handleClick = () => console.log('clicked');
-  return (
-    <div>
-      <h1>My App</h1>
-      <Button label="Click me" onClick={handleClick} />
-    </div>
-  );
-}
-`;
-
-const expectedCrossFileInlined = `
-function App() {
-  const handleClick = () => console.log('clicked');
-  return (
-    <div>
-      <h1>My App</h1>
-      <button onClick={handleClick}>{"Click me"}</button>
-    </div>
-  );
 }
 `;
 
@@ -422,7 +356,6 @@ describe('ComponentInliner - Phase 1: Simple Components', () => {
       // Verify hooks are merged correctly
       const output = generate(result.ast, { retainLines: false, compact: false });
       const actual = normalizeCode(output.code);
-      const expected = normalizeCode(expectedInlinedUseState);
 
       // Should have useState in App
       expect(actual).toContain('useState');

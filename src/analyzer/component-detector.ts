@@ -7,8 +7,13 @@
  * Phase 1: Simple component detection (no props, no hooks)
  */
 
+import traverseModule from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
-import traverse from '@babel/traverse';
+
+import { loadTraverseFunction } from '../utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 /**
  * Component classification based on complexity
@@ -65,7 +70,7 @@ export function findComponentDefinition(
 
   traverse(ast, {
     // Handle function declarations: function MyComponent() { ... }
-    FunctionDeclaration(path) {
+    FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
       const node = path.node;
       if (node.id?.name === componentName) {
         // Check if it returns JSX
@@ -128,10 +133,7 @@ function detectHooks(body: t.BlockStatement): HookInfo[] {
     // e.g., const [state, setState] = useState(0);
     if (statement.type === 'VariableDeclaration') {
       for (const declarator of statement.declarations) {
-        if (
-          declarator.init &&
-          declarator.init.type === 'CallExpression'
-        ) {
+        if (declarator.init?.type === 'CallExpression') {
           const callExpr = declarator.init;
           const callee = callExpr.callee;
 

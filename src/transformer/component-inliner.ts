@@ -19,9 +19,9 @@ import {
   substituteDependencies,
   insertHooksIntoParent,
 } from '../strategies/hook-merger.js';
+import { loadTraverseFunction } from '../utils/index.js';
 
 import { extractPropsFromElement, substituteProps } from './prop-substituter.js';
-import { loadTraverseFunction } from '../utils/index.js';
 
 const traverse = loadTraverseFunction(traverseModule);
 

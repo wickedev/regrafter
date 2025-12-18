@@ -11,6 +11,7 @@
 
 import type * as t from '@babel/types';
 import * as t_factory from '@babel/types';
+
 import type { HookInfo } from '../analyzer/component-detector.js';
 import type { PropMapping } from '../transformer/prop-substituter.js';
 
@@ -151,18 +152,27 @@ function visitExpressionForDeps(expr: t.Expression, propMapping: PropMapping): v
       // Second argument is the dependency array
       if (expr.arguments.length >= 2) {
         const depsArg = expr.arguments[1];
-        if (depsArg && depsArg.type === 'ArrayExpression') {
-          // Substitute each dependency
-          for (let i = 0; i < depsArg.elements.length; i++) {
-            const element = depsArg.elements[i];
-            if (element && element.type === 'Identifier') {
-              const propValue = propMapping.get(element.name);
-              if (propValue) {
-                depsArg.elements[i] = t_factory.cloneNode(propValue, true);
-              }
-            }
-          }
+        if (depsArg?.type === 'ArrayExpression') {
+          substituteDependencyArray(depsArg, propMapping);
         }
+      }
+    }
+  }
+}
+
+/**
+ * Substitute prop references in a dependency array
+ */
+function substituteDependencyArray(
+  depsArg: t.ArrayExpression,
+  propMapping: PropMapping
+): void {
+  for (let i = 0; i < depsArg.elements.length; i++) {
+    const element = depsArg.elements[i];
+    if (element?.type === 'Identifier') {
+      const propValue = propMapping.get(element.name);
+      if (propValue) {
+        depsArg.elements[i] = t_factory.cloneNode(propValue, true);
       }
     }
   }

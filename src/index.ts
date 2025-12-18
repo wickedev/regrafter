@@ -229,9 +229,6 @@ import type * as t from '@babel/types';
 import * as t_factory from '@babel/types';
 
 import { findComponentDefinition } from './analyzer/component-detector.js';
-import { loadTraverseFunction } from './utils/index.js';
-
-const traverse = loadTraverseFunction(traverseModule);
 import { DependencyAnalyzer, createMoveAnalysisBuilder, validateMoveOperation } from './analyzer/index.js';
 import type { MoveValidationResult } from './analyzer/index.js';
 import {
@@ -265,6 +262,9 @@ import {
 } from './types/index.js';
 import type { Code, FileInput, MoveAnalysis, Move, Options, Selector, SuggestedFix } from './types/index.js';
 import type { ScopeInfo } from './types/internal.js';
+import { loadTraverseFunction } from './utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 /**
  * Main entry point for the regraft operation.
@@ -1200,11 +1200,13 @@ export interface InlineResult {
 }
 
 /**
- * Options for component inline operation
+ * Component specification for inline operation
  */
-export interface InlineOptions {
-  /** Optional file path to specify which file contains the component to inline */
-  fromFile?: string;
+export interface Component {
+  /** File path containing the component definition */
+  file: string;
+  /** Name of the component to inline */
+  name: string;
 }
 
 /**
@@ -1220,8 +1222,7 @@ export interface InlineOptions {
  * - Prop substitution as inline expressions
  *
  * @param files - Array of file inputs with path and content
- * @param componentName - Name of the component to inline
- * @param options - Optional configuration for inline operation
+ * @param component - Component specification with file path and name
  * @returns Result containing transformed codes and inline count, or error
  *
  * @example
@@ -1238,7 +1239,7 @@ export interface InlineOptions {
  *   `
  * }];
  *
- * const result = inline(files, 'Greeting');
+ * const result = inline(files, { file: 'App.tsx', name: 'Greeting' });
  *
  * if (result.ok) {
  *   console.log('Inlined:', result.value.inlinedCount, 'instances');
@@ -1250,8 +1251,7 @@ export interface InlineOptions {
  */
 export function inline(
   files: FileInput[],
-  componentName: string,
-  options?: InlineOptions
+  component: Component
 ): Result<InlineResult, RegraffError> {
   try {
     // Validate inputs
@@ -1264,12 +1264,21 @@ export function inline(
       }));
     }
 
-    if (componentName.trim() === '') {
+    if (component.name.trim() === '') {
       return err(createValidationError({
         code: 'EMPTY_INPUT',
         message: 'Component name cannot be empty',
         constraint: 'non_empty_string',
-        details: 'The componentName parameter must be a non-empty string',
+        details: 'The component.name parameter must be a non-empty string',
+      }));
+    }
+
+    if (component.file.trim() === '') {
+      return err(createValidationError({
+        code: 'EMPTY_INPUT',
+        message: 'Component file path cannot be empty',
+        constraint: 'non_empty_string',
+        details: 'The component.file parameter must be a non-empty string',
       }));
     }
 
@@ -1288,9 +1297,9 @@ export function inline(
     }
 
     // Phase 3: Cross-file support
-    // Step 1: Find the file containing the component definition and clone it
-    let componentFile: string | null = null;
-    let componentDefAst: t.File | null = null;
+    // Step 1: Find the component definition in the specified file and clone it
+    const componentFile = component.file;
+    const componentName = component.name;
 
     // Helper function to clone AST
     const cloneAst = (ast: t.File, filePath: string): Result<t.File, RegraffError> => {
@@ -1305,84 +1314,34 @@ export function inline(
       return ok(parseResult.value);
     };
 
-    // If fromFile option is specified, only search in that file
-    if (options?.fromFile !== undefined && options.fromFile !== '') {
-      const targetFile = options.fromFile;
-      const ast = parsedFiles.get(targetFile);
-
-      if (!ast) {
-        return err(createValidationError({
-          code: 'ELEMENT_NOT_FOUND',
-          message: `Component '${componentName}' not found in file '${targetFile}'`,
-          constraint: 'element_exists',
-          details: `The specified file '${targetFile}' does not exist in the files array`,
-        }));
-      }
-
-      const componentInfo = findComponentDefinition(ast, componentName);
-      if (!componentInfo) {
-        return err(createValidationError({
-          code: 'ELEMENT_NOT_FOUND',
-          message: `Component '${componentName}' not found in file '${targetFile}'`,
-          constraint: 'element_exists',
-          details: `The component '${componentName}' could not be found in the specified file '${targetFile}'`,
-        }));
-      }
-
-      componentFile = targetFile;
-      const cloneResult = cloneAst(ast, targetFile);
-      if (isErr(cloneResult)) {
-        return err(cloneResult.error);
-      }
-      componentDefAst = cloneResult.value;
-    } else {
-      // Original behavior: search all files
-      // First, find all files that contain the component
-      const filesWithComponent: string[] = [];
-      for (const [filePath, ast] of parsedFiles.entries()) {
-        const componentInfo = findComponentDefinition(ast, componentName);
-        if (componentInfo) {
-          filesWithComponent.push(filePath);
-        }
-      }
-
-      if (filesWithComponent.length === 0) {
-        return err(createValidationError({
-          code: 'ELEMENT_NOT_FOUND',
-          message: `Component '${componentName}' not found in any file`,
-          constraint: 'element_exists',
-          details: `The component '${componentName}' could not be found in the provided files`,
-        }));
-      }
-
-      if (filesWithComponent.length > 1) {
-        return err(createValidationError({
-          code: 'AMBIGUOUS_COMPONENT',
-          message: `Component '${componentName}' found in multiple files: ${filesWithComponent.join(', ')}. Please specify 'fromFile' option to disambiguate.`,
-          constraint: 'unique_component',
-          details: `Multiple files contain a component named '${componentName}'. Use the 'fromFile' option to specify which file to inline from.`,
-        }));
-      }
-
-      // Exactly one file contains the component
-      componentFile = filesWithComponent[0]!;
-      const ast = parsedFiles.get(componentFile);
-      if (!ast) {
-        // This should never happen since we just found it
-        return err(createValidationError({
-          code: 'ELEMENT_NOT_FOUND',
-          message: `Component '${componentName}' not found in any file`,
-          constraint: 'element_exists',
-          details: `The component '${componentName}' could not be found in the provided files`,
-        }));
-      }
-
-      const cloneResult = cloneAst(ast, componentFile);
-      if (isErr(cloneResult)) {
-        return err(cloneResult.error);
-      }
-      componentDefAst = cloneResult.value;
+    // Get the AST for the specified file
+    const ast = parsedFiles.get(componentFile);
+    if (!ast) {
+      return err(createValidationError({
+        code: 'ELEMENT_NOT_FOUND',
+        message: `Component '${componentName}' not found in file '${componentFile}'`,
+        constraint: 'element_exists',
+        details: `The specified file '${componentFile}' does not exist in the files array`,
+      }));
     }
+
+    // Find the component in the specified file
+    const componentInfo = findComponentDefinition(ast, componentName);
+    if (!componentInfo) {
+      return err(createValidationError({
+        code: 'ELEMENT_NOT_FOUND',
+        message: `Component '${componentName}' not found in file '${componentFile}'`,
+        constraint: 'element_exists',
+        details: `The component '${componentName}' could not be found in the specified file '${componentFile}'`,
+      }));
+    }
+
+    // Clone the AST for use in inlining
+    const cloneResult = cloneAst(ast, componentFile);
+    if (isErr(cloneResult)) {
+      return err(cloneResult.error);
+    }
+    const componentDefAst = cloneResult.value;
 
     // Step 2: Inline the component in all files (including the definition file)
     let totalInlinedCount = 0;

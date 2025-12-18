@@ -32,7 +32,7 @@ describe('inline() API', () => {
       ];
 
       // ACT
-      const result = inline(files, 'Greeting');
+      const result = inline(files, { file: 'App.tsx', name: 'Greeting' });
 
       // ASSERT
       expect(result.ok).toBe(true);
@@ -68,7 +68,7 @@ describe('inline() API', () => {
       ];
 
       // ACT
-      const result = inline(files, 'Greeting');
+      const result = inline(files, { file: 'App.tsx', name: 'Greeting' });
 
       // ASSERT
       expect(result.ok).toBe(true);
@@ -104,7 +104,7 @@ describe('inline() API', () => {
       ];
 
       // ACT
-      const result = inline(files, 'Button');
+      const result = inline(files, { file: 'App.tsx', name: 'Button' });
 
       // ASSERT
       expect(result.ok).toBe(true);
@@ -141,7 +141,7 @@ describe('inline() API', () => {
       ];
 
       // ACT
-      const result = inline(files, 'Greeting');
+      const result = inline(files, { file: 'App.tsx', name: 'Greeting' });
 
       // ASSERT
       expect(result.ok).toBe(true);
@@ -158,7 +158,7 @@ describe('inline() API', () => {
   describe('Error Cases', () => {
     it('should return error for empty files array', () => {
       // ACT
-      const result = inline([], 'Greeting');
+      const result = inline([], { file: 'App.tsx', name: 'Greeting' });
 
       // ASSERT
       expect(result.ok).toBe(false);
@@ -173,7 +173,7 @@ describe('inline() API', () => {
       const files = [{ path: 'App.tsx', content: 'function App() { return <div />; }' }];
 
       // ACT
-      const result = inline(files, '');
+      const result = inline(files, { file: 'App.tsx', name: '' });
 
       // ASSERT
       expect(result.ok).toBe(false);
@@ -197,7 +197,7 @@ describe('inline() API', () => {
       ];
 
       // ACT
-      const result = inline(files, 'NonExistent');
+      const result = inline(files, { file: 'App.tsx', name: 'NonExistent' });
 
       // ASSERT
       expect(result.ok).toBe(false);
@@ -217,7 +217,7 @@ describe('inline() API', () => {
       ];
 
       // ACT
-      const result = inline(files, 'App');
+      const result = inline(files, { file: 'App.tsx', name: 'App' });
 
       // ASSERT
       expect(result.ok).toBe(false);
@@ -233,7 +233,7 @@ describe('inline() API', () => {
       const files = [{ path: 'App.tsx', content: 'function Greeting() { return <div />; } function App() { return <Greeting />; }' }];
 
       // ACT
-      const result = inline(files, 'Greeting');
+      const result = inline(files, { file: 'App.tsx', name: 'Greeting' });
 
       // ASSERT
       expect(result).toHaveProperty('ok');
@@ -249,7 +249,7 @@ describe('inline() API', () => {
       const files = [{ path: 'App.tsx', content: 'function App() {}' }];
 
       // ACT
-      const result = inline(files, 'Missing');
+      const result = inline(files, { file: 'App.tsx', name: 'Missing' });
 
       // ASSERT
       expect(result.ok).toBe(false);
@@ -273,7 +273,7 @@ describe('inline() API', () => {
       ];
 
       // ACT
-      const result = inline(files, 'Button');
+      const result = inline(files, { file: 'App.tsx', name: 'Button' });
 
       // ASSERT
       expect(result.ok).toBe(true);
@@ -297,7 +297,7 @@ describe('inline() API', () => {
       ];
 
       // ACT
-      const result = inline(files, 'Button');
+      const result = inline(files, { file: 'Button.tsx', name: 'Button' });
 
       // ASSERT
       expect(result.ok).toBe(true);
@@ -335,7 +335,7 @@ describe('inline() API', () => {
       ];
 
       // ACT
-      const result = inline(files, 'Button');
+      const result = inline(files, { file: 'Button.tsx', name: 'Button' });
 
       // ASSERT
       expect(result.ok).toBe(true);
@@ -392,7 +392,7 @@ describe('inline() API', () => {
       ];
 
       // ACT
-      const result = inline(files, 'Button');
+      const result = inline(files, { file: 'Button.tsx', name: 'Button' });
 
       // ASSERT
       expect(result.ok).toBe(true);
@@ -411,51 +411,7 @@ describe('inline() API', () => {
     });
   });
 
-  describe('fromFile Option', () => {
-    it('should return error when duplicate component names exist without fromFile option', () => {
-      // ARRANGE - Two files with same component name "Greeting"
-      const files = [
-        {
-          path: 'components/Greeting.tsx',
-          content: `
-            export function Greeting() {
-              return <div>Hello from components</div>;
-            }
-          `,
-        },
-        {
-          path: 'shared/Greeting.tsx',
-          content: `
-            export function Greeting() {
-              return <div>Hello from shared</div>;
-            }
-          `,
-        },
-        {
-          path: 'App.tsx',
-          content: `
-            import { Greeting } from './components/Greeting';
-
-            function App() {
-              return <Greeting />;
-            }
-          `,
-        },
-      ];
-
-      // ACT - Try to inline without specifying fromFile
-      const result = inline(files, 'Greeting');
-
-      // ASSERT
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(result.error.code).toBe('AMBIGUOUS_COMPONENT');
-        expect(result.error.message).toContain("Component 'Greeting' found in multiple files");
-        expect(result.error.message).toContain('components/Greeting.tsx');
-        expect(result.error.message).toContain('shared/Greeting.tsx');
-      }
-    });
-
+  describe('Explicit File Specification', () => {
     it('should inline component from specified file when duplicate names exist', () => {
       // ARRANGE - Two files with same component name "Greeting"
       const files = [
@@ -488,7 +444,7 @@ describe('inline() API', () => {
       ];
 
       // ACT - Specify to inline from 'components/Greeting.tsx'
-      const result = inline(files, 'Greeting', { fromFile: 'components/Greeting.tsx' });
+      const result = inline(files, { file: 'components/Greeting.tsx', name: 'Greeting' });
 
       // ASSERT
       expect(result.ok).toBe(true);
@@ -517,7 +473,7 @@ describe('inline() API', () => {
       }
     });
 
-    it('should return error when fromFile is specified but component not found in that file', () => {
+    it('should return error when component not found in specified file', () => {
       // ARRANGE
       const files = [
         {
@@ -541,7 +497,7 @@ describe('inline() API', () => {
       ];
 
       // ACT - Try to inline from wrong file
-      const result = inline(files, 'Button', { fromFile: 'other/Button.tsx' });
+      const result = inline(files, { file: 'other/Button.tsx', name: 'Button' });
 
       // ASSERT
       expect(result.ok).toBe(false);
