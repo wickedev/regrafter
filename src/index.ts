@@ -244,6 +244,9 @@ import { parseFile } from './parser/parse-file.js';
 import { ok, err, isErr, type Result } from './result/index.js';
 import { createScopeManager } from './scope/index.js';
 import type { ScopeManager } from './scope/index.js';
+import { ComponentInliner } from './transformer/component-inliner.js';
+import type { InlineResult as InlinerResult } from './transformer/component-inliner.js';
+import { findComponentDefinition } from './analyzer/component-detector.js';
 import { createSelectorResolver } from './selector/index.js';
 import type { ElementData } from './selector/index.js';
 import { createCrossFileContext, executeCrossFileTransform } from './strategies/cross-file/index.js';
@@ -1179,4 +1182,228 @@ function executeTransformation(
       operation: 'transformation',
     });
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Component Inlining API
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Result of a component inline operation
+ */
+export interface InlineResult {
+  /** Array of file contents with inlined components */
+  codes: Code[];
+  /** Number of component instances inlined */
+  inlinedCount: number;
+}
+
+/**
+ * Inline a React component by replacing its usage with its implementation.
+ *
+ * This function finds a component definition by name and replaces all usages
+ * with the component's implementation, performing prop substitution inline.
+ * The original component definition is removed.
+ *
+ * Phase 1 supports:
+ * - Simple presentational components
+ * - Components with props (destructured parameters)
+ * - Prop substitution as inline expressions
+ *
+ * @param files - Array of file inputs with path and content
+ * @param componentName - Name of the component to inline
+ * @returns Result containing transformed codes and inline count, or error
+ *
+ * @example
+ * ```typescript
+ * const files = [{
+ *   path: 'App.tsx',
+ *   content: `
+ *     function Greeting({ name }) {
+ *       return <div>Hello {name}</div>;
+ *     }
+ *     function App() {
+ *       return <Greeting name="World" />;
+ *     }
+ *   `
+ * }];
+ *
+ * const result = inline(files, 'Greeting');
+ *
+ * if (result.ok) {
+ *   console.log('Inlined:', result.value.inlinedCount, 'instances');
+ *   console.log('Output:', result.value.codes[0].content);
+ * } else {
+ *   console.error('Error:', result.error.message);
+ * }
+ * ```
+ */
+export function inline(
+  files: FileInput[],
+  componentName: string
+): Result<InlineResult, RegraffError> {
+  try {
+    // Validate inputs
+    if (!files || files.length === 0) {
+      return err(createValidationError({
+        code: 'EMPTY_INPUT',
+        message: 'No files provided',
+        constraint: 'non_empty_array',
+        details: 'The files array cannot be empty',
+      }));
+    }
+
+    if (!componentName || componentName.trim() === '') {
+      return err(createValidationError({
+        code: 'EMPTY_INPUT',
+        message: 'Component name cannot be empty',
+        constraint: 'non_empty_string',
+        details: 'The componentName parameter must be a non-empty string',
+      }));
+    }
+
+    // Create required instances
+    const generator = new CodeGenerator();
+    const inliner = new ComponentInliner();
+
+    // Parse all files
+    const parsedFiles = new Map<string, t.File>();
+    for (const file of files) {
+      const parseResult = parseFile(file.path, file.content);
+      if (isErr(parseResult)) {
+        return err(parseResult.error);
+      }
+      parsedFiles.set(file.path, parseResult.value);
+    }
+
+    // Phase 3: Cross-file support
+    // Step 1: Find the file containing the component definition and clone it
+    let componentFile: string | null = null;
+    let componentDefAst: t.File | null = null;
+
+    for (const [filePath, ast] of parsedFiles.entries()) {
+      // Check if this file contains the component definition
+      const componentInfo = findComponentDefinition(ast, componentName);
+      if (componentInfo) {
+        componentFile = filePath;
+        // Clone the AST so we preserve the original component definition
+        const generateResult = generator.generate(ast);
+        if (isErr(generateResult)) {
+          return err(generateResult.error);
+        }
+        const parseResult = parseFile(filePath, generateResult.value.code);
+        if (isErr(parseResult)) {
+          return err(parseResult.error);
+        }
+        componentDefAst = parseResult.value;
+        break;
+      }
+    }
+
+    if (!componentFile || !componentDefAst) {
+      return err(createValidationError({
+        code: 'ELEMENT_NOT_FOUND',
+        message: `Component '${componentName}' not found in any file`,
+        constraint: 'element_exists',
+        details: `The component '${componentName}' could not be found in the provided files`,
+      }));
+    }
+
+    // Step 2: Inline the component in all files (including the definition file)
+    let totalInlinedCount = 0;
+    const usageFiles: Set<string> = new Set();
+    const modifiedAsts = new Map<string, t.File>();
+
+    for (const [filePath, ast] of parsedFiles.entries()) {
+      // Pass componentDefAst for all files (including definition file)
+      // ComponentInliner will handle finding component in cross-file scenario
+      const result = inliner.inline(ast, componentName, componentDefAst);
+
+      if (result.success && result.inlinedCount > 0) {
+        // This file had usages that were inlined
+        usageFiles.add(filePath);
+        totalInlinedCount += result.inlinedCount;
+        modifiedAsts.set(filePath, result.ast);
+
+        // Remove import statement for the component if it exists
+        removeImportForComponent(result.ast, componentName);
+      } else if (result.success) {
+        // Component was found but no usages (definition file)
+        modifiedAsts.set(filePath, result.ast);
+      } else {
+        // No changes to this file
+        modifiedAsts.set(filePath, ast);
+      }
+    }
+
+    // Generate code for all files
+    const codes: Code[] = [];
+    for (const file of files) {
+      const ast = modifiedAsts.get(file.path) || parsedFiles.get(file.path);
+      if (!ast) {
+        codes.push({
+          file: file.path,
+          content: file.content,
+          changed: false,
+        });
+        continue;
+      }
+
+      const generateResult = generator.generate(ast);
+      if (isErr(generateResult)) {
+        return err(generateResult.error);
+      }
+
+      // File is changed if:
+      // 1. It contained the component definition (componentFile)
+      // 2. It had usages that were inlined (usageFiles)
+      const changed = file.path === componentFile || usageFiles.has(file.path);
+
+      codes.push({
+        file: file.path,
+        content: generateResult.value.code,
+        changed,
+      });
+    }
+
+    return ok({
+      codes,
+      inlinedCount: totalInlinedCount,
+    });
+  } catch (error) {
+    return createErrorFromException(error, {
+      file: files[0]?.path,
+      operation: 'inline',
+    });
+  }
+}
+
+/**
+ * Helper function to remove import statements for an inlined component
+ */
+function removeImportForComponent(ast: t.File, componentName: string): void {
+  traverseModule(ast, {
+    ImportDeclaration(path) {
+      const specifiers = path.node.specifiers;
+
+      // Remove the specifier for the component
+      const filteredSpecifiers = specifiers.filter(spec => {
+        if (spec.type === 'ImportSpecifier') {
+          const imported = spec.imported;
+          if (imported.type === 'Identifier' && imported.name === componentName) {
+            return false; // Remove this specifier
+          }
+        }
+        return true; // Keep other specifiers
+      });
+
+      // If no specifiers left, remove the entire import declaration
+      if (filteredSpecifiers.length === 0) {
+        path.remove();
+      } else if (filteredSpecifiers.length < specifiers.length) {
+        // Update specifiers if some were removed
+        path.node.specifiers = filteredSpecifiers;
+      }
+    },
+  });
 }

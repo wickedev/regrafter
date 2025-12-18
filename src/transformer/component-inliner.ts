@@ -10,7 +10,14 @@
 import type * as t from '@babel/types';
 import traverse from '@babel/traverse';
 import * as t_factory from '@babel/types';
-import { findComponentDefinition, type ComponentInfo } from '../analyzer/component-detector.js';
+import { findComponentDefinition, type ComponentInfo, ComponentComplexity } from '../analyzer/component-detector.js';
+import { extractPropsFromElement, substituteProps } from './prop-substituter.js';
+import {
+  extractHookStatements,
+  removeHookStatements,
+  substituteDependencies,
+  insertHooksIntoParent,
+} from '../strategies/hook-merger.js';
 
 /**
  * Result of an inline operation
@@ -36,13 +43,22 @@ export class ComponentInliner {
   /**
    * Inline a component by name
    *
-   * @param ast - The AST to transform
+   * @param ast - The AST to transform (usage file)
    * @param componentName - Name of the component to inline
+   * @param componentDefAst - Optional AST containing component definition (for cross-file)
    * @returns Result of the inline operation
    */
-  inline(ast: t.File, componentName: string): InlineResult {
+  inline(ast: t.File, componentName: string, componentDefAst?: t.File): InlineResult {
     // Step 1: Find the component definition
-    const componentInfo = findComponentDefinition(ast, componentName);
+    // First try in the provided componentDefAst (cross-file case)
+    let componentInfo = componentDefAst
+      ? findComponentDefinition(componentDefAst, componentName)
+      : null;
+
+    // If not found and no componentDefAst provided, try in the same file
+    if (!componentInfo) {
+      componentInfo = findComponentDefinition(ast, componentName);
+    }
 
     if (!componentInfo) {
       return {
@@ -53,6 +69,7 @@ export class ComponentInliner {
       };
     }
 
+
     if (!componentInfo.isInlineable) {
       return {
         success: false,
@@ -62,9 +79,26 @@ export class ComponentInliner {
       };
     }
 
-    // Step 2: Find all usages and replace with implementation
+    // Step 2: Extract hooks if component has them
+    const hasHooks = componentInfo.complexity === ComponentComplexity.WithHooks;
+    let hookStatements: t.Statement[] = [];
+    let componentBodyNode = componentInfo.node.body;
+
+    if (hasHooks && componentInfo.hooks && componentInfo.hooks.length > 0) {
+      // Extract hook statements
+      hookStatements = extractHookStatements(componentBodyNode, componentInfo.hooks);
+
+      // Remove hooks from component body to get just the JSX part
+      componentBodyNode = removeHookStatements(componentBodyNode, componentInfo.hooks);
+    }
+
+    // Step 3: Find all usages and replace with implementation
     let inlinedCount = 0;
-    const componentBody = this.extractComponentBody(componentInfo.node);
+    let parentFunctionPath: any = null;
+    const componentBody = this.extractComponentBody({
+      ...componentInfo.node,
+      body: componentBodyNode,
+    } as t.FunctionDeclaration);
 
     if (!componentBody) {
       return {
@@ -82,8 +116,51 @@ export class ComponentInliner {
 
         // Check if this is a usage of our component
         if (t_factory.isJSXIdentifier(name) && name.name === componentName) {
-          // Replace the component usage with its implementation
-          path.replaceWith(t_factory.cloneNode(componentBody, true));
+
+          // Step 3a: Extract props from the call site
+          const propMapping = extractPropsFromElement(path.node);
+
+          // Step 3b: If component has hooks, substitute props in dependency arrays
+          let finalHookStatements = hookStatements;
+          if (hasHooks && propMapping.size > 0) {
+            finalHookStatements = substituteDependencies(hookStatements, propMapping);
+          }
+
+          // Step 3c: Insert hooks into parent function (if any)
+          if (hasHooks && finalHookStatements.length > 0 && !parentFunctionPath) {
+            // Find the parent function
+            let currentPath = path;
+            while (currentPath.parentPath) {
+              currentPath = currentPath.parentPath;
+              if (
+                currentPath.isFunctionDeclaration() ||
+                currentPath.isFunctionExpression() ||
+                currentPath.isArrowFunctionExpression()
+              ) {
+                parentFunctionPath = currentPath;
+                break;
+              }
+            }
+
+            if (parentFunctionPath && parentFunctionPath.node.body.type === 'BlockStatement') {
+              const newBody = insertHooksIntoParent(
+                parentFunctionPath.node.body,
+                finalHookStatements
+              );
+              parentFunctionPath.node.body = newBody;
+            }
+          }
+
+          // Step 3d: Substitute props in the component body
+          let inlinedBody: t.JSXElement;
+          if (propMapping.size > 0) {
+            inlinedBody = substituteProps(componentBody, propMapping);
+          } else {
+            inlinedBody = t_factory.cloneNode(componentBody, true);
+          }
+
+          // Step 3e: Replace the component usage with its implementation
+          path.replaceWith(inlinedBody);
           inlinedCount++;
         }
       },
