@@ -582,7 +582,7 @@ export class ContextHandler implements IContextHandler {
       const init = (node).init;
       if (init?.type === 'CallExpression' && init.arguments.length > 0) {
         const arg = init.arguments[0];
-        if (arg !== undefined && arg.type === 'Identifier') {
+        if (arg?.type === 'Identifier') {
           return arg.name;
         }
       }

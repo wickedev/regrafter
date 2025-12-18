@@ -556,7 +556,7 @@ export class JSXTransformer {
 
     // Check for array expressions (map results)
     if (t.isArrayExpression(node)) {
-      return node.elements.some((el) => el && this.isJSXExpression(el));
+      return node.elements.some((el) => el !== null && this.isJSXExpression(el));
     }
 
     return false;
@@ -938,7 +938,8 @@ export class JSXTransformer {
     }
 
     // If not an expression, convert to JSXText as last resort
-    return t.jsxText(String(node));
+    // Use node.type to avoid Object.toString() issues
+    return t.jsxText(node.type);
   }
 
   /**

@@ -388,7 +388,7 @@ export class SinkAnalyzer implements ISinkAnalyzer {
         ) {
           const topScope = scopeStack[scopeStack.length - 1];
           // Only pop if this path matches the current scope's path
-          if (topScope !== undefined && topScope.path === path) {
+          if (topScope?.path === path) {
             scopeStack.pop();
             const newCurrentScope = scopeStack[scopeStack.length - 1];
             currentScope = newCurrentScope ?? rootScope;
@@ -485,7 +485,7 @@ export class SinkAnalyzer implements ISinkAnalyzer {
 
     // Check if used as a prop
     const parentPath = path.parentPath;
-    if (parentPath !== null && parentPath.isJSXAttribute()) {
+    if (parentPath?.isJSXAttribute() === true) {
       return 'prop';
     }
 

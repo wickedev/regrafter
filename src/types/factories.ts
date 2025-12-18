@@ -691,7 +691,7 @@ export function createDependencyAnalysis(
     needsPropThreading: params?.needsPropThreading ?? [],
     canResolve: params?.canResolve ?? true,
     unresolvedReason: params?.unresolvedReason,
-    dependencyPaths: params?.dependencyPaths ?? new Map(),
+    dependencyPaths: params?.dependencyPaths ?? new Map<string, NodePath>(),
   };
 }
 

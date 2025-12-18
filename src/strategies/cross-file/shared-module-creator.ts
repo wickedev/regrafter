@@ -470,7 +470,7 @@ export function updateSourceFileReferences(
   let lastImportIndex = -1;
   for (let i = 0; i < clonedAst.program.body.length; i++) {
     const node = clonedAst.program.body[i];
-    if (node && node.type === 'ImportDeclaration') {
+    if (node?.type === 'ImportDeclaration') {
       lastImportIndex = i;
     }
   }
@@ -718,7 +718,7 @@ export function addImportsToAst(
   let insertIndex = 0;
   for (let i = 0; i < clonedAst.program.body.length; i++) {
     const node = clonedAst.program.body[i];
-    if (node && node.type === 'ImportDeclaration') {
+    if (node?.type === 'ImportDeclaration') {
       insertIndex = i + 1;
     }
   }

@@ -55,9 +55,7 @@ export class HoistExecutor {
     }
 
     // Initialize insertion index tracking
-    if (!context.insertionIndices) {
-      context.insertionIndices = new Map();
-    }
+    context.insertionIndices ??= new Map();
 
     // Execute hoisting operations first (move declarations)
     for (const operation of plan.hoistOperations) {
@@ -159,7 +157,7 @@ export class HoistExecutor {
 
     // Get or initialize insertion index for this scope
     const scopeId = operation.toScope;
-    const insertionIndices = context.insertionIndices ?? new Map();
+    const insertionIndices = context.insertionIndices ?? new Map<string, number>();
     const currentIndex = insertionIndices.get(scopeId) ?? 0;
 
     // For function/component scopes, insert at the tracked position

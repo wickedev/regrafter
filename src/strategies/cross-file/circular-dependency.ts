@@ -140,16 +140,12 @@ export function addImportEdge(
   addFileToGraph(graph, normalizedFrom);
   addFileToGraph(graph, normalizedTo);
 
-  // Add edges
-  const fromImports = graph.imports.get(normalizedFrom);
-  const toImportedBy = graph.importedBy.get(normalizedTo);
+  // Add edges - guaranteed to exist after addFileToGraph
+  const fromImports = getGraphSet(graph.imports, normalizedFrom);
+  const toImportedBy = getGraphSet(graph.importedBy, normalizedTo);
 
-  if (fromImports) {
-    fromImports.add(normalizedTo);
-  }
-  if (toImportedBy) {
-    toImportedBy.add(normalizedFrom);
-  }
+  fromImports.add(normalizedTo);
+  toImportedBy.add(normalizedFrom);
 
   // Add detailed edge
   graph.edges.push({
@@ -248,6 +244,19 @@ function resolveImportPath(fromFile: string, importPath: string): string {
  */
 function normalizePath(filePath: string): string {
   return filePath.replace(/^\.\//, '').replace(/\\/g, '/');
+}
+
+/**
+ * Helper to get a Set from a Map, guaranteed to exist after addFileToGraph.
+ * Returns empty Set if key doesn't exist (defensive programming).
+ */
+function getGraphSet(map: Map<string, Set<string>>, key: string): Set<string> {
+  const value = map.get(key);
+  if (value === undefined) {
+    // Key should exist after addFileToGraph, but return empty Set defensively
+    return new Set<string>();
+  }
+  return value;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

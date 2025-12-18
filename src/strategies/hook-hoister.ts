@@ -120,6 +120,7 @@ export class HookHoister implements IHookHoister {
         break;
 
       case HookCategory.Custom:
+      case HookCategory.Other:
       default:
         operation = this.createCustomHookOperation(dependency, context, validScope);
         needsBackwardReference = hookInfo.destructuredNames.length > 0;

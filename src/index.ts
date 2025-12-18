@@ -224,7 +224,6 @@ export {
 import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
-import { loadTraverseFunction } from './utils/index.js';
 
 const traverse = loadTraverseFunction(traverseModule);
 
@@ -235,14 +234,14 @@ import {
   createErrorFromException,
 } from './api/result-helpers.js';
 import type { TransformedCode } from './api/types.js';
-import type { RegraffError } from './errors/index.js';
+import type { RegraffError, SelectorErrorType } from './errors/index.js';
 import { CodeGenerator } from './generator/code-generator.js';
 import { createOptimizer } from './optimizer/optimizer.js';
 import type { OptimizeOptions } from './optimizer/types.js';
 import { parseFile } from './parser/parse-file.js';
 import { isErr, type Result } from './result/index.js';
-import { createScopeManager } from './scope/index.js';
-import { createSelectorResolver } from './selector/index.js';
+import { createScopeManager, type ScopeManager } from './scope/index.js';
+import { createSelectorResolver, type ElementData } from './selector/index.js';
 import { createCrossFileContext, executeCrossFileTransform } from './strategies/cross-file/index.js';
 import type { HoistExecutionContext } from './strategies/hoist-executor.js';
 import { createConfiguredHoistPlanner, createHoistExecutor } from './strategies/index.js';
@@ -256,6 +255,7 @@ import {
   createAnalysisStats,
   createSuggestedFix,
 } from './types/index.js';
+import { loadTraverseFunction } from './utils/index.js';
 
 /**
  * Main entry point for the regraft operation.
@@ -432,13 +432,13 @@ export function move(
   }
 
   // Resolve selectors
-  let sourceResult = resolver.resolveResult(from, sourceAst);
+  const sourceResult = resolver.resolveResult(from, sourceAst);
   if (isErr(sourceResult)) {
     const error = sourceResult.error;
     throw new Error(`Failed to resolve source: ${error.message}`);
   }
 
-  let targetResult = resolver.resolveResult(to, targetAst);
+  const targetResult = resolver.resolveResult(to, targetAst);
   if (isErr(targetResult)) {
     const error = targetResult.error;
     throw new Error(`Failed to resolve target: ${error.message}`);
@@ -577,6 +577,133 @@ function executeCrossFileMove(
 }
 
 /**
+ * Parse all files and return AST map
+ */
+function parseAllFiles(files: FileInput[]): Map<string, t.File> {
+  const parsedFiles = new Map<string, t.File>();
+  for (const file of files) {
+    const result = parseFile(file.path, file.content);
+    if (isErr(result)) {
+      throw new Error(`Failed to parse ${file.path}: ${result.error.message}`);
+    }
+    parsedFiles.set(file.path, result.value);
+  }
+  return parsedFiles;
+}
+
+/**
+ * Build scope paths map for hoisting
+ */
+function buildScopePaths(
+  ast: t.File,
+  scopeManager: ScopeManager
+): Map<string, NodePath> {
+  const scopePaths = new Map<string, NodePath>();
+
+  traverse(ast, {
+    FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
+      const scope = scopeManager.getScopeForPath(path);
+      if (scope) {
+        scopePaths.set(scope.id, path);
+      }
+    },
+    FunctionExpression(path: NodePath<t.FunctionExpression>) {
+      const scope = scopeManager.getScopeForPath(path);
+      if (scope) {
+        scopePaths.set(scope.id, path);
+      }
+    },
+    ArrowFunctionExpression(path: NodePath<t.ArrowFunctionExpression>) {
+      const scope = scopeManager.getScopeForPath(path);
+      if (scope) {
+        scopePaths.set(scope.id, path);
+      }
+    },
+  });
+
+  return scopePaths;
+}
+
+/**
+ * Refresh node paths after AST modifications
+ */
+function refreshNodePaths(
+  ast: t.File,
+  sourceMatch: ElementData,
+  targetMatch: ElementData
+): {
+  sourceResult: Result<ElementData, SelectorErrorType>;
+  targetResult: Result<ElementData, SelectorErrorType>;
+} {
+  const sourceNode = sourceMatch.path.node;
+  const targetNode = targetMatch.path.node;
+
+  const freshSourcePath = findNodePath(ast, sourceNode);
+  const freshTargetPath = findNodePath(ast, targetNode);
+
+  if (!freshSourcePath) {
+    throw new Error('Failed to find source node after hoisting');
+  }
+  if (!freshTargetPath) {
+    throw new Error('Failed to find target node after hoisting');
+  }
+
+  return {
+    sourceResult: {
+      ok: true,
+      value: {
+        node: sourceNode,
+        path: freshSourcePath,
+        atomicUnit: sourceMatch.atomicUnit,
+      },
+    },
+    targetResult: {
+      ok: true,
+      value: {
+        node: targetNode,
+        path: freshTargetPath,
+        atomicUnit: targetMatch.atomicUnit,
+      },
+    },
+  };
+}
+
+/**
+ * Generate code for all files
+ */
+function generateCodeForFiles(
+  files: FileInput[],
+  parsedFiles: Map<string, t.File>,
+  sourceFile: string,
+  generator: CodeGenerator
+): Code[] {
+  const codes: Code[] = [];
+
+  for (const file of files) {
+    const ast = parsedFiles.get(file.path);
+    if (!ast) continue;
+
+    const generateResult = generator.generate(ast);
+    if (isErr(generateResult)) {
+      const error = generateResult.error;
+      throw new Error(`Code generation failed: ${error.message}`);
+    }
+
+    const generated = generateResult.value;
+    codes.push(
+      createCode({
+        file: file.path,
+        content: generated.code,
+        changed: file.path === sourceFile,
+        original: file.path === sourceFile ? file.content : undefined,
+      })
+    );
+  }
+
+  return codes;
+}
+
+/**
  * Internal function: Move with hoisting integration
  *
  * Performs the complete transformation with dependency hoisting.
@@ -599,14 +726,7 @@ function moveWithHoisting(
   const executor = createHoistExecutor();
 
   // Parse all files
-  const parsedFiles = new Map<string, t.File>();
-  for (const file of files) {
-    const result = parseFile(file.path, file.content);
-    if (isErr(result)) {
-      throw new Error(`Failed to parse ${file.path}: ${result.error.message}`);
-    }
-    parsedFiles.set(file.path, result.value);
-  }
+  const parsedFiles = parseAllFiles(files);
 
   // Get the AST for source file
   const sourceAst = parsedFiles.get(from.file);
@@ -684,29 +804,7 @@ function moveWithHoisting(
     if (hoistPlan.valid) {
       // Use dependency paths from analysis (already built before conversion)
       const dependencyPaths = depAnalysis.dependencyPaths;
-      const scopePaths = new Map<string, NodePath>();
-
-      // Collect scope paths using scope IDs from the scope manager
-      traverse(sourceAst, {
-        FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
-          const scope = scopeManager.getScopeForPath(path);
-          if (scope) {
-            scopePaths.set(scope.id, path);
-          }
-        },
-        FunctionExpression(path: NodePath<t.FunctionExpression>) {
-          const scope = scopeManager.getScopeForPath(path);
-          if (scope) {
-            scopePaths.set(scope.id, path);
-          }
-        },
-        ArrowFunctionExpression(path: NodePath<t.ArrowFunctionExpression>) {
-          const scope = scopeManager.getScopeForPath(path);
-          if (scope) {
-            scopePaths.set(scope.id, path);
-          }
-        },
-      });
+      const scopePaths = buildScopePaths(sourceAst, scopeManager);
 
       // Execute hoisting operations
       const execContext: HoistExecutionContext = {
@@ -717,45 +815,25 @@ function moveWithHoisting(
 
       executor.execute(hoistPlan, execContext);
 
-      // After hoisting, the AST structure has changed but the node references
-      // we want to move are still valid. However, the NodePaths may be stale.
-      // We need to find fresh NodePaths for the same nodes.
-      const sourceNode = sourceResult.value.path.node;
-      const targetNode = targetResult.value.path.node;
-
-      // Find fresh paths for the same nodes
-      const freshSourcePath = findNodePath(sourceAst, sourceNode);
-      const freshTargetPath = findNodePath(sourceAst, targetNode);
-
-      if (!freshSourcePath) {
-        throw new Error('Failed to find source node after hoisting');
-      }
-      if (!freshTargetPath) {
-        throw new Error('Failed to find target node after hoisting');
-      }
-
-      // Update the results with fresh paths
-      sourceResult = {
-        ok: true,
-        value: {
-          node: sourceNode,
-          path: freshSourcePath,
-          atomicUnit: sourceResult.value.atomicUnit,
-        },
-      };
-
-      targetResult = {
-        ok: true,
-        value: {
-          node: targetNode,
-          path: freshTargetPath,
-          atomicUnit: targetResult.value.atomicUnit,
-        },
-      };
+      // Refresh node paths after hoisting
+      const refreshed = refreshNodePaths(
+        sourceAst,
+        sourceResult.value,
+        targetResult.value
+      );
+      sourceResult = refreshed.sourceResult;
+      targetResult = refreshed.targetResult;
     }
   }
 
   // Now perform the element move
+  if (isErr(sourceResult)) {
+    throw new Error(`Source result is error after refresh`);
+  }
+  if (isErr(targetResult)) {
+    throw new Error(`Target result is error after refresh`);
+  }
+
   const moveResult = transformer.move(
     sourceAst,
     sourceResult.value.path,
@@ -770,27 +848,7 @@ function moveWithHoisting(
   }
 
   // Generate code for all files
-  const codes: Code[] = [];
-  for (const file of files) {
-    const ast = parsedFiles.get(file.path);
-    if (!ast) continue;
-
-    const generateResult = generator.generate(ast);
-    if (isErr(generateResult)) {
-      const error = generateResult.error;
-      throw new Error(`Code generation failed: ${error.message}`);
-    }
-
-    const generated = generateResult.value;
-    codes.push(createCode({
-      file: file.path,
-      content: generated.code,
-      changed: file.path === from.file,
-      original: file.path === from.file ? file.content : undefined,
-    }));
-  }
-
-  return codes;
+  return generateCodeForFiles(files, parsedFiles, from.file, generator);
 }
 
 /**

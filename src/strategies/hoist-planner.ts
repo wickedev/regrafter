@@ -590,8 +590,7 @@ export class HoistPlanner {
     else if (
       (node.type === 'ArrowFunctionExpression' ||
         node.type === 'FunctionExpression') &&
-      path.parentPath !== null &&
-      path.parentPath.isVariableDeclarator()
+      path.parentPath?.isVariableDeclarator() === true
     ) {
       const id = path.parentPath.node.id;
       if (id.type === 'Identifier') {
@@ -800,7 +799,7 @@ export class HoistPlanner {
     for (const [from, toSet] of componentGraph) {
       for (const to of toSet) {
         const toGraph = componentGraph.get(to);
-        if (toGraph !== undefined && toGraph.has(from)) {
+        if (toGraph?.has(from) === true) {
           plan.warnings.push(
             `Potential circular prop dependency between ${from} and ${to}`
           );

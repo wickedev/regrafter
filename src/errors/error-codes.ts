@@ -314,7 +314,14 @@ function formatMessage(template: string, values: Record<string, unknown>): strin
   return template.replace(/\{(\w+)\}/g, (_, key: string) => {
     const value = values[key];
     if (value === undefined) return `{${key}}`;
-    return String(value);
+    if (value === null) return 'null';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number') return String(value);
+    if (typeof value === 'boolean') return String(value);
+    if (typeof value === 'bigint') return String(value);
+    if (typeof value === 'symbol') return value.description ?? '';
+    // Handle objects and functions
+    return JSON.stringify(value);
   });
 }
 

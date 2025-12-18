@@ -410,7 +410,7 @@ export function mergeRecoveryResults(results: RecoveryResult[]): RecoveryResult 
   );
   const actions = actionsWithValues.map(r => r.action);
   const warnings = results.flatMap(r => r.warnings ?? []);
-  const partial = results.some(r => r.partial);
+  const partial = results.some(r => r.partial === true);
 
   return {
     success,

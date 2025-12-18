@@ -302,7 +302,7 @@ export class ImportManager implements IImportManager {
     // Find imports and their positions
     for (let i = 0; i < body.length; i++) {
       const node = body[i];
-      if (node !== undefined && node.type === 'ImportDeclaration') {
+      if (node?.type === 'ImportDeclaration') {
         lastImportIndex = i;
 
         if (position === 'grouped') {

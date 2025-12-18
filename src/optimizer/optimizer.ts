@@ -136,7 +136,7 @@ export class Optimizer implements IOptimizer {
 
     for (const file of files) {
       const result = parseResults.get(file.path);
-      if (result !== undefined && result.ok) {
+      if (result?.ok === true) {
         asts.set(file.path, result.value);
         originalContents.set(file.path, file.content);
       }
@@ -386,7 +386,7 @@ export class Optimizer implements IOptimizer {
       }
     }
     const parentPath = path.parentPath;
-    if (parentPath !== null && parentPath.isVariableDeclarator()) {
+    if (parentPath?.isVariableDeclarator() === true) {
       const id = parentPath.node.id;
       if (id.type === 'Identifier') {
         return id.name;

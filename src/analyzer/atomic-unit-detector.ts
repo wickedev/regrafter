@@ -34,7 +34,7 @@ export function isJSXNode(node: t.Node | null | undefined): node is t.JSXElement
 export function isJSXExpressionWithElement(
   node: t.Node | null | undefined
 ): node is t.JSXExpressionContainer {
-  if (!node || node.type !== 'JSXExpressionContainer') return false;
+  if (node?.type !== 'JSXExpressionContainer') return false;
   const expr = node.expression;
   if (expr.type === 'JSXEmptyExpression') return false;
   return containsJSXElement(expr);
