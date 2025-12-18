@@ -48,7 +48,7 @@ function Footer() {
 
       expect(result.success).toBe(true);
       if (result.codes[0] !== undefined) {
-        expect(result.codes[0].content).toBe("function Parent() {\n  const isActive = true;\n  return <div><h1>Title</h1>\n      \n      <Footer />{isActive && <ActiveStatus />}\n    </div>;\n}\nfunction ActiveStatus() {\n  return <span>Active</span>;\n}\nfunction Footer() {\n  return <div>Footer</div>;\n}");
+        expect(result.codes[0].content).toBe("function Parent() {\n  const isActive = true;\n  return <div><h1>Title</h1><Footer />{isActive && <ActiveStatus />}</div>;\n}\nfunction ActiveStatus() {\n  return <span>Active</span>;\n}\nfunction Footer() {\n  return <div>Footer</div>;\n}");
       }
     });
 

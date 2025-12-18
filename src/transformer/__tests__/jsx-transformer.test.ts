@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
 import traverseFn, { type NodePath } from '@babel/traverse';
 import generateFn from '@babel/generator';
-import type * as t from '@babel/types';
+import * as t from '@babel/types';
 
 const traverse = traverseFn as any as typeof traverseFn.default;
 const generate = generateFn as any as typeof generateFn.default;
@@ -147,10 +147,7 @@ describe('JSXTransformer', () => {
 
       // Document the full code transformation - footer moved before header
       expect(code).toBe(`function App() {
-  return <div><footer>Footer</footer><header>Header</header>
-      <main>Main</main>
-      
-    </div>;
+  return <div><footer>Footer</footer><header>Header</header><main>Main</main></div>;
 }`);
     });
 
@@ -237,10 +234,7 @@ describe('JSXTransformer', () => {
 
       // Document the full code transformation - header moved after footer
       expect(code).toBe(`function App() {
-  return <div>
-      <main>Main</main>
-      <footer>Footer</footer><header>Header</header>
-    </div>;
+  return <div><main>Main</main><footer>Footer</footer><header>Header</header></div>;
 }`);
     });
 
@@ -429,6 +423,63 @@ describe('JSXTransformer', () => {
       expect(result.valid).toBe(false);
       // Error message describes the circular move scenario
       expect(result.error).toContain('Cannot move an element into itself or its descendants');
+    });
+  });
+
+  // ===========================================================================
+  // Whitespace Cleanup
+  // ===========================================================================
+
+  describe('Whitespace Cleanup', () => {
+    it('should remove whitespace-only JSXText nodes after removing child', () => {
+      const code = `function App() {
+  const items = ['Apple', 'Banana', 'Cherry'];
+  return (
+    <div>
+      <header>Header</header>
+      <ul>
+        {items.map(item => <li key={item}>{item}</li>)}
+      </ul>
+    </div>
+  );
+}`;
+      const ast = parseCode(code);
+
+      // Find the map expression
+      let mapExpression: NodePath | null = null;
+      traverse(ast, {
+        CallExpression(path: NodePath<t.CallExpression>) {
+          const callee = path.node.callee;
+          if (t.isMemberExpression(callee) &&
+              t.isIdentifier(callee.property) &&
+              callee.property.name === 'map') {
+            mapExpression = path;
+            path.stop();
+          }
+        },
+      });
+
+      // Find header element
+      const header = findJSXElementByTag(ast, 'header');
+
+      expect(mapExpression).not.toBeNull();
+      expect(header).not.toBeNull();
+
+      // Move map expression before header
+      const result = transformer.move(ast, mapExpression!, header!, Move.Before);
+      expect(result.success).toBe(true);
+
+      // Generate code
+      const generatedCode = generate(result.ast).code;
+
+      // The <ul> should not have lines with only whitespace
+      const lines = generatedCode.split('\n');
+      for (const line of lines) {
+        // If line has content, it should be more than just whitespace
+        if (line.length > 0) {
+          expect(line.trim().length).toBeGreaterThan(0);
+        }
+      }
     });
   });
 

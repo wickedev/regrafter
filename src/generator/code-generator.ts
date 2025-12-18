@@ -85,8 +85,11 @@ export class CodeGenerator {
       // Generate code using @babel/generator
       const result: GeneratorResult = generateCode(ast, babelGeneratorOptions);
 
+      // Remove trailing whitespace from all lines
+      const cleanedCode = result.code.split('\n').map(line => line.trimEnd()).join('\n');
+
       return {
-        code: result.code,
+        code: cleanedCode,
         map: result.map ? this.convertSourceMap(result.map) : undefined,
         errors,
       };

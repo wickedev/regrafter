@@ -126,6 +126,30 @@ describe('CodeGenerator', () => {
       expect(result.code).toBe(`const El = props => <div {...props} />;`);
     });
 
+    it('should remove trailing whitespace from lines', () => {
+      // Simulate code that Babel might generate with trailing whitespace
+      const code = `function App() {
+  return <div>
+      <ul>
+
+      </ul>
+    </div>;
+}`;
+      const ast = parseCode(code);
+      const result = generator.generate(ast);
+
+      expect(result.errors).toHaveLength(0);
+      // Should not contain lines with only whitespace
+      const lines = result.code.split('\n');
+      for (const line of lines) {
+        // If a line has any content, it should be more than just whitespace
+        // Or it should be completely empty
+        if (line.length > 0) {
+          expect(line.trim().length).toBeGreaterThan(0);
+        }
+      }
+    });
+
     it('should handle multiple files via generateMultiple', () => {
       const files = new Map<string, t.File>([
         ['file1.tsx', parseCode('const A = () => <div>A</div>;')],

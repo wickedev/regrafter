@@ -848,9 +848,26 @@ export class JSXTransformer {
 
   /**
    * Remove the source node from its original location
+   * and clean up any whitespace-only JSXText siblings
    */
   private removeSource(path: NodePath): void {
+    const parent = path.parentPath;
     path.remove();
+
+    // Clean up whitespace-only JSXText nodes in JSX parent
+    if (parent && (t.isJSXElement(parent.node) || t.isJSXFragment(parent.node))) {
+      const parentNode = parent.node;
+      if ('children' in parentNode && Array.isArray(parentNode.children)) {
+        parentNode.children = parentNode.children.filter((child) => {
+          // Keep non-JSXText nodes
+          if (!t.isJSXText(child)) {
+            return true;
+          }
+          // Keep JSXText nodes that have non-whitespace content
+          return child.value.trim().length > 0;
+        });
+      }
+    }
   }
 
   /**

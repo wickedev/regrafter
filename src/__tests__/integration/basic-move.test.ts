@@ -129,7 +129,7 @@ describe('Basic Move Integration Tests', () => {
 
       const codes = move(files, from, to, Move.Before);
 
-      expect(codes[0]!.content).toBe("function App() {\n  return <div><footer>Footer</footer><header>Header</header>\n      <main>Main</main>\n      \n    </div>;\n}");
+      expect(codes[0]!.content).toBe("function App() {\n  return <div><footer>Footer</footer><header>Header</header><main>Main</main></div>;\n}");
     });
 
     it('should remove element from original location (no duplicates)', () => {
@@ -194,7 +194,7 @@ describe('Basic Move Integration Tests', () => {
 
       const codes = move(files, from, to, Move.After);
 
-      expect(codes[0]!.content).toBe("function App() {\n  return <div>\n      <main>Main</main>\n      <footer>Footer</footer><header>Header</header>\n    </div>;\n}");
+      expect(codes[0]!.content).toBe("function App() {\n  return <div><main>Main</main><footer>Footer</footer><header>Header</header></div>;\n}");
     });
   });
 
@@ -424,11 +424,9 @@ export function SimpleComponent() {
   return <div className="container">
       <header>
         <h1>Title</h1>
-      
+
       </header>
-      <main>
-        <p>Content paragraph</p>
-        <span>Inline text</span></main>
+      <main><p>Content paragraph</p><span>Inline text</span></main>
       <footer>
         <small>Footer text</small>
       </footer>
