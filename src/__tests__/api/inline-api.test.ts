@@ -349,5 +349,57 @@ describe('inline() API', () => {
         expect(appFile?.content).not.toContain('import { Button }');
       }
     });
+
+    it('should copy transitive imports when inlining cross-file component', () => {
+      // Component that imports other dependencies
+      const files = [
+        {
+          path: 'Icon.tsx',
+          content: `
+            export function Icon() {
+              return <svg>Icon</svg>;
+            }
+          `,
+        },
+        {
+          path: 'Button.tsx',
+          content: `
+            import { Icon } from './Icon';
+
+            export function Button({ label }) {
+              return <button><Icon /> {label}</button>;
+            }
+          `,
+        },
+        {
+          path: 'App.tsx',
+          content: `
+            import { Button } from './Button';
+
+            function App() {
+              return <Button label="Click me" />;
+            }
+          `,
+        },
+      ];
+
+      // ACT
+      const result = inline(files, 'Button');
+
+      // ASSERT
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.inlinedCount).toBe(1);
+
+        // App.tsx should have the Icon import copied over
+        const appFile = result.value.codes.find(c => c.file === 'App.tsx');
+        expect(appFile).toBeDefined();
+        expect(appFile?.changed).toBe(true);
+        expect(appFile?.content).toContain('import { Icon } from \'./Icon\'');
+        expect(appFile?.content).not.toContain('import { Button }');
+        expect(appFile?.content).not.toContain('<Button');
+        expect(appFile?.content).toContain('<Icon />');
+      }
+    });
   });
 });

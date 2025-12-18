@@ -226,6 +226,7 @@ export {
 import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
+import * as t_factory from '@babel/types';
 
 import { DependencyAnalyzer, createMoveAnalysisBuilder, validateMoveOperation } from './analyzer/index.js';
 import type { MoveValidationResult } from './analyzer/index.js';
@@ -1325,6 +1326,11 @@ export function inline(
         totalInlinedCount += result.inlinedCount;
         modifiedAsts.set(filePath, result.ast);
 
+        // Copy transitive imports from component definition file (if cross-file)
+        if (filePath !== componentFile && componentDefAst) {
+          copyTransitiveImports(result.ast, componentDefAst, componentName);
+        }
+
         // Remove import statement for the component if it exists
         removeImportForComponent(result.ast, componentName);
       } else if (result.success) {
@@ -1375,6 +1381,42 @@ export function inline(
       file: files[0]?.path,
       operation: 'inline',
     });
+  }
+}
+
+/**
+ * Helper function to copy imports from component definition file to target file
+ */
+function copyTransitiveImports(targetAst: t.File, sourceAst: t.File, componentName: string): void {
+  const importsToAdd: t.ImportDeclaration[] = [];
+
+  // Extract all imports from the source file (component definition file)
+  traverseModule(sourceAst, {
+    ImportDeclaration(path) {
+      // Don't copy imports of the component itself or React imports (already present)
+      const source = path.node.source.value;
+      if (source !== 'react' && source !== 'React') {
+        importsToAdd.push(t_factory.cloneNode(path.node, true));
+      }
+    },
+  });
+
+  // Add imports to the beginning of the target file
+  if (importsToAdd.length > 0) {
+    const programBody = targetAst.program.body;
+
+    // Find the position after existing imports
+    let insertPosition = 0;
+    for (let i = 0; i < programBody.length; i++) {
+      if (programBody[i].type === 'ImportDeclaration') {
+        insertPosition = i + 1;
+      } else {
+        break;
+      }
+    }
+
+    // Insert the new imports
+    programBody.splice(insertPosition, 0, ...importsToAdd);
   }
 }
 
