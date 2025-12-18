@@ -121,11 +121,13 @@ describe('DependencyAnalyzer.analyzeElement - Result-based Error Handling', () =
     expect(elementPath).not.toBeNull();
 
     // Get the component scope as the target (moving within same component is valid)
-    const componentScope = scopeManager.findEnclosingComponent(elementPath!);
+    const componentScopeResult = scopeManager.findEnclosingComponent(elementPath!);
+    expect(isOk(componentScopeResult)).toBe(true);
+    if (!isOk(componentScopeResult)) return;
 
     // Act - analyze with target scope being the same component (valid move)
     const result: Result<DependencyAnalysis, DependencyErrorType> =
-      analyzer.analyzeElement(elementPath!, componentScope);
+      analyzer.analyzeElement(elementPath!, componentScopeResult.value);
 
     // Assert
     expect(isOk(result)).toBe(true);

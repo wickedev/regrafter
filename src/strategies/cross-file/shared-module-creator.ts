@@ -11,6 +11,8 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
+import { createInternalError, type InternalErrorType } from '../../errors/index.js';
+import { ok, err, isErr, type Result } from '../../result/index.js';
 import {
   createImportOperation,
   createImportSpecifier,
@@ -50,12 +52,17 @@ function isGeneratedCode(
 function safeGenerateCode(
   ast: t.Node,
   opts?: object
-): { code: string; map?: object } {
+): Result<{ code: string; map?: object }, InternalErrorType> {
   const result: unknown = generateCode(ast, opts);
   if (isGeneratedCode(result)) {
-    return result;
+    return ok(result);
   }
-  throw new Error('Invalid generateCode result');
+  return err(
+    createInternalError({
+      code: 'E001',
+      message: `Invalid generateCode result. Result type: ${typeof result}`,
+    })
+  );
 }
 
 import {
@@ -130,7 +137,7 @@ export function generateSharedModule(
   sourceAst: t.File,
   sourceFile: string,
   config: SharedModuleConfig = {}
-): SharedModuleResult {
+): Result<SharedModuleResult, InternalErrorType> {
   const { namingConvention = 'shared', extension = '.ts' } = config;
 
   // Generate shared module path
@@ -174,10 +181,16 @@ export function generateSharedModule(
   const sharedAst = t.file(t.program(statements, [], 'module'));
 
   // Generate code
-  const result = safeGenerateCode(sharedAst, {
+  const resultOrError = safeGenerateCode(sharedAst, {
     comments: true,
     compact: false,
   });
+
+  if (isErr(resultOrError)) {
+    return err(resultOrError.error);
+  }
+
+  const result = resultOrError.value;
 
   const operation = createSharedModuleOperation({
     newFilePath: sharedModulePath,
@@ -185,11 +198,11 @@ export function generateSharedModule(
     importers: [sourceFile],
   });
 
-  return {
+  return ok({
     operation,
     ast: sharedAst,
     code: result.code,
-  };
+  });
 }
 
 /**

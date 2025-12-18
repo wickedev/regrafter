@@ -7,6 +7,8 @@
 
 import * as t from '@babel/types';
 
+import { createInternalError, type InternalErrorType } from '../errors/index.js';
+import { ok, err, isErr, type Result } from '../result/index.js';
 import {
   createPropThreadOperation,
 } from '../types/factories.js';
@@ -71,8 +73,17 @@ export class PropThreader implements IPropThreader {
     }
 
     // Build ancestor chains
-    const sourceAncestors = this.getAncestorChain(sourceComponent);
-    const targetAncestors = this.getAncestorChain(targetComponent);
+    const sourceAncestorsResult = this.getAncestorChain(sourceComponent);
+    if (isErr(sourceAncestorsResult)) {
+      return [];
+    }
+    const sourceAncestors = sourceAncestorsResult.value;
+
+    const targetAncestorsResult = this.getAncestorChain(targetComponent);
+    if (isErr(targetAncestorsResult)) {
+      return [];
+    }
+    const targetAncestors = targetAncestorsResult.value;
 
     // Find lowest common ancestor
     const lcaIndex = this.findLowestCommonAncestorIndex(
@@ -169,7 +180,11 @@ export class PropThreader implements IPropThreader {
     }
 
     if (counter >= MAX_ATTEMPTS) {
-      throw new Error(`Could not generate unique prop name after ${MAX_ATTEMPTS} attempts for base: ${propName}`);
+      const error = createInternalError({
+        code: 'E001',
+        message: `resolveNameConflict: Could not generate unique prop name after ${MAX_ATTEMPTS} attempts for base ${propName} (existing props: ${existingProps.size})`,
+      });
+      throw new Error(error.message);
     }
 
     return `${propName}${counter}`;
@@ -315,7 +330,7 @@ export class PropThreader implements IPropThreader {
   /**
    * Get ancestor chain for a component (from component up to root)
    */
-  private getAncestorChain(component: ComponentScope): ComponentScope[] {
+  private getAncestorChain(component: ComponentScope): Result<ComponentScope[], InternalErrorType> {
     const chain: ComponentScope[] = [];
     let current: ComponentScope | null = component;
     const MAX_DEPTH = 1000;
@@ -326,10 +341,15 @@ export class PropThreader implements IPropThreader {
     }
 
     if (chain.length >= MAX_DEPTH) {
-      throw new Error(`Maximum component nesting depth (${MAX_DEPTH}) exceeded`);
+      return err(
+        createInternalError({
+          code: 'E001',
+          message: `getAncestorChain: Maximum component nesting depth (${MAX_DEPTH}) exceeded for component ${component.componentName}`,
+        })
+      );
     }
 
-    return chain;
+    return ok(chain);
   }
 
   /**
@@ -414,7 +434,7 @@ export function createPropThreader(): PropThreader {
 export function hasCommonAncestor(
   component1: ComponentScope,
   component2: ComponentScope
-): boolean {
+): Result<boolean, InternalErrorType> {
   const ancestors1 = new Set<string>();
   let current: ComponentScope | null = component1;
   const MAX_DEPTH = 1000;
@@ -427,7 +447,12 @@ export function hasCommonAncestor(
   }
 
   if (depth >= MAX_DEPTH) {
-    throw new Error(`Maximum component nesting depth (${MAX_DEPTH}) exceeded in hasCommonAncestor`);
+    return err(
+      createInternalError({
+        code: 'E001',
+        message: `hasCommonAncestor: Maximum component nesting depth (${MAX_DEPTH}) exceeded for component 1: ${component1.componentName}`,
+      })
+    );
   }
 
   current = component2;
@@ -435,16 +460,21 @@ export function hasCommonAncestor(
   while (current !== null && depth < MAX_DEPTH) {
     depth++;
     if (ancestors1.has(current.id)) {
-      return true;
+      return ok(true);
     }
     current = current.parentComponent;
   }
 
   if (depth >= MAX_DEPTH) {
-    throw new Error(`Maximum component nesting depth (${MAX_DEPTH}) exceeded in hasCommonAncestor`);
+    return err(
+      createInternalError({
+        code: 'E001',
+        message: `hasCommonAncestor: Maximum component nesting depth (${MAX_DEPTH}) exceeded for component 2: ${component2.componentName}`,
+      })
+    );
   }
 
-  return false;
+  return ok(false);
 }
 
 /**
@@ -453,7 +483,7 @@ export function hasCommonAncestor(
 export function findLowestCommonAncestor(
   component1: ComponentScope,
   component2: ComponentScope
-): ComponentScope | null {
+): Result<ComponentScope | null, InternalErrorType> {
   const ancestors1 = new Map<string, ComponentScope>();
   let current: ComponentScope | null = component1;
   const MAX_DEPTH = 1000;
@@ -466,7 +496,12 @@ export function findLowestCommonAncestor(
   }
 
   if (depth >= MAX_DEPTH) {
-    throw new Error(`Maximum component nesting depth (${MAX_DEPTH}) exceeded in findLowestCommonAncestor`);
+    return err(
+      createInternalError({
+        code: 'E001',
+        message: `findLowestCommonAncestor: Maximum component nesting depth (${MAX_DEPTH}) exceeded for component 1: ${component1.componentName}`,
+      })
+    );
   }
 
   current = component2;
@@ -476,17 +511,22 @@ export function findLowestCommonAncestor(
     if (ancestors1.has(current.id)) {
       const ancestor = ancestors1.get(current.id);
       if (ancestor !== undefined) {
-        return ancestor;
+        return ok(ancestor);
       }
     }
     current = current.parentComponent;
   }
 
   if (depth >= MAX_DEPTH) {
-    throw new Error(`Maximum component nesting depth (${MAX_DEPTH}) exceeded in findLowestCommonAncestor`);
+    return err(
+      createInternalError({
+        code: 'E001',
+        message: `findLowestCommonAncestor: Maximum component nesting depth (${MAX_DEPTH}) exceeded for component 2: ${component2.componentName}`,
+      })
+    );
   }
 
-  return null;
+  return ok(null);
 }
 
 /**

@@ -8,7 +8,7 @@ import type { NodePath, Binding } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-import { createValidationError, type ValidationErrorType } from '../errors/index.js';
+import { createValidationError, createInternalError, type ValidationErrorType, type InternalErrorType } from '../errors/index.js';
 import { ok, err, type Result } from '../result/index.js';
 import {
   createScopeInfo,
@@ -376,7 +376,7 @@ export class ScopeManager {
   /**
    * Find the enclosing component scope for a path
    */
-  findEnclosingComponent(path: NodePath): ComponentScope | null {
+  findEnclosingComponent(path: NodePath): Result<ComponentScope | null, InternalErrorType> {
     let current: NodePath | null = path;
     const MAX_DEPTH = 1000;
     let depth = 0;
@@ -385,16 +385,21 @@ export class ScopeManager {
       depth++;
       const scope = this.getScopeForNode(current.node);
       if (scope !== null && isComponentScope(scope)) {
-        return scope;
+        return ok(scope);
       }
       current = current.parentPath;
     }
 
     if (depth >= MAX_DEPTH) {
-      throw new Error(`Maximum tree depth (${MAX_DEPTH}) exceeded in findEnclosingComponent`);
+      return err(
+        createInternalError({
+          code: 'E001',
+          message: `ScopeManager.findEnclosingComponent: Maximum tree depth (${MAX_DEPTH}) exceeded for path node type ${path.node.type}`,
+        })
+      );
     }
 
-    return null;
+    return ok(null);
   }
 
   /**

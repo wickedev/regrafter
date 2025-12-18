@@ -14,10 +14,7 @@ const traverse = traverseFn as any as typeof traverseFn.default;
 
 import { JSXTransformer } from '../jsx-transformer.js';
 import { isOk, isErr } from '../../result/index.js';
-import {
-  type ValidationErrorType,
-  type TransformErrorType,
-} from '../../errors/index.js';
+import { type ValidationErrorType } from '../../errors/index.js';
 
 // =============================================================================
 // Test Fixtures
@@ -293,11 +290,11 @@ describe('JSXTransformer Helpers with Result', () => {
       }
     });
 
-    it('should return Err<TransformError> when siblings cannot be accessed', () => {
+    it('should walk up tree to find valid container for siblings', () => {
       const transformer = new JSXTransformer();
 
-      // Create a test case with a node type that doesn't have siblings
-      // in the way we expect (e.g., a string literal in an object property)
+      // Test with a node that needs to walk up the tree to find siblings
+      // (e.g., a string literal in an object property should walk up to Program)
       const code = `const obj = { key: "value" };`;
       const ast = parseCode(code);
 
@@ -314,11 +311,11 @@ describe('JSXTransformer Helpers with Result', () => {
       if (stringLiteralPath) {
         const result = transformer.getSiblings(stringLiteralPath);
 
-        expect(isErr(result)).toBe(true);
-        if (isErr(result)) {
-          const error = result.error as TransformErrorType;
-          expect(error._tag).toBe('TransformError');
-          expect(error.message).toContain('siblings');
+        // Should successfully walk up to find Program node's children
+        expect(isOk(result)).toBe(true);
+        if (isOk(result)) {
+          expect(Array.isArray(result.value)).toBe(true);
+          expect(result.value.length).toBeGreaterThan(0);
         }
       }
     });

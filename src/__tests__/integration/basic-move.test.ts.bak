@@ -24,6 +24,7 @@ import {
   type PositionSelector,
   isOk,
   isErr,
+  unwrap,
 } from '../../index.js';
 
 // =============================================================================
@@ -93,22 +94,6 @@ function createFileInput(path: string, content: string): FileInput {
   return { path, content };
 }
 
-/**
- * Helper to unwrap move() Result for tests that expect Code[] directly
- */
-function moveAndUnwrap(
-  files: FileInput[],
-  from: PositionSelector,
-  to: PositionSelector,
-  mode: Move
-) {
-  const result = move(files, from, to, mode);
-  if (isErr(result)) {
-    throw new Error(`Move failed: ${result.error.message}`);
-  }
-  return result.value;
-}
-
 // =============================================================================
 // Test Suites
 // =============================================================================
@@ -127,7 +112,7 @@ describe('Basic Move Integration Tests', () => {
       const from = createPositionSelector('test.tsx', 7, 6);
       const to = createPositionSelector('test.tsx', 5, 6);
 
-      const codes = moveAndUnwrap(files, from, to, Move.Before);
+      const codes = move(files, from, to, Move.Before);
 
       expect(codes).toHaveLength(1);
       expect(codes[0]!.changed).toBe(true);
@@ -145,7 +130,7 @@ describe('Basic Move Integration Tests', () => {
       const from = createPositionSelector('test.tsx', 7, 6);
       const to = createPositionSelector('test.tsx', 5, 6);
 
-      const codes = moveAndUnwrap(files, from, to, Move.Before);
+      const codes = move(files, from, to, Move.Before);
 
       expect(codes[0]!.content).toBe("function App() {\n  return <div><footer>Footer</footer><header>Header</header><main>Main</main></div>;\n}");
     });
@@ -156,7 +141,7 @@ describe('Basic Move Integration Tests', () => {
       const from = createPositionSelector('test.tsx', 7, 6);
       const to = createPositionSelector('test.tsx', 5, 6);
 
-      const codes = moveAndUnwrap(files, from, to, Move.Before);
+      const codes = move(files, from, to, Move.Before);
 
       // Footer should only appear once
       const footerMatches = codes[0]!.content.match(/<footer>/g);
@@ -170,7 +155,7 @@ describe('Basic Move Integration Tests', () => {
       const from = createPositionSelector('test.tsx', 7, 8);
       const to = createPositionSelector('test.tsx', 6, 8);
 
-      const codes = moveAndUnwrap(files, from, to, Move.Before);
+      const codes = move(files, from, to, Move.Before);
 
       expect(codes[0]!.changed).toBe(true);
       const code = codes[0]!.content;
@@ -192,7 +177,7 @@ describe('Basic Move Integration Tests', () => {
       const from = createPositionSelector('test.tsx', 5, 6);
       const to = createPositionSelector('test.tsx', 7, 6);
 
-      const codes = moveAndUnwrap(files, from, to, Move.After);
+      const codes = move(files, from, to, Move.After);
 
       expect(codes).toHaveLength(1);
       expect(codes[0]!.changed).toBe(true);
@@ -210,7 +195,7 @@ describe('Basic Move Integration Tests', () => {
       const from = createPositionSelector('test.tsx', 5, 6);
       const to = createPositionSelector('test.tsx', 7, 6);
 
-      const codes = moveAndUnwrap(files, from, to, Move.After);
+      const codes = move(files, from, to, Move.After);
 
       expect(codes[0]!.content).toBe("function App() {\n  return <div><main>Main</main><footer>Footer</footer><header>Header</header></div>;\n}");
     });
@@ -295,29 +280,24 @@ describe('Basic Move Integration Tests', () => {
       const from = createPositionSelector('test.tsx', 7, 6);
       const to = createPositionSelector('test.tsx', 5, 6);
 
-      const result = analyze(files, from, to, Move.Before);
+      const analysis = analyze(files, from, to, Move.Before);
 
-      expect(isOk(result)).toBe(true);
-      if (isOk(result)) {
-        const analysis = result.value;
-        expect(analysis.dependencies).toBeDefined();
-        expect(analysis.stats).toBeDefined();
-      }
+      expect(analysis.canMove).toBe(true);
+      expect(analysis.dependencies).toBeDefined();
+      expect(analysis.stats).toBeDefined();
     });
 
-    it('should return Err for invalid moves', () => {
+    it('should return canMove=false for invalid moves', () => {
       const files = [createFileInput('test.tsx', simpleJSXCode)];
 
       // Invalid position selector (non-JSX location)
       const from = createPositionSelector('test.tsx', 1, 1);
       const to = createPositionSelector('test.tsx', 5, 6);
 
-      const result = analyze(files, from, to, Move.Before);
+      const analysis = analyze(files, from, to, Move.Before);
 
-      expect(isErr(result)).toBe(true);
-      if (isErr(result)) {
-        expect(result.error.message).toBeDefined();
-      }
+      expect(analysis.canMove).toBe(false);
+      expect(analysis.reason).toBeDefined();
     });
   });
 
@@ -357,7 +337,7 @@ describe('Basic Move Integration Tests', () => {
       const from = createPositionSelector('nonexistent.tsx', 5, 6);
       const to = createPositionSelector('test.tsx', 7, 6);
 
-      expect(() => moveAndUnwrap(files, from, to, Move.Before)).toThrow();
+      expect(() => move(files, from, to, Move.Before)).toThrow();
     });
 
     it('should throw error for position with no JSX element', () => {
@@ -367,7 +347,7 @@ describe('Basic Move Integration Tests', () => {
       const from = createPositionSelector('test.tsx', 1, 1);
       const to = createPositionSelector('test.tsx', 5, 6);
 
-      expect(() => moveAndUnwrap(files, from, to, Move.Before)).toThrow();
+      expect(() => move(files, from, to, Move.Before)).toThrow();
     });
 
     it('should return failure result for parse errors', () => {
@@ -385,14 +365,14 @@ function App() {
       const from = createPositionSelector('test.tsx', 5, 6);
       const to = createPositionSelector('test.tsx', 7, 6);
 
-      expect(() => moveAndUnwrap(files, from, to, Move.Before)).toThrow();
+      expect(() => move(files, from, to, Move.Before)).toThrow();
     });
 
     it('should handle empty files array', () => {
       const from = createPositionSelector('test.tsx', 5, 6);
       const to = createPositionSelector('test.tsx', 7, 6);
 
-      expect(() => moveAndUnwrap([], from, to, Move.Before)).toThrow();
+      expect(() => move([], from, to, Move.Before)).toThrow();
     });
   });
 
@@ -408,7 +388,7 @@ function App() {
       const from = createPositionSelector('test.tsx', 7, 6);
       const to = createPositionSelector('test.tsx', 5, 6);
 
-      const codes = moveAndUnwrap(files, from, to, Move.Before);
+      const codes = move(files, from, to, Move.Before);
 
       expect(codes[0]!.changed).toBe(true);
       const code = codes[0]!.content;
@@ -431,7 +411,7 @@ function App() {
       const from = createPositionSelector('simple-component.tsx', 22, 6);
       const to = createPositionSelector('simple-component.tsx', 18, 6);
 
-      const codes = moveAndUnwrap(files, from, to, Move.Before);
+      const codes = move(files, from, to, Move.Before);
 
       expect(codes[0]!.changed).toBe(true);
       // Verify the move happened

@@ -9,6 +9,8 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
+import { createInternalError, type InternalErrorType } from '../errors/index.js';
+import { ok, err, isErr, type Result } from '../result/index.js';
 import type {
   InternalDependency,
   HoistOperation,
@@ -47,10 +49,13 @@ export class HoistExecutor {
   /**
    * Execute a complete hoisting plan
    */
-  execute(plan: HoistPlan, context: HoistExecutionContext): void {
+  execute(plan: HoistPlan, context: HoistExecutionContext): Result<void, InternalErrorType> {
     if (!plan.valid) {
-      throw new Error(
-        `Cannot execute invalid hoisting plan: ${plan.invalidReason ?? 'Unknown reason'}`
+      return err(
+        createInternalError({
+          code: 'E001',
+          message: `HoistExecutor.execute: Cannot execute invalid hoisting plan - ${plan.invalidReason ?? 'Unknown reason'}`,
+        })
       );
     }
 
@@ -59,7 +64,10 @@ export class HoistExecutor {
 
     // Execute hoisting operations first (move declarations)
     for (const operation of plan.hoistOperations) {
-      this.executeHoistOperation(operation, context);
+      const result = this.executeHoistOperation(operation, context);
+      if (isErr(result)) {
+        return err(result.error);
+      }
     }
 
     // Execute import operations (add imports)
@@ -71,6 +79,8 @@ export class HoistExecutor {
     for (const operation of plan.propThreadOperations) {
       this.executePropThreadOperation(operation, context);
     }
+
+    return ok(undefined);
   }
 
   /**
@@ -79,7 +89,7 @@ export class HoistExecutor {
   private executeHoistOperation(
     operation: HoistOperation,
     context: HoistExecutionContext
-  ): void {
+  ): Result<void, InternalErrorType> {
     switch (operation.strategy) {
       case HoistStrategy.Hoist:
         this.executeHoisting(operation, context);
@@ -94,9 +104,15 @@ export class HoistExecutor {
       default: {
         // Exhaustive check - all enum values should be handled above
         const exhaustiveCheck: never = operation.strategy;
-        throw new Error(`Unknown hoisting strategy: ${String(exhaustiveCheck)}`);
+        return err(
+          createInternalError({
+            code: 'E001',
+            message: `HoistExecutor.executeHoistOperation: Unknown hoisting strategy ${String(exhaustiveCheck)}`,
+          })
+        );
       }
     }
+    return ok(undefined);
   }
 
   /**
@@ -131,7 +147,7 @@ export class HoistExecutor {
     if (declarationPath.isIdentifier() || declarationPath.isJSXIdentifier()) {
       const binding = declarationPath.scope.getBinding(operation.symbol);
       const bindingPath = binding?.path;
-      if (bindingPath !== undefined) {
+      if (bindingPath) {
         declarationPath = bindingPath;
       }
     }

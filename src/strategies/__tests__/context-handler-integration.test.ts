@@ -12,7 +12,7 @@ import type * as t from '@babel/types';
 import { ContextHandler, createContextHandler } from '../context-handler.js';
 import { createInternalDependency, createScopeInfo } from '../../types/factories.js';
 import { DependencyType } from '../../types/public.js';
-import type { HoistContext } from '../types.js';
+import type { HoistContext } from '../../strategies/types.js';
 
 // =============================================================================
 // Test Fixtures - Real-world React Context Patterns
@@ -364,8 +364,9 @@ describe('ContextHandler - Integration Tests', () => {
       if (provider !== null) {
         const consumers = handler.findAllConsumers(provider, ast);
         expect(consumers.length).toBe(1);
-        if (consumers[0] !== undefined) {
-          expect(consumers[0].variableName).toBe('value');
+        const firstConsumer = consumers[0];
+        if (firstConsumer !== undefined) {
+          expect(firstConsumer.variableName).toBe('value');
         }
       }
     });
@@ -485,8 +486,9 @@ describe('ContextHandler - Integration Tests', () => {
       if (provider !== null) {
         const consumers = handler.findAllConsumers(provider, ast);
         expect(consumers.length).toBe(1);
-        if (consumers[0] !== undefined) {
-          expect(consumers[0].variableName).toBe('value');
+        const firstConsumer = consumers[0];
+        if (firstConsumer !== undefined) {
+          expect(firstConsumer.variableName).toBe('value');
         }
       }
     });

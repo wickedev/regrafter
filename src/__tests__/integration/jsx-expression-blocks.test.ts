@@ -48,7 +48,8 @@ function Footer() {
 
       expect(result.ok).toBe(true);
       if (result.ok && result.value.codes[0] !== undefined) {
-        expect(result.value.codes[0].content).toBe("function Parent() {\n  const isActive = true;\n  return <div><h1>Title</h1><Footer />{isActive && <ActiveStatus />}</div>;\n}\nfunction ActiveStatus() {\n  return <span>Active</span>;\n}\nfunction Footer() {\n  return <div>Footer</div>;\n}");
+        const firstCode = result.value.codes[0];
+        expect(firstCode.content).toBe("function Parent() {\n  const isActive = true;\n  return <div><h1>Title</h1><Footer />{isActive && <ActiveStatus />}</div>;\n}\nfunction ActiveStatus() {\n  return <span>Active</span>;\n}\nfunction Footer() {\n  return <div>Footer</div>;\n}");
       }
     });
 
@@ -93,9 +94,10 @@ function Footer() {
       expect(result.ok).toBe(true);
 
       if (result.ok && result.value.codes[0] !== undefined) {
+        const firstCode = result.value.codes[0];
         // Verify the conditional moved before Header
-        const headerIndex = result.value.codes[0].content.indexOf('<Header />');
-        const conditionalIndex = result.value.codes[0].content.indexOf('{user && user.name && <UserProfile');
+        const headerIndex = firstCode.content.indexOf('<Header />');
+        const conditionalIndex = firstCode.content.indexOf('{user && user.name && <UserProfile');
         expect(conditionalIndex).toBeLessThan(headerIndex);
       }
     });
@@ -138,12 +140,13 @@ function Footer() {
 
       expect(result.ok).toBe(true);
       if (result.ok && result.value.codes[0] !== undefined) {
-        expect(result.value.codes[0].content).toContain('items.map');
-        expect(result.value.codes[0].content).toContain('<Footer />');
+        const firstCode = result.value.codes[0];
+        expect(firstCode.content).toContain('items.map');
+        expect(firstCode.content).toContain('<Footer />');
 
         // Verify the map expression moved after Footer
-        const footerIndex = result.value.codes[0].content.indexOf('<Footer />');
-        const mapIndex = result.value.codes[0].content.indexOf('items.map');
+        const footerIndex = firstCode.content.indexOf('<Footer />');
+        const mapIndex = firstCode.content.indexOf('items.map');
         expect(mapIndex).toBeGreaterThan(footerIndex);
       }
     });
@@ -184,11 +187,12 @@ function Footer() {
 
       expect(result.ok).toBe(true);
       if (result.ok && result.value.codes[0] !== undefined) {
-        expect(result.value.codes[0].content).toContain('data.filter');
+        const firstCode = result.value.codes[0];
+        expect(firstCode.content).toContain('data.filter');
 
         // Verify the chained expression moved before h1
-        const h1Index = result.value.codes[0].content.indexOf('<h1>List</h1>');
-        const filterIndex = result.value.codes[0].content.indexOf('data.filter');
+        const h1Index = firstCode.content.indexOf('<h1>List</h1>');
+        const filterIndex = firstCode.content.indexOf('data.filter');
         expect(filterIndex).toBeLessThan(h1Index);
       }
     });
@@ -235,12 +239,13 @@ function Footer() {
 
       expect(result.ok).toBe(true);
       if (result.ok && result.value.codes[0] !== undefined) {
-        expect(result.value.codes[0].content).toContain('isLoading ?');
-        expect(result.value.codes[0].content).toContain('<Footer />');
+        const firstCode = result.value.codes[0];
+        expect(firstCode.content).toContain('isLoading ?');
+        expect(firstCode.content).toContain('<Footer />');
 
         // Verify the ternary expression moved after Footer
-        const footerIndex = result.value.codes[0].content.indexOf('<Footer />');
-        const ternaryIndex = result.value.codes[0].content.indexOf('isLoading ?');
+        const footerIndex = firstCode.content.indexOf('<Footer />');
+        const ternaryIndex = firstCode.content.indexOf('isLoading ?');
         expect(ternaryIndex).toBeGreaterThan(footerIndex);
       }
     });
@@ -285,11 +290,12 @@ function Footer() {
 
       expect(result.ok).toBe(true);
       if (result.ok && result.value.codes[0] !== undefined) {
-        expect(result.value.codes[0].content).toContain('isOpen ?');
+        const firstCode = result.value.codes[0];
+        expect(firstCode.content).toContain('isOpen ?');
 
         // Verify the ternary moved before Header
-        const headerIndex = result.value.codes[0].content.indexOf('<Header />');
-        const ternaryIndex = result.value.codes[0].content.indexOf('isOpen ?');
+        const headerIndex = firstCode.content.indexOf('<Header />');
+        const ternaryIndex = firstCode.content.indexOf('isOpen ?');
         expect(ternaryIndex).toBeLessThan(headerIndex);
       }
     });
@@ -336,10 +342,11 @@ function Footer() {
 
       expect(result.ok).toBe(true);
       if (result.ok && result.value.codes[0] !== undefined) {
+        const firstCode = result.value.codes[0];
         // The conditional expression and its dependencies
         // (isVisible, setIsVisible) should be handled as an atomic unit
-        expect(result.value.codes[0].content).toContain('isVisible &&');
-        expect(result.value.codes[0].content).toContain('setIsVisible');
+        expect(firstCode.content).toContain('isVisible &&');
+        expect(firstCode.content).toContain('setIsVisible');
       }
     });
   });

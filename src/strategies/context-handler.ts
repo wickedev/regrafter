@@ -9,6 +9,8 @@ import traverseModule from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 
+import { createInternalError, type InternalErrorType } from '../errors/index.js';
+import { ok, err, type Result } from '../result/index.js';
 import {
   createHoistOperation,
   createPropThreadOperation,
@@ -182,10 +184,16 @@ export class ContextHandler implements IContextHandler {
   /**
    * Execute the hoisting operation
    */
-  execute(operation: HoistOperation, _context: HoistContext): void {
+  execute(operation: HoistOperation, _context: HoistContext): Result<void, InternalErrorType> {
     if (!operation.dependencyId) {
-      throw new Error('Invalid hoist operation: missing dependency ID');
+      return err(
+        createInternalError({
+          code: 'E001',
+          message: `Invalid hoist operation in ContextHandler.execute: missing dependency ID for symbol '${operation.symbol}'`,
+        })
+      );
     }
+    return ok(undefined);
   }
 
   // ===========================================================================

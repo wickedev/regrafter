@@ -141,9 +141,9 @@ export class MoveAnalysisBuilder {
     // use the enclosing component scope to properly determine if we're moving
     // within a component or to module level
     if (!targetScope) {
-      const enclosingComponent = this.scopeManager.findEnclosingComponent(targetPath);
-      if (enclosingComponent) {
-        targetScope = enclosingComponent;
+      const enclosingComponentResult = this.scopeManager.findEnclosingComponent(targetPath);
+      if (!isErr(enclosingComponentResult) && enclosingComponentResult.value) {
+        targetScope = enclosingComponentResult.value;
       }
     }
 

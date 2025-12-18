@@ -189,7 +189,11 @@ describe('Memory Usage Benchmarks', () => {
     const memBefore = process.memoryUsage().heapUsed;
 
     // Execute regraft (same-file move, but all files are parsed)
-    const content = files[0]?.content ?? '';
+    const firstFile = files[0];
+    if (firstFile === undefined) {
+      throw new Error('Expected files array to have at least one file');
+    }
+    const content = firstFile.content;
     const linesBeforeSource = content.substring(0, content.indexOf('id="source"')).split('\n').length;
     const linesBeforeTarget = content.substring(0, content.indexOf('id="target"')).split('\n').length;
 

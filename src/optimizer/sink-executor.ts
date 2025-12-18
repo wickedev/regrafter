@@ -368,15 +368,20 @@ export class SinkExecutor implements ISinkExecutor {
     }
 
     // Insert at target scope
-    let insertionSucceeded = false;
+    const insertionResult: { success: boolean; error?: string } = {
+      success: false,
+      error: `Could not insert declaration at target scope for: ${dep.symbol}`,
+    };
+    const definedDeclarationNode = declarationNode;
 
     traverse(ast, {
       enter(path: NodePath) {
-        if (isSameScopeNode(path, targetScope) && declarationNode !== undefined) {
+        if (isSameScopeNode(path, targetScope)) {
           // Insert declaration at the beginning of the scope
           if (path.isBlockStatement()) {
-            path.node.body.unshift(declarationNode);
-            insertionSucceeded = true;
+            path.node.body.unshift(definedDeclarationNode);
+            insertionResult.success = true;
+            insertionResult.error = undefined;
             path.stop();
           } else if (path.isProgram()) {
             // Find first non-import statement
@@ -389,31 +394,16 @@ export class SinkExecutor implements ISinkExecutor {
               }
               insertIndex = i + 1;
             }
-            body.splice(insertIndex, 0, declarationNode);
-            insertionSucceeded = true;
+            body.splice(insertIndex, 0, definedDeclarationNode);
+            insertionResult.success = true;
+            insertionResult.error = undefined;
             path.stop();
           }
         }
       },
     });
 
-    // Check if insertion succeeded (TypeScript flow analysis limitation through callbacks)
-    function ensureInsertionSucceeded(succeeded: boolean): void {
-      if (succeeded === false) {
-        throw new Error(`Could not insert declaration at target scope for: ${dep.symbol}`);
-      }
-    }
-
-    try {
-      ensureInsertionSucceeded(insertionSucceeded);
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-
-    return { success: true };
+    return insertionResult;
   }
 
   /**
@@ -598,11 +588,15 @@ function isSameScopeNode(path: NodePath, scope: ScopeInfo): boolean {
 
   // Fallback to comparing scope IDs stored in path data
   interface NodeWithScopeId {
-    _scopeId?: string;
+    _scopeId: string;
   }
 
   function hasScopeId(node: t.Node): node is t.Node & NodeWithScopeId {
-    return '_scopeId' in node;
+    if ('_scopeId' in node) {
+      const scopeId: unknown = Reflect.get(node, '_scopeId');
+      return typeof scopeId === 'string';
+    }
+    return false;
   }
 
   if (hasScopeId(path.node)) {

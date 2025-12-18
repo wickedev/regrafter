@@ -208,12 +208,10 @@ function Target() {
 
       // Look for any new files created
       const newFiles = result.value.codes.filter((c) => c.isNew);
-      if (newFiles.length > 0) {
+      if (newFiles.length > 0 && newFiles[0]) {
         // If a shared module was created, verify it exports
         const sharedModule = newFiles[0];
-        if (sharedModule !== undefined) {
-          expect(sharedModule.content).toContain('export');
-        }
+        expect(sharedModule.content).toContain('export');
       }
     }
   });
@@ -268,13 +266,11 @@ function Target() {
 
       // Check for shared module with multiple exports
       const newFiles = result.value.codes.filter((c) => c.isNew);
-      if (newFiles.length > 0) {
+      if (newFiles.length > 0 && newFiles[0]) {
         const sharedModule = newFiles[0];
-        if (sharedModule !== undefined) {
-          // Count exports (could be export const helper1, helper2, helper3)
-          const exportCount = (sharedModule.content.match(/export/g) || []).length;
-          expect(exportCount).toBeGreaterThan(0);
-        }
+        // Count exports (could be export const helper1, helper2, helper3)
+        const exportCount = (sharedModule.content.match(/export/g) || []).length;
+        expect(exportCount).toBeGreaterThan(0);
       }
     }
   });
@@ -394,11 +390,9 @@ export function B({ data }: { data: { value: number } }) {
 
       // Check for shared module creation
       const newFiles = result.value.codes.filter((c) => c.isNew);
-      if (newFiles.length > 0) {
+      if (newFiles.length > 0 && newFiles[0]) {
         const sharedModule = newFiles[0];
-        if (sharedModule !== undefined) {
-          expect(sharedModule.content).toContain('export');
-        }
+        expect(sharedModule.content).toContain('export');
       }
 
       // Verify A and B were both updated

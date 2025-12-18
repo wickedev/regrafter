@@ -16,7 +16,7 @@ import {
   type ValidationErrorType,
   type TransformErrorType,
 } from "../errors/index.js";
-import { ok, err, type Result } from "../result/index.js";
+import { ok, err, isErr, type Result } from "../result/index.js";
 import { Move } from "../types/public.js";
 
 import type { MoveOptions, MoveContext, InsertionPoint } from "./types.js";
@@ -289,8 +289,13 @@ export class JSXTransformer {
     const { ast, options } = context;
 
     // Normalize paths to handle JSXExpressionContainer
-    const sourcePath = this.normalizePathForMove(context.sourcePath);
-    const targetPath = this.normalizePathForMove(context.targetPath);
+    const sourcePathResult = this.normalizePathForMove(context.sourcePath);
+    if (isErr(sourcePathResult)) return err(sourcePathResult.error);
+    const sourcePath = sourcePathResult.value;
+
+    const targetPathResult = this.normalizePathForMove(context.targetPath);
+    if (isErr(targetPathResult)) return err(targetPathResult.error);
+    const targetPath = targetPathResult.value;
 
     // Validate source is a JSX element
     if (!this.isValidJSXSource(sourcePath)) {
@@ -409,8 +414,13 @@ export class JSXTransformer {
     const { ast, options } = context;
 
     // Normalize paths to handle JSXExpressionContainer
-    const sourcePath = this.normalizePathForMove(context.sourcePath);
-    const targetPath = this.normalizePathForMove(context.targetPath);
+    const sourcePathResult = this.normalizePathForMove(context.sourcePath);
+    if (isErr(sourcePathResult)) return err(sourcePathResult.error);
+    const sourcePath = sourcePathResult.value;
+
+    const targetPathResult = this.normalizePathForMove(context.targetPath);
+    if (isErr(targetPathResult)) return err(targetPathResult.error);
+    const targetPath = targetPathResult.value;
 
     // Validate source is a JSX element
     if (!this.isValidJSXSource(sourcePath)) {
@@ -636,7 +646,7 @@ export class JSXTransformer {
    * in {condition && <Element/>}), we need to normalize it to point to the
    * JSXExpressionContainer itself, since that's what we actually want to move.
    */
-  private normalizePathForMove(path: NodePath): NodePath {
+  private normalizePathForMove(path: NodePath): Result<NodePath, TransformErrorType> {
     let currentPath = path;
     let shouldContinue = true;
     const MAX_DEPTH = 100;
@@ -649,7 +659,7 @@ export class JSXTransformer {
       if (t.isJSXExpressionContainer(parent)) {
         const parentPath = currentPath.parentPath;
         if (parentPath) {
-          return parentPath;
+          return ok(parentPath);
         }
         shouldContinue = false;
       } else if (
@@ -682,10 +692,17 @@ export class JSXTransformer {
     }
 
     if (depth >= MAX_DEPTH) {
-      throw new Error(`Maximum tree depth (${MAX_DEPTH}) exceeded while finding JSX container`);
+      return err(
+        createTransformError({
+          code: "E030",
+          message: `Maximum tree depth (${MAX_DEPTH}) exceeded while finding JSX container`,
+          operation: "normalizePathForMove",
+          file: "",
+        })
+      );
     }
 
-    return currentPath;
+    return ok(currentPath);
   }
 
   /**
@@ -711,8 +728,13 @@ export class JSXTransformer {
       if (t.isJSXExpressionContainer(parent)) {
         const parentPath = currentPath.parentPath;
         if (parentPath === null) {
-          throw new Error(
-            "Unexpected null parent path for JSXExpressionContainer"
+          return err(
+            createTransformError({
+              code: "T011",
+              message: "Unexpected null parent path for JSXExpressionContainer",
+              operation: "getSiblings",
+              file: "",
+            })
           );
         }
         currentPath = parentPath;
@@ -745,8 +767,14 @@ export class JSXTransformer {
           currentPath = parentPath;
         }
       } else {
-        // For other parent types, stop here
-        shouldContinue = false;
+        // For other parent types (e.g., ReturnStatement, ExpressionStatement),
+        // continue walking up to find a valid container
+        const parentPath = currentPath.parentPath;
+        if (!parentPath) {
+          shouldContinue = false;
+        } else {
+          currentPath = parentPath;
+        }
       }
     }
 
@@ -840,49 +868,41 @@ export class JSXTransformer {
   }
 
   /**
-   * Get the index of a node in its parent's children
-   *
-   * For nodes inside JSXExpressionContainer, returns the index of the container.
-   *
-   * @returns Ok with the index if found, Err with ValidationError if not found
+   * Walk up the tree to find the appropriate container path
+   * @returns Result with container info or error
    */
-  getIndexInParent(path: NodePath): Result<number, ValidationErrorType> {
+  private findContainerPath(
+    path: NodePath
+  ): Result<{ path: NodePath; node: t.Node }, ValidationErrorType> {
     let currentPath = path;
     let nodeToFind = currentPath.node;
     let shouldContinue = true;
     const MAX_DEPTH = 100;
     let depth = 0;
 
-    // Walk up to find the appropriate container, same logic as getSiblings()
     while (shouldContinue && depth < MAX_DEPTH) {
       depth++;
       const parent = currentPath.parent;
+
       if (t.isJSXExpressionContainer(parent)) {
         nodeToFind = parent;
         const parentPath = currentPath.parentPath;
         if (parentPath === null) {
-          throw new Error(
-            "Unexpected null parent path for JSXExpressionContainer"
+          return err(
+            createValidationError({
+              code: "V008",
+              message: "Unexpected null parent path for JSXExpressionContainer",
+              constraint: "valid_parent_path",
+              details: "Parent path should not be null for JSXExpressionContainer",
+              file: "",
+            })
           );
         }
         currentPath = parentPath;
         shouldContinue = false;
-      } else if (
-        t.isJSXElement(parent) ||
-        t.isJSXFragment(parent) ||
-        t.isArrayExpression(parent) ||
-        t.isBlockStatement(parent) ||
-        t.isProgram(parent)
-      ) {
+      } else if (this.isContainerNode(parent)) {
         shouldContinue = false;
-      } else if (
-        t.isLogicalExpression(parent) ||
-        t.isConditionalExpression(parent) ||
-        t.isCallExpression(parent) ||
-        t.isMemberExpression(parent) ||
-        t.isArrowFunctionExpression(parent) ||
-        t.isFunctionExpression(parent)
-      ) {
+      } else if (this.shouldContinueWalkUp(parent)) {
         const parentPath = currentPath.parentPath;
         if (!parentPath) {
           shouldContinue = false;
@@ -891,7 +911,13 @@ export class JSXTransformer {
           currentPath = parentPath;
         }
       } else {
-        shouldContinue = false;
+        const parentPath = currentPath.parentPath;
+        if (!parentPath) {
+          shouldContinue = false;
+        } else {
+          nodeToFind = currentPath.node;
+          currentPath = parentPath;
+        }
       }
     }
 
@@ -907,20 +933,68 @@ export class JSXTransformer {
       );
     }
 
-    const parent = currentPath.parent;
-    let children: readonly t.Node[] | null = null;
+    return ok({ path: currentPath, node: nodeToFind });
+  }
 
-    if (t.isJSXElement(parent)) {
-      children = parent.children;
-    } else if (t.isJSXFragment(parent)) {
-      children = parent.children;
-    } else if (t.isArrayExpression(parent)) {
-      children = parent.elements.filter((e): e is t.Expression => e !== null);
-    } else if (t.isBlockStatement(parent)) {
-      children = parent.body;
-    } else if (t.isProgram(parent)) {
-      children = parent.body;
+  /**
+   * Check if a node is a container that holds children
+   */
+  private isContainerNode(node: t.Node): boolean {
+    return (
+      t.isJSXElement(node) ||
+      t.isJSXFragment(node) ||
+      t.isArrayExpression(node) ||
+      t.isBlockStatement(node) ||
+      t.isProgram(node)
+    );
+  }
+
+  /**
+   * Check if we should continue walking up for these parent types
+   */
+  private shouldContinueWalkUp(node: t.Node): boolean {
+    return (
+      t.isLogicalExpression(node) ||
+      t.isConditionalExpression(node) ||
+      t.isCallExpression(node) ||
+      t.isMemberExpression(node) ||
+      t.isArrowFunctionExpression(node) ||
+      t.isFunctionExpression(node)
+    );
+  }
+
+  /**
+   * Get children array from a parent node
+   */
+  private getChildrenFromParent(parent: t.Node): readonly t.Node[] | null {
+    if (t.isJSXElement(parent) || t.isJSXFragment(parent)) {
+      return parent.children;
     }
+    if (t.isArrayExpression(parent)) {
+      return parent.elements.filter((e): e is t.Expression => e !== null);
+    }
+    if (t.isBlockStatement(parent) || t.isProgram(parent)) {
+      return parent.body;
+    }
+    return null;
+  }
+
+  /**
+   * Get the index of a node in its parent's children
+   *
+   * For nodes inside JSXExpressionContainer, returns the index of the container.
+   *
+   * @returns Ok with the index if found, Err with ValidationError if not found
+   */
+  getIndexInParent(path: NodePath): Result<number, ValidationErrorType> {
+    const containerResult = this.findContainerPath(path);
+    if (isErr(containerResult)) {
+      return containerResult;
+    }
+
+    const { path: currentPath, node: nodeToFind } = containerResult.value;
+    const parent = currentPath.parent;
+    const children = this.getChildrenFromParent(parent);
 
     if (children) {
       const index = children.findIndex((child) => child === nodeToFind);

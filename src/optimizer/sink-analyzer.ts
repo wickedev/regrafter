@@ -10,6 +10,7 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
+import { createInternalError } from '../errors/index.js';
 import {
   createScopeInfo,
   createConsumerInfo,
@@ -204,13 +205,21 @@ export class SinkAnalyzer implements ISinkAnalyzer {
    */
   computeLCA(scopes: ScopeInfo[]): LCAResult {
     if (scopes.length === 0) {
-      throw new Error('Cannot compute LCA of empty scope list');
+      const error = createInternalError({
+        code: 'E001',
+        message: 'Cannot compute LCA of empty scope list - scope array must contain at least one element',
+      });
+      throw new Error(error.message);
     }
 
     if (scopes.length === 1) {
       const scope = scopes[0];
       if (!scope) {
-        throw new Error('Scope array unexpectedly empty after length check');
+        const error = createInternalError({
+          code: 'E001',
+          message: 'computeLCA: Scope array unexpectedly empty after length check - first scope element is undefined',
+        });
+        throw new Error(error.message);
       }
       return {
         scope,
@@ -226,7 +235,11 @@ export class SinkAnalyzer implements ISinkAnalyzer {
     // Make a copy before reversing to avoid mutating the original array
     const firstPath = paths[0];
     if (!firstPath || firstPath.length === 0) {
-      throw new Error('First scope path is empty');
+      const error = createInternalError({
+        code: 'E001',
+        message: 'computeLCA: First scope path is empty - unable to compute path to root for first scope',
+      });
+      throw new Error(error.message);
     }
     const firstPathReversed = [...firstPath].reverse(); // Start from root
     let lcaIndex = -1;
@@ -253,7 +266,11 @@ export class SinkAnalyzer implements ISinkAnalyzer {
       : firstPathReversed[0];
 
     if (!lcaScope) {
-      throw new Error('Unable to determine LCA scope');
+      const error = createInternalError({
+        code: 'E001',
+        message: 'computeLCA: Unable to determine LCA scope - no common ancestor found',
+      });
+      throw new Error(error.message);
     }
 
     const pathFromRoot = firstPathReversed.slice(0, lcaIndex + 1);
@@ -283,36 +300,46 @@ export class SinkAnalyzer implements ISinkAnalyzer {
     const parents = new Map<string, string | null>();
     const children = new Map<string, Set<string>>();
 
-    // Root scope will be set during traversal
-    let rootScope: ScopeInfo | null = null;
-    let currentScope: ScopeInfo | null = null;
-    const scopeStack: ScopeInfo[] = [];
+    // Initialize root scope from Program node
+    // Every valid Babel AST has a Program node as root
+    let programPath: NodePath | undefined;
+
+    traverse(ast, {
+      Program(path: NodePath) {
+        programPath = path;
+        path.stop();
+      },
+    });
+
+    if (!programPath) {
+      const error = createInternalError({
+        code: 'E001',
+        message: 'buildScopeTree: No Program node found in AST',
+      });
+      throw new Error(error.message);
+    }
+
+    const rootScope = createScopeInfo({
+      type: ScopeType.Module,
+      path: programPath,
+      parent: null,
+      depth: 0,
+      id: generateId('scope_root'),
+    });
+
+    scopes.set(rootScope.id, rootScope);
+    depths.set(rootScope.id, 0);
+    parents.set(rootScope.id, null);
+    children.set(rootScope.id, new Set());
+
+    let currentScope: ScopeInfo = rootScope;
+    const scopeStack: ScopeInfo[] = [rootScope];
 
     // Traverse AST to build scope tree
     traverse(ast, {
       enter(path: NodePath) {
-        // Create root scope when we find Program
-        if (path.isProgram() && rootScope === null) {
-          rootScope = createScopeInfo({
-            type: ScopeType.Module,
-            path,
-            parent: null,
-            depth: 0,
-            id: generateId('scope_root'),
-          });
-
-          scopes.set(rootScope.id, rootScope);
-          depths.set(rootScope.id, 0);
-          parents.set(rootScope.id, null);
-          children.set(rootScope.id, new Set());
-
-          currentScope = rootScope;
-          scopeStack.push(rootScope);
-          return;
-        }
-
-        // Skip if root scope hasn't been initialized
-        if (rootScope === null || currentScope === null) {
+        // Skip the Program node (already processed)
+        if (path.isProgram()) {
           return;
         }
 
@@ -374,8 +401,8 @@ export class SinkAnalyzer implements ISinkAnalyzer {
         }
       },
       exit(path: NodePath) {
-        // Skip if root scope hasn't been initialized
-        if (rootScope === null || currentScope === null) {
+        // Skip the Program node (already processed)
+        if (path.isProgram()) {
           return;
         }
 
@@ -397,16 +424,8 @@ export class SinkAnalyzer implements ISinkAnalyzer {
       },
     });
 
-    // Helper to narrow rootScope type after traversal
-    function ensureRootScope(scope: ScopeInfo | null): ScopeInfo {
-      if (scope === null) {
-        throw new Error('Failed to create root scope - no Program node found');
-      }
-      return scope;
-    }
-
     const tree: ScopeTree = {
-      root: ensureRootScope(rootScope),
+      root: rootScope,
       scopes,
       depths,
       parents,

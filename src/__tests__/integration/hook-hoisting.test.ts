@@ -24,6 +24,7 @@ import {
 import { createParser } from "../../parser/index.js";
 import { createJSXTransformer } from "../../transformer/index.js";
 import { CodeGenerator } from "../../generator/code-generator.js";
+import { isErr } from "../../result/index.js";
 
 // =============================================================================
 // Test Utilities
@@ -62,12 +63,15 @@ async function testHoisting(
   // Get scopes
   const sourceScope = scopeManager.getScopeForPath(sourceResult.value.path);
   let targetScope = scopeManager.getScopeForPath(targetResult.value.path);
-  const sourceComponent = scopeManager.findEnclosingComponent(
+  const sourceComponentResult = scopeManager.findEnclosingComponent(
     sourceResult.value.path
   );
-  const targetComponent = scopeManager.findEnclosingComponent(
+  const targetComponentResult = scopeManager.findEnclosingComponent(
     targetResult.value.path
   );
+
+  const sourceComponent = !isErr(sourceComponentResult) ? sourceComponentResult.value : null;
+  const targetComponent = !isErr(targetComponentResult) ? targetComponentResult.value : null;
 
   // Fallback to component scope if target scope is null (for simple JSX elements)
   if (!targetScope) {

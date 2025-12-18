@@ -9,6 +9,8 @@
 import generateCodeModule from '@babel/generator';
 import type * as t from '@babel/types';
 
+import { createInternalError, type InternalErrorType } from '../../errors/index.js';
+import { ok, err, isErr, type Result } from '../../result/index.js';
 import {
   createCode,
 } from '../../types/factories.js';
@@ -137,12 +139,17 @@ function isGeneratedCode(value: unknown): value is { code: string; map?: object 
 /**
  * Safely generates code from AST.
  */
-function safeGenerateCode(ast: t.Node, opts?: object): { code: string; map?: object } {
+function safeGenerateCode(ast: t.Node, opts?: object): Result<{ code: string; map?: object }, InternalErrorType> {
   const result: unknown = generateCode(ast, opts);
   if (isGeneratedCode(result)) {
-    return result;
+    return ok(result);
   }
-  throw new Error('Invalid generateCode result');
+  return err(
+    createInternalError({
+      code: 'E001',
+      message: `safeGenerateCode: Invalid generateCode result with type ${typeof result}`,
+    })
+  );
 }
 
 /**
@@ -156,12 +163,18 @@ function handleSharedModuleCreation(
   modifiedAsts: Map<string, t.File>,
   sharedModuleOperations: SharedModuleOperation[],
   importOperations: ImportOperation[]
-): string {
-  const sharedModuleResult = generateSharedModule(
+): Result<string, InternalErrorType> {
+  const sharedModuleResultOrError = generateSharedModule(
     depsNeedingSharedModule,
     sourceAst,
     sourceFile
   );
+
+  if (isErr(sharedModuleResultOrError)) {
+    return err(sharedModuleResultOrError.error);
+  }
+
+  const sharedModuleResult = sharedModuleResultOrError.value;
 
   const sharedModulePath = sharedModuleResult.operation.newFilePath;
   newFiles.set(sharedModulePath, sharedModuleResult.ast);
@@ -177,7 +190,7 @@ function handleSharedModuleCreation(
   modifiedAsts.set(sourceFile, sourceUpdate.ast);
   importOperations.push(...sourceUpdate.imports);
 
-  return sharedModulePath;
+  return ok(sharedModulePath);
 }
 
 /**
@@ -258,13 +271,19 @@ function generateCodeForAllFiles(
   context: CrossFileContext,
   modifiedAsts: Map<string, t.File>,
   newFiles: Map<string, t.File>
-): Code[] {
+): Result<Code[], InternalErrorType> {
   const codes: Code[] = [];
 
   // Generate code for modified files
   for (const [filePath, ast] of modifiedAsts) {
     const originalContent = context.originalContents.get(filePath);
-    const generated = safeGenerateCode(ast, { comments: true });
+    const generatedResult = safeGenerateCode(ast, { comments: true });
+
+    if (isErr(generatedResult)) {
+      return err(generatedResult.error);
+    }
+
+    const generated = generatedResult.value;
 
     codes.push(
       createCode({
@@ -282,7 +301,13 @@ function generateCodeForAllFiles(
       continue;
     }
 
-    const generated = safeGenerateCode(ast, { comments: true });
+    const generatedResult = safeGenerateCode(ast, { comments: true });
+
+    if (isErr(generatedResult)) {
+      return err(generatedResult.error);
+    }
+
+    const generated = generatedResult.value;
 
     codes.push(
       createCode({
@@ -312,7 +337,7 @@ function generateCodeForAllFiles(
     }
   }
 
-  return codes;
+  return ok(codes);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -344,10 +369,24 @@ export function executeCrossFileTransform(
   try {
     // Step 1: Handle new target file if needed
     if (context.isNewTargetFile) {
-      const newFileResult = handleNewTargetFile(
+      const newFileResultOrError = handleNewTargetFile(
         context.targetFile,
         options.newFileConfig
       );
+
+      if (isErr(newFileResultOrError)) {
+        return {
+          success: false,
+          modifiedAsts,
+          newFiles,
+          codes,
+          importOperations,
+          sharedModuleOperations,
+          error: newFileResultOrError.error.message,
+        };
+      }
+
+      const newFileResult = newFileResultOrError.value;
       newFiles.set(context.targetFile, newFileResult.ast);
       context.asts.set(context.targetFile, newFileResult.ast);
     }
@@ -379,7 +418,7 @@ export function executeCrossFileTransform(
 
     let sharedModulePath: string | null = null;
     if (createSharedModules && depsNeedingSharedModule.length > 0) {
-      sharedModulePath = handleSharedModuleCreation(
+      const sharedModulePathResult = handleSharedModuleCreation(
         depsNeedingSharedModule,
         sourceAst,
         context.sourceFile,
@@ -388,6 +427,20 @@ export function executeCrossFileTransform(
         sharedModuleOperations,
         importOperations
       );
+
+      if (isErr(sharedModulePathResult)) {
+        return {
+          success: false,
+          modifiedAsts,
+          newFiles,
+          codes,
+          importOperations,
+          sharedModuleOperations,
+          error: sharedModulePathResult.error.message,
+        };
+      }
+
+      sharedModulePath = sharedModulePathResult.value;
     }
 
     // Step 4: Generate imports for target file
@@ -448,8 +501,21 @@ export function executeCrossFileTransform(
     }
 
     // Step 8: Generate code for all files
-    const generatedCodes = generateCodeForAllFiles(context, modifiedAsts, newFiles);
-    codes.push(...generatedCodes);
+    const generatedCodesResult = generateCodeForAllFiles(context, modifiedAsts, newFiles);
+
+    if (isErr(generatedCodesResult)) {
+      return {
+        success: false,
+        modifiedAsts,
+        newFiles,
+        codes,
+        importOperations,
+        sharedModuleOperations,
+        error: generatedCodesResult.error.message,
+      };
+    }
+
+    codes.push(...generatedCodesResult.value);
 
     return {
       success: true,
@@ -478,10 +544,15 @@ export function executeCrossFileTransform(
 function handleNewTargetFile(
   targetFile: string,
   config?: NewFileConfig
-): NewFileResult {
+): Result<NewFileResult, InternalErrorType> {
   const validation = validateNewFilePath(targetFile);
   if (!validation.valid) {
-    throw new Error(validation.error);
+    return err(
+      createInternalError({
+        code: 'E001',
+        message: `handleNewTargetFile: ${validation.error ?? 'Invalid file path'} for target file ${targetFile}`,
+      })
+    );
   }
 
   if (isComponentFile(targetFile)) {

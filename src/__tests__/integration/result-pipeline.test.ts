@@ -120,10 +120,21 @@ describe("Task 19.1: Successful pipeline integration", () => {
       analyzer.setCurrentFile(filename);
 
       // Find the enclosing component scope
-      const componentScope = scopeManager.findEnclosingComponent(element.path);
+      const componentScopeResult = scopeManager.findEnclosingComponent(element.path);
+
+      if (isErr(componentScopeResult)) {
+        return err({
+          _tag: "InternalError" as const,
+          code: "E999",
+          message: "Failed to find component scope",
+          file: filename,
+          recoverable: false,
+          suggestions: [],
+        });
+      }
 
       return mapErr(
-        analyzer.analyzeElement(element.path, componentScope),
+        analyzer.analyzeElement(element.path, componentScopeResult.value),
         (err) => err as any
       );
     });
@@ -172,14 +183,26 @@ describe("Task 19.1: Successful pipeline integration", () => {
           ),
           (err) => err as any
         ),
-        (element) =>
-          mapErr(
+        (element) => {
+          const componentScopeResult = scopeManager.findEnclosingComponent((element as any).path);
+          if (isErr(componentScopeResult)) {
+            return err({
+              _tag: "InternalError" as const,
+              code: "E999",
+              message: "Failed to find component scope",
+              file: filename,
+              recoverable: false,
+              suggestions: [],
+            });
+          }
+          return mapErr(
             analyzer.analyzeElement(
               (element as any).path,
-              scopeManager.findEnclosingComponent((element as any).path)
+              componentScopeResult.value
             ),
             (err) => err as any
-          )
+          );
+        }
       );
     });
 
@@ -301,14 +324,26 @@ describe("Task 19.2: Error propagation through pipeline", () => {
           ),
           (err) => err as any
         ),
-        (element) =>
-          mapErr(
+        (element) => {
+          const componentScopeResult = scopeManager.findEnclosingComponent((element as any).path);
+          if (isErr(componentScopeResult)) {
+            return err({
+              _tag: "InternalError" as const,
+              code: "E999",
+              message: "Failed to find component scope",
+              file: filename,
+              recoverable: false,
+              suggestions: [],
+            });
+          }
+          return mapErr(
             analyzer.analyzeElement(
               (element as any).path,
-              scopeManager.findEnclosingComponent((element as any).path)
+              componentScopeResult.value
             ),
             (err) => err as any
-          )
+          );
+        }
       );
     });
 

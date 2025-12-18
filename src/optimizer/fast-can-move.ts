@@ -10,8 +10,10 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
+import { createInternalError, type InternalErrorType } from '../errors/index.js';
 import type { Parser} from '../parser/index.js';
 import { createParser } from '../parser/index.js';
+import { ok, err, isErr, type Result } from '../result/index.js';
 import type { FileInput } from '../types/public.js';
 import { loadTraverseFunction, type TraverseFunction } from '../utils/index.js';
 
@@ -262,50 +264,63 @@ export class FastCanMove {
   /**
    * Get the Program NodePath from an AST
    */
-  private getProgramPath(ast: t.File): NodePath {
-    const found: { path: NodePath | null } = { path: null };
+  private getProgramPath(ast: t.File): Result<NodePath, InternalErrorType> {
+    let foundPath: NodePath | undefined;
     traverse(ast, {
       Program(nodePath: NodePath<t.Program>) {
-        found.path = nodePath;
+        foundPath = nodePath;
         nodePath.stop();
       },
     });
-    // Program visitor always executes for valid ASTs
-    // Use object wrapper to avoid ESLint unnecessary-condition warning
-    const result = found.path;
-    if (result === null) {
-      throw new Error('Failed to find Program node in AST');
+
+    if (foundPath === undefined) {
+      return err(
+        createInternalError({
+          code: 'E001',
+          message: 'Failed to find Program node in AST. AST may be malformed or empty.',
+        })
+      );
     }
-    return result;
+    return ok(foundPath);
   }
 
   private findNodeByPath(ast: t.File, path: string): NodePath | null {
     // Parse path like "Program.body[0].declaration.body.body[2]"
-    const parts = path.split('.').flatMap((p) => {
+    type PathPart = string | number;
+    const parts: PathPart[] = [];
+
+    for (const p of path.split('.')) {
       const match = p.match(/^(\w+)(?:\[(\d+)\])?$/);
-      if (!match) return [p];
-      const [, name, index] = match;
-      if (index !== undefined && name !== undefined && name !== '') {
-        return [name, parseInt(index, 10)];
+      if (match === null) {
+        parts.push(p);
+        continue;
       }
-      if (name !== undefined && name !== '') {
-        return [name];
+      const name = match[1];
+      const index = match[2];
+      if (index !== undefined && name !== undefined && name.length > 0) {
+        parts.push(name);
+        parts.push(parseInt(index, 10));
+      } else if (name !== undefined && name.length > 0) {
+        parts.push(name);
+      } else {
+        parts.push(p);
       }
-      return [p];
-    });
+    }
 
     // Get the Program NodePath
-    let currentPath: NodePath;
-    try {
-      currentPath = this.getProgramPath(ast);
-    } catch {
+    const programPathResult = this.getProgramPath(ast);
+    if (isErr(programPathResult)) {
       return null;
     }
+    let currentPath: NodePath = programPathResult.value;
 
     // Navigate path
     for (let i = 1; i < parts.length; i++) {
       // Skip 'Program'
       const part = parts[i];
+      if (part === undefined) {
+        return null;
+      }
 
       if (typeof part === 'number') {
         // Array index - get the property name from previous part
@@ -330,19 +345,18 @@ export class FastCanMove {
 
         // Find the NodePath for this index by traversing children
         const searchTarget = targetNodeValue;
-        const found: { path: NodePath | null } = { path: null };
+        let foundPath: NodePath | undefined;
         currentPath.traverse({
           enter(childPath: NodePath) {
             if (childPath.node === searchTarget) {
-              found.path = childPath;
+              foundPath = childPath;
               childPath.stop();
             }
           },
         });
 
         // If we didn't find the child path, return null
-        const foundPath = found.path;
-        if (foundPath === null) {
+        if (foundPath === undefined) {
           return null;
         }
         currentPath = foundPath;
@@ -364,19 +378,18 @@ export class FastCanMove {
 
         // Find the NodePath for this property by traversing children
         const searchTarget = nodeValue;
-        const found: { path: NodePath | null } = { path: null };
+        let foundPath: NodePath | undefined;
         currentPath.traverse({
           enter(childPath: NodePath) {
             if (childPath.node === searchTarget) {
-              found.path = childPath;
+              foundPath = childPath;
               childPath.stop();
             }
           },
         });
 
         // If we didn't find the child path, return null
-        const foundPath = found.path;
-        if (foundPath === null) {
+        if (foundPath === undefined) {
           return null;
         }
         currentPath = foundPath;

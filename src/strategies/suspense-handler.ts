@@ -9,12 +9,10 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-import {
-  createHoistOperation,
-} from '../types/factories.js';
-import {
-  HoistStrategy,
-} from '../types/internal.js';
+import { createInternalError, type InternalErrorType } from '../errors/index.js';
+import { err, ok, type Result } from '../result/index.js';
+import { createHoistOperation } from '../types/factories.js';
+import { HoistStrategy } from '../types/internal.js';
 import type {
   HoistOperation,
   InternalDependency,
@@ -22,13 +20,13 @@ import type {
 import { DependencyType } from '../types/public.js';
 import { loadTraverseFunction, type TraverseFunction } from '../utils/index.js';
 
-const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
-
 import type {
   HoistContext,
   HoistPlanItem,
   ISuspenseHandler,
 } from './types.js';
+
+const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
 
 // ===============================================================================
 // Suspense Constants
@@ -215,10 +213,16 @@ export class SuspenseHandler implements ISuspenseHandler {
   /**
    * Execute the hoisting operation
    */
-  execute(operation: HoistOperation, _context: HoistContext): void {
+  execute(operation: HoistOperation, _context: HoistContext): Result<void, InternalErrorType> {
     if (!operation.dependencyId) {
-      throw new Error('Invalid hoist operation: missing dependency ID');
+      return err(
+        createInternalError({
+          code: 'E001',
+          message: `SuspenseHandler.execute: Invalid hoist operation - missing dependency ID for symbol ${operation.symbol}`,
+        })
+      );
     }
+    return ok(undefined);
   }
 
   // ===========================================================================

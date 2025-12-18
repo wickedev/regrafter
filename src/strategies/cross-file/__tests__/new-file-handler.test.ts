@@ -14,6 +14,7 @@ import {
   validateNewFilePath,
   generateUniqueFilePath,
 } from '../new-file-handler.js';
+import { isOk } from '../../../result/index.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // isNewFile Tests
@@ -121,8 +122,10 @@ describe('generateEmptyComponentFile', () => {
   it('should generate valid component file', () => {
     const result = generateEmptyComponentFile('src/components/Button.tsx');
 
-    expect(result.ast).toBeDefined();
-    expect(result.code).toBe(`import React from 'react';
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.ast).toBeDefined();
+      expect(result.value.code).toBe(`import React from 'react';
 /**
  * Props for Button component.
  */
@@ -136,13 +139,16 @@ export default
 function Button(props: ButtonProps): React.ReactElement {
   return <div>{props.children}</div>;
 }`);
-    expect(result.filePath).toBe('src/components/Button.tsx');
+      expect(result.value.filePath).toBe('src/components/Button.tsx');
+    }
   });
 
   it('should generate TypeScript props interface', () => {
     const result = generateEmptyComponentFile('src/components/Button.tsx');
 
-    expect(result.code).toBe(`import React from 'react';
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.code).toBe(`import React from 'react';
 /**
  * Props for Button component.
  */
@@ -156,6 +162,7 @@ export default
 function Button(props: ButtonProps): React.ReactElement {
   return <div>{props.children}</div>;
 }`);
+    }
   });
 
   it('should add use client directive when configured', () => {
@@ -163,7 +170,9 @@ function Button(props: ButtonProps): React.ReactElement {
       useClient: true,
     });
 
-    expect(result.code).toBe(`'use client';
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.code).toBe(`'use client';
 import React from 'react';
 /**
  * Props for Button component.
@@ -178,6 +187,7 @@ export default
 function Button(props: ButtonProps): React.ReactElement {
   return <div>{props.children}</div>;
 }`);
+    }
   });
 
   it('should add use server directive when configured', () => {
@@ -185,7 +195,9 @@ function Button(props: ButtonProps): React.ReactElement {
       useServer: true,
     });
 
-    expect(result.code).toBe(`'use server';
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.code).toBe(`'use server';
 import React from 'react';
 /**
  * Props for Button component.
@@ -200,6 +212,7 @@ export default
 function Button(props: ButtonProps): React.ReactElement {
   return <div>{props.children}</div>;
 }`);
+    }
   });
 
   it('should use custom component name', () => {
@@ -207,7 +220,9 @@ function Button(props: ButtonProps): React.ReactElement {
       componentName: 'CustomButton',
     });
 
-    expect(result.code).toBe(`import React from 'react';
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.code).toBe(`import React from 'react';
 /**
  * Props for CustomButton component.
  */
@@ -221,14 +236,18 @@ export default
 function CustomButton(props: CustomButtonProps): React.ReactElement {
   return <div>{props.children}</div>;
 }`);
+    }
   });
 
   it('should create valid Code result', () => {
     const result = generateEmptyComponentFile('src/components/Button.tsx');
 
-    expect(result.codeResult.file).toBe('src/components/Button.tsx');
-    expect(result.codeResult.changed).toBe(true);
-    expect(result.codeResult.isNew).toBe(true);
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.codeResult.file).toBe('src/components/Button.tsx');
+      expect(result.value.codeResult.changed).toBe(true);
+      expect(result.value.codeResult.isNew).toBe(true);
+    }
   });
 });
 
@@ -240,9 +259,12 @@ describe('generateEmptyFile', () => {
   it('should generate empty file with no imports', () => {
     const result = generateEmptyFile('src/utils/helpers.ts');
 
-    expect(result.ast).toBeDefined();
-    expect(result.filePath).toBe('src/utils/helpers.ts');
-    expect(result.codeResult.isNew).toBe(true);
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.ast).toBeDefined();
+      expect(result.value.filePath).toBe('src/utils/helpers.ts');
+      expect(result.value.codeResult.isNew).toBe(true);
+    }
   });
 
   it('should include provided imports', () => {
@@ -258,8 +280,11 @@ describe('generateEmptyFile', () => {
       },
     ]);
 
-    expect(result.code).toBe(`import { debounce } from 'lodash';
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.code).toBe(`import { debounce } from 'lodash';
 ;`);
+    }
   });
 
   it('should handle default imports', () => {
@@ -273,8 +298,11 @@ describe('generateEmptyFile', () => {
       },
     ]);
 
-    expect(result.code).toBe(`import axios from 'axios';
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.code).toBe(`import axios from 'axios';
 ;`);
+    }
   });
 });
 
@@ -301,17 +329,23 @@ describe('generateSharedModuleFile', () => {
       },
     ]);
 
-    expect(result.ast).toBeDefined();
-    expect(result.code).toBe(`export const helper = 1;`);
-    expect(result.filePath).toBe('src/shared/utils.ts');
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.ast).toBeDefined();
+      expect(result.value.code).toBe(`export const helper = 1;`);
+      expect(result.value.filePath).toBe('src/shared/utils.ts');
+    }
   });
 
   it('should create valid Code result', () => {
     const result = generateSharedModuleFile('src/shared/utils.ts', []);
 
-    expect(result.codeResult.file).toBe('src/shared/utils.ts');
-    expect(result.codeResult.isNew).toBe(true);
-    expect(result.codeResult.changed).toBe(true);
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.codeResult.file).toBe('src/shared/utils.ts');
+      expect(result.value.codeResult.isNew).toBe(true);
+      expect(result.value.codeResult.changed).toBe(true);
+    }
   });
 });
 
@@ -382,14 +416,20 @@ describe('generateUniqueFilePath', () => {
     const existingFiles = new Set<string>();
     const result = generateUniqueFilePath('src/Button.tsx', existingFiles);
 
-    expect(result).toBe('src/Button.tsx');
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value).toBe('src/Button.tsx');
+    }
   });
 
   it('should add suffix if file exists', () => {
     const existingFiles = new Set(['src/Button.tsx']);
     const result = generateUniqueFilePath('src/Button.tsx', existingFiles);
 
-    expect(result).toBe('src/Button.1.tsx');
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value).toBe('src/Button.1.tsx');
+    }
   });
 
   it('should increment suffix if multiple exist', () => {
@@ -400,6 +440,9 @@ describe('generateUniqueFilePath', () => {
     ]);
     const result = generateUniqueFilePath('src/Button.tsx', existingFiles);
 
-    expect(result).toBe('src/Button.3.tsx');
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value).toBe('src/Button.3.tsx');
+    }
   });
 });

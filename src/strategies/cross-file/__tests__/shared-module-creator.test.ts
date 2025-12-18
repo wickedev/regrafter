@@ -20,6 +20,7 @@ import {
 } from "../../../types/factories.js";
 import { DependencyType } from "../../../types/public.js";
 import { ScopeType } from "../../../types/internal.js";
+import { isOk } from "../../../result/index.js";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Test Utilities
@@ -77,11 +78,14 @@ describe("generateSharedModule", () => {
 
     const result = generateSharedModule(deps, ast, "src/A.ts");
 
-    expect(result.ast).toBeDefined();
-    expect(result.operation.newFilePath).toBe("src/A.shared.ts");
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.ast).toBeDefined();
+      expect(result.value.operation.newFilePath).toBe("src/A.shared.ts");
 
-    // Document the complete generated shared module code
-    expect(result.code).toBe("export const sharedVar = 1;");
+      // Document the complete generated shared module code
+      expect(result.value.code).toBe("export const sharedVar = 1;");
+    }
   });
 
   it("should include all dependencies in the shared module", () => {
@@ -98,7 +102,10 @@ describe("generateSharedModule", () => {
 
     const result = generateSharedModule(deps, ast, "src/A.ts");
 
-    expect(result.operation.exports.length).toBe(2);
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.operation.exports.length).toBe(2);
+    }
   });
 
   it("should generate appropriate file path for shared module", () => {
@@ -107,7 +114,10 @@ describe("generateSharedModule", () => {
 
     const result = generateSharedModule(deps, ast, "src/components/A.ts");
 
-    expect(result.operation.newFilePath).toBe("src/components/A.shared.ts");
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.value.operation.newFilePath).toBe("src/components/A.shared.ts");
+    }
   });
 });
 

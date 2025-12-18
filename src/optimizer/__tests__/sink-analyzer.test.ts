@@ -108,9 +108,7 @@ describe('SinkAnalyzer', () => {
     });
 
     it('should throw error for empty scope list', () => {
-      expect(() => analyzer.computeLCA([])).toThrow(
-        'Cannot compute LCA of empty scope list'
-      );
+      expect(() => analyzer.computeLCA([])).toThrow('Cannot compute LCA of empty scope list');
     });
 
     it('should find LCA of three scopes at different depths', () => {

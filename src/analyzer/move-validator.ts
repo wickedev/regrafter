@@ -16,14 +16,14 @@ import { AtomicUnitType } from '../types/internal.js';
 import type { ResolveResult, AnalyzabilityResult, UnanalyzableCode } from '../types/internal.js';
 import type { FileInput, Selector } from '../types/public.js';
 import { Move, isPositionSelector, isPathSelector } from '../types/public.js';
-import { loadTraverseFunction } from '../utils/index.js';
+import { loadTraverseFunction, type TraverseFunction } from '../utils/index.js';
 
 import {
   detectAtomicUnit,
   isJSXNode,
 } from './atomic-unit-detector.js';
 
-const traverse = loadTraverseFunction(traverseModule);
+const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
 
 // ============================================================================
 // Types

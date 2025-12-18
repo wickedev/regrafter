@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { parse } from '@babel/parser';
-import type * as t from '@babel/types';
+import type * as babelTypes from '@babel/types';
 import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 
@@ -27,7 +27,7 @@ function parseAndGetElement(code: string): NodePath | null {
   let elementPath: NodePath | null = null;
 
   traverse(ast, {
-    JSXElement(path: NodePath<t.JSXElement>) {
+    JSXElement(path: NodePath<babelTypes.JSXElement>) {
       if (!elementPath) {
         elementPath = path;
       }

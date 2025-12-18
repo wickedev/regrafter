@@ -8,6 +8,8 @@
 import generateCodeModule from '@babel/generator';
 import * as t from '@babel/types';
 
+import { createInternalError, type InternalErrorType } from '../../errors/index.js';
+import { ok, err, isErr, type Result } from '../../result/index.js';
 import { createCode } from '../../types/factories.js';
 import type { ImportOperation } from '../../types/internal.js';
 import type { Code } from '../../types/public.js';
@@ -37,12 +39,17 @@ function isGeneratedCode(value: unknown): value is { code: string; map?: object 
 /**
  * Safely generates code from AST.
  */
-function safeGenerateCode(ast: t.Node, opts?: object): { code: string; map?: object } {
+function safeGenerateCode(ast: t.Node, opts?: object): Result<{ code: string; map?: object }, InternalErrorType> {
   const result: unknown = generateCode(ast, opts);
   if (isGeneratedCode(result)) {
-    return result;
+    return ok(result);
   }
-  throw new Error('Invalid generateCode result');
+  return err(
+    createInternalError({
+      code: 'E001',
+      message: `safeGenerateCode: Invalid generateCode result with type ${typeof result}`,
+    })
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -181,7 +188,7 @@ export function detectFileType(filePath: string): FileTypeInfo {
 export function generateEmptyComponentFile(
   filePath: string,
   config: NewFileConfig = {}
-): NewFileResult {
+): Result<NewFileResult, InternalErrorType> {
   const fileInfo = detectFileType(filePath);
   const componentName = config.componentName ?? fileInfo.suggestedComponentName;
 
@@ -267,11 +274,17 @@ export function generateEmptyComponentFile(
   const ast = t.file(t.program(statements, [], 'module'));
 
   // Generate code
-  const result = safeGenerateCode(ast, {
+  const resultOrError = safeGenerateCode(ast, {
     comments: true,
     compact: false,
     jsescOption: { quotes: 'single' },
   });
+
+  if (isErr(resultOrError)) {
+    return err(resultOrError.error);
+  }
+
+  const result = resultOrError.value;
 
   const codeResult = createCode({
     file: filePath,
@@ -280,12 +293,12 @@ export function generateEmptyComponentFile(
     isNew: true,
   });
 
-  return {
+  return ok({
     ast,
     code: result.code,
     filePath,
     codeResult,
-  };
+  });
 }
 
 /**
@@ -352,7 +365,7 @@ function createComponentFunction(
 export function generateEmptyFile(
   filePath: string,
   imports: ImportOperation[] = []
-): NewFileResult {
+): Result<NewFileResult, InternalErrorType> {
   const statements: t.Statement[] = [];
 
   // Add imports
@@ -389,11 +402,17 @@ export function generateEmptyFile(
   };
   ast.comments = [autoGenComment];
 
-  const result = safeGenerateCode(ast, {
+  const resultOrError = safeGenerateCode(ast, {
     comments: true,
     compact: false,
     jsescOption: { quotes: 'single' },
   });
+
+  if (isErr(resultOrError)) {
+    return err(resultOrError.error);
+  }
+
+  const result = resultOrError.value;
 
   const codeResult = createCode({
     file: filePath,
@@ -402,12 +421,12 @@ export function generateEmptyFile(
     isNew: true,
   });
 
-  return {
+  return ok({
     ast,
     code: result.code,
     filePath,
     codeResult,
-  };
+  });
 }
 
 /**
@@ -420,7 +439,7 @@ export function generateEmptyFile(
 export function generateSharedModuleFile(
   filePath: string,
   exports: Array<{ name: string; node: t.Declaration }>
-): NewFileResult {
+): Result<NewFileResult, InternalErrorType> {
   const statements: t.Statement[] = [];
 
   // Add file header comment
@@ -438,11 +457,17 @@ export function generateSharedModuleFile(
   const ast = t.file(t.program(statements, [], 'module'));
   ast.comments = [headerComment];
 
-  const result = safeGenerateCode(ast, {
+  const resultOrError = safeGenerateCode(ast, {
     comments: true,
     compact: false,
     jsescOption: { quotes: 'single' },
   });
+
+  if (isErr(resultOrError)) {
+    return err(resultOrError.error);
+  }
+
+  const result = resultOrError.value;
 
   const codeResult = createCode({
     file: filePath,
@@ -451,12 +476,12 @@ export function generateSharedModuleFile(
     isNew: true,
   });
 
-  return {
+  return ok({
     ast,
     code: result.code,
     filePath,
     codeResult,
-  };
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -550,11 +575,11 @@ export function validateNewFilePath(
 export function generateUniqueFilePath(
   basePath: string,
   existingFiles: Set<string>
-): string {
+): Result<string, InternalErrorType> {
   const normalized = normalizePath(basePath);
 
   if (!existingFiles.has(normalized)) {
-    return basePath;
+    return ok(basePath);
   }
 
   // Add number suffix
@@ -572,8 +597,13 @@ export function generateUniqueFilePath(
   }
 
   if (counter >= MAX_ATTEMPTS) {
-    throw new Error(`Could not generate unique filename after ${MAX_ATTEMPTS} attempts for base: ${base}`);
+    return err(
+      createInternalError({
+        code: 'E001',
+        message: `generateUniqueFilePath: Could not generate unique filename after ${MAX_ATTEMPTS} attempts for base ${base} (base path: ${basePath}, existing files: ${existingFiles.size})`,
+      })
+    );
   }
 
-  return newPath;
+  return ok(newPath);
 }

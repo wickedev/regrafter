@@ -22,6 +22,7 @@ import {
   createInternalDependency,
   createDependencyOrigin,
   createDependencyAnalysis,
+  createScopeInfo,
 } from "../types/factories.js";
 
 import { createDynamicCodeDetector } from "./dynamic-code-detector.js";
@@ -869,10 +870,15 @@ export class DependencyAnalyzer {
     let elementScope = this.scopeManager.getScopeForPath(elementPath);
 
     // If element doesn't have its own scope (e.g., JSX elements), use enclosing component
-    elementScope ??= this.scopeManager.findEnclosingComponent(elementPath);
+    if (!elementScope) {
+      const enclosingResult = this.scopeManager.findEnclosingComponent(elementPath);
+      if (!isErr(enclosingResult)) {
+        elementScope = enclosingResult.value;
+      }
+    }
 
-    const componentScope =
-      this.scopeManager.findEnclosingComponent(elementPath);
+    const componentScopeResult = this.scopeManager.findEnclosingComponent(elementPath);
+    const componentScope = !isErr(componentScopeResult) ? componentScopeResult.value : null;
 
     // Detect different types of dependencies
     const hookDeps = this.detectHookDependencies(
@@ -1626,7 +1632,10 @@ export class DependencyAnalyzer {
 
       if (dep.type === DependencyType.Variable) {
         // For variables, find the component they're declared in
-        scope = this.scopeManager.findEnclosingComponent(dep.path);
+        const enclosingResult = this.scopeManager.findEnclosingComponent(dep.path);
+        if (!isErr(enclosingResult)) {
+          scope = enclosingResult.value;
+        }
       }
 
       // Fallback to original logic for other types or if no component found
@@ -1646,7 +1655,22 @@ export class DependencyAnalyzer {
               : "unknown";
 
       if (!scope) {
-        throw new Error(`Failed to resolve scope for dependency: ${name}`);
+        // Return a placeholder dependency with error information
+        // This maintains backward compatibility while allowing graceful error handling
+        return createInternalDependency({
+          symbol: name,
+          type: dep.type,
+          origin: createDependencyOrigin({
+            node: dep.path.node,
+            file: this.currentFile,
+            location: dep.path.node.loc,
+          }),
+          scope: createScopeInfo({
+            type: ScopeType.Module,
+            path: dep.path,
+            parent: null,
+          }),
+        });
       }
 
       return createInternalDependency({

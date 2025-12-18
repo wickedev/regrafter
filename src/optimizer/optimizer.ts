@@ -109,7 +109,7 @@ export class Optimizer implements IOptimizer {
       return result;
     }
 
-    return ok(this.convertToCodeArray(result.value));
+    return this.convertToCodeArray(result.value);
   }
 
   /**
@@ -454,13 +454,13 @@ export class Optimizer implements IOptimizer {
     return false;
   }
 
-  private convertToCodeArray(result: ExtendedOptimizeResult): Code[] {
+  private convertToCodeArray(result: ExtendedOptimizeResult): Result<Code[], RegraffError> {
     const codes: Code[] = [];
 
     for (const [filePath, ast] of Array.from(result.asts)) {
       const generated = this.generator.generate(ast);
       if (isErr(generated)) {
-        throw new Error(`Failed to generate code for ${filePath}: ${generated.error.message}`);
+        return err(generated.error);
       }
       codes.push(
         createCode({
@@ -471,7 +471,7 @@ export class Optimizer implements IOptimizer {
       );
     }
 
-    return codes;
+    return ok(codes);
   }
 
   private checkForChanges(
@@ -500,15 +500,11 @@ export function createOptimizer(): Optimizer {
  *
  * @param files - Input files to optimize
  * @param options - Optimization options
- * @returns Array of optimized file contents
+ * @returns Result with array of optimized file contents, or RegraffError on failure
  */
-export function optimize(files: FileInput[], options?: OptimizeOptions): Code[] {
+export function optimize(files: FileInput[], options?: OptimizeOptions): Result<Code[], RegraffError> {
   const optimizer = createOptimizer();
-  const result = optimizer.optimize(files, options);
-  if (isErr(result)) {
-    throw new Error(`Optimization failed: ${result.error.message}`);
-  }
-  return result.value;
+  return optimizer.optimize(files, options);
 }
 
 /**
@@ -516,16 +512,12 @@ export function optimize(files: FileInput[], options?: OptimizeOptions): Code[] 
  *
  * @param files - Input files to optimize
  * @param options - Optimization options
- * @returns Extended optimize result
+ * @returns Result with extended optimize result, or RegraffError on failure
  */
 export function optimizeWithDetails(
   files: FileInput[],
   options?: OptimizeOptions
-): ExtendedOptimizeResult {
+): Result<ExtendedOptimizeResult, RegraffError> {
   const optimizer = createOptimizer();
-  const result = optimizer.optimizeWithDetails(files, options);
-  if (isErr(result)) {
-    throw new Error(`Optimization failed: ${result.error.message}`);
-  }
-  return result.value;
+  return optimizer.optimizeWithDetails(files, options);
 }

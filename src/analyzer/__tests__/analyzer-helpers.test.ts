@@ -401,7 +401,12 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!jsxElement) return;
 
       // Find the component scope
-      const componentScope = scopeManager.findEnclosingComponent(jsxElement);
+      const componentScopeResult = scopeManager.findEnclosingComponent(jsxElement);
+
+      // If finding component scope fails, skip this test
+      if (!componentScopeResult.ok) return;
+
+      const componentScope = componentScopeResult.value;
 
       const collection = analyzerWithScope.collectIdentifiers(jsxElement);
       const propDeps = analyzerWithScope.detectPropDependencies(

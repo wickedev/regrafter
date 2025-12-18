@@ -14,7 +14,7 @@ import { ContextHandler, createContextHandler } from '../context-handler.js';
 import { DependencyType } from '../../types/public.js';
 import { createInternalDependency, createScopeInfo } from '../../types/factories.js';
 import type { InternalDependency } from '../../types/internal.js';
-import type { HoistContext } from '../types.js';
+import type { HoistContext } from '../../strategies/types.js';
 import { loadTraverseFunction } from '../../utils/babel-loader.js';
 
 const traverse = loadTraverseFunction(traverseModule);
@@ -367,7 +367,8 @@ describe('ContextHandler', () => {
       expect(calls).toBeDefined();
       expect(calls.length).toBeGreaterThan(0);
       if (calls[0] !== undefined) {
-        expect(calls[0].variableName).toBe('value');
+        const firstCall = calls[0];
+        expect(firstCall.variableName).toBe('value');
       }
     });
 
@@ -382,10 +383,12 @@ describe('ContextHandler', () => {
       expect(themeCalls.length).toBe(1);
       expect(userCalls.length).toBe(1);
       if (themeCalls[0] !== undefined) {
-        expect(themeCalls[0].variableName).toBe('theme');
+        const firstThemeCall = themeCalls[0];
+        expect(firstThemeCall.variableName).toBe('theme');
       }
       if (userCalls[0] !== undefined) {
-        expect(userCalls[0].variableName).toBe('user');
+        const firstUserCall = userCalls[0];
+        expect(firstUserCall.variableName).toBe('user');
       }
     });
   });

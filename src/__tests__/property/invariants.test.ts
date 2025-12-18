@@ -13,7 +13,7 @@
 
 import { describe } from 'vitest';
 import { fc, test } from '@fast-check/vitest';
-import { regraft, canMove, analyze, Move } from '../../index.js';
+import { regraft, canMove, analyze, Move, isOk, isErr } from '../../index.js';
 import type { FileInput, Selector } from '../../types/index.js';
 import { createParser } from '../../parser/index.js';
 
@@ -123,9 +123,9 @@ describe('Invariant: Idempotency', () => {
       const files = [createFileInput(componentCode)];
 
       // Define source and target positions
-      // Source: line 4 (inside div), target: line 6 (another position)
+      // Line 4 is always the first child, line 5 is always the second child
       const from: Selector = { file: 'Component.tsx', line: 4, column: 8 };
-      const to: Selector = { file: 'Component.tsx', line: 6, column: 8 };
+      const to: Selector = { file: 'Component.tsx', line: 5, column: 8 };
 
       // First move
       const result1 = regraft(files, from, to, mode);
@@ -176,9 +176,9 @@ describe('Invariant: Parse Validity', () => {
     (componentCode, filename, mode) => {
       const files = [createFileInput(componentCode, filename)];
 
-      // Generate positions
+      // Generate positions for first two children
       const from: Selector = { file: filename, line: 4, column: 8 };
-      const to: Selector = { file: filename, line: 6, column: 8 };
+      const to: Selector = { file: filename, line: 5, column: 8 };
 
       const result = regraft(files, from, to, mode);
 
@@ -218,9 +218,16 @@ describe('Invariant: Dependency Preservation', () => {
 
       try {
         // Analyze before
-        const beforeAnalysis = analyze(files, from, to, Move.Inside);
+        const beforeAnalysisResult = analyze(files, from, to, Move.Inside);
+
+        // If analysis fails, skip this test case
+        if (isErr(beforeAnalysisResult)) {
+          return true;
+        }
+
+        const beforeAnalysis = beforeAnalysisResult.value;
         const beforeDeps = new Set(
-          beforeAnalysis.dependencies.map(d => d.symbol)
+          beforeAnalysis.dependencies.map((d) => d.symbol)
         );
 
         // If no dependencies or move not possible, skip
@@ -275,9 +282,10 @@ describe('Invariant: canMove Accuracy', () => {
     (componentCode, filename, mode) => {
       const files = [createFileInput(componentCode, filename)];
 
-      // Generate random positions
+      // Generate positions for first two children
+      // Line 4 is always the first child, line 5 is always the second child
       const from: Selector = { file: filename, line: 4, column: 8 };
-      const to: Selector = { file: filename, line: 6, column: 8 };
+      const to: Selector = { file: filename, line: 5, column: 8 };
 
       try {
         const canMoveResult = canMove(files, from, to, mode);
@@ -336,7 +344,7 @@ describe('Property: Move Operation Properties', () => {
     (componentCode, mode) => {
       const files = [createFileInput(componentCode)];
       const from: Selector = { file: 'Component.tsx', line: 4, column: 8 };
-      const to: Selector = { file: 'Component.tsx', line: 6, column: 8 };
+      const to: Selector = { file: 'Component.tsx', line: 5, column: 8 };
 
       const result = regraft(files, from, to, mode);
 
@@ -355,7 +363,7 @@ describe('Property: Move Operation Properties', () => {
     componentCode => {
       const files = [createFileInput(componentCode)];
       const from: Selector = { file: 'Component.tsx', line: 4, column: 8 };
-      const to: Selector = { file: 'Component.tsx', line: 6, column: 8 };
+      const to: Selector = { file: 'Component.tsx', line: 5, column: 8 };
 
       const result = regraft(files, from, to, Move.Inside, { dryRun: true });
 
@@ -377,14 +385,20 @@ describe('Property: Analysis Consistency', () => {
     (componentCode, mode) => {
       const files = [createFileInput(componentCode)];
       const from: Selector = { file: 'Component.tsx', line: 4, column: 8 };
-      const to: Selector = { file: 'Component.tsx', line: 6, column: 8 };
+      const to: Selector = { file: 'Component.tsx', line: 5, column: 8 };
 
       try {
         const canMoveResult = canMove(files, from, to, mode);
         const analysisResult = analyze(files, from, to, mode);
 
-        // canMove and analysis.canMove should match
-        return canMoveResult === analysisResult.canMove;
+        // canMove should match analysis success/failure
+        // If canMove is true, analyze should return Ok
+        // If canMove is false, analyze should return Err
+        if (canMoveResult) {
+          return isOk(analysisResult);
+        } else {
+          return isErr(analysisResult);
+        }
       } catch (error) {
         // Errors are acceptable for random inputs
         return true;

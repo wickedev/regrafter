@@ -6,8 +6,24 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { analyze, regraft, Move, DependencyType } from '../../index.js';
-import type { FileInput } from '../../index.js';
+import { analyze, regraft, Move, DependencyType, isErr } from '../../index.js';
+import type { FileInput, MoveAnalysis } from '../../index.js';
+
+/**
+ * Helper to unwrap analyze() Result for tests that expect MoveAnalysis directly
+ */
+function analyzeAndUnwrap(
+  files: FileInput[],
+  from: { file: string; line: number; column: number },
+  to: { file: string; line: number; column: number },
+  mode: Move
+): MoveAnalysis {
+  const result = analyze(files, from, to, mode);
+  if (isErr(result)) {
+    throw new Error(`Analysis failed: ${result.error.message}`);
+  }
+  return result.value;
+}
 
 describe('Dependency Analysis Integration', () => {
   describe('analyze() API', () => {
@@ -28,7 +44,7 @@ function App() {
         { path: 'App.tsx', content: code },
       ];
 
-      const analysis = analyze(
+      const analysis = analyzeAndUnwrap(
         files,
         { file: 'App.tsx', line: 6, column: 7 }, // <span>
         { file: 'App.tsx', line: 7, column: 7 }, // <section>
@@ -60,7 +76,7 @@ function Counter() {
         { path: 'Counter.tsx', content: code },
       ];
 
-      const analysis = analyze(
+      const analysis = analyzeAndUnwrap(
         files,
         { file: 'Counter.tsx', line: 8, column: 7 }, // <span>
         { file: 'Counter.tsx', line: 10, column: 7 }, // <footer>
@@ -91,7 +107,7 @@ function App() {
         { path: 'App.tsx', content: code },
       ];
 
-      const analysis = analyze(
+      const analysis = analyzeAndUnwrap(
         files,
         { file: 'App.tsx', line: 7, column: 7 }, // <Button>
         { file: 'App.tsx', line: 10, column: 7 }, // <section>
@@ -120,7 +136,7 @@ function App() {
         { path: 'App.tsx', content: code },
       ];
 
-      const analysis = analyze(
+      const analysis = analyzeAndUnwrap(
         files,
         { file: 'App.tsx', line: 7, column: 7 }, // <span>
         { file: 'App.tsx', line: 8, column: 7 }, // <section>
@@ -154,7 +170,7 @@ function App() {
         { path: 'App.tsx', content: code },
       ];
 
-      const analysis = analyze(
+      const analysis = analyzeAndUnwrap(
         files,
         { file: 'App.tsx', line: 11, column: 7 }, // <span>
         { file: 'App.tsx', line: 13, column: 7 }, // <section>
@@ -176,15 +192,17 @@ function App() {
         { path: 'App.tsx', content: code },
       ];
 
-      const analysis = analyze(
+      const result = analyze(
         files,
         { file: 'App.tsx', line: 100, column: 1 }, // Invalid line
         { file: 'App.tsx', line: 2, column: 10 },
         Move.Inside
       );
 
-      expect(analysis.canMove).toBe(false);
-      expect(analysis.reason).toBeDefined();
+      expect(isErr(result)).toBe(true);
+      if (isErr(result)) {
+        expect(result.error.message).toBeDefined();
+      }
     });
 
     it('should return failure for missing file', () => {
@@ -192,14 +210,14 @@ function App() {
         { path: 'App.tsx', content: 'function App() { return <div/>; }' },
       ];
 
-      const analysis = analyze(
+      const result = analyze(
         files,
         { file: 'NotFound.tsx', line: 1, column: 1 },
         { file: 'App.tsx', line: 1, column: 1 },
         Move.Inside
       );
 
-      expect(analysis.canMove).toBe(false);
+      expect(isErr(result)).toBe(true);
     });
   });
 
@@ -224,7 +242,7 @@ function ThemedButton() {
         { path: 'ThemedButton.tsx', content: code },
       ];
 
-      const analysis = analyze(
+      const analysis = analyzeAndUnwrap(
         files,
         { file: 'ThemedButton.tsx', line: 9, column: 7 }, // <button>
         { file: 'ThemedButton.tsx', line: 10, column: 7 }, // <span>
@@ -254,7 +272,7 @@ function Form() {
         { path: 'Form.tsx', content: code },
       ];
 
-      const analysis = analyze(
+      const analysis = analyzeAndUnwrap(
         files,
         { file: 'Form.tsx', line: 8, column: 7 }, // <input>
         { file: 'Form.tsx', line: 10, column: 7 }, // <span>
@@ -296,7 +314,7 @@ function Dashboard() {
         { path: 'Dashboard.tsx', content: code },
       ];
 
-      const analysis = analyze(
+      const analysis = analyzeAndUnwrap(
         files,
         { file: 'Dashboard.tsx', line: 18, column: 7 }, // <ul>
         { file: 'Dashboard.tsx', line: 22, column: 7 }, // <footer>
@@ -334,7 +352,7 @@ function Parent() {
         { path: 'Parent.tsx', content: code },
       ];
 
-      const analysis = analyze(
+      const analysis = analyzeAndUnwrap(
         files,
         { file: 'Parent.tsx', line: 11, column: 19 }, // <Child />
         { file: 'Parent.tsx', line: 13, column: 7 }, // <section>
@@ -358,15 +376,15 @@ function App() {
       ];
 
       // Try to move with invalid selector
-      const analysis = analyze(
+      const result = analyze(
         files,
         { file: 'App.tsx', line: 1, column: 1 }, // Not a JSX element
         { file: 'App.tsx', line: 2, column: 10 },
         Move.Inside
       );
 
-      // Should either succeed or provide reason
-      expect(typeof analysis.canMove).toBe('boolean');
+      // Should return error for invalid selector
+      expect(isErr(result)).toBe(true);
     });
   });
 
@@ -387,7 +405,7 @@ function App() {
         { path: 'App.tsx', content: code },
       ];
 
-      const analysis = analyze(
+      const analysis = analyzeAndUnwrap(
         files,
         { file: 'App.tsx', line: 5, column: 7 },
         { file: 'App.tsx', line: 6, column: 7 },
@@ -413,7 +431,7 @@ function App() {
         { path: 'App.tsx', content: code },
       ];
 
-      const analysis = analyze(
+      const analysis = analyzeAndUnwrap(
         files,
         { file: 'App.tsx', line: 5, column: 7 },
         { file: 'App.tsx', line: 6, column: 7 },
@@ -439,7 +457,7 @@ function App() {
         { path: 'App.tsx', content: code },
       ];
 
-      const analysis = analyze(
+      const analysis = analyzeAndUnwrap(
         files,
         { file: 'App.tsx', line: 5, column: 7 },
         { file: 'App.tsx', line: 6, column: 7 },
@@ -594,13 +612,11 @@ function App() {
         { dryRun: true }
       );
 
-      if (result.ok) {
+      if (result.ok && result.value.codes[0] !== undefined) {
         expect(result.value.codes).toHaveLength(1);
         const firstCode = result.value.codes[0];
-        if (firstCode !== undefined) {
-          expect(firstCode.changed).toBe(false);
-          expect(firstCode.content).toBe(code);
-        }
+        expect(firstCode.changed).toBe(false);
+        expect(firstCode.content).toBe(code);
       }
     });
 

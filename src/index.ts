@@ -138,6 +138,8 @@ export {
   processBatch,
 } from './result/index.js';
 
+// Import Result helpers for internal use
+
 // Export new API types (Task 17.2)
 export {
   type TransformedCode,
@@ -225,38 +227,40 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
-const traverse = loadTraverseFunction(traverseModule);
-
-import { DependencyAnalyzer, createMoveAnalysisBuilder, validateMoveOperation, type MoveValidationResult } from './analyzer/index.js';
-import type { ScopeInfo } from './types/internal.js';
+import { DependencyAnalyzer, createMoveAnalysisBuilder, validateMoveOperation } from './analyzer/index.js';
+import type { MoveValidationResult } from './analyzer/index.js';
 import {
   createSuccessResult,
   createErrorResult,
   createErrorFromException,
 } from './api/result-helpers.js';
 import type { TransformedCode } from './api/types.js';
+import { createValidationError, createTransformError, createSelectorError } from './errors/index.js';
 import type { RegraffError, SelectorErrorType } from './errors/index.js';
 import { CodeGenerator } from './generator/code-generator.js';
 import { createOptimizer } from './optimizer/optimizer.js';
 import type { OptimizeOptions } from './optimizer/types.js';
 import { parseFile } from './parser/parse-file.js';
-import { isErr, type Result } from './result/index.js';
-import { createScopeManager, type ScopeManager } from './scope/index.js';
-import { createSelectorResolver, type ElementData } from './selector/index.js';
+import { ok, err, isErr, type Result } from './result/index.js';
+import { createScopeManager } from './scope/index.js';
+import type { ScopeManager } from './scope/index.js';
+import { createSelectorResolver } from './selector/index.js';
+import type { ElementData } from './selector/index.js';
 import { createCrossFileContext, executeCrossFileTransform } from './strategies/cross-file/index.js';
 import type { HoistExecutionContext } from './strategies/hoist-executor.js';
 import { createConfiguredHoistPlanner, createHoistExecutor } from './strategies/index.js';
 import type { HoistContext } from './strategies/types.js';
 import { createJSXTransformer } from './transformer/index.js';
-import type { Code, FileInput, MoveAnalysis, Move, Options, Selector, SuggestedFix } from './types/index.js';
 import {
   mergeOptions,
-  createMoveAnalysis,
   createCode,
-  createAnalysisStats,
   createSuggestedFix,
 } from './types/index.js';
+import type { Code, FileInput, MoveAnalysis, Move, Options, Selector, SuggestedFix } from './types/index.js';
+import type { ScopeInfo } from './types/internal.js';
 import { loadTraverseFunction } from './utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 /**
  * Main entry point for the regraft operation.
@@ -398,14 +402,14 @@ export function canMove(
  * @param from - Selector identifying the source element
  * @param to - Selector identifying the target location
  * @param mode - How to position the element relative to target
- * @returns Array of transformed file contents
+ * @returns Result containing array of transformed file contents or error
  */
 export function move(
   files: FileInput[],
   from: Selector,
   to: Selector,
   mode: Move
-): Code[] {
+): Result<Code[], RegraffError> {
   // Create required instances
   const generator = new CodeGenerator();
   const resolver = createSelectorResolver();
@@ -416,7 +420,7 @@ export function move(
   for (const file of files) {
     const result = parseFile(file.path, file.content);
     if (isErr(result)) {
-      throw new Error(`Failed to parse ${file.path}: ${result.error.message}`);
+      return err(result.error);
     }
     parsedFiles.set(file.path, result.value);
   }
@@ -426,23 +430,31 @@ export function move(
   const targetAst = parsedFiles.get(to.file);
 
   if (!sourceAst) {
-    throw new Error(`Source file not found: ${from.file}`);
+    return err(createValidationError({
+      code: 'FILE_NOT_FOUND',
+      message: `Source file not found: ${from.file}`,
+      constraint: 'file_exists',
+      details: `The source file "${from.file}" could not be found in the parsed files map`,
+    }));
   }
   if (!targetAst) {
-    throw new Error(`Target file not found: ${to.file}`);
+    return err(createValidationError({
+      code: 'FILE_NOT_FOUND',
+      message: `Target file not found: ${to.file}`,
+      constraint: 'file_exists',
+      details: `The target file "${to.file}" could not be found in the parsed files map`,
+    }));
   }
 
   // Resolve selectors
   const sourceResult = resolver.resolveResult(from, sourceAst);
   if (isErr(sourceResult)) {
-    const error = sourceResult.error;
-    throw new Error(`Failed to resolve source: ${error.message}`);
+    return err(sourceResult.error);
   }
 
   const targetResult = resolver.resolveResult(to, targetAst);
   if (isErr(targetResult)) {
-    const error = targetResult.error;
-    throw new Error(`Failed to resolve target: ${error.message}`);
+    return err(targetResult.error);
   }
 
   // For same-file moves
@@ -456,8 +468,7 @@ export function move(
     );
 
     if (isErr(moveResult)) {
-      const error = moveResult.error;
-      throw new Error(`Move failed: ${error.message}`);
+      return err(moveResult.error);
     }
 
     // Generate code for all files
@@ -468,8 +479,7 @@ export function move(
 
       const generateResult = generator.generate(ast);
       if (isErr(generateResult)) {
-        const error = generateResult.error;
-        throw new Error(`Code generation failed: ${error.message}`);
+        return err(generateResult.error);
       }
 
       const generated = generateResult.value;
@@ -481,7 +491,7 @@ export function move(
       }));
     }
 
-    return codes;
+    return ok(codes);
   }
 
   // Cross-file move - delegate to cross-file handler
@@ -496,7 +506,7 @@ function executeCrossFileMove(
   from: Selector,
   to: Selector,
   _mode: Move
-): Code[] {
+): Result<Code[], RegraffError> {
   const scopeManager = createScopeManager();
   const analyzer = new DependencyAnalyzer(scopeManager);
   const resolver = createSelectorResolver();
@@ -508,7 +518,7 @@ function executeCrossFileMove(
   for (const file of files) {
     const result = parseFile(file.path, file.content);
     if (isErr(result)) {
-      throw new Error(`Failed to parse ${file.path}: ${result.error.message}`);
+      return err(result.error);
     }
     parsedFiles.set(file.path, result.value);
     originalContents.set(file.path, file.content);
@@ -517,7 +527,12 @@ function executeCrossFileMove(
   // Get source AST
   const sourceAst = parsedFiles.get(from.file);
   if (!sourceAst) {
-    throw new Error(`Source file not found: ${from.file}`);
+    return err(createValidationError({
+      code: 'FILE_NOT_FOUND',
+      message: `Source file not found: ${from.file}`,
+      constraint: 'file_exists',
+      details: `The source file "${from.file}" could not be found in the parsed files map`,
+    }));
   }
 
   // Build scope tree and analyze
@@ -527,8 +542,7 @@ function executeCrossFileMove(
   // Resolve source element
   const sourceResult = resolver.resolveResult(from, sourceAst);
   if (isErr(sourceResult)) {
-    const error = sourceResult.error;
-    throw new Error(`Failed to resolve source: ${error.message}`);
+    return err(sourceResult.error);
   }
 
   // Get target scope for dependency analysis
@@ -540,9 +554,9 @@ function executeCrossFileMove(
       targetScope = scopeManager.getScopeForPath(targetResult.value.path);
       // If target element doesn't have its own scope, use enclosing component
       if (!targetScope) {
-        const enclosingComponent = scopeManager.findEnclosingComponent(targetResult.value.path);
-        if (enclosingComponent) {
-          targetScope = enclosingComponent;
+        const enclosingComponentResult = scopeManager.findEnclosingComponent(targetResult.value.path);
+        if (!isErr(enclosingComponentResult) && enclosingComponentResult.value) {
+          targetScope = enclosingComponentResult.value;
         }
       }
     }
@@ -551,7 +565,7 @@ function executeCrossFileMove(
   // Analyze dependencies
   const depAnalysisResult = analyzer.analyzeElement(sourceResult.value.path, targetScope);
   if (isErr(depAnalysisResult)) {
-    throw new Error(`Dependency analysis failed: ${depAnalysisResult.error.message}`);
+    return err(depAnalysisResult.error);
   }
   const depAnalysis = depAnalysisResult.value;
 
@@ -571,25 +585,29 @@ function executeCrossFileMove(
   });
 
   if (!transformResult.success) {
-    throw new Error(`Cross-file move failed: ${transformResult.error ?? 'Unknown error'}`);
+    return err(createTransformError({
+      code: 'CROSS_FILE_MOVE_FAILED',
+      message: `Cross-file move failed: ${transformResult.error ?? 'Unknown error'}`,
+      operation: 'cross_file_move',
+    }));
   }
 
-  return transformResult.codes;
+  return ok(transformResult.codes);
 }
 
 /**
  * Parse all files and return AST map
  */
-function parseAllFiles(files: FileInput[]): Map<string, t.File> {
+function parseAllFiles(files: FileInput[]): Result<Map<string, t.File>, RegraffError> {
   const parsedFiles = new Map<string, t.File>();
   for (const file of files) {
     const result = parseFile(file.path, file.content);
     if (isErr(result)) {
-      throw new Error(`Failed to parse ${file.path}: ${result.error.message}`);
+      return err(result.error);
     }
     parsedFiles.set(file.path, result.value);
   }
-  return parsedFiles;
+  return ok(parsedFiles);
 }
 
 /**
@@ -604,19 +622,19 @@ function buildScopePaths(
   traverse(ast, {
     FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
       const scope = scopeManager.getScopeForPath(path);
-      if (scope) {
+      if (scope !== null) {
         scopePaths.set(scope.id, path);
       }
     },
     FunctionExpression(path: NodePath<t.FunctionExpression>) {
       const scope = scopeManager.getScopeForPath(path);
-      if (scope) {
+      if (scope !== null) {
         scopePaths.set(scope.id, path);
       }
     },
     ArrowFunctionExpression(path: NodePath<t.ArrowFunctionExpression>) {
       const scope = scopeManager.getScopeForPath(path);
-      if (scope) {
+      if (scope !== null) {
         scopePaths.set(scope.id, path);
       }
     },
@@ -643,10 +661,36 @@ function refreshNodePaths(
   const freshTargetPath = findNodePath(ast, targetNode);
 
   if (!freshSourcePath) {
-    throw new Error('Failed to find source node after hoisting');
+    const loc = sourceNode.loc;
+    return {
+      sourceResult: err(createSelectorError({
+        code: 'NODE_NOT_FOUND',
+        message: 'Failed to find source node after hoisting',
+        selector: {
+          file: '',
+          line: loc?.start.line ?? 0,
+          column: loc?.start.column ?? 0
+        },
+        file: '',
+      })),
+      targetResult: ok(targetMatch),
+    };
   }
   if (!freshTargetPath) {
-    throw new Error('Failed to find target node after hoisting');
+    const loc = targetNode.loc;
+    return {
+      sourceResult: ok(sourceMatch),
+      targetResult: err(createSelectorError({
+        code: 'NODE_NOT_FOUND',
+        message: 'Failed to find target node after hoisting',
+        selector: {
+          file: '',
+          line: loc?.start.line ?? 0,
+          column: loc?.start.column ?? 0
+        },
+        file: '',
+      })),
+    };
   }
 
   return {
@@ -677,7 +721,7 @@ function generateCodeForFiles(
   parsedFiles: Map<string, t.File>,
   sourceFile: string,
   generator: CodeGenerator
-): Code[] {
+): Result<Code[], RegraffError> {
   const codes: Code[] = [];
 
   for (const file of files) {
@@ -686,8 +730,7 @@ function generateCodeForFiles(
 
     const generateResult = generator.generate(ast);
     if (isErr(generateResult)) {
-      const error = generateResult.error;
-      throw new Error(`Code generation failed: ${error.message}`);
+      return err(generateResult.error);
     }
 
     const generated = generateResult.value;
@@ -701,7 +744,7 @@ function generateCodeForFiles(
     );
   }
 
-  return codes;
+  return ok(codes);
 }
 
 /**
@@ -716,7 +759,7 @@ function moveWithHoisting(
   to: Selector,
   mode: Move,
   options?: { insertIndex?: number; preserveComments?: boolean }
-): Code[] {
+): Result<Code[], RegraffError> {
   // Create required instances
   const generator = new CodeGenerator();
   const resolver = createSelectorResolver();
@@ -727,17 +770,31 @@ function moveWithHoisting(
   const executor = createHoistExecutor();
 
   // Parse all files
-  const parsedFiles = parseAllFiles(files);
+  const parsedFilesResult = parseAllFiles(files);
+  if (isErr(parsedFilesResult)) {
+    return err(parsedFilesResult.error);
+  }
+  const parsedFiles = parsedFilesResult.value;
 
   // Get the AST for source file
   const sourceAst = parsedFiles.get(from.file);
   if (!sourceAst) {
-    throw new Error(`Source file not found: ${from.file}`);
+    return err(createValidationError({
+      code: 'FILE_NOT_FOUND',
+      message: `Source file not found: ${from.file}`,
+      constraint: 'file_exists',
+      details: `The source file "${from.file}" could not be found in the parsed files map`,
+    }));
   }
 
   // For same-file moves only (cross-file not yet implemented)
   if (from.file !== to.file) {
-    throw new Error('Cross-file moves not yet implemented');
+    return err(createValidationError({
+      code: 'CROSS_FILE_NOT_SUPPORTED',
+      message: 'Cross-file moves not yet implemented',
+      constraint: 'same_file_move',
+      details: 'Cross-file moves are not yet supported in moveWithHoisting',
+    }));
   }
 
   // Build scope tree
@@ -747,14 +804,12 @@ function moveWithHoisting(
   // Resolve selectors
   let sourceResult = resolver.resolveResult(from, sourceAst);
   if (isErr(sourceResult)) {
-    const error = sourceResult.error;
-    throw new Error(`Failed to resolve source: ${error.message}`);
+    return err(sourceResult.error);
   }
 
   let targetResult = resolver.resolveResult(to, sourceAst);
   if (isErr(targetResult)) {
-    const error = targetResult.error;
-    throw new Error(`Failed to resolve target: ${error.message}`);
+    return err(targetResult.error);
   }
 
   // Get scopes
@@ -763,36 +818,36 @@ function moveWithHoisting(
 
   // If source element doesn't have its own scope, use enclosing component
   if (!sourceScope) {
-    const enclosingComponent = scopeManager.findEnclosingComponent(sourceResult.value.path);
-    if (enclosingComponent) {
-      sourceScope = enclosingComponent;
+    const enclosingComponentResult = scopeManager.findEnclosingComponent(sourceResult.value.path);
+    if (!isErr(enclosingComponentResult) && enclosingComponentResult.value) {
+      sourceScope = enclosingComponentResult.value;
     }
   }
 
   // If target element doesn't have its own scope, use enclosing component
   if (!targetScope) {
-    const enclosingComponent = scopeManager.findEnclosingComponent(targetResult.value.path);
-    if (enclosingComponent) {
-      targetScope = enclosingComponent;
+    const enclosingComponentResult = scopeManager.findEnclosingComponent(targetResult.value.path);
+    if (!isErr(enclosingComponentResult) && enclosingComponentResult.value) {
+      targetScope = enclosingComponentResult.value;
     }
   }
 
   // Perform dependency analysis
   const depAnalysisResult = analyzer.analyzeElement(sourceResult.value.path, targetScope);
   if (isErr(depAnalysisResult)) {
-    throw new Error(`Dependency analysis failed: ${depAnalysisResult.error.message}`);
+    return err(depAnalysisResult.error);
   }
   const depAnalysis = depAnalysisResult.value;
 
   // Check if targetScope is an ancestor of sourceScope
   // If so, dependencies are already accessible and hoisting is not needed
-  const targetIsAncestor = (sourceScope: ScopeInfo | null, targetScope: ScopeInfo): boolean => {
-    let current = sourceScope;
+  const targetIsAncestor = (fromScope: ScopeInfo | null, toScope: ScopeInfo): boolean => {
+    let current = fromScope;
     let depth = 0;
     const MAX_DEPTH = 100; // Prevent infinite loops
 
     while (current !== null && depth < MAX_DEPTH) {
-      if (current.id === targetScope.id) {
+      if (current.id === toScope.id) {
         return true;
       }
       current = current.parent;
@@ -802,13 +857,13 @@ function moveWithHoisting(
   };
 
   const shouldSkipHoisting =
-    sourceScope &&
-    targetScope &&
+    sourceScope !== null &&
+    targetScope !== null &&
     depAnalysis.needsHoisting.length > 0 &&
     targetIsAncestor(sourceScope, targetScope);
 
   // If there are dependencies that need hoisting, create and execute a hoisting plan
-  if (depAnalysis.needsHoisting.length > 0 && sourceScope && targetScope && !shouldSkipHoisting) {
+  if (depAnalysis.needsHoisting.length > 0 && sourceScope !== null && targetScope !== null && !shouldSkipHoisting) {
     // Create hoisting context
     const context: HoistContext = {
       sourceFile: from.file,
@@ -837,7 +892,10 @@ function moveWithHoisting(
         scopePaths,
       };
 
-      executor.execute(hoistPlan, execContext);
+      const executeResult = executor.execute(hoistPlan, execContext);
+      if (isErr(executeResult)) {
+        return err(executeResult.error);
+      }
 
       // Recrawl scope to synchronize Babel's internal state after AST modifications
       traverse(sourceAst, {
@@ -860,10 +918,18 @@ function moveWithHoisting(
 
   // Now perform the element move
   if (isErr(sourceResult)) {
-    throw new Error(`Source result is error after refresh`);
+    return err(createTransformError({
+      code: 'SOURCE_REFRESH_FAILED',
+      message: 'Source result is error after refresh',
+      operation: 'node_refresh',
+    }));
   }
   if (isErr(targetResult)) {
-    throw new Error(`Target result is error after refresh`);
+    return err(createTransformError({
+      code: 'TARGET_REFRESH_FAILED',
+      message: 'Target result is error after refresh',
+      operation: 'node_refresh',
+    }));
   }
 
   const moveResult = transformer.move(
@@ -875,8 +941,7 @@ function moveWithHoisting(
   );
 
   if (isErr(moveResult)) {
-    const error = moveResult.error;
-    throw new Error(`Move failed: ${error.message}`);
+    return err(moveResult.error);
   }
 
   // Generate code for all files
@@ -893,25 +958,23 @@ function moveWithHoisting(
  * @param from - Selector identifying the source element
  * @param to - Selector identifying the target location
  * @param mode - How to position the element relative to target
- * @returns Detailed analysis of dependencies and hoisting requirements
+ * @returns Result containing detailed analysis of dependencies and hoisting requirements
  */
 export function analyze(
   files: FileInput[],
   from: Selector,
   to: Selector,
   mode: Move
-): MoveAnalysis {
+): Result<MoveAnalysis, RegraffError> {
   const validation = validateMoveOperation(files, from, to, mode);
 
   if (!validation.valid) {
-    return createMoveAnalysis({
-      canMove: false,
-      reason: validation.reason,
-      dependencies: [],
-      hoistedDeps: [],
-      suggestedFixes: typeof validation.errorCode === 'string' ? getSuggestedFixes(validation.errorCode) : undefined,
-      stats: createAnalysisStats(),
-    });
+    return err(createValidationError({
+      code: validation.errorCode ?? 'VALIDATION_FAILED',
+      message: validation.reason ?? 'Move validation failed',
+      constraint: 'move_validation',
+      details: validation.reason ?? 'Move validation failed',
+    }));
   }
 
   // Create required instances for dependency analysis
@@ -923,49 +986,28 @@ export function analyze(
   // Parse the source file
   const sourceFile = files.find(f => f.path === from.file);
   if (!sourceFile) {
-    return createMoveAnalysis({
-      canMove: false,
-      reason: `Source file not found: ${from.file}`,
-      dependencies: [],
-      hoistedDeps: [],
-      stats: createAnalysisStats(),
-    });
+    return err(createValidationError({
+      code: 'FILE_NOT_FOUND',
+      message: `Source file not found: ${from.file}`,
+      constraint: 'file_exists',
+      details: `The source file "${from.file}" could not be found in the provided files array`,
+    }));
   }
 
   const parseResult = parseFile(sourceFile.path, sourceFile.content);
   if (isErr(parseResult)) {
-    return createMoveAnalysis({
-      canMove: false,
-      reason: `Failed to parse ${from.file}: ${parseResult.error.message}`,
-      dependencies: [],
-      hoistedDeps: [],
-      stats: createAnalysisStats(),
-    });
+    return err(parseResult.error);
   }
 
   // Resolve selectors
   const sourceResult = resolver.resolveResult(from, parseResult.value);
   if (isErr(sourceResult)) {
-    const error = sourceResult.error;
-    return createMoveAnalysis({
-      canMove: false,
-      reason: `Failed to resolve source: ${error.message}`,
-      dependencies: [],
-      hoistedDeps: [],
-      stats: createAnalysisStats(),
-    });
+    return err(sourceResult.error);
   }
 
   const targetResult = resolver.resolveResult(to, parseResult.value);
   if (isErr(targetResult)) {
-    const error = targetResult.error;
-    return createMoveAnalysis({
-      canMove: false,
-      reason: `Failed to resolve target: ${error.message}`,
-      dependencies: [],
-      hoistedDeps: [],
-      stats: createAnalysisStats(),
-    });
+    return err(targetResult.error);
   }
 
   // Build scope tree and perform dependency analysis
@@ -974,7 +1016,8 @@ export function analyze(
   analysisBuilder.setCurrentFile(from.file);
 
   // Perform full dependency analysis
-  return analysisBuilder.analyze(parseResult.value, sourceResult.value.path, targetResult.value.path);
+  const analysis = analysisBuilder.analyze(parseResult.value, sourceResult.value.path, targetResult.value.path);
+  return ok(analysis);
 }
 
 /**
@@ -985,18 +1028,14 @@ export function analyze(
  *
  * @param files - Array of file inputs with path and content
  * @param options - Optional optimization options
- * @returns Array of optimized file contents
+ * @returns Result containing array of optimized file contents or error
  */
 export function optimize(
   files: FileInput[],
   options?: OptimizeOptions
-): Code[] {
+): Result<Code[], RegraffError> {
   const optimizer = createOptimizer();
-  const result = optimizer.optimize(files, options);
-  if (isErr(result)) {
-    throw new Error(`Optimization failed: ${result.error.message}`);
-  }
-  return result.value;
+  return optimizer.optimize(files, options);
 }
 
 // =============================================================================
@@ -1057,16 +1096,14 @@ function createDryRunResult(
   );
 
   // Perform full dependency analysis using the analyze() function
-  const analysis = analyze(files, from, to, mode);
+  const analysisResult = analyze(files, from, to, mode);
 
-  // If the move cannot be performed, return error
-  if (!analysis.canMove) {
-    return createErrorResult(
-      analysis.reason ?? 'Move is not possible',
-      codes,
-      analysis.suggestedFixes
-    );
+  // If analysis failed, return error
+  if (isErr(analysisResult)) {
+    return err(analysisResult.error);
   }
+
+  const analysis = analysisResult.value;
 
   // Return success with analysis
   return createSuccessResult(codes, analysis);
@@ -1085,22 +1122,26 @@ function executeTransformation(
 ): Result<TransformedCode, RegraffError> {
   try {
     // Perform dependency analysis
-    const fullAnalysis = analyze(files, from, to, mode);
+    const analysisResult = analyze(files, from, to, mode);
 
-    // If analysis shows the move isn't possible, return error
-    if (!fullAnalysis.canMove) {
-      return createErrorResult(
-        fullAnalysis.reason ?? 'Move is not possible',
-        [],
-        fullAnalysis.suggestedFixes
-      );
+    // If analysis failed, return error
+    if (isErr(analysisResult)) {
+      return err(analysisResult.error);
     }
 
+    const fullAnalysis = analysisResult.value;
+
     // Use the moveWithHoisting function for transformation with automatic hoisting
-    let codes = moveWithHoisting(files, from, to, mode, {
+    const moveResult = moveWithHoisting(files, from, to, mode, {
       insertIndex: options.insertIndex,
       preserveComments: options.preserveComments,
     });
+
+    if (isErr(moveResult)) {
+      return err(moveResult.error);
+    }
+
+    let codes = moveResult.value;
 
     // Optionally run optimization
     if (options.optimize) {
@@ -1117,10 +1158,14 @@ function executeTransformation(
       }));
 
       // Run optimization
-      const optimizedCodes = optimize(optimizeInput);
+      const optimizeResult = optimize(optimizeInput);
+
+      if (isErr(optimizeResult)) {
+        return err(optimizeResult.error);
+      }
 
       // Preserve original changed flags if optimizer didn't make changes
-      codes = optimizedCodes.map(code => ({
+      codes = optimizeResult.value.map(code => ({
         ...code,
         changed: code.changed || (originalChangedFlags.get(code.file) ?? false),
       }));

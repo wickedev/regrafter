@@ -19,13 +19,13 @@ import type {
   InternalDependency,
 } from '../types/internal.js';
 import { DependencyType } from '../types/public.js';
-import { loadTraverseFunction } from '../utils/index.js';
-
-const traverse = loadTraverseFunction(traverseModule);
+import { loadTraverseFunction, type TraverseFunction } from '../utils/index.js';
 
 import type {
   IImportManager,
 } from './types.js';
+
+const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
 
 // ===============================================================================
 // ImportManager Class
