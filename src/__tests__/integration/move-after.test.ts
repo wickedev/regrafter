@@ -189,10 +189,10 @@ describe('Move.After - Basic Operations', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
-    expect(result.codes).toHaveLength(1);
-    expect(result.codes[0]!.file).toBe('simple-component.tsx');
-    expect(result.analysis.canMove).toBe(true);
+    expect(result.ok).toBe(true);
+    expect(result.value.codes).toHaveLength(1);
+    expect(result.value.codes[0]!.file).toBe('simple-component.tsx');
+    expect(result.value.analysis.canMove).toBe(true);
 
     // - p appears after span in output
     // - Original p location is empty
@@ -224,7 +224,7 @@ describe('Move.After - Basic Operations', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -245,7 +245,7 @@ describe('Move.After - Basic Operations', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -274,7 +274,7 @@ describe('Move.After - Dependency Handling', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -297,7 +297,7 @@ describe('Move.After - Dependency Handling', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -327,7 +327,7 @@ describe('Move.After - Nested Elements', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -355,7 +355,7 @@ describe('Move.After - Fragment Handling', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -384,7 +384,7 @@ describe('Move.After - Self-Closing Elements', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -413,7 +413,7 @@ describe('Move.After - Edge Cases', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Element is already after target, so should be no-op
   });
 
@@ -433,7 +433,7 @@ describe('Move.After - Edge Cases', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -452,7 +452,7 @@ describe('Move.After - Edge Cases', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -481,9 +481,9 @@ describe('Move.After - Error Handling', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(false);
-    expect(result.analysis.canMove).toBe(false);
-    expect(result.analysis.reason).toBeDefined();
+    expect(result.ok).toBe(false);
+    expect(result.value.analysis.canMove).toBe(false);
+    expect(result.value.analysis.reason).toBeDefined();
   });
 
   /**
@@ -506,9 +506,9 @@ describe('Move.After - Error Handling', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(false);
-    expect(result.analysis.canMove).toBe(false);
-    expect(result.analysis.reason).toBeDefined();
+    expect(result.ok).toBe(false);
+    expect(result.value.analysis.canMove).toBe(false);
+    expect(result.value.analysis.reason).toBeDefined();
   });
 });
 
@@ -536,7 +536,7 @@ describe('Move.After - Code Quality', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -559,7 +559,7 @@ describe('Move.After - Code Quality', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -579,7 +579,7 @@ describe('Move.After - Multiple Files', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Only modified file should have changed: true
   });
 });
@@ -605,8 +605,8 @@ describe('Move.After - Result Structure', () => {
     expect(result).toHaveProperty('analysis');
 
     // Validate analysis structure
-    expect(result.analysis).toHaveProperty('canMove');
-    expect(result.analysis).toHaveProperty('dependencies');
-    expect(result.analysis).toHaveProperty('hoistedDeps');
+    expect(result.value.analysis).toHaveProperty('canMove');
+    expect(result.value.analysis).toHaveProperty('dependencies');
+    expect(result.value.analysis).toHaveProperty('hoistedDeps');
   });
 });

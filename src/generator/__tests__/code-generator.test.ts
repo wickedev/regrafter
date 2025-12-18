@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
 import type * as t from '@babel/types';
 import { CodeGenerator } from '../code-generator.js';
-import type { IndentationInfo, GenerateResult } from '../types.js';
+import type { IndentationInfo, GeneratedCode } from '../types.js';
 import { unwrap } from '../../result/index.js';
 
 /**
@@ -20,7 +20,7 @@ describe('CodeGenerator', () => {
   };
 
   // Helper to unwrap Result for simpler test assertions
-  const generateAndUnwrap = (ast: t.File): GenerateResult => {
+  const generateAndUnwrap = (ast: t.File): GeneratedCode => {
     return unwrap(generator.generate(ast));
   };
 
@@ -37,7 +37,6 @@ describe('CodeGenerator', () => {
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const x = 1;`);
     });
 
@@ -46,7 +45,6 @@ describe('CodeGenerator', () => {
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const App = () => <div>Hello</div>;`);
     });
 
@@ -61,7 +59,6 @@ describe('CodeGenerator', () => {
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const Button = ({
   onClick,
   children
@@ -85,7 +82,6 @@ describe('CodeGenerator', () => {
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const Layout = () => <div>
             <header>Header</header>
             <main>
@@ -107,7 +103,6 @@ describe('CodeGenerator', () => {
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const Items = () => <>
             <span>One</span>
             <span>Two</span>
@@ -119,7 +114,6 @@ describe('CodeGenerator', () => {
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const Input = () => <input type="text" />;`);
     });
 
@@ -128,7 +122,6 @@ describe('CodeGenerator', () => {
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const El = props => <div {...props} />;`);
     });
 
@@ -144,7 +137,6 @@ describe('CodeGenerator', () => {
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       // Should not contain lines with only whitespace
       const lines = result.code.split('\n');
       for (const line of lines) {
@@ -192,7 +184,6 @@ describe('CodeGenerator', () => {
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`// This is a comment
 const x = 1;`);
     });
@@ -207,7 +198,6 @@ const x = 1;`);
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`/**
  * This is a JSDoc comment
  */
@@ -221,7 +211,6 @@ const fn = () => {};`);
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const x = 1; // inline comment`);
     });
 
@@ -237,7 +226,6 @@ const fn = () => {};`);
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const El = () => <div>
             {/* JSX comment */}
             <span>Content</span>
@@ -252,7 +240,6 @@ const fn = () => {};`);
       const ast = parseCode(code);
       const result = unwrap(generator.generate(ast, { preserveComments: false }));
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).not.toContain('Comment to remove');
     });
 
@@ -608,7 +595,6 @@ const x = 1;`);
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const El = ({
   show
 }) => <div>
@@ -627,7 +613,6 @@ const x = 1;`);
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const El = ({
   loading
 }) => <div>
@@ -648,7 +633,6 @@ const x = 1;`);
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const List = ({
   items
 }) => <ul>
@@ -671,7 +655,6 @@ const x = 1;`);
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
       expect(result.code).toBe(`const Counter = () => {
   const [count, setCount] = useState(0);
   return <button onClick={() => setCount(c => c + 1)}>
@@ -691,7 +674,7 @@ const x = 1;`);
       const ast = parseCode(code);
       const result = generateAndUnwrap(ast);
 
-      expect(result.errors).toHaveLength(0);
+      expect(result.code).toBeDefined();
     });
   });
 

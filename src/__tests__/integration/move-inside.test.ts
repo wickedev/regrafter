@@ -196,9 +196,9 @@ describe("Move.Inside - Basic Operations", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
-    expect(result.codes).toHaveLength(1);
-    expect(result.analysis.canMove).toBe(true);
+    expect(result.ok).toBe(true);
+    expect(result.value.codes).toHaveLength(1);
+    expect(result.value.analysis.canMove).toBe(true);
 
     // - Element is child of container
     // - Container now has children
@@ -231,7 +231,7 @@ describe("Move.Inside - Basic Operations", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -252,7 +252,7 @@ describe("Move.Inside - Basic Operations", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -282,7 +282,7 @@ describe("Move.Inside - Dependency Handling", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -305,7 +305,7 @@ describe("Move.Inside - Dependency Handling", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -333,7 +333,7 @@ describe("Move.Inside - Fragment Handling", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -354,7 +354,7 @@ describe("Move.Inside - Fragment Handling", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -383,7 +383,7 @@ describe("Move.Inside - Context Handling", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Context access should be maintained without hoisting
   });
 
@@ -407,7 +407,7 @@ describe("Move.Inside - Context Handling", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -436,7 +436,7 @@ describe("Move.Inside - Edge Cases", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Element becomes last child of same parent
   });
 
@@ -458,7 +458,7 @@ describe("Move.Inside - Edge Cases", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -486,9 +486,9 @@ describe("Move.Inside - Error Handling", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(false);
-    expect(result.analysis.canMove).toBe(false);
-    expect(result.analysis.reason).toBeDefined();
+    expect(result.ok).toBe(false);
+    expect(result.value.analysis.canMove).toBe(false);
+    expect(result.value.analysis.reason).toBeDefined();
   });
 
   /**
@@ -510,9 +510,9 @@ describe("Move.Inside - Error Handling", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(false);
-    expect(result.analysis.canMove).toBe(false);
-    expect(result.analysis.reason).toBeDefined();
+    expect(result.ok).toBe(false);
+    expect(result.value.analysis.canMove).toBe(false);
+    expect(result.value.analysis.reason).toBeDefined();
   });
 
   /**
@@ -535,8 +535,8 @@ describe("Move.Inside - Error Handling", () => {
 
     await regraft(files, from, to, Move.Inside);
 
-    // expect(result.success).toBe(false);
-    // expect(result.analysis.reason).toContain('cannot have children');
+    // expect(result.ok).toBe(false);
+    // expect(result.value.analysis.reason).toContain('cannot have children');
   });
 
   /**
@@ -559,8 +559,8 @@ describe("Move.Inside - Error Handling", () => {
 
     await regraft(files, from, to, Move.Inside);
 
-    // expect(result.success).toBe(false);
-    // expect(result.analysis.reason).toContain('circular');
+    // expect(result.ok).toBe(false);
+    // expect(result.value.analysis.reason).toContain('circular');
   });
 });
 
@@ -591,7 +591,7 @@ describe("Move.Inside - Atomic Units", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -613,7 +613,7 @@ describe("Move.Inside - Atomic Units", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -642,7 +642,7 @@ describe("Move.Inside - Code Quality", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   it("should maintain proper indentation when moving inside", async () => {
@@ -655,7 +655,7 @@ describe("Move.Inside - Code Quality", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -680,17 +680,17 @@ describe("Move.Inside - Result Structure", () => {
     expect(result).toHaveProperty("analysis");
 
     // Validate codes array structure
-    expect(Array.isArray(result.codes)).toBe(true);
-    if (result.codes.length > 0) {
-      expect(result.codes[0]).toHaveProperty("file");
-      expect(result.codes[0]).toHaveProperty("content");
-      expect(result.codes[0]).toHaveProperty("changed");
+    expect(Array.isArray(result.value.codes)).toBe(true);
+    if (result.value.codes.length > 0) {
+      expect(result.value.codes[0]).toHaveProperty("file");
+      expect(result.value.codes[0]).toHaveProperty("content");
+      expect(result.value.codes[0]).toHaveProperty("changed");
     }
 
     // Validate analysis structure
-    expect(result.analysis).toHaveProperty("canMove");
-    expect(result.analysis).toHaveProperty("dependencies");
-    expect(result.analysis).toHaveProperty("hoistedDeps");
+    expect(result.value.analysis).toHaveProperty("canMove");
+    expect(result.value.analysis).toHaveProperty("dependencies");
+    expect(result.value.analysis).toHaveProperty("hoistedDeps");
   });
 
   it("should include dependency types in analysis", async () => {
@@ -704,7 +704,7 @@ describe("Move.Inside - Result Structure", () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     // Dependencies should be typed
-    result.analysis.dependencies.forEach((dep) => {
+    result.value.analysis.dependencies.forEach((dep) => {
       expect(Object.values(DependencyType)).toContain(dep.type);
     });
   });
@@ -727,6 +727,6 @@ describe("Move.Inside - Comprehensive Scenarios", () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });

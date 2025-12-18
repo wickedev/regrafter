@@ -212,7 +212,7 @@ describe('Basic Move Integration Tests', () => {
 
       const result = regraft(files, from, to, Move.Before);
 
-      expect(result.success).toBe(true);
+      expect(result.ok).toBe(true);
       // Content should be unchanged
     });
 
@@ -240,11 +240,11 @@ describe('Basic Move Integration Tests', () => {
 
       const result = regraft(files, from, to, Move.Before);
 
-      expect(result.success).toBe(true);
-      expect(result.codes).toHaveLength(1);
-      expect(result.codes[0]!.file).toBe('test.tsx');
-      expect(result.codes[0]!.changed).toBe(true);
-      expect(result.analysis).toBeDefined();
+      expect(result.ok).toBe(true);
+      expect(result.value.codes).toHaveLength(1);
+      expect(result.value.codes[0]!.file).toBe('test.tsx');
+      expect(result.value.codes[0]!.changed).toBe(true);
+      expect(result.value.analysis).toBeDefined();
     });
 
     it('should support dryRun option', () => {
@@ -255,10 +255,10 @@ describe('Basic Move Integration Tests', () => {
 
       const result = regraft(files, from, to, Move.Before, { dryRun: true });
 
-      expect(result.success).toBe(true);
-      expect(result.analysis).toBeDefined();
+      expect(result.ok).toBe(true);
+      expect(result.value.analysis).toBeDefined();
       // In dryRun, files should be unchanged
-      expect(result.codes[0]!.changed).toBe(false);
+      expect(result.value.codes[0]!.changed).toBe(false);
     });
   });
 

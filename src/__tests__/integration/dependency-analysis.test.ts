@@ -476,19 +476,19 @@ function App() {
         { dryRun: true }
       );
 
-      expect(result.success).toBe(true);
-      expect(result.analysis).toBeDefined();
-      expect(result.analysis?.canMove).toBe(true);
-      expect(result.analysis?.dependencies).toBeDefined();
+      expect(result.ok).toBe(true);
+      expect(result.value.analysis).toBeDefined();
+      expect(result.value.analysis?.canMove).toBe(true);
+      expect(result.value.analysis?.dependencies).toBeDefined();
 
       // Dependencies array should be defined (may be empty if moving within same scope)
-      expect(Array.isArray(result.analysis?.dependencies)).toBe(true);
+      expect(Array.isArray(result.value.analysis?.dependencies)).toBe(true);
 
       // Stats should be defined
-      expect(result.analysis?.stats).toBeDefined();
+      expect(result.value.analysis?.stats).toBeDefined();
 
       // Code should not be changed in dryRun mode
-      expect(result.codes.every(c => !c.changed)).toBe(true);
+      expect(result.value.codes.every(c => !c.changed)).toBe(true);
     });
 
     it('should detect useState dependencies in dryRun mode', () => {
@@ -519,13 +519,13 @@ function Counter() {
         { dryRun: true }
       );
 
-      expect(result.success).toBe(true);
-      expect(result.analysis).toBeDefined();
-      expect(result.analysis?.dependencies.some(d => d.type === DependencyType.Hook)).toBe(true);
+      expect(result.ok).toBe(true);
+      expect(result.value.analysis).toBeDefined();
+      expect(result.value.analysis?.dependencies.some(d => d.type === DependencyType.Hook)).toBe(true);
 
       // Stats should be populated
-      expect(result.analysis?.stats).toBeDefined();
-      expect(result.analysis?.stats?.hookDependencies).toBeGreaterThan(0);
+      expect(result.value.analysis?.stats).toBeDefined();
+      expect(result.value.analysis?.stats?.hookDependencies).toBeGreaterThan(0);
     });
 
     it('should provide stats in dryRun mode', () => {
@@ -557,11 +557,11 @@ function App() {
         { dryRun: true }
       );
 
-      expect(result.success).toBe(true);
-      expect(result.analysis?.stats).toBeDefined();
-      expect(result.analysis?.stats?.totalDependencies).toBeGreaterThan(0);
-      expect(result.analysis?.stats?.hookDependencies).toBeGreaterThan(0);
-      expect(result.analysis?.stats?.variableDependencies).toBeGreaterThan(0);
+      expect(result.ok).toBe(true);
+      expect(result.value.analysis?.stats).toBeDefined();
+      expect(result.value.analysis?.stats?.totalDependencies).toBeGreaterThan(0);
+      expect(result.value.analysis?.stats?.hookDependencies).toBeGreaterThan(0);
+      expect(result.value.analysis?.stats?.variableDependencies).toBeGreaterThan(0);
     });
 
     it('should return unchanged code in dryRun mode', () => {
@@ -588,9 +588,9 @@ function App() {
         { dryRun: true }
       );
 
-      expect(result.codes).toHaveLength(1);
-      expect(result.codes[0]?.changed).toBe(false);
-      expect(result.codes[0]?.content).toBe(code);
+      expect(result.value.codes).toHaveLength(1);
+      expect(result.value.codes[0]?.changed).toBe(false);
+      expect(result.value.codes[0]?.content).toBe(code);
     });
 
     it('should handle invalid moves in dryRun mode', () => {
@@ -612,9 +612,9 @@ function App() {
         { dryRun: true }
       );
 
-      expect(result.success).toBe(false);
-      expect(result.analysis?.canMove).toBe(false);
-      expect(result.analysis?.reason).toBeDefined();
+      expect(result.ok).toBe(false);
+      expect(result.value.analysis?.canMove).toBe(false);
+      expect(result.value.analysis?.reason).toBeDefined();
     });
   });
 });

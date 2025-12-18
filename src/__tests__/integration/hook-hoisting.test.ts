@@ -166,7 +166,7 @@ function Child() {
 
     const result = await testHoisting(code, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     expect(
       result.dependencies.some(
         (d) =>
@@ -199,7 +199,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     expect(result.dependencies.some((d) => d.symbol.includes("state"))).toBe(
       true
     );
@@ -236,7 +236,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Should detect both useState and useEffect
     expect(
       result.dependencies.filter((d) => d.type === DependencyType.Hook).length
@@ -272,7 +272,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Cleanup function should be part of the useEffect dependency
   });
 });
@@ -303,7 +303,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     expect(result.dependencies.some((d) => d.symbol === "inputRef")).toBe(true);
   });
 });
@@ -339,7 +339,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     expect(result.dependencies.some((d) => d.symbol.includes("value"))).toBe(
       true
     );
@@ -379,7 +379,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Should detect multiple hooks (processed depends on useMemo which depends on useState)
     const hookDeps = result.dependencies.filter(
       (d) => d.type === DependencyType.Hook
@@ -414,7 +414,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Hook order must be preserved (Rules of Hooks)
   });
 });
@@ -449,7 +449,7 @@ function Component({ items }) {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     expect(result.dependencies.some((d) => d.symbol.includes("sorted"))).toBe(
       true
     );
@@ -480,7 +480,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     expect(result.dependencies.some((d) => d.symbol.includes("count"))).toBe(
       true
     );
@@ -522,7 +522,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     expect(result.dependencies.some((d) => d.symbol.includes("state"))).toBe(
       true
     );
@@ -556,7 +556,7 @@ function Component({ items }) {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     expect(
       result.dependencies.some(
         (d) => d.type === DependencyType.Variable && d.symbol.includes("count")
@@ -593,7 +593,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     expect(
       result.dependencies.some(
         (d) =>
@@ -629,7 +629,7 @@ function Component({ showCounter }) {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Hook should remain at component top-level
   });
 });
@@ -660,7 +660,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   it("HOIST-16: should handle hooks in nested components", async () => {
@@ -689,6 +689,6 @@ function Inner() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });

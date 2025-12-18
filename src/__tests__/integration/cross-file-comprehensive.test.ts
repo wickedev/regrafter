@@ -53,8 +53,8 @@ describe('Cross-File Comprehensive - New File Creation', () => {
    * doesn't exist in the files array
    *
    * Expected Results:
-   * - result.success is true
-   * - result.codes contains the new file
+   * - result.ok is true
+   * - result.value.codes contains the new file
    * - New file is marked with isNew: true
    */
   it('CFCX-01: should create new file when target does not exist', () => {
@@ -79,11 +79,11 @@ export function Button() {
     // The operation might fail or succeed depending on implementation
     // At minimum, it should handle the non-existent file gracefully
     expect(result).toBeDefined();
-    expect(typeof result.success).toBe('boolean');
+    expect(typeof result.ok).toBe('boolean');
 
-    if (result.success) {
+    if (result.ok) {
       // If successful, verify new file was created
-      const newFile = result.codes.find(c => c.file === 'components/NewFile.tsx');
+      const newFile = result.value.codes.find(c => c.file === 'components/NewFile.tsx');
       expect(newFile).toBeDefined();
 
       // Check if isNew flag is set
@@ -92,7 +92,7 @@ export function Button() {
       }
     } else {
       // If it fails, that's also acceptable - just verify reason is provided
-      expect(result.analysis.reason).toBeDefined();
+      expect(result.value.analysis.reason).toBeDefined();
     }
   });
 
@@ -136,8 +136,8 @@ export function App() {
 
     expect(result).toBeDefined();
 
-    if (result.success) {
-      const newFile = result.codes.find(c => c.file === 'Counter.tsx');
+    if (result.ok) {
+      const newFile = result.value.codes.find(c => c.file === 'Counter.tsx');
       expect(newFile).toBeDefined();
 
       if (newFile) {
@@ -166,7 +166,7 @@ describe('Cross-File Comprehensive - Shared Module Creation', () => {
    * dependency needs to be shared between files
    *
    * Expected Results:
-   * - result.codes.length >= 3 (Source, Target, shared module)
+   * - result.value.codes.length >= 3 (Source, Target, shared module)
    * - Shared module exports helper function
    * - Both files import helper from shared module
    */
@@ -201,13 +201,13 @@ function Target() {
 
     expect(result).toBeDefined();
 
-    if (result.success) {
+    if (result.ok) {
       // Check if a shared module was created (implementation detail)
       // At minimum, verify the move succeeded
-      expect(result.codes.length).toBeGreaterThanOrEqual(2);
+      expect(result.value.codes.length).toBeGreaterThanOrEqual(2);
 
       // Look for any new files created
-      const newFiles = result.codes.filter(c => c.isNew);
+      const newFiles = result.value.codes.filter(c => c.isNew);
       if (newFiles.length > 0) {
         // If a shared module was created, verify it exports
         const sharedModule = newFiles[0];
@@ -262,12 +262,12 @@ function Target() {
 
     expect(result).toBeDefined();
 
-    if (result.success) {
+    if (result.ok) {
       // Verify the operation completed
-      expect(result.codes.length).toBeGreaterThanOrEqual(2);
+      expect(result.value.codes.length).toBeGreaterThanOrEqual(2);
 
       // Check for shared module with multiple exports
-      const newFiles = result.codes.filter(c => c.isNew);
+      const newFiles = result.value.codes.filter(c => c.isNew);
       if (newFiles.length > 0) {
         const sharedModule = newFiles[0];
         if (sharedModule) {
@@ -292,8 +292,8 @@ describe('Cross-File Comprehensive - Circular Dependency Prevention', () => {
    * they're created
    *
    * Expected Results:
-   * - Either result.success is false with reason mentioning circular dependency
-   * - Or result.success is true and a shared module was created to break the cycle
+   * - Either result.ok is false with reason mentioning circular dependency
+   * - Or result.ok is true and a shared module was created to break the cycle
    */
   it('CFCX-05: should detect potential circular dependencies', () => {
     const fileA: FileInput = {
@@ -325,23 +325,23 @@ export function B() {
     );
 
     expect(result).toBeDefined();
-    expect(typeof result.success).toBe('boolean');
+    expect(typeof result.ok).toBe('boolean');
 
     // Either:
     // 1. Move fails with circular dependency reason
     // 2. Move succeeds and shared module breaks the cycle
-    if (!result.success) {
+    if (!result.ok) {
       // Verify circular dependency was detected
-      expect(result.analysis.reason).toBeDefined();
+      expect(result.value.analysis.reason).toBeDefined();
       // The reason might mention circular, cycle, or similar
     } else {
       // If successful, verify no actual circular import exists
-      expect(result.codes.length).toBeGreaterThanOrEqual(2);
+      expect(result.value.codes.length).toBeGreaterThanOrEqual(2);
 
       // Look for shared module creation
-      const hasNewFile = result.codes.some(c => c.isNew);
+      const hasNewFile = result.value.codes.some(c => c.isNew);
       // Either shared module created OR move succeeded without circular import
-      expect(hasNewFile || result.codes.length === 2).toBe(true);
+      expect(hasNewFile || result.value.codes.length === 2).toBe(true);
     }
   });
 
@@ -388,12 +388,12 @@ export function B({ data }: { data: { value: number } }) {
 
     expect(result).toBeDefined();
 
-    if (result.success) {
+    if (result.ok) {
       // Verify files were updated
-      expect(result.codes.length).toBeGreaterThanOrEqual(2);
+      expect(result.value.codes.length).toBeGreaterThanOrEqual(2);
 
       // Check for shared module creation
-      const newFiles = result.codes.filter(c => c.isNew);
+      const newFiles = result.value.codes.filter(c => c.isNew);
       if (newFiles.length > 0) {
         const sharedModule = newFiles[0];
         if (sharedModule) {
@@ -402,8 +402,8 @@ export function B({ data }: { data: { value: number } }) {
       }
 
       // Verify A and B were both updated
-      const fileAResult = result.codes.find(c => c.file === 'A.tsx');
-      const fileBResult = result.codes.find(c => c.file === 'B.tsx');
+      const fileAResult = result.value.codes.find(c => c.file === 'A.tsx');
+      const fileBResult = result.value.codes.find(c => c.file === 'B.tsx');
 
       expect(fileAResult).toBeDefined();
       expect(fileBResult).toBeDefined();
@@ -458,8 +458,8 @@ function Target() {
 
     expect(result).toBeDefined();
 
-    if (result.success) {
-      const targetResult = result.codes.find(c => c.file === 'Target.tsx');
+    if (result.ok) {
+      const targetResult = result.value.codes.find(c => c.file === 'Target.tsx');
       expect(targetResult).toBeDefined();
 
       if (targetResult) {
@@ -518,8 +518,8 @@ function Target() {
 
     expect(result).toBeDefined();
 
-    if (result.success) {
-      const targetResult = result.codes.find(c => c.file === 'Target.tsx');
+    if (result.ok) {
+      const targetResult = result.value.codes.find(c => c.file === 'Target.tsx');
       expect(targetResult).toBeDefined();
 
       if (targetResult) {
@@ -600,8 +600,8 @@ function Target() {
 
     expect(result).toBeDefined();
 
-    if (result.success) {
-      const sourceResult = result.codes.find(c => c.file === 'Source.tsx');
+    if (result.ok) {
+      const sourceResult = result.value.codes.find(c => c.file === 'Source.tsx');
       expect(sourceResult).toBeDefined();
 
       if (sourceResult) {
@@ -669,8 +669,8 @@ function Target() {
 
     expect(result).toBeDefined();
 
-    if (result.success) {
-      const sourceResult = result.codes.find(c => c.file === 'Source.tsx');
+    if (result.ok) {
+      const sourceResult = result.value.codes.find(c => c.file === 'Source.tsx');
       expect(sourceResult).toBeDefined();
 
       if (sourceResult) {
@@ -752,14 +752,14 @@ export function D() {
     );
 
     expect(result).toBeDefined();
-    expect(typeof result.success).toBe('boolean');
+    expect(typeof result.ok).toBe('boolean');
 
-    if (result.success) {
+    if (result.ok) {
       // Verify all files are present
-      expect(result.codes.length).toBeGreaterThanOrEqual(4);
+      expect(result.value.codes.length).toBeGreaterThanOrEqual(4);
 
       // Verify A was updated
-      const fileAResult = result.codes.find(c => c.file === 'level1/A.tsx');
+      const fileAResult = result.value.codes.find(c => c.file === 'level1/A.tsx');
       expect(fileAResult).toBeDefined();
 
       // Verify imports were handled for deep nesting
@@ -907,8 +907,8 @@ export function Target() {
 
     expect(result).toBeDefined();
 
-    if (result.success) {
-      const targetResult = result.codes.find(c => c.file === 'Target.tsx');
+    if (result.ok) {
+      const targetResult = result.value.codes.find(c => c.file === 'Target.tsx');
       expect(targetResult).toBeDefined();
 
       if (targetResult) {
@@ -921,7 +921,7 @@ export function Target() {
       }
 
       // Source should be updated
-      const sourceResult = result.codes.find(c => c.file === 'Source.tsx');
+      const sourceResult = result.value.codes.find(c => c.file === 'Source.tsx');
       expect(sourceResult).toBeDefined();
 
       if (sourceResult) {
@@ -963,7 +963,7 @@ export function Source() {
 
     expect(result).toBeDefined();
     // Operation might succeed or fail - both are valid depending on implementation
-    expect(typeof result.success).toBe('boolean');
+    expect(typeof result.ok).toBe('boolean');
   });
 
   it('should handle cross-file with complex dependencies', () => {
@@ -1006,9 +1006,9 @@ export function Simple() {
 
     expect(result).toBeDefined();
 
-    if (result.success) {
+    if (result.ok) {
       // Verify target received the element
-      const targetResult = result.codes.find(c => c.file === 'Simple.tsx');
+      const targetResult = result.value.codes.find(c => c.file === 'Simple.tsx');
       expect(targetResult).toBeDefined();
 
       if (targetResult) {
@@ -1049,12 +1049,12 @@ export function B() {
 
     expect(result).toBeDefined();
 
-    if (result.success) {
+    if (result.ok) {
       // Verify both files were processed
-      expect(result.codes.length).toBeGreaterThanOrEqual(2);
+      expect(result.value.codes.length).toBeGreaterThanOrEqual(2);
 
       // Verify files are valid
-      for (const code of result.codes) {
+      for (const code of result.value.codes) {
         expect(code.file).toBeDefined();
         expect(code.content).toBeDefined();
         expect(code.content.length).toBeGreaterThan(0);

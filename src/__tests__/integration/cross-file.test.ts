@@ -262,8 +262,8 @@ describe('Cross-File - Basic Operations', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
-    expect(result.codes.length).toBe(2);
+    expect(result.ok).toBe(true);
+    expect(result.value.codes.length).toBe(2);
   });
 
   /**
@@ -302,9 +302,9 @@ describe('Cross-File - Basic Operations', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Imports should be tracked
-    expect(result.analysis.dependencies?.length).toBeGreaterThanOrEqual(0);
+    expect(result.value.analysis.dependencies?.length).toBeGreaterThanOrEqual(0);
   });
 
   /**
@@ -326,9 +326,9 @@ describe('Cross-File - Basic Operations', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Both files should be marked as changed
-    expect(result.codes.every(c => c.changed)).toBe(true);
+    expect(result.value.codes.every(c => c.changed)).toBe(true);
   });
 });
 
@@ -356,7 +356,7 @@ describe('Cross-File - Dependencies', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Hook dependency should be tracked
   });
 
@@ -379,7 +379,7 @@ describe('Cross-File - Dependencies', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -407,7 +407,7 @@ describe('Cross-File - Import Paths', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -429,7 +429,7 @@ describe('Cross-File - Import Paths', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -471,7 +471,7 @@ describe('Cross-File - Circular Imports', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -499,7 +499,7 @@ describe('Cross-File - Type Imports', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -527,7 +527,7 @@ describe('Cross-File - Exports', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Parent's default export should remain intact
   });
 
@@ -550,7 +550,7 @@ describe('Cross-File - Exports', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -578,7 +578,7 @@ describe('Cross-File - Directory Structure', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -601,7 +601,7 @@ describe('Cross-File - Directory Structure', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -640,7 +640,7 @@ describe('Cross-File - Package Imports', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -665,8 +665,8 @@ describe('Cross-File - Error Cases', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(false);
-    expect(result.analysis.reason).toContain('not found');
+    expect(result.ok).toBe(false);
+    expect(result.value.analysis.reason).toContain('not found');
   });
 
   it('should fail when source file does not exist', async () => {
@@ -677,8 +677,8 @@ describe('Cross-File - Error Cases', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(false);
-    expect(result.analysis.reason).toContain('not found');
+    expect(result.ok).toBe(false);
+    expect(result.value.analysis.reason).toContain('not found');
   });
 });
 
@@ -698,7 +698,7 @@ describe('Cross-File - Edge Cases', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   it('should handle moving entire component', async () => {
@@ -713,7 +713,7 @@ describe('Cross-File - Edge Cases', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   it('should handle file in root directory', async () => {
@@ -727,7 +727,7 @@ describe('Cross-File - Edge Cases', () => {
 
     const result = await regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   it('should handle same-file move (not cross-file)', async () => {
@@ -738,6 +738,6 @@ describe('Cross-File - Edge Cases', () => {
 
     const result = await regraft(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });

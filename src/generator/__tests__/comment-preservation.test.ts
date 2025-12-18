@@ -41,14 +41,15 @@ describe('Comment Preservation - TASK-005', () => {
 
       const ast = parseCode(code);
       const result = generator.generate(ast, { preserveComments: true });
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`function Component() {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`function Component() {
   return <div>
               {/* This is a comment above the element */}
               <Source />
             </div>;
 }`);
+      }
     });
 
     it('should preserve multi-line JSX comment above element', () => {
@@ -68,9 +69,9 @@ describe('Comment Preservation - TASK-005', () => {
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`function Component() {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`function Component() {
   return <div>
               {/*
                 Multi-line comment
@@ -79,6 +80,7 @@ describe('Comment Preservation - TASK-005', () => {
               <Source />
             </div>;
 }`);
+      }
     });
 
     it('should preserve comment above variable declaration', () => {
@@ -92,13 +94,14 @@ describe('Comment Preservation - TASK-005', () => {
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`function Component() {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`function Component() {
   // This variable holds data
   const data = 42;
   return <div>{data}</div>;
 }`);
+      }
     });
   });
 
@@ -119,15 +122,16 @@ describe('Comment Preservation - TASK-005', () => {
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`/**
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`/**
  * Important component that displays source
  * @returns JSX element
  */
 function Source() {
   return <div>Source</div>;
 }`);
+      }
     });
 
     it('should preserve JSDoc with multiple tags', () => {
@@ -146,9 +150,9 @@ function Source() {
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`/**
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`/**
  * Component with props
  * @param {Object} props - The component props
  * @param {string} props.name - User name
@@ -161,6 +165,7 @@ function User({
 }) {
   return <div>{name} is {age}</div>;
 }`);
+      }
     });
 
     it('should preserve JSDoc comment above const declaration', () => {
@@ -173,12 +178,13 @@ function User({
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`/**
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`/**
  * Helper function to format data
  */
-const formatData = data => data.toString();`);
+const formatData = data => data.toString();
+      }`);
     });
   });
 
@@ -199,13 +205,14 @@ const formatData = data => data.toString();`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`function Component() {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`function Component() {
   return <div>
               <Source /* inline comment */ />
             </div>;
 }`);
+      }
     });
 
     it('should preserve inline comment in expression', () => {
@@ -215,9 +222,10 @@ const formatData = data => data.toString();`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`const value = 1 /* units in meters */ + 2;`);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`const value = 1 /* units in meters */ + 2;`);
+      }
     });
 
     it('should preserve inline comment in JSX attribute', () => {
@@ -229,11 +237,12 @@ const formatData = data => data.toString();`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`function Component() {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`function Component() {
   return <button /* important */ onClick={handler}>Click</button>;
 }`);
+      }
     });
   });
 
@@ -255,14 +264,15 @@ const formatData = data => data.toString();`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`function Component() {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`function Component() {
   return <div>
               <Source />
               {/* Comment after source */}
             </div>;
 }`);
+      }
     });
 
     it('should preserve end-of-line comment', () => {
@@ -272,9 +282,10 @@ const formatData = data => data.toString();`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`const x = 1; // trailing comment`);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`const x = 1; // trailing comment`);
+      }
     });
 
     it('should preserve trailing comment after function', () => {
@@ -286,11 +297,12 @@ const formatData = data => data.toString();`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`function helper() {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`function helper() {
   return 42;
 } // end of helper`);
+      }
     });
   });
 
@@ -313,15 +325,16 @@ const formatData = data => data.toString();`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`function Component() {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`function Component() {
   return <div>
               {/* Inner comment 1 */}
               <span>Content</span>
               {/* Inner comment 2 */}
             </div>;
 }`);
+      }
     });
 
     it('should preserve comments inside function body', () => {
@@ -337,11 +350,12 @@ const formatData = data => data.toString();`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`function Component() {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`function Component() {
   // Setup section
   const data = fetchData();
+      }
 
   // Render section
   return <div>{data}</div>;
@@ -360,14 +374,15 @@ const formatData = data => data.toString();`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`const config = {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`const config = {
   // Feature flag
   enabled: true,
   // Maximum value
   max: 100
 };`);
+      }
     });
   });
 
@@ -389,12 +404,13 @@ const formatData = data => data.toString();`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast, { preserveComments: false });
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`function Source() {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`function Source() {
   const x = 1;
   return <div>{}Content</div>;
 }`);
+      }
     });
 
     it('should preserve code functionality when stripping comments', () => {
@@ -416,10 +432,11 @@ const formatData = data => data.toString();`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast, { preserveComments: false });
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`const Component = () => {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`const Component = () => {
   const [state, setState] = useState(0);
+      }
   return <div>
               {}
               <span>{state}</span>
@@ -454,9 +471,9 @@ const formatData = data => data.toString();`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`/**
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`/**
  * Component with multiple comment types
  * @returns JSX element
  */
@@ -470,6 +487,7 @@ function MultiComment() {
               {/* JSX comment after */}
             </div>;
 }`);
+      }
     });
 
     it('should handle complex nested comment structure', () => {
@@ -496,9 +514,9 @@ function MultiComment() {
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`// Top-level comment
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`// Top-level comment
 function Parent() {
   /**
    * Inner function
@@ -514,6 +532,7 @@ function Parent() {
               <Child /> {/* After child component */}
             </div>;
 }`);
+      }
     });
   });
 
@@ -538,9 +557,9 @@ function Parent() {
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`function Component() {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`function Component() {
   // Before first element
   const first = 1;
 
@@ -551,18 +570,20 @@ function Parent() {
   return <div>{first + second}</div>;
   // This comment should stay at the end
 }`);
+      }
 
       // Check relative positions
-      const beforeFirstPos = result.code.indexOf('Before first element');
-      const firstVarPos = result.code.indexOf('const first');
+      if (!result.ok) return;
+      const beforeFirstPos = result.value.code.indexOf('Before first element');
+      const firstVarPos = result.value.code.indexOf('const first');
       expect(beforeFirstPos).toBeLessThan(firstVarPos);
 
-      const betweenPos = result.code.indexOf('Between elements');
-      const secondVarPos = result.code.indexOf('const second');
+      const betweenPos = result.value.code.indexOf('Between elements');
+      const secondVarPos = result.value.code.indexOf('const second');
       expect(betweenPos).toBeLessThan(secondVarPos);
 
-      const beforeReturnPos = result.code.indexOf('Before return');
-      const returnPos = result.code.indexOf('return <div>');
+      const beforeReturnPos = result.value.code.indexOf('Before return');
+      const returnPos = result.value.code.indexOf('return <div>');
       expect(beforeReturnPos).toBeLessThan(returnPos);
     });
 
@@ -584,9 +605,9 @@ function Parent() {
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`function Component() {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`function Component() {
   return <div>
               {/* Top comment */}
               <header>Header</header>
@@ -596,11 +617,13 @@ function Parent() {
               <footer>Footer</footer>
             </div>;
 }`);
+      }
 
       // Check ordering
-      const topPos = result.code.indexOf('Top comment');
-      const middlePos = result.code.indexOf('Middle comment');
-      const bottomPos = result.code.indexOf('Bottom comment');
+      if (!result.ok) return;
+      const topPos = result.value.code.indexOf('Top comment');
+      const middlePos = result.value.code.indexOf('Middle comment');
+      const bottomPos = result.value.code.indexOf('Bottom comment');
 
       expect(topPos).toBeLessThan(middlePos);
       expect(middlePos).toBeLessThan(bottomPos);
@@ -618,8 +641,6 @@ function Parent() {
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
       // Empty comment may be preserved as '//' or stripped
       // This is acceptable behavior
     });
@@ -632,10 +653,11 @@ function Parent() {
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`// Comment with special chars: @#$%^&*()
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`// Comment with special chars: @#$%^&*()
 const x = 1;`);
+      }
     });
 
     it('should preserve comments at start of file', () => {
@@ -644,10 +666,11 @@ const x = 1;`;
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`// First line comment
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`// First line comment
 const x = 1;`);
+      }
     });
 
     it('should preserve comments at end of file', () => {
@@ -656,10 +679,11 @@ const x = 1;`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`const x = 1;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`const x = 1;
 // Last line comment`);
+      }
     });
 
     it('should handle very long comments', () => {
@@ -671,9 +695,10 @@ const x = 1;`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`// ${longComment}\nconst x = 1;`);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`// ${longComment}\nconst x = 1;`);
+      }
     });
 
     it('should not break syntax with comment preservation', () => {
@@ -694,9 +719,9 @@ const x = 1;`);
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`function Component() {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`function Component() {
   return <div
   // Comment in props
   className="test"
@@ -704,6 +729,7 @@ const x = 1;`);
               Content
             </div>;
 }`);
+      }
     });
   });
 
@@ -722,13 +748,14 @@ const Component = () => {
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`// Top comment
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`// Top comment
 const Component = () => {
   // Inner comment
   return <div>Test</div>;
 };`);
+      }
     });
 
     it('should preserve comments when generating source maps', () => {
@@ -739,10 +766,11 @@ const Component = () => {
 
       const ast = parseCode(code);
       const result = generator.generate(ast);
-
-      expect(result.errors).toHaveLength(0);
-      expect(result.code).toBe(`// Comment with sourcemap
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.code).toBe(`// Comment with sourcemap
 const x = 1;`);
+      }
       expect(result.map).toBeDefined();
     });
 

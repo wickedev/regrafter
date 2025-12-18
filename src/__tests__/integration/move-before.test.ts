@@ -189,10 +189,10 @@ describe('Move.Before - Basic Operations', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
-    expect(result.codes).toHaveLength(1);
-    expect(result.codes[0]!.file).toBe('simple-component.tsx');
-    expect(result.analysis.canMove).toBe(true);
+    expect(result.ok).toBe(true);
+    expect(result.value.codes).toHaveLength(1);
+    expect(result.value.codes[0]!.file).toBe('simple-component.tsx');
+    expect(result.value.analysis.canMove).toBe(true);
 
     // - span appears before p in output
     // - Original span location is empty
@@ -222,7 +222,7 @@ describe('Move.Before - Basic Operations', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
 
     // The moved element should retain all attributes, children, etc.
   });
@@ -250,7 +250,7 @@ describe('Move.Before - Basic Operations', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
 
     // The element should not exist at its original position
   });
@@ -291,7 +291,7 @@ describe('Move.Before - Dependency Handling', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -314,7 +314,7 @@ describe('Move.Before - Dependency Handling', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -349,7 +349,7 @@ describe('Move.Before - Nested Elements', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -377,7 +377,7 @@ describe('Move.Before - Fragment Handling', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -406,7 +406,7 @@ describe('Move.Before - Self-Closing Elements', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -435,7 +435,7 @@ describe('Move.Before - Edge Cases', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Content should be unchanged
   });
 
@@ -455,7 +455,7 @@ describe('Move.Before - Edge Cases', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -474,7 +474,7 @@ describe('Move.Before - Edge Cases', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -503,9 +503,9 @@ describe('Move.Before - Error Handling', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(false);
-    expect(result.analysis.canMove).toBe(false);
-    expect(result.analysis.reason).toBeDefined();
+    expect(result.ok).toBe(false);
+    expect(result.value.analysis.canMove).toBe(false);
+    expect(result.value.analysis.reason).toBeDefined();
   });
 
   /**
@@ -528,9 +528,9 @@ describe('Move.Before - Error Handling', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(false);
-    expect(result.analysis.canMove).toBe(false);
-    expect(result.analysis.reason).toBeDefined();
+    expect(result.ok).toBe(false);
+    expect(result.value.analysis.canMove).toBe(false);
+    expect(result.value.analysis.reason).toBeDefined();
   });
 });
 
@@ -558,7 +558,7 @@ describe('Move.Before - Code Quality', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -580,7 +580,7 @@ describe('Move.Before - Code Quality', () => {
 
     const result = await regraft(files, from, to, Move.Before);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -605,18 +605,18 @@ describe('Move.Before - Result Structure', () => {
     expect(result).toHaveProperty('analysis');
 
     // Validate codes array structure
-    expect(Array.isArray(result.codes)).toBe(true);
-    if (result.codes.length > 0) {
-      expect(result.codes[0]).toHaveProperty('file');
-      expect(result.codes[0]).toHaveProperty('content');
-      expect(result.codes[0]).toHaveProperty('changed');
+    expect(Array.isArray(result.value.codes)).toBe(true);
+    if (result.value.codes.length > 0) {
+      expect(result.value.codes[0]).toHaveProperty('file');
+      expect(result.value.codes[0]).toHaveProperty('content');
+      expect(result.value.codes[0]).toHaveProperty('changed');
     }
 
     // Validate analysis structure
-    expect(result.analysis).toHaveProperty('canMove');
-    expect(result.analysis).toHaveProperty('dependencies');
-    expect(result.analysis).toHaveProperty('hoistedDeps');
-    expect(Array.isArray(result.analysis.dependencies)).toBe(true);
-    expect(Array.isArray(result.analysis.hoistedDeps)).toBe(true);
+    expect(result.value.analysis).toHaveProperty('canMove');
+    expect(result.value.analysis).toHaveProperty('dependencies');
+    expect(result.value.analysis).toHaveProperty('hoistedDeps');
+    expect(Array.isArray(result.value.analysis.dependencies)).toBe(true);
+    expect(Array.isArray(result.value.analysis.hoistedDeps)).toBe(true);
   });
 });

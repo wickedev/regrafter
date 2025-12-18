@@ -41,7 +41,7 @@ import {
 function parseCode(code: string) {
   const parser = createParser();
   const result = parser.parse(code, 'test.tsx');
-  if (!result.success || !result.ast) {
+  if (!result.ok || !result.ast) {
     throw new Error(`Parse failed: ${result.errors[0]?.message}`);
   }
   return result.ast;

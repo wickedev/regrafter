@@ -317,10 +317,10 @@ describe('Optimization - Single Consumer', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
-    expect(result.codes[0]!.changed).toBe(true);
+    expect(result.ok).toBe(true);
+    expect(result.value.codes[0]!.changed).toBe(true);
     // Dependency analysis should show sinkable deps
-    expect(result.analysis.dependencies).toBeDefined();
+    expect(result.value.analysis.dependencies).toBeDefined();
   });
 
   /**
@@ -353,7 +353,7 @@ describe('Optimization - Single Consumer', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -382,7 +382,7 @@ describe('Optimization - Shared Dependencies', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Shared deps should not be marked for sinking
   });
 
@@ -420,7 +420,7 @@ describe('Optimization - Shared Dependencies', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -436,7 +436,7 @@ describe('Optimization - Shared Dependencies', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -464,7 +464,7 @@ describe('Optimization - Orphaned Props', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Props should be tracked for removal
   });
 
@@ -499,7 +499,7 @@ describe('Optimization - Orphaned Props', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -528,7 +528,7 @@ describe('Optimization - Hook Rules', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Hook should not be marked for sinking into conditional
   });
 
@@ -545,7 +545,7 @@ describe('Optimization - Hook Rules', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -561,7 +561,7 @@ describe('Optimization - Hook Rules', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -613,9 +613,9 @@ describe('Optimization - Multiple Dependencies', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // Multiple deps should be analyzed
-    expect(result.analysis.dependencies).toBeDefined();
+    expect(result.value.analysis.dependencies).toBeDefined();
   });
 });
 
@@ -654,7 +654,7 @@ describe('Optimization - Dead Code', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -696,7 +696,7 @@ describe('Optimization - Memoization Hooks', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   /**
@@ -730,7 +730,7 @@ describe('Optimization - Memoization Hooks', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -777,7 +777,7 @@ describe('Optimization - LCA Computation', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
     // State should remain at GrandParent (LCA of Child1 and Child2)
   });
 });
@@ -797,7 +797,7 @@ describe('Optimization - Integration', () => {
       optimize: true,
     });
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   it('should skip optimization when optimize option is false', async () => {
@@ -810,7 +810,7 @@ describe('Optimization - Integration', () => {
       optimize: false,
     });
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   it('should optimize by default when option not specified', async () => {
@@ -821,7 +821,7 @@ describe('Optimization - Integration', () => {
 
     const result = await regraftWithOptimize(files, from, to, Move.After);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -850,8 +850,8 @@ describe('Optimization - Edge Cases', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
-    expect(result.codes[0]!.changed).toBe(false);
+    expect(result.ok).toBe(true);
+    expect(result.value.codes[0]!.changed).toBe(false);
   });
 
   it('should handle deeply nested component trees', async () => {
@@ -873,7 +873,7 @@ describe('Optimization - Edge Cases', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   it('should handle multiple files', async () => {
@@ -900,6 +900,6 @@ describe('Optimization - Edge Cases', () => {
 
     const result = await optimize(files);
 
-    expect(result.success).toBe(true);
+    expect(result.ok).toBe(true);
   });
 });
