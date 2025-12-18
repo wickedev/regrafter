@@ -163,8 +163,13 @@ export class PropThreader implements IPropThreader {
 
     // Add numeric suffix
     let counter = 2;
-    while (existingProps.has(`${propName}${counter}`)) {
+    const MAX_ATTEMPTS = 1000;
+    while (existingProps.has(`${propName}${counter}`) && counter < MAX_ATTEMPTS) {
       counter++;
+    }
+
+    if (counter >= MAX_ATTEMPTS) {
+      throw new Error(`Could not generate unique prop name after ${MAX_ATTEMPTS} attempts for base: ${propName}`);
     }
 
     return `${propName}${counter}`;
@@ -313,10 +318,15 @@ export class PropThreader implements IPropThreader {
   private getAncestorChain(component: ComponentScope): ComponentScope[] {
     const chain: ComponentScope[] = [];
     let current: ComponentScope | null = component;
+    const MAX_DEPTH = 1000;
 
-    while (current !== null) {
+    while (current !== null && chain.length < MAX_DEPTH) {
       chain.push(current);
       current = current.parentComponent;
+    }
+
+    if (chain.length >= MAX_DEPTH) {
+      throw new Error(`Maximum component nesting depth (${MAX_DEPTH}) exceeded`);
     }
 
     return chain;
@@ -407,18 +417,31 @@ export function hasCommonAncestor(
 ): boolean {
   const ancestors1 = new Set<string>();
   let current: ComponentScope | null = component1;
+  const MAX_DEPTH = 1000;
+  let depth = 0;
 
-  while (current !== null) {
+  while (current !== null && depth < MAX_DEPTH) {
+    depth++;
     ancestors1.add(current.id);
     current = current.parentComponent;
   }
 
+  if (depth >= MAX_DEPTH) {
+    throw new Error(`Maximum component nesting depth (${MAX_DEPTH}) exceeded in hasCommonAncestor`);
+  }
+
   current = component2;
-  while (current !== null) {
+  depth = 0;
+  while (current !== null && depth < MAX_DEPTH) {
+    depth++;
     if (ancestors1.has(current.id)) {
       return true;
     }
     current = current.parentComponent;
+  }
+
+  if (depth >= MAX_DEPTH) {
+    throw new Error(`Maximum component nesting depth (${MAX_DEPTH}) exceeded in hasCommonAncestor`);
   }
 
   return false;
@@ -433,14 +456,23 @@ export function findLowestCommonAncestor(
 ): ComponentScope | null {
   const ancestors1 = new Map<string, ComponentScope>();
   let current: ComponentScope | null = component1;
+  const MAX_DEPTH = 1000;
+  let depth = 0;
 
-  while (current !== null) {
+  while (current !== null && depth < MAX_DEPTH) {
+    depth++;
     ancestors1.set(current.id, current);
     current = current.parentComponent;
   }
 
+  if (depth >= MAX_DEPTH) {
+    throw new Error(`Maximum component nesting depth (${MAX_DEPTH}) exceeded in findLowestCommonAncestor`);
+  }
+
   current = component2;
-  while (current !== null) {
+  depth = 0;
+  while (current !== null && depth < MAX_DEPTH) {
+    depth++;
     if (ancestors1.has(current.id)) {
       const ancestor = ancestors1.get(current.id);
       if (ancestor !== undefined) {
@@ -448,6 +480,10 @@ export function findLowestCommonAncestor(
       }
     }
     current = current.parentComponent;
+  }
+
+  if (depth >= MAX_DEPTH) {
+    throw new Error(`Maximum component nesting depth (${MAX_DEPTH}) exceeded in findLowestCommonAncestor`);
   }
 
   return null;

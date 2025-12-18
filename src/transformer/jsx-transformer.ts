@@ -639,8 +639,11 @@ export class JSXTransformer {
   private normalizePathForMove(path: NodePath): NodePath {
     let currentPath = path;
     let shouldContinue = true;
+    const MAX_DEPTH = 100;
+    let depth = 0;
 
-    while (shouldContinue) {
+    while (shouldContinue && depth < MAX_DEPTH) {
+      depth++;
       const parent = currentPath.parent;
       // If parent is JSXExpressionContainer, that's what we should move
       if (t.isJSXExpressionContainer(parent)) {
@@ -678,6 +681,10 @@ export class JSXTransformer {
       }
     }
 
+    if (depth >= MAX_DEPTH) {
+      throw new Error(`Maximum tree depth (${MAX_DEPTH}) exceeded while finding JSX container`);
+    }
+
     return currentPath;
   }
 
@@ -692,10 +699,13 @@ export class JSXTransformer {
   getSiblings(path: NodePath): Result<t.Node[], TransformErrorType> {
     let currentPath = path;
     let shouldContinue = true;
+    const MAX_DEPTH = 100;
+    let depth = 0;
 
     // If parent is an expression (LogicalExpression, ConditionalExpression, CallExpression, etc.),
     // we need to walk up to find the JSXExpressionContainer, then get its siblings
-    while (shouldContinue) {
+    while (shouldContinue && depth < MAX_DEPTH) {
+      depth++;
       const parent = currentPath.parent;
       // If we found a JSXExpressionContainer, move up one more level to get its siblings
       if (t.isJSXExpressionContainer(parent)) {
@@ -738,6 +748,17 @@ export class JSXTransformer {
         // For other parent types, stop here
         shouldContinue = false;
       }
+    }
+
+    if (depth >= MAX_DEPTH) {
+      return err(
+        createTransformError({
+          code: "E030",
+          message: `Maximum tree depth (${MAX_DEPTH}) exceeded while finding siblings`,
+          operation: "getSiblings",
+          file: "",
+        })
+      );
     }
 
     // Now get siblings from the appropriate container
@@ -829,9 +850,12 @@ export class JSXTransformer {
     let currentPath = path;
     let nodeToFind = currentPath.node;
     let shouldContinue = true;
+    const MAX_DEPTH = 100;
+    let depth = 0;
 
     // Walk up to find the appropriate container, same logic as getSiblings()
-    while (shouldContinue) {
+    while (shouldContinue && depth < MAX_DEPTH) {
+      depth++;
       const parent = currentPath.parent;
       if (t.isJSXExpressionContainer(parent)) {
         nodeToFind = parent;
@@ -869,6 +893,18 @@ export class JSXTransformer {
       } else {
         shouldContinue = false;
       }
+    }
+
+    if (depth >= MAX_DEPTH) {
+      return err(
+        createValidationError({
+          code: "E120",
+          message: `Maximum tree depth (${MAX_DEPTH}) exceeded while finding index in parent`,
+          constraint: "Maximum tree depth",
+          details: `Exceeded ${MAX_DEPTH} levels while traversing tree`,
+          file: "",
+        })
+      );
     }
 
     const parent = currentPath.parent;

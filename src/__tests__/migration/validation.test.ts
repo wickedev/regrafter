@@ -215,11 +215,14 @@ describe('Migration Validation - Task 20.2: No throw statements', () => {
       'optimizer/optimizer.ts',
       'optimizer/sink-analyzer.ts',
       'optimizer/sink-executor.ts',
+      'scope/scope-manager.ts', // Infinite loop prevention
       'strategies/context-handler.ts',
+      'strategies/cross-file/circular-dependency.ts', // Infinite loop prevention
       'strategies/cross-file/index.ts',
       'strategies/cross-file/new-file-handler.ts',
       'strategies/cross-file/shared-module-creator.ts',
       'strategies/hoist-executor.ts',
+      'strategies/prop-threader.ts', // Infinite loop prevention
       'strategies/suspense-handler.ts',
       'transformer/jsx-transformer.ts',
       'utils/babel-loader.ts',

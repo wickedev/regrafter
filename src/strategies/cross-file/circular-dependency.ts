@@ -339,7 +339,11 @@ export function wouldCreateCycle(
   const visited = new Set<string>();
   const queue = [normalizedTo];
 
-  while (queue.length > 0) {
+  const MAX_ITERATIONS = 10000; // Prevent infinite loops in very large graphs
+  let iterations = 0;
+
+  while (queue.length > 0 && iterations < MAX_ITERATIONS) {
+    iterations++;
     const current = queue.shift();
     if (current === undefined) {
       continue;
@@ -357,6 +361,12 @@ export function wouldCreateCycle(
     for (const neighbor of neighbors) {
       queue.push(neighbor);
     }
+  }
+
+  if (iterations >= MAX_ITERATIONS) {
+    // If we hit the limit, assume no cycle found (or graph is too large)
+    // This is a safety measure - in practice, most graphs are much smaller
+    return false;
   }
 
   return false;

@@ -565,9 +565,14 @@ export function generateUniqueFilePath(
   let counter = 1;
   let newPath = `${base}.${counter}.${extension}`;
 
-  while (existingFiles.has(newPath)) {
+  const MAX_ATTEMPTS = 1000;
+  while (existingFiles.has(newPath) && counter < MAX_ATTEMPTS) {
     counter++;
     newPath = `${base}.${counter}.${extension}`;
+  }
+
+  if (counter >= MAX_ATTEMPTS) {
+    throw new Error(`Could not generate unique filename after ${MAX_ATTEMPTS} attempts for base: ${base}`);
   }
 
   return newPath;

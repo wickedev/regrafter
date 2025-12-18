@@ -378,13 +378,20 @@ export class ScopeManager {
    */
   findEnclosingComponent(path: NodePath): ComponentScope | null {
     let current: NodePath | null = path;
+    const MAX_DEPTH = 1000;
+    let depth = 0;
 
-    while (current !== null) {
+    while (current !== null && depth < MAX_DEPTH) {
+      depth++;
       const scope = this.getScopeForNode(current.node);
       if (scope !== null && isComponentScope(scope)) {
         return scope;
       }
       current = current.parentPath;
+    }
+
+    if (depth >= MAX_DEPTH) {
+      throw new Error(`Maximum tree depth (${MAX_DEPTH}) exceeded in findEnclosingComponent`);
     }
 
     return null;
