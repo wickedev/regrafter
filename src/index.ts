@@ -21,7 +21,7 @@ export {
 
   // Options and results
   type Options,
-  type Result,
+  // Result is exported separately from result module
   type Code,
   type MoveAnalysis,
   type AnalysisStats,
@@ -114,7 +114,7 @@ export {
 
 // Export Result type and helpers (Task 17.1-17.5)
 export {
-  type Result as FunctionalResult,
+  type Result,
   type Ok,
   type Err,
   ok,
@@ -237,7 +237,7 @@ import { CodeGenerator } from './generator/code-generator.js';
 import { createOptimizer } from './optimizer/optimizer.js';
 import type { OptimizeOptions } from './optimizer/types.js';
 import { parseFile } from './parser/parse-file.js';
-import type { Result } from './result/index.js';
+import { isErr, type Result } from './result/index.js';
 import { createScopeManager } from './scope/index.js';
 import { createSelectorResolver } from './selector/index.js';
 import { createCrossFileContext, executeCrossFileTransform } from './strategies/cross-file/index.js';
@@ -250,8 +250,6 @@ import {
   mergeOptions,
   createMoveAnalysis,
   createCode,
-  createSuccessResult as createLegacySuccessResult,
-  createFailureResult as createLegacyFailureResult,
   createAnalysisStats,
   createSuggestedFix,
 } from './types/index.js';
@@ -397,7 +395,7 @@ export function move(
   const parsedFiles = new Map<string, t.File>();
   for (const file of files) {
     const result = parseFile(file.path, file.content);
-    if (!result.ok) {
+    if (isErr(result)) {
       throw new Error(`Failed to parse ${file.path}: ${result.error.message}`);
     }
     parsedFiles.set(file.path, result.value);
@@ -416,13 +414,13 @@ export function move(
 
   // Resolve selectors
   const sourceResult = resolver.resolveResult(from, sourceAst);
-  if (!sourceResult.ok) {
+  if (isErr(sourceResult)) {
     const error = sourceResult.error;
     throw new Error(`Failed to resolve source: ${error.message}`);
   }
 
   const targetResult = resolver.resolveResult(to, targetAst);
-  if (!targetResult.ok) {
+  if (isErr(targetResult)) {
     const error = targetResult.error;
     throw new Error(`Failed to resolve target: ${error.message}`);
   }
@@ -437,7 +435,7 @@ export function move(
       mode
     );
 
-    if (!moveResult.ok) {
+    if (isErr(moveResult)) {
       const error = moveResult.error;
       throw new Error(`Move failed: ${error.message}`);
     }
@@ -449,7 +447,7 @@ export function move(
       if (!ast) continue;
 
       const generateResult = generator.generate(ast);
-      if (!generateResult.ok) {
+      if (isErr(generateResult)) {
         const error = generateResult.error;
         throw new Error(`Code generation failed: ${error.message}`);
       }
@@ -489,7 +487,7 @@ function executeCrossFileMove(
 
   for (const file of files) {
     const result = parseFile(file.path, file.content);
-    if (!result.ok) {
+    if (isErr(result)) {
       throw new Error(`Failed to parse ${file.path}: ${result.error.message}`);
     }
     parsedFiles.set(file.path, result.value);
@@ -508,7 +506,7 @@ function executeCrossFileMove(
 
   // Resolve source element
   const sourceResult = resolver.resolveResult(from, sourceAst);
-  if (!sourceResult.ok) {
+  if (isErr(sourceResult)) {
     const error = sourceResult.error;
     throw new Error(`Failed to resolve source: ${error.message}`);
   }
@@ -532,12 +530,8 @@ function executeCrossFileMove(
 
   // Analyze dependencies
   const depAnalysisResult = analyzer.analyzeElement(sourceResult.value.path, targetScope);
-  if (!depAnalysisResult.ok) {
-    return {
-      success: false,
-      error: depAnalysisResult.error.message,
-      codes: [],
-    };
+  if (isErr(depAnalysisResult)) {
+    throw new Error(`Dependency analysis failed: ${depAnalysisResult.error.message}`);
   }
   const depAnalysis = depAnalysisResult.value;
 
@@ -601,7 +595,7 @@ function moveWithHoisting(
   const parsedFiles = new Map<string, t.File>();
   for (const file of files) {
     const result = parseFile(file.path, file.content);
-    if (!result.ok) {
+    if (isErr(result)) {
       throw new Error(`Failed to parse ${file.path}: ${result.error.message}`);
     }
     parsedFiles.set(file.path, result.value);
@@ -624,13 +618,13 @@ function moveWithHoisting(
 
   // Resolve selectors
   const sourceResult = resolver.resolveResult(from, sourceAst);
-  if (!sourceResult.ok) {
+  if (isErr(sourceResult)) {
     const error = sourceResult.error;
     throw new Error(`Failed to resolve source: ${error.message}`);
   }
 
   const targetResult = resolver.resolveResult(to, sourceAst);
-  if (!targetResult.ok) {
+  if (isErr(targetResult)) {
     const error = targetResult.error;
     throw new Error(`Failed to resolve target: ${error.message}`);
   }
@@ -649,12 +643,8 @@ function moveWithHoisting(
 
   // Perform dependency analysis
   const depAnalysisResult = analyzer.analyzeElement(sourceResult.value.path, targetScope);
-  if (!depAnalysisResult.ok) {
-    return {
-      success: false,
-      error: depAnalysisResult.error.message,
-      codes: [],
-    };
+  if (isErr(depAnalysisResult)) {
+    throw new Error(`Dependency analysis failed: ${depAnalysisResult.error.message}`);
   }
   const depAnalysis = depAnalysisResult.value;
 
@@ -744,7 +734,7 @@ function moveWithHoisting(
     mode
   );
 
-  if (!moveResult.ok) {
+  if (isErr(moveResult)) {
     const error = moveResult.error;
     throw new Error(`Move failed: ${error.message}`);
   }
@@ -756,7 +746,7 @@ function moveWithHoisting(
     if (!ast) continue;
 
     const generateResult = generator.generate(ast);
-    if (!generateResult.ok) {
+    if (isErr(generateResult)) {
       const error = generateResult.error;
       throw new Error(`Code generation failed: ${error.message}`);
     }
@@ -823,7 +813,7 @@ export function analyze(
   }
 
   const parseResult = parseFile(sourceFile.path, sourceFile.content);
-  if (!parseResult.ok) {
+  if (isErr(parseResult)) {
     return createMoveAnalysis({
       canMove: false,
       reason: `Failed to parse ${from.file}: ${parseResult.error.message}`,
@@ -835,7 +825,7 @@ export function analyze(
 
   // Resolve selectors
   const sourceResult = resolver.resolveResult(from, parseResult.value);
-  if (!sourceResult.ok) {
+  if (isErr(sourceResult)) {
     const error = sourceResult.error;
     return createMoveAnalysis({
       canMove: false,
@@ -846,8 +836,8 @@ export function analyze(
     });
   }
 
-  const targetResult = resolver.resolveResult(to, parseResult.ast);
-  if (!targetResult.ok) {
+  const targetResult = resolver.resolveResult(to, parseResult.value);
+  if (isErr(targetResult)) {
     const error = targetResult.error;
     return createMoveAnalysis({
       canMove: false,
@@ -864,7 +854,7 @@ export function analyze(
   analysisBuilder.setCurrentFile(from.file);
 
   // Perform full dependency analysis
-  return analysisBuilder.analyze(parseResult.ast, sourceResult.value.path, targetResult.value.path);
+  return analysisBuilder.analyze(parseResult.value, sourceResult.value.path, targetResult.value.path);
 }
 
 /**
@@ -882,7 +872,11 @@ export function optimize(
   options?: OptimizeOptions
 ): Code[] {
   const optimizer = createOptimizer();
-  return optimizer.optimize(files, options);
+  const result = optimizer.optimize(files, options);
+  if (isErr(result)) {
+    throw new Error(`Optimization failed: ${result.error.message}`);
+  }
+  return result.value;
 }
 
 // =============================================================================

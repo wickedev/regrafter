@@ -13,8 +13,7 @@ import type { NodePath } from '@babel/traverse';
 
 import { Move } from '../../types/public.js';
 import { createJSXTransformer } from '../jsx-transformer.js';
-import { type Result, isOk, isErr } from '../../result/index.js';
-import { type TransformError, type ValidationError } from '../../errors/error-category.js';
+import { isOk, isErr } from '../../result/index.js';
 
 // =============================================================================
 // Test Utilities
@@ -36,8 +35,9 @@ function parseJSX(code: string): t.File {
 function findJSXElement(ast: t.File, elementName: string): NodePath | null {
   let foundPath: NodePath | null = null;
 
+  // @ts-expect-error - traverse types are complex, using any for test helper
   traverse(ast, {
-    JSXElement(path) {
+    JSXElement(path: NodePath<t.JSXElement>) {
       const opening = path.node.openingElement;
       if (opening.name.type === 'JSXIdentifier' && opening.name.name === elementName) {
         foundPath = path;
@@ -120,8 +120,9 @@ describe('transformElement - Result return type', () => {
 
     // Find the root div (has no JSX parent for Before/After operations)
     let rootDivPath: NodePath | null = null;
+    // @ts-expect-error - traverse types are complex, using any for test helper
     traverse(ast, {
-      JSXElement(path) {
+      JSXElement(path: NodePath<t.JSXElement>) {
         const opening = path.node.openingElement;
         if (opening.name.type === 'JSXIdentifier' && opening.name.name === 'div') {
           // Get the outermost div
@@ -177,8 +178,9 @@ const Component = () => {
 
     // Try to find a non-JSX node to use as source
     let invalidSourcePath: NodePath | null = null;
+    // @ts-expect-error - traverse types are complex, using any for test helper
     traverse(ast, {
-      NumericLiteral(path) {
+      NumericLiteral(path: NodePath<t.NumericLiteral>) {
         if (path.node.value === 42) {
           invalidSourcePath = path;
           path.stop();

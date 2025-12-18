@@ -366,8 +366,8 @@ describe("E2E: Simple JSX Moves", () => {
 
       const result = regraft(files, from, to, Move.Before);
 
-      expect(result.success).toBe(true);
-      expect(result.codes[0]?.content).toBe(`function App() {
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.codes[0]?.content).toBe(`function App() {
   return <div><footer>Footer</footer><header>Header</header><main>Main</main></div>;
 }`);
     });
@@ -392,8 +392,8 @@ describe("E2E: Simple JSX Moves", () => {
 
       const result = regraft(files, from, to, Move.Before);
 
-      expect(result.success).toBe(true);
-      expect(result.codes[0]?.content).toBe(`function Component() {
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Component() {
   return <section><p>Paragraph</p><h1>Title</h1></section>;
 }`);
     });
@@ -421,8 +421,8 @@ describe("E2E: Simple JSX Moves", () => {
 
       const result = regraft(files, from, to, Move.After);
 
-      expect(result.success).toBe(true);
-      expect(result.codes[0]?.content).toBe(`function App() {
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.codes[0]?.content).toBe(`function App() {
   return <div><main>Main</main><footer>Footer</footer><header>Header</header></div>;
 }`);
     });
@@ -448,8 +448,8 @@ describe("E2E: Simple JSX Moves", () => {
 
       const result = regraft(files, from, to, Move.After);
 
-      expect(result.success).toBe(true);
-      expect(result.codes[0]?.content).toBe(`function Fragment() {
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Fragment() {
   return <><div>Second</div><div>Third</div><div>First</div></>;
 }`);
     });
@@ -478,8 +478,8 @@ describe("E2E: Simple JSX Moves", () => {
 
       const result = regraft(files, from, to, Move.Inside);
 
-      expect(result.success).toBe(true);
-      expect(result.codes[0]?.content).toBe(`function App() {
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.codes[0]?.content).toBe(`function App() {
   return <div><section>
         <h1>Title</h1>
       <p>Paragraph</p></section></div>;
@@ -506,8 +506,8 @@ describe("E2E: Simple JSX Moves", () => {
 
       const result = regraft(files, from, to, Move.Inside);
 
-      expect(result.success).toBe(true);
-      expect(result.codes[0]?.content).toBe(`function App() {
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.codes[0]?.content).toBe(`function App() {
   return <div><section><p>Content</p></section></div>;
 }`);
     });
@@ -541,9 +541,9 @@ function Child() {
 
       const result = regraft(files, from, to, Move.Inside);
 
-      expect(result.success).toBe(true);
+      expect(result.ok).toBe(true);
       // Should hoist useState to Parent component
-      expect(result.codes[0]?.content).toBe(`function Parent() {
+      if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
   return <div>
       <Child />
     <button onClick={() => setCount(count + 1)}>{count}</button></div>;
@@ -582,9 +582,9 @@ function Child() {
 
       const result = regraft(files, from, to, Move.Inside);
 
-      expect(result.success).toBe(true);
+      expect(result.ok).toBe(true);
       // All hooks should be hoisted in order
-      expect(result.codes[0]?.content).toBe(`function Parent() {
+      if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
   return <div><Child /></div>;
 }
 function Child() {
@@ -622,8 +622,8 @@ function Child() {
 
       const result = regraft(files, from, to, Move.Inside);
 
-      expect(result.success).toBe(true);
-      expect(result.codes[0]?.content).toBe(`function Parent() {
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
   return <div><Child /></div>;
 }
 function Child() {
@@ -664,8 +664,8 @@ function Timer() {
 
       const result = regraft(files, from, to, Move.Inside);
 
-      expect(result.success).toBe(true);
-      expect(result.codes[0]?.content).toBe(`function Parent() {
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
   return <div><Timer /></div>;
 }
 function Timer() {
@@ -712,8 +712,8 @@ function Child() {
 
       const result = regraft(files, from, to, Move.Inside);
 
-      expect(result.success).toBe(true);
-      expect(result.codes[0]?.content).toBe(`function Parent() {
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
   return <div><Child /></div>;
 }
 function Child() {
@@ -761,8 +761,8 @@ function Counter() {
 
       const result = regraft(files, from, to, Move.Inside);
 
-      expect(result.success).toBe(true);
-      expect(result.codes[0]?.content).toBe(`function Parent() {
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
   return <div><Counter /></div>;
 }
 function useCounter(initial = 0) {
@@ -808,8 +808,8 @@ function Child() {
 
     const result = regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
-    expect(result.codes[0]?.content).toBe(`function Parent() {
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
   return <div><Child /></div>;
 }
 function Child() {
@@ -841,8 +841,8 @@ function Child() {
 
     const result = regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
-    expect(result.codes[0]?.content).toBe(`function Parent() {
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
   return <div><Child /></div>;
 }
 function Child() {
@@ -876,8 +876,8 @@ function Child() {
 
     const result = regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
-    expect(result.codes[0]?.content).toBe(`function Parent() {
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
   return <div><Child /></div>;
 }
 function Child() {
@@ -928,8 +928,8 @@ function Form() {
 
     const result = regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
-    expect(result.codes[0]?.content).toBe(`function Parent() {
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
   return <div><Form /></div>;
 }
 function Form() {
@@ -992,8 +992,8 @@ function TodoList() {
 
     const result = regraft(files, from, to, Move.Inside);
 
-    expect(result.success).toBe(true);
-    expect(result.codes[0]?.content).toBe(`function Parent() {
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
   return <div><TodoList /></div>;
 }
 function TodoList() {
@@ -1045,8 +1045,8 @@ describe("E2E: Atomic Unit Moves", () => {
 
       const result = regraft(files, from, to, Move.Before);
 
-      expect(result.success).toBe(true);
-      expect(result.codes[0]?.content).toBe(`function App() {
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.codes[0]?.content).toBe(`function App() {
   const items = ['Apple', 'Banana', 'Cherry'];
   return <div>
       {items.map(item => <li key={item}>{item}</li>)}<header>Header</header>

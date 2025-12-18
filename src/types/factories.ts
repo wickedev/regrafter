@@ -54,7 +54,6 @@ import type {
   DependencyType,
   Move,
   MoveAnalysis,
-  Result,
   SuggestedFix,
 } from './public.js';
 
@@ -174,64 +173,6 @@ export function createCode(
     isNew: params.isNew,
     original: params.original,
   };
-}
-
-/**
- * Creates a Result object.
- */
-export function createResult(
-  params: Omit<Result, 'codes'> & { codes?: Code[] }
-): Result {
-  return {
-    success: params.success,
-    codes: params.codes ?? [],
-    analysis: params.analysis,
-  };
-}
-
-/**
- * Creates a successful Result object.
- */
-export function createSuccessResult(
-  codes: Code[],
-  analysis: MoveAnalysis
-): Result {
-  return createResult({
-    success: true,
-    codes,
-    analysis,
-  });
-}
-
-/**
- * Creates a failed Result object.
- */
-export function createFailureResult(
-  reasonOrAnalysis: string | MoveAnalysis,
-  dependencies: Dependency[] = [],
-  suggestedFixes?: SuggestedFix[]
-): Result {
-  // If MoveAnalysis object is passed, use it directly
-  if (typeof reasonOrAnalysis === 'object') {
-    return createResult({
-      success: false,
-      codes: [],
-      analysis: reasonOrAnalysis,
-    });
-  }
-
-  // Otherwise, create MoveAnalysis from reason string
-  return createResult({
-    success: false,
-    codes: [],
-    analysis: createMoveAnalysis({
-      canMove: false,
-      reason: reasonOrAnalysis,
-      dependencies,
-      hoistedDeps: [],
-      suggestedFixes,
-    }),
-  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

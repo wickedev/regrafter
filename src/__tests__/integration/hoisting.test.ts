@@ -41,10 +41,10 @@ import {
 function parseCode(code: string) {
   const parser = createParser();
   const result = parser.parse(code, 'test.tsx');
-  if (!result.ok || !result.ast) {
-    throw new Error(`Parse failed: ${result.errors[0]?.message}`);
+  if (!result.ok) {
+    throw new Error(`Parse failed: ${result.error.message}`);
   }
-  return result.ast;
+  return result.value;
 }
 
 function createTestSetup(code: string) {

@@ -2,6 +2,11 @@
 
 > **Regrafter**: 프로그래매틱 AST 변환을 통한 React 엘리먼트 재배치 라이브러리
 
+> **📝 Document Status**: Updated to reflect actual implementation (v3.1, 2025-12-18)
+> - API updated to use Result<T, E> pattern
+> - Functions are now independent (not namespaced under regraft)
+> - Added TransformedCode and RegraffError types
+
 ---
 
 ## 1. 문제 정의
@@ -9,33 +14,43 @@
 ### 1.1 목표 API
 
 ```typescript
-import { regraft, Move } from 'regrafter';
+import { regraft, canMove, analyze, optimize, Move } from 'regrafter';
+import type { Result } from 'regrafter/result';
 
 // 통합 API (canMove + move + analyze + optimize)
-regraft(files: string[], from: Selector, to: Selector, mode: Move, options?: Options): Result
+regraft(
+  files: FileInput[],
+  from: Selector,
+  to: Selector,
+  mode: Move,
+  options?: Options
+): Result<TransformedCode, RegraffError>
 
 interface Options {
-  optimize?: boolean;   // 싱킹 최적화 (default: true)
-  dryRun?: boolean;     // 실제 변환 없이 분석만 (default: false)
+  optimize?: boolean;        // 싱킹 최적화 (default: true)
+  dryRun?: boolean;          // 실제 변환 없이 분석만 (default: false)
+  preserveComments?: boolean; // 주석 보존 (default: true)
+  formatOutput?: boolean;    // Prettier 포맷팅 (default: true)
 }
 
-interface Result {
-  success: boolean;
+// Result 패턴 (함수형 에러 처리)
+type Result<T, E> = Ok<T> | Err<E>
+
+interface TransformedCode {
   codes: Code[];           // 변환된 코드
   analysis: MoveAnalysis;  // 분석 결과
 }
 
 enum Move {
-  Inside,  // to의 자식으로
-  Before,  // to의 이전 형제로
-  After    // to의 다음 형제로
+  Inside = 'inside',  // to의 자식으로
+  Before = 'before',  // to의 이전 형제로
+  After = 'after'     // to의 다음 형제로
 }
 
-// 개별 API (세부 제어용)
-regraft.canMove(files, from, to, mode): boolean
-regraft.move(files, from, to, mode): Code[]
-regraft.analyze(files, from, to, mode): MoveAnalysis
-regraft.optimize(files): Code[]
+// 개별 API (독립 함수)
+canMove(files, from, to, mode): boolean
+analyze(files, from, to, mode): MoveAnalysis
+optimize(files, options?): Code[]
 ```
 
 ### 1.2 핵심 요구사항
@@ -630,39 +645,42 @@ regraft(F, from, to, mode) = regraft(F, from, to, mode)  (참조 투명성)
 ### 9.1 Core API
 
 ```typescript
-import { regraft, Move } from 'regrafter';
+import { regraft, canMove, analyze, optimize, Move } from 'regrafter';
+import type { Result } from 'regrafter/result';
+import type { FileInput, TransformedCode, RegraffError } from 'regrafter';
 
 // ═══════════════════════════════════════════════
 // 통합 API (권장)
 // ═══════════════════════════════════════════════
 regraft(
-  files: string[],
+  files: FileInput[],
   from: Selector,
   to: Selector,
   mode: Move,
   options?: Options
-): Result;
+): Result<TransformedCode, RegraffError>;
 
 interface Options {
   optimize?: boolean;        // 싱킹 최적화 (default: true)
   dryRun?: boolean;          // 분석만 수행 (default: false)
-  preserveComments?: boolean;
-  formatOutput?: boolean;
+  preserveComments?: boolean; // 주석 보존 (default: true)
+  formatOutput?: boolean;    // Prettier 포맷팅 (default: true)
 }
 
-interface Result {
-  success: boolean;
-  codes: Code[];
-  analysis: MoveAnalysis;
+// Result 패턴 (함수형 에러 처리)
+type Result<T, E> = Ok<T> | Err<E>
+
+interface TransformedCode {
+  codes: Code[];           // 변환된 코드
+  analysis: MoveAnalysis;  // 분석 결과
 }
 
 // ═══════════════════════════════════════════════
-// 개별 API (세부 제어용)
+// 개별 API (독립 함수)
 // ═══════════════════════════════════════════════
-regraft.canMove(files, from, to, mode): boolean;
-regraft.move(files, from, to, mode): Code[];
-regraft.analyze(files, from, to, mode): MoveAnalysis;
-regraft.optimize(files): Code[];
+canMove(files: FileInput[], from: Selector, to: Selector, mode: Move): boolean;
+analyze(files: FileInput[], from: Selector, to: Selector, mode: Move): MoveAnalysis;
+optimize(files: FileInput[], options?: OptimizeOptions): Code[];
 ```
 
 ### 9.2 타입 정의
@@ -674,47 +692,86 @@ enum Move {
   After = "after"
 }
 
-type Selector =
-  { file: string, line: number, column: number }
-  | { file: string, path: string }  // AST path
+// Selector 타입 (위치 기반 또는 경로 기반)
+type PositionSelector = {
+  file: string;
+  line: number;    // 1-based
+  column: number;  // 1-based
+}
 
+type PathSelector = {
+  file: string;
+  path: string;    // AST path (e.g., "Program.body[0].declaration")
+}
+
+type Selector = PositionSelector | PathSelector;
+
+// 파일 입력
+interface FileInput {
+  path: string;
+  content: string;
+}
+
+// 코드 결과
 interface Code {
   file: string;
   content: string;
   changed: boolean;
+  isNew?: boolean;     // 새로 생성된 파일 (공유 모듈 등)
+  original?: string;   // 변경 전 원본 (changed: true일 때)
 }
 
+// 분석 결과
 interface MoveAnalysis {
   canMove: boolean;
   reason?: string;
   dependencies: Dependency[];
-  hoistedDeps: Dependency[];     // 호이스팅될 의존성
+  hoistedDeps: Dependency[];        // 호이스팅될 의존성
+  sunkDeps?: Dependency[];          // 싱킹된 의존성 (optimize: true)
   suggestedFixes?: SuggestedFix[];
+  stats?: AnalysisStats;
 }
 ```
 
 ### 9.3 사용 예시
 
 ```typescript
-import { regraft, Move } from 'regrafter';
+import { regraft, canMove, analyze, Move } from 'regrafter';
+import fs from 'fs';
 
-const files = ['./src/App.tsx', './src/components/Layout.tsx'];
+// 파일 입력 준비
+const files = [
+  { path: './src/App.tsx', content: fs.readFileSync('./src/App.tsx', 'utf-8') },
+  { path: './src/components/Layout.tsx', content: fs.readFileSync('./src/components/Layout.tsx', 'utf-8') }
+];
+
 const from = { file: './src/App.tsx', line: 15, column: 4 };
 const to = { file: './src/components/Layout.tsx', line: 8, column: 6 };
 
 // ═══════════════════════════════════════════════
-// 통합 API 사용 (권장)
+// 통합 API 사용 (권장) - Result 패턴
 // ═══════════════════════════════════════════════
 const result = regraft(files, from, to, Move.Inside);
 // → canMove + move + analyze + optimize 모두 수행
 
-if (result.success) {
-  result.codes.forEach(code => {
+if (result.ok) {
+  // 성공: result.value에 TransformedCode
+  result.value.codes.forEach(code => {
     if (code.changed) {
       fs.writeFileSync(code.file, code.content);
     }
   });
-  console.log('호이스팅된 의존성:', result.analysis.hoistedDeps);
+  console.log('호이스팅된 의존성:', result.value.analysis.hoistedDeps);
+} else {
+  // 실패: result.error에 RegraffError
+  console.error('Error:', result.error.message);
+  console.error('Code:', result.error.code);
+  console.error('File:', result.error.file);
+
+  // 제안된 수정사항
+  result.error.suggestions.forEach(fix => {
+    console.log('Suggestion:', fix.description);
+  });
 }
 
 // 분석만 수행 (코드 변환 없음)
@@ -726,14 +783,24 @@ const noOptimize = regraft(files, from, to, Move.Inside, { optimize: false });
 // ═══════════════════════════════════════════════
 // 개별 API 사용 (세부 제어)
 // ═══════════════════════════════════════════════
-if (regraft.canMove(files, from, to, Move.Inside)) {
-  const codes = regraft.move(files, from, to, Move.Inside);
-  const optimized = regraft.optimize(files);
+// 1. 이동 가능 여부만 확인
+if (canMove(files, from, to, Move.Inside)) {
+  console.log('Move is possible');
 }
+
+// 2. 상세 분석
+const analysis = analyze(files, from, to, Move.Inside);
+if (analysis.canMove) {
+  console.log('Dependencies:', analysis.dependencies);
+  console.log('Will hoist:', analysis.hoistedDeps);
+}
+
+// 3. 실제 변환 + 최적화
+const transformed = regraft(files, from, to, Move.Inside);
 
 // AST path로도 선택 가능
 const fromPath = { file: './src/App.tsx', path: 'Program.body[0].declaration.body.body[0]' };
-regraft(files, fromPath, to, Move.After);
+const pathResult = regraft(files, fromPath, to, Move.After);
 ```
 
 ---
@@ -926,9 +993,10 @@ Regrafter의 본질:
 
 ---
 
-*문서 버전: 3.0*
-*분석 일자: 2025-12-15*
+*문서 버전: 3.1*
+*분석 일자: 2025-12-18 (Updated)*
 *변경 이력:*
 - *v1.x - 런타임 이동 분석 (deprecated)*
 - *v2.0 - Slot 기반 정적 변환 (deprecated)*
-- *v3.0 - 프로그래매틱 AST 이동 + 의존성 분석*
+- *v3.0 - 프로그래매틱 AST 이동 + 의존성 분석 (2025-12-15)*
+- *v3.1 - API 업데이트: Result 패턴, 독립 함수, TransformedCode 타입 (2025-12-18)*

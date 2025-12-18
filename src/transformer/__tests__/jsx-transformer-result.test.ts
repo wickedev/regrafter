@@ -150,7 +150,7 @@ describe('JSXTransformer - Result Pattern', () => {
       // Should return Err result
       expect(isErr(result)).toBe(true);
       if (isErr(result)) {
-        expect(result.error._tag).toBe('TransformError');
+        expect(result.error._tag).toBe('ValidationError');
         expect(result.error.message).toContain('Source must be');
       }
     });
@@ -217,7 +217,7 @@ describe('JSXTransformer - Result Pattern', () => {
 
       expect(isErr(result)).toBe(true);
       if (isErr(result)) {
-        expect(result.error._tag).toBe('TransformError');
+        expect(result.error._tag).toBe('ValidationError');
       }
     });
   });
@@ -266,7 +266,7 @@ describe('JSXTransformer - Result Pattern', () => {
 
       expect(isErr(result)).toBe(true);
       if (isErr(result)) {
-        expect(result.error._tag).toBe('TransformError');
+        expect(result.error._tag).toBe('ValidationError');
       }
     });
   });

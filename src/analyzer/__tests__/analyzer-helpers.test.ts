@@ -53,8 +53,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -86,8 +86,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           if (
             t.isJSXIdentifier(path.node.openingElement.name) &&
             path.node.openingElement.name.name === 'MyComponent'
@@ -116,8 +116,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -148,8 +148,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -180,8 +180,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -214,8 +214,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -242,8 +242,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -275,8 +275,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -309,8 +309,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -352,8 +352,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -390,8 +390,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       analyzerWithScope.setCurrentFile('test.tsx');
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -423,8 +423,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -454,8 +454,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -487,8 +487,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -518,8 +518,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -550,8 +550,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -588,8 +588,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       analyzerWithTransitive.setCurrentFile('test.tsx');
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -621,8 +621,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -651,8 +651,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -676,8 +676,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },
@@ -703,8 +703,8 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       if (!parseResult.ok) return;
 
       let jsxElement: NodePath | null = null;
-      traverse(parseResult.value, {
-        JSXElement(path) {
+      (traverse as any)(parseResult.value, {
+        JSXElement(path: any) {
           jsxElement = path;
           path.stop();
         },

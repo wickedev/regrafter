@@ -8,7 +8,7 @@
 
 import type * as t from '@babel/types';
 
-import { createTransformError, type TransformError } from '../errors/index.js';
+import { createTransformError, type TransformErrorType } from '../errors/index.js';
 import { ok, err, type Result } from '../result/index.js';
 import {
   createHoistOperation,
@@ -141,12 +141,13 @@ export class VariableHoister implements IVariableHoister {
   /**
    * Execute the hoisting operation
    */
-  execute(operation: HoistOperation, _context: HoistContext): Result<void, TransformError> {
+  execute(operation: HoistOperation, _context: HoistContext): Result<void, TransformErrorType> {
     // Validation
     if (!operation.dependencyId) {
       return err(createTransformError({
         code: 'T099',
         message: 'Invalid hoist operation: missing dependency ID',
+        operation: 'hoist',
         file: '',
         suggestions: [],
       }));

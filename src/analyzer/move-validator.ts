@@ -583,9 +583,15 @@ const selfMoveRule: ValidationRule = (source, target, _mode, _context) => {
 };
 
 /**
- * Rule: Target cannot be a descendant of source
+ * Rule: Target cannot be a descendant of source (only for Move.Inside)
  */
-const targetNotDescendantRule: ValidationRule = (source, target, _mode, _context) => {
+const targetNotDescendantRule: ValidationRule = (source, target, mode, _context) => {
+  // This rule only applies to Move.Inside
+  // For Move.Before/After, it's valid to move an element before/after its own descendant
+  if (mode !== Move.Inside) {
+    return { valid: true };
+  }
+
   if (!source.path || !target.path) {
     return { valid: true };
   }

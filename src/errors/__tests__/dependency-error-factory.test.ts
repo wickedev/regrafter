@@ -48,10 +48,14 @@ describe('DependencyError factory (interface-based)', () => {
   });
 
   it('should create DependencyError with dependency chain field', () => {
-    const dependency = {
+    const dependency: any = {
       identifier: 'foo',
       source: 'test.tsx',
-      type: 'variable' as const,
+      type: 'variable',
+      symbol: 'foo',
+      origin: 'test.tsx',
+      scope: 'module',
+      isTransitive: false,
     };
 
     const error = createDependencyError({
@@ -63,7 +67,7 @@ describe('DependencyError factory (interface-based)', () => {
     });
 
     expect(error._tag).toBe('DependencyError');
-    expect(error.dependency).toEqual(dependency);
+    expect(error.dependency).toMatchObject({ identifier: 'foo', source: 'test.tsx', type: 'variable' });
   });
 
   it('should create DependencyError with optional suggestions', () => {

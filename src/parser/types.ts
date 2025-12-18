@@ -5,10 +5,10 @@
  * which handles parsing source files into Babel AST format.
  */
 
-import type { File as BabelFile , SourceLocation } from '@babel/types';
+import type { File as BabelFile, SourceLocation } from "@babel/types";
 
-import type { Result } from '../result/index.js';
-import type { ParseErrorType } from '../errors/error-category.js';
+import type { ParseErrorType } from "../errors/error-category.js";
+import type { Result } from "../result/index.js";
 
 /**
  * Input file for parsing
@@ -52,7 +52,9 @@ export interface IParser {
    * @param files - Array of file inputs to parse
    * @returns Map from file path to Result
    */
-  parseFiles(files: FileInput[]): Map<string, Result<BabelFile, ParseErrorType>>;
+  parseFiles(
+    files: FileInput[]
+  ): Map<string, Result<BabelFile, ParseErrorType>>;
 
   /**
    * Invalidate cached AST for a file
@@ -69,22 +71,22 @@ export interface IParser {
 /**
  * Supported file extensions for parsing
  */
-export type SupportedExtension = '.ts' | '.tsx' | '.js' | '.jsx';
+export type SupportedExtension = ".ts" | ".tsx" | ".js" | ".jsx";
 
 /**
  * Check if a filename has a supported extension
  */
 export function isSupportedFile(filename: string): boolean {
   const ext = getExtension(filename);
-  return ext === '.ts' || ext === '.tsx' || ext === '.js' || ext === '.jsx';
+  return ext === ".ts" || ext === ".tsx" || ext === ".js" || ext === ".jsx";
 }
 
 /**
  * Get the extension from a filename
  */
 export function getExtension(filename: string): string {
-  const lastDot = filename.lastIndexOf('.');
-  if (lastDot === -1) return '';
+  const lastDot = filename.lastIndexOf(".");
+  if (lastDot === -1) return "";
   return filename.slice(lastDot).toLowerCase();
 }
 
@@ -93,7 +95,7 @@ export function getExtension(filename: string): string {
  */
 export function isTypeScriptFile(filename: string): boolean {
   const ext = getExtension(filename);
-  return ext === '.ts' || ext === '.tsx';
+  return ext === ".ts" || ext === ".tsx";
 }
 
 /**
@@ -101,5 +103,5 @@ export function isTypeScriptFile(filename: string): boolean {
  */
 export function isJSXFile(filename: string): boolean {
   const ext = getExtension(filename);
-  return ext === '.jsx' || ext === '.tsx';
+  return ext === ".jsx" || ext === ".tsx";
 }

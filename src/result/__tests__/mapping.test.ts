@@ -21,7 +21,7 @@ describe('Result mapping operations', () => {
 
     it('should pass through Err unchanged', () => {
       const result: Result<number, string> = err('error');
-      const mapped = map(result, (x) => x * 2);
+      const mapped = map(result, (x: number) => x * 2);
 
       expect(mapped.ok).toBe(false);
       if (!mapped.ok) {
@@ -54,7 +54,7 @@ describe('Result mapping operations', () => {
 
     it('should propagate Err from first argument', () => {
       const result: Result<number, string> = err('error1');
-      const chained = flatMap(result, (x) => ok(x * 2));
+      const chained = flatMap(result, (x: number) => ok(x * 2));
 
       expect(chained.ok).toBe(false);
       if (!chained.ok) {
@@ -64,7 +64,7 @@ describe('Result mapping operations', () => {
 
     it('should propagate Err from function result', () => {
       const result: Result<number, string> = ok(2);
-      const chained = flatMap(result, (x) => err('error2'));
+      const chained = flatMap(result, (_x) => err('error2'));
 
       expect(chained.ok).toBe(false);
       if (!chained.ok) {
@@ -99,7 +99,7 @@ describe('Result mapping operations', () => {
 
     it('should pass through Ok unchanged', () => {
       const result: Result<number, string> = ok(42);
-      const mapped = mapErr(result, (e) => e.toUpperCase());
+      const mapped = mapErr(result, (e: string) => e.toUpperCase());
 
       expect(mapped.ok).toBe(true);
       if (mapped.ok) {

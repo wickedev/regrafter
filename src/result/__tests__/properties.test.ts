@@ -6,7 +6,7 @@
  * mathematical laws (functor, monad laws) across many randomly generated inputs.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect } from 'vitest';
 import { fc, test } from '@fast-check/vitest';
 import { ok, err, type Result } from '../types.js';
 import { map, flatMap } from '../helpers.js';
@@ -51,7 +51,7 @@ describe('Result property-based tests - Task 18.1', () => {
       const result: Result<number, string> = err(errorMsg);
 
       // When we map over it
-      const mapped = map(result, (x) => x * 2);
+      const mapped = map(result, (x: number) => x * 2);
 
       // Then it should remain unchanged
       expect(mapped.ok).toBe(false);
@@ -160,7 +160,7 @@ describe('Result property-based tests - Task 18.1', () => {
         let functionCalled = false;
         const mapped = map(
           map(
-            map(result, (x) => {
+            map(result, (x: number) => {
               functionCalled = true;
               return x + 1;
             }),
@@ -194,7 +194,7 @@ describe('Result property-based tests - Task 18.1', () => {
         // When we chain multiple flatMap operations
         let functionCalled = false;
         const chained = flatMap(
-          flatMap(result, (x) => {
+          flatMap(result, (x: number) => {
             functionCalled = true;
             return ok(x + 1);
           }),
@@ -223,7 +223,7 @@ describe('Result property-based tests - Task 18.1', () => {
         // When we have a flatMap chain where the second operation fails
         const result = flatMap(
           flatMap(start, (x) => ok(x + 10)),
-          (x) => err(errorMsg) // This error should propagate
+          (_x) => err(errorMsg) // This error should propagate
         );
 
         // Then the error should be present
@@ -262,7 +262,7 @@ describe('Result property-based tests - Task 18.1', () => {
 
         // When we apply transformations
         const transformed = flatMap(
-          map(result, (x) => x * 2),
+          map(result, (x: number) => x * 2),
           (x) => ok(x + 1)
         );
 

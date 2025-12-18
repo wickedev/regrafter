@@ -9,11 +9,11 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
-import { createTransformError, type RegraffError } from '../errors/index.js';
+import type { RegraffError } from '../errors/index.js';
 import { CodeGenerator } from '../generator/code-generator.js';
 import type { Parser} from '../parser/index.js';
 import { createParser } from '../parser/index.js';
-import { ok, err, type Result } from '../result/index.js';
+import { ok, err, isErr, type Result } from '../result/index.js';
 import {
   createCode,
   createDependencyGraph,
@@ -105,7 +105,7 @@ export class Optimizer implements IOptimizer {
   optimize(files: FileInput[], options?: OptimizeOptions): Result<Code[], RegraffError> {
     const result = this.optimizeWithDetails(files, options);
 
-    if (!result.ok) {
+    if (isErr(result)) {
       return result;
     }
 
@@ -180,7 +180,7 @@ export class Optimizer implements IOptimizer {
     });
 
     // Handle generation errors
-    if (!generatedCodeResult.ok) {
+    if (isErr(generatedCodeResult)) {
       return err(generatedCodeResult.error);
     }
 
@@ -459,10 +459,13 @@ export class Optimizer implements IOptimizer {
 
     for (const [filePath, ast] of Array.from(result.asts)) {
       const generated = this.generator.generate(ast);
+      if (isErr(generated)) {
+        throw new Error(`Failed to generate code for ${filePath}: ${generated.error.message}`);
+      }
       codes.push(
         createCode({
           file: filePath,
-          content: generated.code,
+          content: generated.value.code,
           changed: result.hasChanges,
         })
       );
@@ -501,7 +504,11 @@ export function createOptimizer(): Optimizer {
  */
 export function optimize(files: FileInput[], options?: OptimizeOptions): Code[] {
   const optimizer = createOptimizer();
-  return optimizer.optimize(files, options);
+  const result = optimizer.optimize(files, options);
+  if (isErr(result)) {
+    throw new Error(`Optimization failed: ${result.error.message}`);
+  }
+  return result.value;
 }
 
 /**
@@ -516,5 +523,9 @@ export function optimizeWithDetails(
   options?: OptimizeOptions
 ): ExtendedOptimizeResult {
   const optimizer = createOptimizer();
-  return optimizer.optimizeWithDetails(files, options);
+  const result = optimizer.optimizeWithDetails(files, options);
+  if (isErr(result)) {
+    throw new Error(`Optimization failed: ${result.error.message}`);
+  }
+  return result.value;
 }

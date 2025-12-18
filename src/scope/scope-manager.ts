@@ -8,7 +8,7 @@ import type { NodePath, Binding } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-import { createValidationError, type ValidationError } from '../errors/index.js';
+import { createValidationError, type ValidationErrorType } from '../errors/index.js';
 import { ok, err, type Result } from '../result/index.js';
 import {
   createScopeInfo,
@@ -74,7 +74,7 @@ export class ScopeManager {
    * @param ast - The AST to analyze
    * @returns Result with the built scope tree or ValidationError
    */
-  buildScopeTree(ast: t.File): Result<ScopeTree, ValidationError> {
+  buildScopeTree(ast: t.File): Result<ScopeTree, ValidationErrorType> {
     // Initialize scope tree with module scope
     const rootPath = this.getRootPath(ast);
     if (rootPath === null) {
@@ -82,7 +82,7 @@ export class ScopeManager {
         code: 'V001',
         message: 'Failed to find root Program path in AST',
         constraint: 'program_required',
-        value: ast,
+        details: 'AST must have a root Program node',
         file: '',
       }));
     }

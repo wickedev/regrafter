@@ -7,8 +7,6 @@
  * @module api/types
  */
 
-import type { RegraffError } from '../errors/index.js';
-import type { Result } from '../result/index.js';
 import type { Code, MoveAnalysis } from '../types/index.js';
 
 /**

@@ -7,29 +7,20 @@
  * - Move.After (insertAfter sibling)
  */
 
-import type { NodePath } from '@babel/traverse';
-import * as t from '@babel/types';
+import type { NodePath } from "@babel/traverse";
+import * as t from "@babel/types";
 
 import {
   createValidationError,
   createTransformError,
   type ValidationErrorType,
   type TransformErrorType,
-} from '../errors/index.js';
-import { ok, err, type Result } from '../result/index.js';
-import { Move } from '../types/public.js';
+} from "../errors/index.js";
+import { ok, err, type Result } from "../result/index.js";
+import { Move } from "../types/public.js";
 
-import type {
-  MoveResult,
-  MoveOptions,
-  MoveContext,
-  InsertionResult,
-  InsertionPoint} from './types.js';
-import {
-  mergeMoveOptions,
-  TransformerErrorCodes,
-} from './types.js';
-
+import type { MoveOptions, MoveContext, InsertionPoint } from "./types.js";
+import { mergeMoveOptions, TransformerErrorCodes } from "./types.js";
 
 /**
  * Type alias for JSX child elements
@@ -108,10 +99,18 @@ export class JSXTransformer {
     switch (mode) {
       case Move.Before:
         // No-op if source is already immediately before target
-        return sourceIndex >= 0 && targetIndex >= 0 && sourceIndex === targetIndex - 1;
+        return (
+          sourceIndex >= 0 &&
+          targetIndex >= 0 &&
+          sourceIndex === targetIndex - 1
+        );
       case Move.After:
         // No-op if source is already immediately after target
-        return sourceIndex >= 0 && targetIndex >= 0 && sourceIndex === targetIndex + 1;
+        return (
+          sourceIndex >= 0 &&
+          targetIndex >= 0 &&
+          sourceIndex === targetIndex + 1
+        );
       case Move.Inside:
         // No-op if source is already a child of target (different check needed)
         return sourcePath.parent === targetPath.node;
@@ -136,7 +135,7 @@ export class JSXTransformer {
     targetPath: NodePath,
     mode: Move,
     options?: MoveOptions
-  ): Result<InsertionPoint, TransformError | ValidationError> {
+  ): Result<InsertionPoint, TransformErrorType | ValidationErrorType> {
     const mergedOptions = mergeMoveOptions(options);
 
     // Check for source-target identity (no-op case)
@@ -162,12 +161,15 @@ export class JSXTransformer {
       case Move.After:
         return this.moveAfter(context);
       default:
-        return err(createTransformError({
-          code: TransformerErrorCodes.INTERNAL_ERROR,
-          message: `Unknown move mode: ${String(mode)}`,
-          file: '',
-          suggestions: [],
-        }));
+        return err(
+          createTransformError({
+            code: TransformerErrorCodes.INTERNAL_ERROR,
+            message: `Unknown move mode: ${String(mode)}`,
+            operation: "transform",
+            file: "",
+            suggestions: [],
+          })
+        );
     }
   }
 
@@ -180,37 +182,50 @@ export class JSXTransformer {
    * @param context - Move context with source, target, and options
    * @returns InsertionResult with transformed AST or error
    */
-  moveInside(context: MoveContext): Result<InsertionPoint, TransformError | ValidationError> {
+  moveInside(
+    context: MoveContext
+  ): Result<InsertionPoint, TransformErrorType | ValidationErrorType> {
     const { ast, sourcePath, targetPath, options } = context;
 
     // Validate source is a JSX element
     if (!this.isValidJSXSource(sourcePath)) {
-      return err(createTransformError({
-        code: TransformerErrorCodes.INVALID_SOURCE,
-        message: 'Source must be a JSX element, expression container, or fragment',
-        file: '',
-        suggestions: [],
-      }));
+      return err(
+        createValidationError({
+          code: "V007",
+          message:
+            "Source must be a JSX element, expression container, or fragment",
+          constraint: "jsx_element_required",
+          details: "Source node must be a JSX element",
+          file: "",
+        })
+      );
     }
 
     // Validate target can have children
     if (!this.isValidJSXTarget(targetPath)) {
-      return err(createTransformError({
-        code: TransformerErrorCodes.INVALID_TARGET,
-        message: 'Target must be a JSX element or fragment that can contain children',
-        file: '',
-        suggestions: [],
-      }));
+      return err(
+        createTransformError({
+          code: TransformerErrorCodes.INVALID_TARGET,
+          message:
+            "Target must be a JSX element or fragment that can contain children",
+          operation: "transform",
+          file: "",
+          suggestions: [],
+        })
+      );
     }
 
     // Check for circular moves before proceeding
     if (this.isCircularMove(sourcePath, targetPath)) {
-      return err(createTransformError({
-        code: TransformerErrorCodes.CIRCULAR_MOVE,
-        message: 'Cannot move an element into itself or its descendants',
-        file: '',
-        suggestions: [],
-      }));
+      return err(
+        createTransformError({
+          code: TransformerErrorCodes.CIRCULAR_MOVE,
+          message: "Cannot move an element into itself or its descendants",
+          operation: "transform",
+          file: "",
+          suggestions: [],
+        })
+      );
     }
 
     // Clone the source node to avoid mutation issues
@@ -228,18 +243,22 @@ export class JSXTransformer {
     const childrenResult = this.getChildren(targetPath);
 
     if (!childrenResult.ok) {
-      return childrenResult as InsertionResult;
+      return childrenResult;
     }
 
     const children = childrenResult.value;
 
     // Wrap source in expression container if necessary
-    const wrappedSource = this.wrapInExpressionContainer(sourceNode, targetPath);
+    const wrappedSource = this.wrapInExpressionContainer(
+      sourceNode,
+      targetPath
+    );
 
     // Determine insertion index
-    const insertIndex = options.insertIndex >= 0
-      ? Math.min(options.insertIndex, children.length)
-      : children.length;
+    const insertIndex =
+      options.insertIndex >= 0
+        ? Math.min(options.insertIndex, children.length)
+        : children.length;
 
     // Insert the source node at the appropriate position
     children.splice(insertIndex, 0, wrappedSource);
@@ -264,7 +283,9 @@ export class JSXTransformer {
    * @param context - Move context with source, target, and options
    * @returns InsertionResult with transformed AST or error
    */
-  moveBefore(context: MoveContext): Result<InsertionPoint, TransformError | ValidationError> {
+  moveBefore(
+    context: MoveContext
+  ): Result<InsertionPoint, TransformErrorType | ValidationErrorType> {
     const { ast, options } = context;
 
     // Normalize paths to handle JSXExpressionContainer
@@ -273,13 +294,16 @@ export class JSXTransformer {
 
     // Validate source is a JSX element
     if (!this.isValidJSXSource(sourcePath)) {
-      return err(createTransformError({
-        code: TransformerErrorCodes.INVALID_SOURCE,
-        message: 'Source must be a JSX element, expression container, or fragment',
-        operation: 'moveBefore',
-        file: '',
-        suggestions: [],
-      }));
+      return err(
+        createValidationError({
+          code: "V007",
+          message:
+            "Source must be a JSX element, expression container, or fragment",
+          constraint: "jsx_element_required",
+          details: "Source node must be a JSX element",
+          file: "",
+        })
+      );
     }
 
     // Clone the source node
@@ -293,40 +317,48 @@ export class JSXTransformer {
     // Get target's parent and find target index in siblings
     const parentPath = targetPath.parentPath;
     if (!parentPath) {
-      return err(createTransformError({
-        code: TransformerErrorCodes.NO_PARENT,
-        message: 'Target has no parent',
-        operation: 'moveBefore',
-        file: '',
-        suggestions: [],
-      }));
+      return err(
+        createTransformError({
+          code: TransformerErrorCodes.NO_PARENT,
+          message: "Target has no parent",
+          operation: "moveBefore",
+          file: "",
+          suggestions: [],
+        })
+      );
     }
 
     const siblingsResult = this.getSiblings(targetPath);
     if (!siblingsResult.ok) {
-      return siblingsResult as InsertionResult;
+      return siblingsResult;
     }
 
     const siblings = siblingsResult.value;
 
     const targetIndexResult = this.getIndexInParent(targetPath);
     if (!targetIndexResult.ok) {
-      return err(createTransformError({
-        code: TransformerErrorCodes.INTERNAL_ERROR,
-        message: 'Could not find target in parent',
-        operation: 'moveBefore',
-        file: '',
-        suggestions: [],
-      }));
+      return err(
+        createTransformError({
+          code: TransformerErrorCodes.INTERNAL_ERROR,
+          message: "Could not find target in parent",
+          operation: "moveBefore",
+          file: "",
+          suggestions: [],
+        })
+      );
     }
     const targetIndex = targetIndexResult.value;
 
     // Check if source and target are in the same parent
     const sourceParentPath = sourcePath.parentPath;
-    const sameParent = sourceParentPath && sourceParentPath.node === parentPath.node;
+    const sameParent =
+      sourceParentPath && sourceParentPath.node === parentPath.node;
 
     // Wrap source in expression container if necessary
-    const wrappedSource = this.wrapInExpressionContainer(sourceNode, parentPath);
+    const wrappedSource = this.wrapInExpressionContainer(
+      sourceNode,
+      parentPath
+    );
 
     if (sameParent === true) {
       // Same parent: remove source first, then insert at adjusted index
@@ -339,7 +371,8 @@ export class JSXTransformer {
       }
 
       // Adjust target index if source was before target
-      const adjustedTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
+      const adjustedTargetIndex =
+        sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
 
       // Insert before adjusted target
       siblings.splice(adjustedTargetIndex, 0, wrappedSource);
@@ -370,7 +403,9 @@ export class JSXTransformer {
    * @param context - Move context with source, target, and options
    * @returns InsertionResult with transformed AST or error
    */
-  moveAfter(context: MoveContext): Result<InsertionPoint, TransformError | ValidationError> {
+  moveAfter(
+    context: MoveContext
+  ): Result<InsertionPoint, TransformErrorType | ValidationErrorType> {
     const { ast, options } = context;
 
     // Normalize paths to handle JSXExpressionContainer
@@ -379,13 +414,16 @@ export class JSXTransformer {
 
     // Validate source is a JSX element
     if (!this.isValidJSXSource(sourcePath)) {
-      return err(createTransformError({
-        code: TransformerErrorCodes.INVALID_SOURCE,
-        message: 'Source must be a JSX element, expression container, or fragment',
-        operation: 'moveAfter',
-        file: '',
-        suggestions: [],
-      }));
+      return err(
+        createValidationError({
+          code: "V007",
+          message:
+            "Source must be a JSX element, expression container, or fragment",
+          constraint: "jsx_element_required",
+          details: "Source node must be a JSX element",
+          file: "",
+        })
+      );
     }
 
     // Clone the source node
@@ -399,40 +437,48 @@ export class JSXTransformer {
     // Get target's parent and find target index in siblings
     const parentPath = targetPath.parentPath;
     if (!parentPath) {
-      return err(createTransformError({
-        code: TransformerErrorCodes.NO_PARENT,
-        message: 'Target has no parent',
-        operation: 'moveAfter',
-        file: '',
-        suggestions: [],
-      }));
+      return err(
+        createTransformError({
+          code: TransformerErrorCodes.NO_PARENT,
+          message: "Target has no parent",
+          operation: "moveAfter",
+          file: "",
+          suggestions: [],
+        })
+      );
     }
 
     const siblingsResult = this.getSiblings(targetPath);
     if (!siblingsResult.ok) {
-      return siblingsResult as InsertionResult;
+      return siblingsResult;
     }
 
     const siblings = siblingsResult.value;
 
     const targetIndexResult = this.getIndexInParent(targetPath);
     if (!targetIndexResult.ok) {
-      return err(createTransformError({
-        code: TransformerErrorCodes.INTERNAL_ERROR,
-        message: 'Could not find target in parent',
-        operation: 'moveAfter',
-        file: '',
-        suggestions: [],
-      }));
+      return err(
+        createTransformError({
+          code: TransformerErrorCodes.INTERNAL_ERROR,
+          message: "Could not find target in parent",
+          operation: "moveAfter",
+          file: "",
+          suggestions: [],
+        })
+      );
     }
     const targetIndex = targetIndexResult.value;
 
     // Check if source and target are in the same parent
     const sourceParentPath = sourcePath.parentPath;
-    const sameParent = sourceParentPath && sourceParentPath.node === parentPath.node;
+    const sameParent =
+      sourceParentPath && sourceParentPath.node === parentPath.node;
 
     // Wrap source in expression container if necessary
-    const wrappedSource = this.wrapInExpressionContainer(sourceNode, parentPath);
+    const wrappedSource = this.wrapInExpressionContainer(
+      sourceNode,
+      parentPath
+    );
 
     if (sameParent === true) {
       // Same parent: remove source first, then insert at adjusted index
@@ -445,7 +491,8 @@ export class JSXTransformer {
       }
 
       // Adjust target index if source was before target
-      const adjustedTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
+      const adjustedTargetIndex =
+        sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
 
       // Insert after adjusted target
       siblings.splice(adjustedTargetIndex + 1, 0, wrappedSource);
@@ -494,19 +541,22 @@ export class JSXTransformer {
 
     // Check for conditional expressions with JSX
     if (t.isConditionalExpression(node)) {
-      return this.isJSXExpression(node.consequent) ||
-             this.isJSXExpression(node.alternate);
+      return (
+        this.isJSXExpression(node.consequent) ||
+        this.isJSXExpression(node.alternate)
+      );
     }
 
     // Check for logical expressions with JSX
     if (t.isLogicalExpression(node)) {
-      return this.isJSXExpression(node.left) ||
-             this.isJSXExpression(node.right);
+      return (
+        this.isJSXExpression(node.left) || this.isJSXExpression(node.right)
+      );
     }
 
     // Check for array expressions (map results)
     if (t.isArrayExpression(node)) {
-      return node.elements.some(el => el && this.isJSXExpression(el));
+      return node.elements.some((el) => el && this.isJSXExpression(el));
     }
 
     return false;
@@ -533,13 +583,13 @@ export class JSXTransformer {
    */
   private preserveComments(source: t.Node, target: t.Node): void {
     if (source.leadingComments) {
-      target.leadingComments = source.leadingComments.map(c => ({ ...c }));
+      target.leadingComments = source.leadingComments.map((c) => ({ ...c }));
     }
     if (source.trailingComments) {
-      target.trailingComments = source.trailingComments.map(c => ({ ...c }));
+      target.trailingComments = source.trailingComments.map((c) => ({ ...c }));
     }
     if (source.innerComments) {
-      target.innerComments = source.innerComments.map(c => ({ ...c }));
+      target.innerComments = source.innerComments.map((c) => ({ ...c }));
     }
   }
 
@@ -558,11 +608,11 @@ export class JSXTransformer {
     }
     return err(
       createValidationError({
-        code: 'V006',
-        message: 'Node does not support children',
-        constraint: 'no_children_support',
-        value: node,
-        file: '',
+        code: "V006",
+        message: "Node does not support children",
+        constraint: "no_children_support",
+        details: "Node does not support children",
+        file: "",
       })
     );
   }
@@ -651,7 +701,9 @@ export class JSXTransformer {
       if (t.isJSXExpressionContainer(parent)) {
         const parentPath = currentPath.parentPath;
         if (parentPath === null) {
-          throw new Error('Unexpected null parent path for JSXExpressionContainer');
+          throw new Error(
+            "Unexpected null parent path for JSXExpressionContainer"
+          );
         }
         currentPath = parentPath;
         // Continue to the sibling-getting logic below
@@ -710,10 +762,10 @@ export class JSXTransformer {
 
     return err(
       createTransformError({
-        code: 'T010',
-        message: 'Cannot access siblings for this node type',
-        element: currentPath.node,
-        file: '',
+        code: "T010",
+        message: "Cannot access siblings for this node type",
+        operation: "transform",
+        file: "",
       })
     );
   }
@@ -725,39 +777,43 @@ export class JSXTransformer {
     const parent = path.parent;
 
     if (t.isJSXElement(parent)) {
-      const jsxChildren: JSXChild[] = siblings.filter((s): s is JSXChild =>
-        t.isJSXElement(s) ||
-        t.isJSXFragment(s) ||
-        t.isJSXText(s) ||
-        t.isJSXExpressionContainer(s) ||
-        t.isJSXSpreadChild(s)
+      const jsxChildren: JSXChild[] = siblings.filter(
+        (s): s is JSXChild =>
+          t.isJSXElement(s) ||
+          t.isJSXFragment(s) ||
+          t.isJSXText(s) ||
+          t.isJSXExpressionContainer(s) ||
+          t.isJSXSpreadChild(s)
       );
       parent.children = jsxChildren;
     } else if (t.isJSXFragment(parent)) {
-      const jsxChildren: JSXChild[] = siblings.filter((s): s is JSXChild =>
-        t.isJSXElement(s) ||
-        t.isJSXFragment(s) ||
-        t.isJSXText(s) ||
-        t.isJSXExpressionContainer(s) ||
-        t.isJSXSpreadChild(s)
+      const jsxChildren: JSXChild[] = siblings.filter(
+        (s): s is JSXChild =>
+          t.isJSXElement(s) ||
+          t.isJSXFragment(s) ||
+          t.isJSXText(s) ||
+          t.isJSXExpressionContainer(s) ||
+          t.isJSXSpreadChild(s)
       );
       parent.children = jsxChildren;
     } else if (t.isArrayExpression(parent)) {
-      const elements: Array<t.Expression | t.SpreadElement | null> = siblings.filter(
-        (s): s is t.Expression | t.SpreadElement =>
-          t.isExpression(s) || t.isSpreadElement(s)
-      );
+      const elements: Array<t.Expression | t.SpreadElement | null> =
+        siblings.filter(
+          (s): s is t.Expression | t.SpreadElement =>
+            t.isExpression(s) || t.isSpreadElement(s)
+        );
       parent.elements = elements;
     } else if (t.isBlockStatement(parent)) {
-      const statements: t.Statement[] = siblings.filter(
-        (s): s is t.Statement => t.isStatement(s)
+      const statements: t.Statement[] = siblings.filter((s): s is t.Statement =>
+        t.isStatement(s)
       );
       parent.body = statements;
     } else if (t.isProgram(parent)) {
-      const bodyNodes: Array<t.Statement | t.ModuleDeclaration> = siblings.filter(
-        (s): s is t.Statement | t.ModuleDeclaration =>
-          t.isStatement(s) || t.isModuleDeclaration(s)
-      );
+      const bodyNodes: Array<t.Statement | t.ModuleDeclaration> =
+        siblings.filter(
+          (s): s is t.Statement | t.ModuleDeclaration =>
+            t.isStatement(s) || t.isModuleDeclaration(s)
+        );
       parent.body = bodyNodes;
     }
   }
@@ -781,7 +837,9 @@ export class JSXTransformer {
         nodeToFind = parent;
         const parentPath = currentPath.parentPath;
         if (parentPath === null) {
-          throw new Error('Unexpected null parent path for JSXExpressionContainer');
+          throw new Error(
+            "Unexpected null parent path for JSXExpressionContainer"
+          );
         }
         currentPath = parentPath;
         shouldContinue = false;
@@ -829,7 +887,7 @@ export class JSXTransformer {
     }
 
     if (children) {
-      const index = children.findIndex(child => child === nodeToFind);
+      const index = children.findIndex((child) => child === nodeToFind);
       if (index >= 0) {
         return ok(index);
       }
@@ -837,11 +895,11 @@ export class JSXTransformer {
 
     return err(
       createValidationError({
-        code: 'V005',
-        message: 'Node not found in parent',
-        constraint: 'node_not_found',
-        value: nodeToFind,
-        file: '',
+        code: "V005",
+        message: "Node not found in parent",
+        constraint: "node_not_found",
+        details: "Node not found in parent",
+        file: "",
       })
     );
   }
@@ -892,9 +950,12 @@ export class JSXTransformer {
     path.remove();
 
     // Clean up whitespace-only JSXText nodes in JSX parent
-    if (parent && (t.isJSXElement(parent.node) || t.isJSXFragment(parent.node))) {
+    if (
+      parent &&
+      (t.isJSXElement(parent.node) || t.isJSXFragment(parent.node))
+    ) {
       const parentNode = parent.node;
-      if ('children' in parentNode && Array.isArray(parentNode.children)) {
+      if ("children" in parentNode && Array.isArray(parentNode.children)) {
         parentNode.children = parentNode.children.filter((child) => {
           // Keep non-JSXText nodes
           if (!t.isJSXText(child)) {
@@ -912,19 +973,12 @@ export class JSXTransformer {
    * (source is ancestor of target or target is ancestor of source)
    */
   isCircularMove(sourcePath: NodePath, targetPath: NodePath): boolean {
-    // Check if source is an ancestor of target
+    // Only check if target is a descendant of source
+    // (trying to move an element into its own child)
+    // Moving a descendant into an ancestor is valid
     let current: NodePath | null = targetPath;
     while (current) {
       if (current.node === sourcePath.node) {
-        return true;
-      }
-      current = current.parentPath;
-    }
-
-    // Check if target is an ancestor of source
-    current = sourcePath;
-    while (current) {
-      if (current.node === targetPath.node) {
         return true;
       }
       current = current.parentPath;
@@ -947,11 +1001,12 @@ export class JSXTransformer {
     if (this.isCircularMove(sourcePath, targetPath)) {
       return err(
         createValidationError({
-          code: 'V001',
-          message: 'Cannot move an element into itself or its descendants',
-          constraint: 'circular_reference',
-        details: 'Moving an element into itself or its descendants would create a circular reference',
-          file: '',
+          code: "V001",
+          message: "Cannot move an element into itself or its descendants",
+          constraint: "circular_reference",
+          details:
+            "Moving an element into itself or its descendants would create a circular reference",
+          file: "",
         })
       );
     }
@@ -960,11 +1015,11 @@ export class JSXTransformer {
     if (!this.isValidJSXSource(sourcePath)) {
       return err(
         createValidationError({
-          code: 'V002',
-          message: 'Source must be a valid JSX element or expression',
-          constraint: 'invalid_source',
-          value: sourcePath.node,
-          file: '',
+          code: "V002",
+          message: "Source must be a valid JSX element or expression",
+          constraint: "invalid_source",
+          details: "Source must be a valid JSX element or expression",
+          file: "",
         })
       );
     }
@@ -973,24 +1028,27 @@ export class JSXTransformer {
     if (mode === Move.Inside && !this.isValidJSXTarget(targetPath)) {
       return err(
         createValidationError({
-          code: 'V003',
-          message: 'Target must be a JSX element or fragment for Move.Inside',
-          constraint: 'invalid_target',
-          value: targetPath.node,
-          file: '',
+          code: "V003",
+          message: "Target must be a JSX element or fragment for Move.Inside",
+          constraint: "invalid_target",
+          details: "Target must be a JSX element or fragment",
+          file: "",
         })
       );
     }
 
     // For Move.Before/After, target must have a parent
-    if ((mode === Move.Before || mode === Move.After) && !targetPath.parentPath) {
+    if (
+      (mode === Move.Before || mode === Move.After) &&
+      !targetPath.parentPath
+    ) {
       return err(
         createValidationError({
-          code: 'V004',
-          message: 'Target must have a parent for Move.Before/After',
-          constraint: 'no_parent',
-          value: targetPath.node,
-          file: '',
+          code: "V004",
+          message: "Target must have a parent for Move.Before/After",
+          constraint: "no_parent",
+          details: "Target must have a parent",
+          file: "",
         })
       );
     }
@@ -1009,7 +1067,7 @@ export class JSXTransformer {
    * @param targetPath - Path to the target element
    * @param mode - Move mode (Inside, Before, After)
    * @param options - Move options
-   * @returns Result containing TransformedCode or an error
+   * @returns Result containing InsertionPoint or an error
    */
   transformElement(
     ast: t.File,
@@ -1017,23 +1075,9 @@ export class JSXTransformer {
     targetPath: NodePath,
     mode: Move,
     options?: MoveOptions
-  ): Result<TransformedCode, TransformErrorType | ValidationErrorType> {
-    // Call the existing move method
-    const moveResult = this.move(ast, sourcePath, targetPath, mode, options);
-
-    // Convert InsertionPoint to TransformedCode
-    if (!moveResult.ok) {
-      return moveResult as Result<TransformedCode, TransformErrorType | ValidationErrorType>;
-    }
-
-    const insertionPoint = moveResult.value;
-    const transformed: TransformedCode = {
-      ast,
-      movedNode: insertionPoint.movedNode,
-      newPath: insertionPoint.newPath,
-      wasNoOp: insertionPoint.wasNoOp,
-    };
-    return ok(transformed);
+  ): Result<InsertionPoint, TransformErrorType | ValidationErrorType> {
+    // Call the existing move method which already returns Result<InsertionPoint, ...>
+    return this.move(ast, sourcePath, targetPath, mode, options);
   }
 }
 

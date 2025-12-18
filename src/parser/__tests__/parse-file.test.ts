@@ -68,7 +68,7 @@ describe('parseFile with Result return type', () => {
       const result = parseFile('test.js', source);
 
       expect(isErr(result)).toBe(true);
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error._tag).toBe('ParseError');
         expect(result.error.code).toBeDefined();
         expect(result.error.message).toBeDefined();
@@ -81,7 +81,7 @@ describe('parseFile with Result return type', () => {
       const result = parseFile('test.js', source);
 
       expect(isErr(result)).toBe(true);
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error._tag).toBe('ParseError');
         expect(result.error.syntaxError).toContain('Unexpected');
       }
@@ -92,7 +92,7 @@ describe('parseFile with Result return type', () => {
       const result = parseFile('test.js', source);
 
       expect(isErr(result)).toBe(true);
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error._tag).toBe('ParseError');
       }
     });
@@ -104,7 +104,7 @@ describe('parseFile with Result return type', () => {
       const result = parseFile('test.js', source);
 
       expect(isErr(result)).toBe(true);
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error._tag).toBe('ParseError');
         expect(result.error.code).toBe('E004');
         expect(result.error.message).toContain('Empty source');
@@ -116,7 +116,7 @@ describe('parseFile with Result return type', () => {
       const result = parseFile('test.js', source);
 
       expect(isErr(result)).toBe(true);
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error._tag).toBe('ParseError');
         expect(result.error.code).toBe('E004');
       }
@@ -130,7 +130,7 @@ describe('parseFile with Result return type', () => {
       const result = parseFile(filename, source);
 
       expect(isErr(result)).toBe(true);
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error.file).toBe(filename);
         expect(result.error.message).toContain(filename);
       }
@@ -142,7 +142,7 @@ describe('parseFile with Result return type', () => {
       const result = parseFile(filename, source);
 
       expect(isErr(result)).toBe(true);
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error.file).toBe(filename);
         expect(result.error.message).toContain(filename);
       }
@@ -155,7 +155,7 @@ describe('parseFile with Result return type', () => {
       const result = parseFile('test.js', source);
 
       expect(isErr(result)).toBe(true);
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error.syntaxError).toBeDefined();
         expect(result.error.syntaxError.length).toBeGreaterThan(0);
         // Babel should report something about unexpected token
@@ -170,7 +170,7 @@ describe('parseFile with Result return type', () => {
       const result = parseFile('test.js', source);
 
       expect(isErr(result)).toBe(true);
-      if (!result.ok) {
+      if (isErr(result)) {
         // Babel provides location info for parse errors
         if (result.error.location) {
           expect(result.error.location.start).toBeDefined();
@@ -185,7 +185,7 @@ describe('parseFile with Result return type', () => {
       const result = parseFile('test.js', source);
 
       expect(isErr(result)).toBe(true);
-      if (!result.ok) {
+      if (isErr(result)) {
         // Empty source errors may not have location info
         // Just verify the error structure is valid even without location
         expect(result.error._tag).toBe('ParseError');

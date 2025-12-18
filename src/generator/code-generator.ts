@@ -39,7 +39,7 @@ function getGenerateFunction(): GenerateFunction {
 const generateCode = getGenerateFunction();
 
 import { createTransformError, type TransformErrorType } from '../errors/index.js';
-import { ok, err, type Result } from '../result/index.js';
+import { ok, err, isErr, type Result } from '../result/index.js';
 
 import type {
   GeneratorOptions,
@@ -121,7 +121,7 @@ export class CodeGenerator {
     for (const [filename, ast] of Array.from(asts)) {
       const result = this.generate(ast, options);
 
-      if (!result.ok) {
+      if (isErr(result)) {
         // If any generation fails, return the error with the filename
         return err(createTransformError({
           code: result.error.code,

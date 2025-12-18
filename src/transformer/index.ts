@@ -8,7 +8,6 @@ export { JSXTransformer, createJSXTransformer } from './jsx-transformer.js';
 export {
   TransformerErrorCodes,
   type TransformerErrorCode,
-  type MoveResult,
   type MoveOptions,
   type MoveContext,
   DEFAULT_MOVE_OPTIONS,

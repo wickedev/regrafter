@@ -5,18 +5,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { parse } from '@babel/parser';
-import type * as t from '@babel/types';
 import { Optimizer } from '../optimizer.js';
-import { isOk, isErr } from '../../result/index.js';
+import { isOk } from '../../result/index.js';
 
 describe('Optimizer - Result-based Error Handling', () => {
-  const parseCode = (code: string): t.File => {
-    return parse(code, {
-      sourceType: 'module',
-      plugins: ['jsx', 'typescript'],
-    });
-  };
 
   describe('optimize() with Result return type', () => {
     it('should return Ok with optimized code for valid file', () => {

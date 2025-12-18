@@ -655,7 +655,7 @@ export class DependencyAnalyzer {
     const allDepsResult = tryCatch(() =>
       this.convertToInternalDeps(allSpecificDeps, elementScope)
     );
-    if (!allDepsResult.ok) {
+    if (isErr(allDepsResult)) {
       const errorMsg = allDepsResult.error instanceof Error ? allDepsResult.error.message : String(allDepsResult.error);
       return err(
         createDependencyError({

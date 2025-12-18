@@ -7,9 +7,6 @@
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
 
-import type { TransformError, ValidationError } from '../errors/error-category.js';
-import type { Result } from '../result/index.js';
-
 /**
  * Error codes for transformer errors
  */

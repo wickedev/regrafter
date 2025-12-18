@@ -225,7 +225,9 @@ describe('JSXTransformer', () => {
       const result = transformer.move(ast, header!, footer!, Move.After);
 
       expect(isOk(result)).toBe(true);
-      expect(result.error).toBeUndefined();
+      if (!result.ok) {
+        expect(result.error).toBeUndefined();
+      }
 
       // Verify the order in output code
       const code = generateCode(result.ok ? result.value.ast : ast);
@@ -511,7 +513,9 @@ describe('JSXTransformer', () => {
 
       const result = transformer.move(ast, invalidPath!, header!, Move.Before);
       expect(isErr(result)).toBe(true);
-      expect(result.error).toBeDefined();
+      if (!result.ok) {
+        expect(result.error).toBeDefined();
+      }
     });
   });
 });

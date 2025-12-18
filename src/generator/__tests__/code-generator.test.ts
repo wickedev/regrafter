@@ -3,7 +3,7 @@ import { parse } from '@babel/parser';
 import type * as t from '@babel/types';
 import { CodeGenerator } from '../code-generator.js';
 import type { IndentationInfo, GeneratedCode } from '../types.js';
-import { unwrap } from '../../result/index.js';
+import { unwrap, isErr } from '../../result/index.js';
 
 /**
  * Unit tests for CodeGenerator
@@ -563,7 +563,7 @@ const x = 1;`);
       const result = generator.generate(invalidAst);
 
       expect(result.ok).toBe(false);
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error._tag).toBe('TransformError');
         expect(result.error.code).toBe('E060');
       }
@@ -573,7 +573,7 @@ const x = 1;`);
       const invalidAst: t.File = { type: 'Invalid' } as unknown as t.File;
       const result = generator.generate(invalidAst);
 
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error.code).toBeDefined();
         expect(result.error.message).toContain('Code generation failed');
       }
@@ -692,7 +692,7 @@ const x = 1;`);
       const result = generateCode(ast);
 
       // Debug: log the result
-      if (!result.ok) {
+      if (isErr(result)) {
         console.log('Error:', result.error);
       }
 
@@ -724,7 +724,7 @@ const x = 1;`);
       const result = generateCode(invalidAst);
 
       expect(result.ok).toBe(false);
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error._tag).toBe('TransformError');
         expect(result.error.code).toBeDefined();
         expect(result.error.message).toContain('Code generation failed');
@@ -740,7 +740,7 @@ const x = 1;`);
       const result = generateCode(invalidAst);
 
       expect(result.ok).toBe(false);
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error._tag).toBe('TransformError');
         expect(result.error.message).toBeDefined();
         expect(result.error.code).toBe('E060');

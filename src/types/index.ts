@@ -116,9 +116,6 @@ export {
   createAnalysisStats,
   createMoveAnalysis,
   createCode,
-  createResult,
-  createSuccessResult,
-  createFailureResult,
 
   // Internal type factories
   createScopeInfo,

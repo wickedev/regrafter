@@ -19,13 +19,7 @@ import {
   DependencyType,
   type PositionSelector,
   type PathSelector,
-  type Result,
   type Code,
-  createDependency,
-  createMoveAnalysis,
-  createSuccessResult,
-  createFailureResult,
-  createCode,
 } from '../../types/index.js';
 
 // =============================================================================
@@ -63,29 +57,41 @@ async function regraft(
   from: PositionSelector | PathSelector,
   to: PositionSelector | PathSelector,
   _mode: Move
-): Promise<Result> {
+): Promise<{ ok: boolean; value: any; error: any }> {
   const sourceFilePath = from.file;
   const targetFilePath = to.file;
 
-  const sourceFile = files.find(f => f.path === sourceFilePath);
-  const targetFile = files.find(f => f.path === targetFilePath);
+  const sourceFile = files.find((f) => f.path === sourceFilePath);
+  const targetFile = files.find((f) => f.path === targetFilePath);
 
   if (!sourceFile) {
-    return createFailureResult(
-      createMoveAnalysis({
-        canMove: false,
-        reason: `Source file not found: ${sourceFilePath}`,
-      })
-    );
+    return {
+      ok: false,
+      value: {
+        codes: [],
+        analysis: {
+          canMove: false,
+          reason: `Source file not found: ${sourceFilePath}`,
+          dependencies: [],
+        },
+      },
+      error: { message: `Source file not found: ${sourceFilePath}` },
+    };
   }
 
   if (!targetFile) {
-    return createFailureResult(
-      createMoveAnalysis({
-        canMove: false,
-        reason: `Target file not found: ${targetFilePath}`,
-      })
-    );
+    return {
+      ok: false,
+      value: {
+        codes: [],
+        analysis: {
+          canMove: false,
+          reason: `Target file not found: ${targetFilePath}`,
+          dependencies: [],
+        },
+      },
+      error: { message: `Target file not found: ${targetFilePath}` },
+    };
   }
 
   // Detect cross-file operation
@@ -94,7 +100,7 @@ async function regraft(
   // Simulate adding imports to target
   const importsNeeded = detectNeededImports(sourceFile.content);
 
-  const resultCodes: Code[] = files.map(f => {
+  const resultCodes: Code[] = files.map((f) => {
     let newContent = f.content;
 
     if (isCrossFile && f.path === targetFilePath) {
@@ -102,27 +108,29 @@ async function regraft(
       newContent = addImportsToFile(newContent, importsNeeded);
     }
 
-    return createCode({
+    return {
       file: f.path,
       content: newContent,
       changed: true,
-    });
+    };
   });
 
-  return createSuccessResult(
-    resultCodes,
-    createMoveAnalysis({
-      canMove: true,
-      dependencies: importsNeeded.map(imp =>
-        createDependency({
+  return {
+    ok: true,
+    value: {
+      codes: resultCodes,
+      analysis: {
+        canMove: true,
+        dependencies: importsNeeded.map((imp) => ({
           symbol: imp,
           type: DependencyType.Import,
           origin: sourceFilePath,
           scope: 'module',
-        })
-      ),
-    })
-  );
+        })),
+      },
+    },
+    error: null,
+  };
 }
 
 /**
@@ -153,7 +161,7 @@ function addImportsToFile(content: string, imports: string[]): string {
   const existingImports = content.match(/import .+ from ['"].+['"]/g) || [];
 
   const newImports = imports.filter(
-    imp => !existingImports.some(existing => existing.includes(imp))
+    (imp) => !existingImports.some((existing) => existing.includes(imp))
   );
 
   if (newImports.length === 0) {
@@ -263,7 +271,9 @@ describe('Cross-File - Basic Operations', () => {
     const result = await regraft(files, from, to, Move.After);
 
     expect(result.ok).toBe(true);
-    expect(result.value.codes.length).toBe(2);
+    if (result.ok) {
+      expect(result.value.codes.length).toBe(2);
+    }
   });
 
   /**
@@ -303,8 +313,10 @@ describe('Cross-File - Basic Operations', () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.ok).toBe(true);
-    // Imports should be tracked
-    expect(result.value.analysis.dependencies?.length).toBeGreaterThanOrEqual(0);
+    if (result.ok) {
+      // Imports should be tracked
+      expect(result.value.analysis.dependencies?.length).toBeGreaterThanOrEqual(0);
+    }
   });
 
   /**
@@ -327,8 +339,10 @@ describe('Cross-File - Basic Operations', () => {
     const result = await regraft(files, from, to, Move.After);
 
     expect(result.ok).toBe(true);
-    // Both files should be marked as changed
-    expect(result.value.codes.every(c => c.changed)).toBe(true);
+    if (result.ok) {
+      // Both files should be marked as changed
+      expect(result.value.codes.every((c: any) => c.changed)).toBe(true);
+    }
   });
 });
 
@@ -666,7 +680,9 @@ describe('Cross-File - Error Cases', () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.ok).toBe(false);
-    expect(result.value.analysis.reason).toContain('not found');
+    if (!result.ok) {
+      expect(result.error.message).toContain('not found');
+    }
   });
 
   it('should fail when source file does not exist', async () => {
@@ -678,7 +694,9 @@ describe('Cross-File - Error Cases', () => {
     const result = await regraft(files, from, to, Move.Inside);
 
     expect(result.ok).toBe(false);
-    expect(result.value.analysis.reason).toContain('not found');
+    if (!result.ok) {
+      expect(result.error.message).toContain('not found');
+    }
   });
 });
 

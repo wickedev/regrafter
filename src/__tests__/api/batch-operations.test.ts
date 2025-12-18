@@ -99,12 +99,12 @@ describe('Task 17.3: Batch API operations', () => {
       const result: BatchResult<User, ValidationError> = processBatch(users, processor);
 
       expect(result.successes).toHaveLength(2);
-      expect(result.successes[0].name).toBe('Alice');
-      expect(result.successes[1].name).toBe('Bob');
+      expect(result.successes[0]?.name).toBe('Alice');
+      expect(result.successes[1]?.name).toBe('Bob');
 
       expect(result.failures).toHaveLength(2);
-      expect(result.failures[0].field).toBe('name');
-      expect(result.failures[0].message).toBe('Name cannot be empty');
+      expect(result.failures[0]?.field).toBe('name');
+      expect(result.failures[0]?.message).toBe('Name cannot be empty');
     });
   });
 
@@ -187,9 +187,9 @@ describe('Task 17.3: Batch API operations', () => {
       const result = processBatch(items, processor);
 
       expect(result.failures).toHaveLength(3);
-      expect(result.failures[0].context.file).toBe('a.txt');
-      expect(result.failures[1].context.file).toBe('b.txt');
-      expect(result.failures[2].context.file).toBe('c.txt');
+      expect(result.failures[0]?.context.file).toBe('a.txt');
+      expect(result.failures[1]?.context.file).toBe('b.txt');
+      expect(result.failures[2]?.context.file).toBe('c.txt');
     });
   });
 

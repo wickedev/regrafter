@@ -22,6 +22,11 @@ __pycache__/
 *.pyc
 *.pyo
 
+# TypeScript compiled output in source (should only be in dist/)
+src/**/*.js
+src/**/*.d.ts
+src/**/*.js.map
+
 # Environment files
 .env
 .env.local

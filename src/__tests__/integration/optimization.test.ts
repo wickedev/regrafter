@@ -19,12 +19,12 @@ import {
   Move,
   DependencyType,
   type PositionSelector,
-  type Result,
-  createDependency,
-  createMoveAnalysis,
-  createSuccessResult,
-  createCode,
+  type Code,
+  type MoveAnalysis,
 } from '../../types/index.js';
+
+type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };
+type Ok<T> = { ok: true; value: T };
 
 // =============================================================================
 // Test Cases Overview
@@ -58,31 +58,30 @@ import {
  */
 async function optimize(
   files: Array<{ path: string; content: string }>
-): Promise<Result> {
+): Promise<Result<{ codes: Code[]; analysis: MoveAnalysis }, Error>> {
   // Simulate optimization analysis
   const sinkableDeps = analyzeSinkableDependencies(files);
   const hasChanges = sinkableDeps.length > 0;
 
-  return createSuccessResult(
-    files.map(f =>
-      createCode({
-        file: f.path,
-        content: f.content,
-        changed: hasChanges,
-      })
-    ),
-    createMoveAnalysis({
-      canMove: true,
-      dependencies: sinkableDeps.map(dep =>
-        createDependency({
-          symbol: dep.symbol,
-          type: dep.type,
-          origin: dep.file,
-          scope: 'source',
-        })
-      ),
-    })
-  );
+  const codes: Code[] = files.map((f) => ({
+    file: f.path,
+    content: f.content,
+    changed: hasChanges,
+  }));
+
+  const analysis: MoveAnalysis = {
+    canMove: true,
+    dependencies: sinkableDeps.map((dep) => ({
+      symbol: dep.symbol,
+      type: dep.type,
+      origin: dep.file,
+      scope: 'source',
+      isTransitive: false,
+    })),
+    hoistedDeps: [],
+  };
+
+  return { ok: true, value: { codes, analysis } } as Ok<{ codes: Code[]; analysis: MoveAnalysis }>;
 }
 
 /**
@@ -94,16 +93,16 @@ async function regraftWithOptimize(
   to: PositionSelector,
   mode: Move,
   options: { optimize?: boolean } = {}
-): Promise<Result> {
+): Promise<Result<{ codes: Code[]; analysis: MoveAnalysis }, Error>> {
   const moveResult = await mockMove(files, from, to, mode);
 
-  if (!moveResult.success) {
+  if (!moveResult.ok) {
     return moveResult;
   }
 
   if (options.optimize !== false) {
     // Apply optimization
-    return await optimize(moveResult.codes.map(c => ({ path: c.file, content: c.content })));
+    return await optimize(moveResult.value.codes.map((c: any) => ({ path: c.file, content: c.content })));
   }
 
   return moveResult;
@@ -117,19 +116,20 @@ async function mockMove(
   _from: PositionSelector,
   _to: PositionSelector,
   _mode: Move
-): Promise<Result> {
-  return createSuccessResult(
-    files.map(f =>
-      createCode({
-        file: f.path,
-        content: f.content,
-        changed: true,
-      })
-    ),
-    createMoveAnalysis({
-      canMove: true,
-    })
-  );
+): Promise<Result<{ codes: Code[]; analysis: MoveAnalysis }, Error>> {
+  const codes: Code[] = files.map((f) => ({
+    file: f.path,
+    content: f.content,
+    changed: true,
+  }));
+
+  const analysis: MoveAnalysis = {
+    canMove: true,
+    dependencies: [],
+    hoistedDeps: [],
+  };
+
+  return { ok: true, value: { codes, analysis } } as Ok<{ codes: Code[]; analysis: MoveAnalysis }>;
 }
 
 /**
@@ -318,9 +318,11 @@ describe('Optimization - Single Consumer', () => {
     const result = await optimize(files);
 
     expect(result.ok).toBe(true);
-    expect(result.value.codes[0]!.changed).toBe(true);
-    // Dependency analysis should show sinkable deps
-    expect(result.value.analysis.dependencies).toBeDefined();
+    if (result.ok) {
+      expect(result.value.codes[0]!.changed).toBe(true);
+      // Dependency analysis should show sinkable deps
+      expect(result.value.analysis.dependencies).toBeDefined();
+    }
   });
 
   /**
@@ -614,8 +616,10 @@ describe('Optimization - Multiple Dependencies', () => {
     const result = await optimize(files);
 
     expect(result.ok).toBe(true);
-    // Multiple deps should be analyzed
-    expect(result.value.analysis.dependencies).toBeDefined();
+    if (result.ok) {
+      // Multiple deps should be analyzed
+      expect(result.value.analysis.dependencies).toBeDefined();
+    }
   });
 });
 
@@ -851,7 +855,9 @@ describe('Optimization - Edge Cases', () => {
     const result = await optimize(files);
 
     expect(result.ok).toBe(true);
-    expect(result.value.codes[0]!.changed).toBe(false);
+    if (result.ok) {
+      expect(result.value.codes[0]!.changed).toBe(false);
+    }
   });
 
   it('should handle deeply nested component trees', async () => {

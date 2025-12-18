@@ -18,7 +18,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { regraft, Move } from '../../index.js';
-import type { FileInput, Result } from '../../index.js';
+import type { FileInput } from '../../index.js';
 
 // =============================================================================
 // Test Cases Overview
@@ -69,7 +69,7 @@ export function Button() {
 
     const files: FileInput[] = [sourceFile];
 
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'components/Button.tsx', line: 3, column: 10 }, // <button> element
       { file: 'components/NewFile.tsx', line: 1, column: 1 }, // Non-existent file
@@ -83,7 +83,7 @@ export function Button() {
 
     if (result.ok) {
       // If successful, verify new file was created
-      const newFile = result.value.codes.find(c => c.file === 'components/NewFile.tsx');
+      const newFile = result.value.codes.find((c) => c.file === 'components/NewFile.tsx');
       expect(newFile).toBeDefined();
 
       // Check if isNew flag is set
@@ -92,7 +92,7 @@ export function Button() {
       }
     } else {
       // If it fails, that's also acceptable - just verify reason is provided
-      expect(result.value.analysis.reason).toBeDefined();
+      expect(result.error.message).toBeDefined();
     }
   });
 
@@ -127,7 +127,7 @@ export function App() {
 
     const files: FileInput[] = [sourceFile];
 
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'App.tsx', line: 8, column: 7 }, // <span> element
       { file: 'Counter.tsx', line: 1, column: 1 }, // New file
@@ -137,7 +137,7 @@ export function App() {
     expect(result).toBeDefined();
 
     if (result.ok) {
-      const newFile = result.value.codes.find(c => c.file === 'Counter.tsx');
+      const newFile = result.value.codes.find((c) => c.file === 'Counter.tsx');
       expect(newFile).toBeDefined();
 
       if (newFile) {
@@ -192,7 +192,7 @@ function Target() {
 
     const files: FileInput[] = [sourceFile, targetFile];
 
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'Source.tsx', line: 4, column: 10 }, // <div> element
       { file: 'Target.tsx', line: 3, column: 10 }, // <section> element
@@ -207,7 +207,7 @@ function Target() {
       expect(result.value.codes.length).toBeGreaterThanOrEqual(2);
 
       // Look for any new files created
-      const newFiles = result.value.codes.filter(c => c.isNew);
+      const newFiles = result.value.codes.filter((c) => c.isNew);
       if (newFiles.length > 0) {
         // If a shared module was created, verify it exports
         const sharedModule = newFiles[0];
@@ -253,7 +253,7 @@ function Target() {
 
     const files: FileInput[] = [sourceFile, targetFile];
 
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'Source.tsx', line: 6, column: 10 }, // <div> element
       { file: 'Target.tsx', line: 3, column: 10 }, // <section> element
@@ -267,7 +267,7 @@ function Target() {
       expect(result.value.codes.length).toBeGreaterThanOrEqual(2);
 
       // Check for shared module with multiple exports
-      const newFiles = result.value.codes.filter(c => c.isNew);
+      const newFiles = result.value.codes.filter((c) => c.isNew);
       if (newFiles.length > 0) {
         const sharedModule = newFiles[0];
         if (sharedModule) {
@@ -317,7 +317,7 @@ export function B() {
 
     const files: FileInput[] = [fileA, fileB];
 
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'B.tsx', line: 3, column: 10 }, // <span> in B
       { file: 'A.tsx', line: 4, column: 14 }, // Inside <div> in A
@@ -332,14 +332,14 @@ export function B() {
     // 2. Move succeeds and shared module breaks the cycle
     if (!result.ok) {
       // Verify circular dependency was detected
-      expect(result.value.analysis.reason).toBeDefined();
+      expect(result.error.message).toBeDefined();
       // The reason might mention circular, cycle, or similar
     } else {
       // If successful, verify no actual circular import exists
       expect(result.value.codes.length).toBeGreaterThanOrEqual(2);
 
       // Look for shared module creation
-      const hasNewFile = result.value.codes.some(c => c.isNew);
+      const hasNewFile = result.value.codes.some((c) => c.isNew);
       // Either shared module created OR move succeeded without circular import
       expect(hasNewFile || result.value.codes.length === 2).toBe(true);
     }
@@ -379,7 +379,7 @@ export function B({ data }: { data: { value: number } }) {
 
     const files: FileInput[] = [fileA, fileB];
 
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'B.tsx', line: 3, column: 10 }, // <span> element
       { file: 'A.tsx', line: 5, column: 14 }, // Inside <div> in A
@@ -393,7 +393,7 @@ export function B({ data }: { data: { value: number } }) {
       expect(result.value.codes.length).toBeGreaterThanOrEqual(2);
 
       // Check for shared module creation
-      const newFiles = result.value.codes.filter(c => c.isNew);
+      const newFiles = result.value.codes.filter((c) => c.isNew);
       if (newFiles.length > 0) {
         const sharedModule = newFiles[0];
         if (sharedModule) {
@@ -402,8 +402,8 @@ export function B({ data }: { data: { value: number } }) {
       }
 
       // Verify A and B were both updated
-      const fileAResult = result.value.codes.find(c => c.file === 'A.tsx');
-      const fileBResult = result.value.codes.find(c => c.file === 'B.tsx');
+      const fileAResult = result.value.codes.find((c) => c.file === 'A.tsx');
+      const fileBResult = result.value.codes.find((c) => c.file === 'B.tsx');
 
       expect(fileAResult).toBeDefined();
       expect(fileBResult).toBeDefined();
@@ -449,7 +449,7 @@ function Target() {
 
     const files: FileInput[] = [sourceFile, targetFile];
 
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'Source.tsx', line: 4, column: 10 }, // <div> element
       { file: 'Target.tsx', line: 4, column: 10 }, // <section> element
@@ -459,7 +459,7 @@ function Target() {
     expect(result).toBeDefined();
 
     if (result.ok) {
-      const targetResult = result.value.codes.find(c => c.file === 'Target.tsx');
+      const targetResult = result.value.codes.find((c) => c.file === 'Target.tsx');
       expect(targetResult).toBeDefined();
 
       if (targetResult) {
@@ -509,7 +509,7 @@ function Target() {
 
     const files: FileInput[] = [sourceFile, targetFile];
 
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'Source.tsx', line: 5, column: 10 }, // <div> element
       { file: 'Target.tsx', line: 5, column: 10 }, // <section> element
@@ -519,7 +519,7 @@ function Target() {
     expect(result).toBeDefined();
 
     if (result.ok) {
-      const targetResult = result.value.codes.find(c => c.file === 'Target.tsx');
+      const targetResult = result.value.codes.find((c) => c.file === 'Target.tsx');
       expect(targetResult).toBeDefined();
 
       if (targetResult) {
@@ -591,7 +591,7 @@ function Target() {
 
     const files: FileInput[] = [sourceFile, targetFile];
 
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'Source.tsx', line: 6, column: 7 }, // <ElementUsingHelper>
       { file: 'Target.tsx', line: 3, column: 10 }, // <section>
@@ -601,7 +601,7 @@ function Target() {
     expect(result).toBeDefined();
 
     if (result.ok) {
-      const sourceResult = result.value.codes.find(c => c.file === 'Source.tsx');
+      const sourceResult = result.value.codes.find((c) => c.file === 'Source.tsx');
       expect(sourceResult).toBeDefined();
 
       if (sourceResult) {
@@ -660,7 +660,7 @@ function Target() {
 
     const files: FileInput[] = [sourceFile, targetFile];
 
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'Source.tsx', line: 6, column: 7 }, // <First>
       { file: 'Target.tsx', line: 3, column: 10 }, // <section>
@@ -670,7 +670,7 @@ function Target() {
     expect(result).toBeDefined();
 
     if (result.ok) {
-      const sourceResult = result.value.codes.find(c => c.file === 'Source.tsx');
+      const sourceResult = result.value.codes.find((c) => c.file === 'Source.tsx');
       expect(sourceResult).toBeDefined();
 
       if (sourceResult) {
@@ -744,7 +744,7 @@ export function D() {
     const files: FileInput[] = [fileA, fileB, fileC, fileD];
 
     // Move from level 4 to level 1 (crossing 4 directory levels)
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'level1/level2/level3/level4/D.tsx', line: 3, column: 10 }, // <div> in D
       { file: 'level1/A.tsx', line: 4, column: 28 }, // Inside <div> in A
@@ -759,7 +759,7 @@ export function D() {
       expect(result.value.codes.length).toBeGreaterThanOrEqual(4);
 
       // Verify A was updated
-      const fileAResult = result.value.codes.find(c => c.file === 'level1/A.tsx');
+      const fileAResult = result.value.codes.find((c) => c.file === 'level1/A.tsx');
       expect(fileAResult).toBeDefined();
 
       // Verify imports were handled for deep nesting
@@ -805,7 +805,7 @@ export function Component2() {
     const files: FileInput[] = [file1, file2];
 
     // First move
-    const result1: Result = regraft(
+    const result1 = regraft(
       files,
       { file: 'File1.tsx', line: 3, column: 10 }, // <div> in Component1
       { file: 'NewFile.tsx', line: 1, column: 1 },
@@ -814,15 +814,15 @@ export function Component2() {
 
     expect(result1).toBeDefined();
 
-    if (result1.success) {
-      // Use result1.codes as input for second move
-      const filesAfterMove1: FileInput[] = result1.codes.map(c => ({
+    if (result1.ok) {
+      // Use result1.value.codes as input for second move
+      const filesAfterMove1: FileInput[] = result1.value.codes.map((c) => ({
         path: c.file,
         content: c.content,
       }));
 
       // Second move
-      const result2: Result = regraft(
+      const result2 = regraft(
         filesAfterMove1,
         { file: 'File2.tsx', line: 3, column: 10 }, // <div> in Component2
         { file: 'NewFile.tsx', line: 1, column: 1 },
@@ -831,8 +831,8 @@ export function Component2() {
 
       expect(result2).toBeDefined();
 
-      if (result2.success) {
-        const newFile = result2.codes.find(c => c.file === 'NewFile.tsx');
+      if (result2.ok) {
+        const newFile = result2.value.codes.find((c) => c.file === 'NewFile.tsx');
         expect(newFile).toBeDefined();
 
         if (newFile) {
@@ -898,7 +898,7 @@ export function Target() {
     const files: FileInput[] = [sourceFile, targetFile];
 
     // Move the entire component (try moving the outer div)
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'Source.tsx', line: 16, column: 5 }, // Outer <div>
       { file: 'Target.tsx', line: 3, column: 10 }, // Inside Target
@@ -908,7 +908,7 @@ export function Target() {
     expect(result).toBeDefined();
 
     if (result.ok) {
-      const targetResult = result.value.codes.find(c => c.file === 'Target.tsx');
+      const targetResult = result.value.codes.find((c) => c.file === 'Target.tsx');
       expect(targetResult).toBeDefined();
 
       if (targetResult) {
@@ -921,7 +921,7 @@ export function Target() {
       }
 
       // Source should be updated
-      const sourceResult = result.value.codes.find(c => c.file === 'Source.tsx');
+      const sourceResult = result.value.codes.find((c) => c.file === 'Source.tsx');
       expect(sourceResult).toBeDefined();
 
       if (sourceResult) {
@@ -954,7 +954,7 @@ export function Source() {
 
     const files: FileInput[] = [sourceFile, targetFile];
 
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'Source.tsx', line: 3, column: 10 },
       { file: 'Empty.tsx', line: 1, column: 1 },
@@ -997,7 +997,7 @@ export function Simple() {
 
     const files: FileInput[] = [sourceFile, targetFile];
 
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'Complex.tsx', line: 10, column: 7 }, // <span> element
       { file: 'Simple.tsx', line: 3, column: 10 },
@@ -1008,7 +1008,7 @@ export function Simple() {
 
     if (result.ok) {
       // Verify target received the element
-      const targetResult = result.value.codes.find(c => c.file === 'Simple.tsx');
+      const targetResult = result.value.codes.find((c) => c.file === 'Simple.tsx');
       expect(targetResult).toBeDefined();
 
       if (targetResult) {
@@ -1040,7 +1040,7 @@ export function B() {
 
     const files: FileInput[] = [fileA, fileB];
 
-    const result: Result = regraft(
+    const result = regraft(
       files,
       { file: 'A.tsx', line: 4, column: 10 }, // <div> in A
       { file: 'B.tsx', line: 3, column: 10 }, // <div> in B

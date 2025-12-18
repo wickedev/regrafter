@@ -640,7 +640,7 @@ function Parent() {
       `;
 
       const ast = parseCode(code);
-      const result = generator.generate(ast);
+      generator.generate(ast);
       // Empty comment may be preserved as '//' or stripped
       // This is acceptable behavior
     });
@@ -770,8 +770,8 @@ const Component = () => {
       if (result.ok) {
         expect(result.value.code).toBe(`// Comment with sourcemap
 const x = 1;`);
+        expect(result.value.map).toBeDefined();
       }
-      expect(result.map).toBeDefined();
     });
 
     it('should preserve comments in generateMultiple', () => {
@@ -789,13 +789,17 @@ const x = 1;`);
         ['file2.tsx', parseCode(code2)],
       ]);
 
-      const results = generator.generateMultiple(files);
+      const resultsResult = generator.generateMultiple(files);
+      expect(resultsResult.ok).toBe(true);
 
-      expect(results.size).toBe(2);
-      expect(results.get('file1.tsx')?.code).toBe(`// File 1 comment
+      if (resultsResult.ok) {
+        const results = resultsResult.value;
+        expect(results.size).toBe(2);
+        expect(results.get('file1.tsx')?.code).toBe(`// File 1 comment
 const A = () => <div>A</div>;`);
-      expect(results.get('file2.tsx')?.code).toBe(`// File 2 comment
+        expect(results.get('file2.tsx')?.code).toBe(`// File 2 comment
 const B = () => <div>B</div>;`);
+      }
     });
   });
 });

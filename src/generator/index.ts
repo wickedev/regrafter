@@ -9,10 +9,9 @@
 
 import type * as t from '@babel/types';
 
-import { createTransformError, type TransformError } from '../errors/index.js';
-import { tryCatch , mapErr } from '../result/helpers.js';
+import type { TransformErrorType } from '../errors/index.js';
 import type { Result } from '../result/types.js';
-import { ok, err } from '../result/types.js';
+import { ok, err, isErr } from '../result/types.js';
 
 import { CodeGenerator } from './code-generator.js';
 import type { GeneratorOptions } from './types.js';
@@ -58,16 +57,15 @@ export { DEFAULT_GENERATOR_OPTIONS } from './types.js';
 export function generateCode(
   ast: t.File,
   options?: GeneratorOptions
-): Result<string, TransformError> {
+): Result<string, TransformErrorType> {
   // Create generator with options
   const generator = new CodeGenerator(options);
 
-  // Generate code - this now returns Result<GeneratedCode, TransformError>
+  // Generate code - this now returns Result<GeneratedCode, TransformErrorType>
   const generateResult = generator.generate(ast);
 
-  if (!generateResult.ok) {
-    // Return the TransformError directly
-    return generateResult;
+  if (isErr(generateResult)) {
+    return err(generateResult.error);
   }
 
   // Extract just the code string from the GeneratedCode

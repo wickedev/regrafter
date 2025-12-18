@@ -87,7 +87,6 @@ export function createErrorFromException(
     message: `Internal error: ${message}`,
     file: context?.file ?? 'unknown',
     cause: error instanceof Error ? error : new Error(message),
-    suggestions: [],
   });
 
   return err(internalError);

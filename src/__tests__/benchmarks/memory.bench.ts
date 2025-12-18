@@ -99,8 +99,8 @@ describe('Memory Usage Benchmarks', () => {
     );
 
     // Log result for debugging if it fails
-    if (!result.success) {
-      console.log('Operation failed:', result.analysis.reason);
+    if (!result.ok) {
+      console.log('Operation failed:', result.error.message);
     }
 
     // Measure memory after (regardless of success for memory measurement)
@@ -146,8 +146,8 @@ describe('Memory Usage Benchmarks', () => {
     );
 
     // Log result for debugging if it fails
-    if (!result.success) {
-      console.log('Operation failed:', result.analysis.reason);
+    if (!result.ok) {
+      console.log('Operation failed:', result.error.message);
     }
 
     // Measure memory after (regardless of success for memory measurement)
@@ -201,8 +201,8 @@ describe('Memory Usage Benchmarks', () => {
     );
 
     // Log result for debugging if it fails
-    if (!result.success) {
-      console.log('Operation failed:', result.analysis.reason);
+    if (!result.ok) {
+      console.log('Operation failed:', result.error.message);
     }
 
     // Measure memory after (regardless of success for memory measurement)

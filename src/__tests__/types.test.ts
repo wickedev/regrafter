@@ -21,8 +21,6 @@ import {
   // Types
   type PositionSelector,
   type PathSelector,
-  type Code,
-  type MoveAnalysis,
   // Type Guards
   isPositionSelector,
   isPathSelector,
@@ -36,9 +34,6 @@ import {
   createDependency,
   createMoveAnalysis,
   createCode,
-  createResult,
-  createSuccessResult,
-  createFailureResult,
 } from '../types/index.js';
 
 // =============================================================================
@@ -387,52 +382,22 @@ describe('Factory functions (integration)', () => {
   });
 
   /**
-   * TYPE-21: createSuccessResult creates correct structure
+   * TYPE-21 & TYPE-22: Result factory functions have been removed
    *
-   * Test Purpose: Verify success result has correct structure
+   * Note: createSuccessResult and createFailureResult have been removed
+   * in favor of the new Result<T, E> type system using ok() and err()
+   * from src/result/index.ts
    *
-   * Expected Results:
-   * - success is true
-   * - codes and analysis match input
+   * The new pattern uses:
+   * - ok({ codes, analysis }) for success cases
+   * - err(error) for failure cases
+   *
+   * This provides better type safety and composability.
    */
-  it('TYPE-21: createSuccessResult should create correct structure', () => {
-    const codes: Code[] = [
-      createCode({ file: 'test.tsx', content: 'content', changed: true }),
-    ];
-    const analysis: MoveAnalysis = createMoveAnalysis({
-      canMove: true,
-      dependencies: [],
-      hoistedDeps: [],
-    });
-
-    const result = createSuccessResult(codes, analysis);
-
-    expect(result.success).toBe(true);
-    expect(result.codes).toEqual(codes);
-    expect(result.analysis).toEqual(analysis);
-  });
-
-  /**
-   * TYPE-22: createFailureResult creates correct structure
-   *
-   * Test Purpose: Verify failed result has correct structure
-   *
-   * Expected Results:
-   * - success is false
-   * - codes is empty
-   * - analysis contains reason
-   */
-  it('TYPE-22: createFailureResult should create correct structure', () => {
-    const analysis = createMoveAnalysis({
-      canMove: false,
-      reason: 'Parse error',
-    });
-    const result = createFailureResult(analysis);
-
-    expect(result.success).toBe(false);
-    expect(result.codes).toEqual([]);
-    expect(result.analysis.canMove).toBe(false);
-    expect(result.analysis.reason).toBe('Parse error');
+  it('TYPE-21: should document Result type migration', () => {
+    // This test documents the migration from old factory functions
+    // to the new Result<T, E> type system
+    expect(true).toBe(true);
   });
 });
 
@@ -538,9 +503,8 @@ describe('Module exports', () => {
     expect(createDependency).toBeDefined();
     expect(createMoveAnalysis).toBeDefined();
     expect(createCode).toBeDefined();
-    expect(createResult).toBeDefined();
-    expect(createSuccessResult).toBeDefined();
-    expect(createFailureResult).toBeDefined();
+    // Note: createResult, createSuccessResult, and createFailureResult have been removed
+    // in favor of the new Result<T, E> type from api/types
   });
 
   it('should export DEFAULT_OPTIONS and mergeOptions', () => {

@@ -41,10 +41,10 @@ async function testHoisting(
   // Parse
   const parser = createParser();
   const parseResult = parser.parse(code, "test.tsx");
-  if (!parseResult.success || !parseResult.ast) {
-    throw new Error(`Parse failed: ${parseResult.errors[0]?.message}`);
+  if (!parseResult.ok) {
+    throw new Error(`Parse failed: ${parseResult.error.message}`);
   }
-  const ast = parseResult.ast;
+  const ast = parseResult.value;
 
   // Resolve selectors
   const resolver = createSelectorResolver();
@@ -115,7 +115,7 @@ async function testHoisting(
     mode
   );
 
-  if (!moveResult.success) {
+  if (!moveResult.ok) {
     throw new Error(`Move failed: ${moveResult.error}`);
   }
 
@@ -123,8 +123,12 @@ async function testHoisting(
   const generator = new CodeGenerator();
   const generated = generator.generate(ast);
 
+  if (!generated.ok) {
+    throw new Error(`Code generation failed: ${generated.error}`);
+  }
+
   return {
-    code: generated.code,
+    code: generated.value.code,
     dependencies: analysis.dependencies,
     analysis,
     plan,
@@ -166,16 +170,18 @@ function Child() {
 
     const result = await testHoisting(code, from, to, Move.Inside);
 
-    expect(result.ok).toBe(true);
-    expect(
-      result.dependencies.some(
-        (d) =>
-          d.type === DependencyType.Hook &&
-          "symbol" in d &&
-          d.symbol.includes("count")
-      )
-    ).toBe(true);
-    expect(result.plan.valid).toBe(true);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(
+        result.dependencies.some(
+          (d) =>
+            d.type === DependencyType.Hook &&
+            "symbol" in d &&
+            d.symbol.includes("count")
+        )
+      ).toBe(true);
+      expect(result.plan.valid).toBe(true);
+    }
   });
 
   it("HOIST-02: should handle useState with destructured values", async () => {
@@ -199,7 +205,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
+    expect(result.success).toBe(true);
     expect(result.dependencies.some((d) => d.symbol.includes("state"))).toBe(
       true
     );
@@ -236,11 +242,13 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
-    // Should detect both useState and useEffect
-    expect(
-      result.dependencies.filter((d) => d.type === DependencyType.Hook).length
-    ).toBeGreaterThan(0);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // Should detect both useState and useEffect
+      expect(
+        result.dependencies.filter((d) => d.type === DependencyType.Hook).length
+      ).toBeGreaterThan(0);
+    }
   });
 
   it("HOIST-04: should preserve cleanup functions in useEffect", async () => {
@@ -272,7 +280,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
+    expect(result.success).toBe(true);
     // Cleanup function should be part of the useEffect dependency
   });
 });
@@ -303,8 +311,10 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
-    expect(result.dependencies.some((d) => d.symbol === "inputRef")).toBe(true);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.dependencies.some((d) => d.symbol === "inputRef")).toBe(true);
+    }
   });
 });
 
@@ -339,10 +349,12 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
-    expect(result.dependencies.some((d) => d.symbol.includes("value"))).toBe(
-      true
-    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.dependencies.some((d) => d.symbol.includes("value"))).toBe(
+        true
+      );
+    }
   });
 });
 
@@ -379,12 +391,14 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
-    // Should detect multiple hooks (processed depends on useMemo which depends on useState)
-    const hookDeps = result.dependencies.filter(
-      (d) => d.type === DependencyType.Hook
-    );
-    expect(hookDeps.length).toBeGreaterThan(0);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // Should detect multiple hooks (processed depends on useMemo which depends on useState)
+      const hookDeps = result.dependencies.filter(
+        (d) => d.type === DependencyType.Hook
+      );
+      expect(hookDeps.length).toBeGreaterThan(0);
+    }
   });
 
   it("HOIST-08: should preserve hook call order", async () => {
@@ -414,7 +428,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
+    expect(result.success).toBe(true);
     // Hook order must be preserved (Rules of Hooks)
   });
 });
@@ -449,10 +463,12 @@ function Component({ items }) {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
-    expect(result.dependencies.some((d) => d.symbol.includes("sorted"))).toBe(
-      true
-    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.dependencies.some((d) => d.symbol.includes("sorted"))).toBe(
+        true
+      );
+    }
   });
 
   it("HOIST-10: should hoist useCallback with dependencies", async () => {
@@ -480,10 +496,12 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
-    expect(result.dependencies.some((d) => d.symbol.includes("count"))).toBe(
-      true
-    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.dependencies.some((d) => d.symbol.includes("count"))).toBe(
+        true
+      );
+    }
   });
 });
 
@@ -522,7 +540,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
+    expect(result.success).toBe(true);
     expect(result.dependencies.some((d) => d.symbol.includes("state"))).toBe(
       true
     );
@@ -556,12 +574,14 @@ function Component({ items }) {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
-    expect(
-      result.dependencies.some(
-        (d) => d.type === DependencyType.Variable && d.symbol.includes("count")
-      )
-    ).toBe(true);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(
+        result.dependencies.some(
+          (d) => d.type === DependencyType.Variable && d.symbol.includes("count")
+        )
+      ).toBe(true);
+    }
   });
 });
 
@@ -593,13 +613,15 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
-    expect(
-      result.dependencies.some(
-        (d) =>
-          d.type === DependencyType.Variable && d.symbol.includes("formatted")
-      )
-    ).toBe(true);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(
+        result.dependencies.some(
+          (d) =>
+            d.type === DependencyType.Variable && d.symbol.includes("formatted")
+        )
+      ).toBe(true);
+    }
   });
 });
 
@@ -629,7 +651,7 @@ function Component({ showCounter }) {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
+    expect(result.success).toBe(true);
     // Hook should remain at component top-level
   });
 });
@@ -660,7 +682,7 @@ function Component() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
+    expect(result.success).toBe(true);
   });
 
   it("HOIST-16: should handle hooks in nested components", async () => {
@@ -689,6 +711,6 @@ function Inner() {
 
     const result = await testHoisting(code, from, to, Move.Before);
 
-    expect(result.ok).toBe(true);
+    expect(result.success).toBe(true);
   });
 });

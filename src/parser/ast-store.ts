@@ -5,10 +5,10 @@
  * reparsing unchanged files.
  */
 
-import type { File as BabelFile } from '@babel/types';
+import type { File as BabelFile } from "@babel/types";
 
-import type { Result } from '../result/index.js';
-import type { ParseErrorType } from '../errors/error-category.js';
+import type { ParseErrorType } from "../errors/error-category.js";
+import type { Result } from "../result/index.js";
 
 /**
  * Entry in the AST cache
@@ -52,7 +52,10 @@ export class ASTStore {
    * @param content - Current content for hash validation
    * @returns Cached Result if valid, undefined otherwise
    */
-  get(filename: string, content: string): Result<BabelFile, ParseErrorType> | undefined {
+  get(
+    filename: string,
+    content: string
+  ): Result<BabelFile, ParseErrorType> | undefined {
     const entry = this.cache.get(filename);
     if (!entry) {
       return undefined;
@@ -75,7 +78,11 @@ export class ASTStore {
    * @param content - Source content for hash generation
    * @param result - Parse result to cache
    */
-  set(filename: string, content: string, result: Result<BabelFile, ParseErrorType>): void {
+  set(
+    filename: string,
+    content: string,
+    result: Result<BabelFile, ParseErrorType>
+  ): void {
     // Only cache successful parses with valid ASTs
     if (!result.ok) {
       return;

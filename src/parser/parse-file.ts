@@ -158,8 +158,6 @@ export function parseFile(
           line: error.loc.line,
           column: error.loc.column,
         },
-        filename,
-        identifierName: undefined,
       };
     }
 

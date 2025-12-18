@@ -5,36 +5,30 @@
  * JSX, TypeScript, and modern JavaScript syntax.
  */
 
-import type { ParserOptions, ParserPlugin } from '@babel/parser';
-import { parse as babelParse } from '@babel/parser';
-import type { File as BabelFile, SourceLocation } from '@babel/types';
+import type { ParserOptions, ParserPlugin } from "@babel/parser";
+import { parse as babelParse } from "@babel/parser";
+import type { File as BabelFile, SourceLocation } from "@babel/types";
 
-import { ok, err, type Result } from '../result/index.js';
-import { createParseError } from '../errors/index.js';
-import type { ParseErrorType } from '../errors/error-category.js';
+import type { ParseErrorType } from "../errors/error-category.js";
+import { createParseError } from "../errors/index.js";
+import { err, ok, type Result } from "../result/index.js";
 
-import { ASTStore } from './ast-store.js';
-import type {
-  FileInput,
-  IParser,
-  ParseError} from './types.js';
-import {
-  getExtension,
-  isTypeScriptFile,
-} from './types.js';
+import { ASTStore } from "./ast-store.js";
+import type { FileInput, IParser, ParseError } from "./types.js";
+import { getExtension, isTypeScriptFile } from "./types.js";
 
 /**
  * Error codes for parser errors
  */
 export const ParseErrorCodes = {
   /** Generic parse error */
-  PARSE_ERROR: 'E001',
+  PARSE_ERROR: "E001",
   /** Unexpected token */
-  UNEXPECTED_TOKEN: 'E002',
+  UNEXPECTED_TOKEN: "E002",
   /** Unsupported file type */
-  UNSUPPORTED_FILE: 'E003',
+  UNSUPPORTED_FILE: "E003",
   /** Empty source */
-  EMPTY_SOURCE: 'E004',
+  EMPTY_SOURCE: "E004",
 } as const;
 
 /**
@@ -42,17 +36,17 @@ export const ParseErrorCodes = {
  * Includes JSX, TypeScript, and modern JavaScript features
  */
 const BASE_PLUGINS: ParserPlugin[] = [
-  'jsx',
-  ['decorators', { decoratorsBeforeExport: true }],
-  'classProperties',
-  'classPrivateProperties',
-  'classPrivateMethods',
-  'exportDefaultFrom',
-  'exportNamespaceFrom',
-  'dynamicImport',
-  'nullishCoalescingOperator',
-  'optionalChaining',
-  'topLevelAwait',
+  "jsx",
+  ["decorators", { decoratorsBeforeExport: true }],
+  "classProperties",
+  "classPrivateProperties",
+  "classPrivateMethods",
+  "exportDefaultFrom",
+  "exportNamespaceFrom",
+  "dynamicImport",
+  "nullishCoalescingOperator",
+  "optionalChaining",
+  "topLevelAwait",
 ];
 
 /**
@@ -63,7 +57,7 @@ function getPluginsForFile(filename: string): ParserPlugin[] {
 
   // Add TypeScript plugin for .ts and .tsx files
   if (isTypeScriptFile(filename)) {
-    plugins.push('typescript');
+    plugins.push("typescript");
   }
 
   return plugins;
@@ -74,7 +68,7 @@ function getPluginsForFile(filename: string): ParserPlugin[] {
  */
 function getParserOptions(filename: string): ParserOptions {
   return {
-    sourceType: 'module',
+    sourceType: "module",
     plugins: getPluginsForFile(filename),
     // Enable error recovery to continue parsing after errors
     errorRecovery: true,
@@ -95,41 +89,47 @@ function getParserOptions(filename: string): ParserOptions {
  * Convert Babel parser error to ParseError
  */
 function toBabelParseError(error: unknown, filename: string): ParseError {
-  if (error !== null && error !== undefined && typeof error === 'object') {
+  if (error !== null && error !== undefined && typeof error === "object") {
     const babelError: unknown = error;
 
     // Type guard to check if error has the expected properties
-    const hasMessage = babelError !== null &&
-      typeof babelError === 'object' &&
-      'message' in babelError &&
-      (typeof babelError.message === 'string' || babelError.message === undefined);
+    const hasMessage =
+      babelError !== null &&
+      typeof babelError === "object" &&
+      "message" in babelError &&
+      (typeof babelError.message === "string" ||
+        babelError.message === undefined);
 
-    const hasLoc = babelError !== null &&
-      typeof babelError === 'object' &&
-      'loc' in babelError;
+    const hasLoc =
+      babelError !== null &&
+      typeof babelError === "object" &&
+      "loc" in babelError;
 
-    const message = hasMessage &&
-      typeof babelError === 'object' &&
-      'message' in babelError &&
-      typeof babelError.message === 'string'
+    const message =
+      hasMessage &&
+      typeof babelError === "object" &&
+      "message" in babelError &&
+      typeof babelError.message === "string"
         ? babelError.message
-        : 'Unknown parse error';
+        : "Unknown parse error";
 
-    const code = message.includes('Unexpected token')
+    const code = message.includes("Unexpected token")
       ? ParseErrorCodes.UNEXPECTED_TOKEN
       : ParseErrorCodes.PARSE_ERROR;
 
     let location: SourceLocation | null = null;
 
-    if (hasLoc &&
-        typeof babelError === 'object' &&
-        'loc' in babelError &&
-        babelError.loc !== null &&
-        typeof babelError.loc === 'object' &&
-        'line' in babelError.loc &&
-        'column' in babelError.loc &&
-        typeof babelError.loc.line === 'number' &&
-        typeof babelError.loc.column === 'number') {
+    if (
+      hasLoc &&
+      typeof babelError === "object" &&
+      "loc" in babelError &&
+      babelError.loc !== null &&
+      typeof babelError.loc === "object" &&
+      "line" in babelError.loc &&
+      "column" in babelError.loc &&
+      typeof babelError.loc.line === "number" &&
+      typeof babelError.loc.column === "number"
+    ) {
       location = {
         start: {
           line: babelError.loc.line,
@@ -161,99 +161,6 @@ function toBabelParseError(error: unknown, filename: string): ParseError {
 }
 
 /**
- * Type guard to check if a value has a message property
- */
-function hasMessageProperty(value: unknown): value is { message?: string } {
-  if (value === null || typeof value !== 'object' || !('message' in value)) {
-    return false;
-  }
-  const messageValue = Reflect.get(value, 'message');
-  return (
-    typeof messageValue === 'string' || messageValue === undefined
-  );
-}
-
-/**
- * Type guard to check if a value has a loc property with line and column
- */
-function hasLocProperty(
-  value: unknown
-): value is { loc: { line: number; column: number } } {
-  if (value === null || typeof value !== 'object' || !('loc' in value)) {
-    return false;
-  }
-  const locValue: unknown = Reflect.get(value, 'loc');
-  if (locValue === null || typeof locValue !== 'object') {
-    return false;
-  }
-  const lineValue: unknown = Reflect.get(locValue, 'line');
-  const columnValue: unknown = Reflect.get(locValue, 'column');
-  return (
-    typeof lineValue === 'number' &&
-    typeof columnValue === 'number'
-  );
-}
-
-/**
- * Extract errors from Babel AST's error array (from error recovery)
- */
-function extractRecoveredErrors(ast: BabelFile, filename: string): ParseError[] {
-  const errors: ParseError[] = [];
-
-  // Babel stores recovered errors in ast.errors when errorRecovery is enabled
-  const astWithErrors: unknown = ast;
-  if (
-    astWithErrors === null ||
-    typeof astWithErrors !== 'object' ||
-    !('errors' in astWithErrors)
-  ) {
-    return errors;
-  }
-
-  const errorsValue = Reflect.get(astWithErrors, 'errors');
-  if (!Array.isArray(errorsValue)) {
-    return errors;
-  }
-
-  for (const error of errorsValue) {
-    if (error === null || error === undefined || typeof error !== 'object') {
-      continue;
-    }
-
-    const message = hasMessageProperty(error) && typeof error.message === 'string'
-      ? error.message
-      : 'Recovered parse error';
-
-    let location: SourceLocation | null = null;
-
-    if (hasLocProperty(error)) {
-      location = {
-        start: {
-          line: error.loc.line,
-          column: error.loc.column,
-          index: 0,
-        },
-        end: {
-          line: error.loc.line,
-          column: error.loc.column,
-          index: 0,
-        },
-        filename,
-        identifierName: undefined,
-      };
-    }
-
-    errors.push({
-      message,
-      location,
-      code: ParseErrorCodes.PARSE_ERROR,
-    });
-  }
-
-  return errors;
-}
-
-/**
  * Parser class for parsing JSX/TSX/JS source files
  *
  * Features:
@@ -277,24 +184,30 @@ export class Parser implements IParser {
    */
   parse(source: string, filename: string): Result<BabelFile, ParseErrorType> {
     // Check for empty source
-    if (!source || source.trim() === '') {
-      return err(createParseError({
-        code: ParseErrorCodes.EMPTY_SOURCE,
-        message: `Empty source file: ${filename}`,
-        file: filename,
-        suggestions: [],
-      }));
+    if (!source || source.trim() === "") {
+      return err(
+        createParseError({
+          code: ParseErrorCodes.EMPTY_SOURCE,
+          message: `Empty source file: ${filename}`,
+          syntaxError: "Empty source",
+          file: filename,
+          suggestions: [],
+        })
+      );
     }
 
     // Check for unsupported file extensions
     const ext = getExtension(filename);
-    if (ext && !['.ts', '.tsx', '.js', '.jsx', ''].includes(ext)) {
-      return err(createParseError({
-        code: ParseErrorCodes.UNSUPPORTED_FILE,
-        message: `Unsupported file type: ${ext}`,
-        file: filename,
-        suggestions: [],
-      }));
+    if (ext && ![".ts", ".tsx", ".js", ".jsx", ""].includes(ext)) {
+      return err(
+        createParseError({
+          code: ParseErrorCodes.UNSUPPORTED_FILE,
+          message: `Unsupported file type: ${ext}`,
+          syntaxError: `Unsupported file extension: ${ext}`,
+          file: filename,
+          suggestions: [],
+        })
+      );
     }
 
     // Check cache first
@@ -319,13 +232,16 @@ export class Parser implements IParser {
     } catch (error) {
       // Complete parsing failure
       const parseError = toBabelParseError(error, filename);
-      return err(createParseError({
-        code: parseError.code,
-        message: parseError.message,
-        file: filename,
-        location: parseError.location ?? undefined,
-        suggestions: [],
-      }));
+      return err(
+        createParseError({
+          code: parseError.code,
+          message: parseError.message,
+          syntaxError: parseError.message,
+          file: filename,
+          location: parseError.location ?? undefined,
+          suggestions: [],
+        })
+      );
     }
   }
 
@@ -334,7 +250,9 @@ export class Parser implements IParser {
    * @param files - Array of file inputs to parse
    * @returns Map from file path to Result
    */
-  parseFiles(files: FileInput[]): Map<string, Result<BabelFile, ParseErrorType>> {
+  parseFiles(
+    files: FileInput[]
+  ): Map<string, Result<BabelFile, ParseErrorType>> {
     const results = new Map<string, Result<BabelFile, ParseErrorType>>();
 
     for (const file of files) {

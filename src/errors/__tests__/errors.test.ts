@@ -683,7 +683,7 @@ describe('Error Recovery', () => {
         recoverable: true,
       });
 
-      expect(isRecoverable(recoverableError)).toBe(true);
+      expect(isRecoverable(recoverableError as any)).toBe(true);
     });
 
     it('should reject non-recoverable errors', () => {
@@ -694,7 +694,7 @@ describe('Error Recovery', () => {
         file: 'test.tsx',
       });
 
-      expect(isRecoverable(nonRecoverableError)).toBe(false);
+      expect(isRecoverable(nonRecoverableError as any)).toBe(false);
     });
   });
 
@@ -708,7 +708,7 @@ describe('Error Recovery', () => {
         recoverable: true,
       });
 
-      const strategy = getRecoveryStrategy(error);
+      const strategy = getRecoveryStrategy(error as any);
       expect(strategy).toBeDefined();
       expect(strategy?.canAutoRecover).toBe(true);
     });
@@ -724,7 +724,7 @@ describe('Error Recovery', () => {
         recoverable: true,
       });
 
-      const result = await attemptRecovery(error);
+      const result = await attemptRecovery(error as any);
       expect(result.success).toBe(true);
       expect(result.action).toBeDefined();
     });
@@ -737,7 +737,7 @@ describe('Error Recovery', () => {
         file: 'test.tsx',
       });
 
-      const result = await attemptRecovery(error);
+      const result = await attemptRecovery(error as any);
       expect(result.success).toBe(false);
     });
   });

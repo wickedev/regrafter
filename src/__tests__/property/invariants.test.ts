@@ -129,32 +129,32 @@ describe('Invariant: Idempotency', () => {
 
       // First move
       const result1 = regraft(files, from, to, mode);
-      if (!result1.success) {
+      if (!result1.ok) {
         // Skip if first move fails (not all random positions are valid)
         return true;
       }
 
       // Reverse move
-      const filesAfterFirst: FileInput[] = result1.codes.map(c => ({
+      const filesAfterFirst: FileInput[] = result1.value.codes.map((c) => ({
         path: c.file,
         content: c.content,
       }));
 
       const result2 = regraft(filesAfterFirst, to, from, reverseMode(mode));
 
-      if (!result2.success) {
+      if (!result2.ok) {
         // Skip if reverse move fails
         return true;
       }
 
       // Compare original code directly
       const originalCode = componentCode;
-      const finalCode = result2.codes[0]?.content ?? '';
+      const finalCode = result2.ok ? result2.value.codes[0]?.content ?? '' : '';
 
       // They should be semantically equivalent
       // Note: Perfect idempotency is hard due to formatting differences
       // We accept the test if either they match or both operations succeeded
-      return originalCode === finalCode || result2.success;
+      return originalCode === finalCode || result2.ok;
     }
   );
 });
@@ -183,15 +183,15 @@ describe('Invariant: Parse Validity', () => {
       const result = regraft(files, from, to, mode);
 
       // If operation succeeded, output must parse
-      if (result.success) {
+      if (result.ok) {
         const parser = createParser();
 
-        for (const code of result.codes) {
+        for (const code of result.value.codes) {
           const parseResult = parser.parse(code.content, code.file);
 
-          if (!parseResult.success) {
+          if (!parseResult.ok) {
             console.error('Parse failed for code:', code.content);
-            console.error('Errors:', parseResult.errors);
+            console.error('Errors:', parseResult.error);
             return false;
           }
         }
@@ -230,7 +230,7 @@ describe('Invariant: Dependency Preservation', () => {
 
         // Execute move
         const result = regraft(files, from, to, Move.Inside);
-        if (!result.success) {
+        if (!result.ok) {
           // If move failed but analysis said it should work, that's a problem
           // But for property test, we allow conservative analysis
           return true;
@@ -239,7 +239,7 @@ describe('Invariant: Dependency Preservation', () => {
         // Analyze after move - check if dependencies are still accessible
         // We verify this by checking if the moved code still has access to its dependencies
         // For property-based tests, we primarily verify that successful moves maintain parseability
-        const filesAfter: FileInput[] = result.codes.map(c => ({
+        const filesAfter: FileInput[] = result.value.codes.map((c) => ({
           path: c.file,
           content: c.content,
         }));
@@ -248,7 +248,7 @@ describe('Invariant: Dependency Preservation', () => {
         const parser = createParser();
         const parseResult = parser.parse(filesAfter[0]?.content ?? '', 'Component.tsx');
 
-        return parseResult.success;
+        return parseResult.ok;
       } catch (error) {
         // Errors during analysis are acceptable for property tests
         // as we're testing with random, potentially invalid positions
@@ -290,13 +290,14 @@ describe('Invariant: canMove Accuracy', () => {
         // If canMove is true, regraft MUST succeed
         const regraftResult = regraft(files, from, to, mode);
 
-        if (!regraftResult.success) {
+        if (!regraftResult.ok) {
           // Known issue: validateMoveOperation doesn't fully check target sibling access
           // for Before/After moves. This is a bug in the validation logic.
           // See: https://github.com/wickedev/regrafter/issues/xxx
+          const errorMessage = regraftResult.error.message;
           const isKnownIssue =
-            regraftResult.analysis.reason?.includes('Could not access target siblings') ||
-            regraftResult.analysis.reason?.includes('Move failed');
+            errorMessage.includes('Could not access target siblings') ||
+            errorMessage.includes('Move failed');
 
           if (isKnownIssue) {
             // Document the failure but don't fail the test
@@ -308,7 +309,7 @@ describe('Invariant: canMove Accuracy', () => {
 
           // For other types of failures, this is a real invariant violation
           console.error('canMove returned true but regraft failed!');
-          console.error('Reason:', regraftResult.analysis.reason);
+          console.error('Reason:', errorMessage);
           console.error('From:', from);
           console.error('To:', to);
           console.error('Mode:', mode);
@@ -339,9 +340,9 @@ describe('Property: Move Operation Properties', () => {
 
       const result = regraft(files, from, to, mode);
 
-      if (result.success && result.codes.length > 0) {
+      if (result.ok && result.value.codes.length > 0) {
         // At least one file should be marked as changed
-        const hasChangedFile = result.codes.some(c => c.changed);
+        const hasChangedFile = result.value.codes.some((c) => c.changed);
         return hasChangedFile;
       }
 
@@ -359,9 +360,9 @@ describe('Property: Move Operation Properties', () => {
       const result = regraft(files, from, to, Move.Inside, { dryRun: true });
 
       // In dry run mode, code should be unchanged
-      if (result.success && result.codes.length > 0) {
-        const allUnchanged = result.codes.every(c => !c.changed);
-        const contentMatches = result.codes[0]?.content === componentCode;
+      if (result.ok && result.value.codes.length > 0) {
+        const allUnchanged = result.value.codes.every((c) => !c.changed);
+        const contentMatches = result.value.codes[0]?.content === componentCode;
         return allUnchanged && contentMatches;
       }
 

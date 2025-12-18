@@ -13,14 +13,11 @@
  * - Verify edge cases (nested elements, fragments, etc.)
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import * as fs from 'fs';
-import * as path from 'path';
-import {
-  Move,
-  type PositionSelector,
-  type Result,
-} from '../../types/index.js';
+import { describe, it, expect, beforeEach } from "vitest";
+import * as fs from "fs";
+import * as path from "path";
+import { Move, type PositionSelector } from "../../types/index.js";
+import { regraft as actualRegraft } from "../../index.js";
 
 /**
  * Helper to create a position selector
@@ -60,82 +57,14 @@ function createPositionSelector(
 // Test Utilities
 // =============================================================================
 
-const FIXTURES_DIR = path.join(__dirname, '../../../test/fixtures');
+const FIXTURES_DIR = path.join(__dirname, "../../../test/fixtures");
 
 function loadFixture(filename: string): string {
-  return fs.readFileSync(path.join(FIXTURES_DIR, filename), 'utf-8');
+  return fs.readFileSync(path.join(FIXTURES_DIR, filename), "utf-8");
 }
 
-/**
- * Mock regraft function for testing structure
- * This will be replaced with actual implementation
- */
-async function regraft(
-  files: Array<{ path: string; content: string }>,
-  from: PositionSelector,
-  to: PositionSelector,
-  _mode: Move
-): Promise<Result> {
-  // This is a placeholder to establish test structure
-
-  // Validate inputs
-  if (!files.length) {
-    return {
-      success: false,
-      codes: [],
-      analysis: {
-        canMove: false,
-        reason: 'No files provided',
-        dependencies: [],
-        hoistedDeps: [],
-      },
-    };
-  }
-
-  const sourceFile = files.find(f => f.path === from.file);
-  const targetFile = files.find(f => f.path === to.file);
-
-  if (!sourceFile) {
-    return {
-      success: false,
-      codes: [],
-      analysis: {
-        canMove: false,
-        reason: `Source file not found: ${from.file}`,
-        dependencies: [],
-        hoistedDeps: [],
-      },
-    };
-  }
-
-  if (!targetFile) {
-    return {
-      success: false,
-      codes: [],
-      analysis: {
-        canMove: false,
-        reason: `Target file not found: ${to.file}`,
-        dependencies: [],
-        hoistedDeps: [],
-      },
-    };
-  }
-
-  // Placeholder success result
-  return {
-    success: true,
-    codes: files.map(f => ({
-      file: f.path,
-      content: f.content, // Would be transformed content
-      changed: true,
-    })),
-    analysis: {
-      canMove: true,
-      dependencies: [],
-      hoistedDeps: [],
-    },
-  };
-}
+// Use actual regraft implementation
+const regraft = actualRegraft;
 
 // =============================================================================
 // Test Data
@@ -147,16 +76,16 @@ let nestedComponentContent: string;
 
 beforeEach(() => {
   // Load fixtures before each test
-  simpleComponentContent = loadFixture('simple-component.tsx');
-  hooksComponentContent = loadFixture('component-with-hooks.tsx');
-  nestedComponentContent = loadFixture('nested-components.tsx');
+  simpleComponentContent = loadFixture("simple-component.tsx");
+  hooksComponentContent = loadFixture("component-with-hooks.tsx");
+  nestedComponentContent = loadFixture("nested-components.tsx");
 });
 
 // =============================================================================
 // Move.Before Basic Tests
 // =============================================================================
 
-describe('Move.Before - Basic Operations', () => {
+describe("Move.Before - Basic Operations", () => {
   /**
    * BEFORE-01: Move sibling element before target
    *
@@ -177,23 +106,25 @@ describe('Move.Before - Basic Operations', () => {
    * - Result.success === true
    * - span element appears before p element in transformed code
    */
-  it('BEFORE-01: should move sibling element before target', async () => {
+  it("BEFORE-01: should move sibling element before target", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    // Source: span element "Inline text" (approximate line)
-    const from = createPositionSelector('simple-component.tsx', 18, 8);
-    // Target: p element "Content paragraph" (approximate line)
-    const to = createPositionSelector('simple-component.tsx', 17, 8);
+    // Source: span element "Inline text" at line 21
+    const from = createPositionSelector("simple-component.tsx", 21, 8);
+    // Target: p element "Content paragraph" at line 20
+    const to = createPositionSelector("simple-component.tsx", 20, 8);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(true);
-    expect(result.value.codes).toHaveLength(1);
-    expect(result.value.codes[0]!.file).toBe('simple-component.tsx');
-    expect(result.value.analysis.canMove).toBe(true);
 
+    if (result.ok) {
+      expect(result.value.codes).toHaveLength(1);
+      expect(result.value.codes[0]!.file).toBe("simple-component.tsx");
+      expect(result.value.analysis.canMove).toBe(true);
+    }
     // - span appears before p in output
     // - Original span location is empty
   });
@@ -212,15 +143,15 @@ describe('Move.Before - Basic Operations', () => {
    * Expected Results:
    * - Element content matches original exactly
    */
-  it('BEFORE-02: should preserve source element content', async () => {
+  it("BEFORE-02: should preserve source element content", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    const from = createPositionSelector('simple-component.tsx', 18, 8);
-    const to = createPositionSelector('simple-component.tsx', 17, 8);
+    const from = createPositionSelector("simple-component.tsx", 21, 8);
+    const to = createPositionSelector("simple-component.tsx", 20, 8);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(true);
 
@@ -240,15 +171,15 @@ describe('Move.Before - Basic Operations', () => {
    * Expected Results:
    * - Original location no longer contains the element
    */
-  it('BEFORE-03: should remove element from original location', async () => {
+  it("BEFORE-03: should remove element from original location", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    const from = createPositionSelector('simple-component.tsx', 18, 8);
-    const to = createPositionSelector('simple-component.tsx', 17, 8);
+    const from = createPositionSelector("simple-component.tsx", 21, 8);
+    const to = createPositionSelector("simple-component.tsx", 20, 8);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(true);
 
@@ -260,7 +191,7 @@ describe('Move.Before - Basic Operations', () => {
 // Move.Before with Dependencies
 // =============================================================================
 
-describe('Move.Before - Dependency Handling', () => {
+describe("Move.Before - Dependency Handling", () => {
   /**
    * BEFORE-04: Move with hook dependency triggers hoisting
    *
@@ -279,17 +210,18 @@ describe('Move.Before - Dependency Handling', () => {
    * - Result.analysis.hoistedDeps includes the hook
    * - Hook is at component top level (Rules of Hooks compliant)
    */
-  it('BEFORE-04: should hoist hook dependency when needed', async () => {
+  it("BEFORE-04: should hoist hook dependency when needed", async () => {
     const files = [
-      { path: 'component-with-hooks.tsx', content: hooksComponentContent },
+      { path: "component-with-hooks.tsx", content: hooksComponentContent },
     ];
 
-    // Select element that uses count state
+    // Select element that uses count state at line 22
     // In CounterComponent: <span className="count-display">Count: {count}</span>
-    const from = createPositionSelector('component-with-hooks.tsx', 15, 6);
-    const to = createPositionSelector('component-with-hooks.tsx', 16, 6);
+    const from = createPositionSelector("component-with-hooks.tsx", 22, 6);
+    // Target: button at line 23
+    const to = createPositionSelector("component-with-hooks.tsx", 23, 6);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(true);
   });
@@ -303,16 +235,17 @@ describe('Move.Before - Dependency Handling', () => {
    * - Variable is accessible at new location
    * - May be hoisted or passed as prop
    */
-  it('BEFORE-09: should handle variable dependency', async () => {
+  it("BEFORE-09: should handle variable dependency", async () => {
     const files = [
-      { path: 'component-with-hooks.tsx', content: hooksComponentContent },
+      { path: "component-with-hooks.tsx", content: hooksComponentContent },
     ];
 
-    // Element using a variable
-    const from = createPositionSelector('component-with-hooks.tsx', 20, 6);
-    const to = createPositionSelector('component-with-hooks.tsx', 15, 6);
+    // Element using a variable - button at line 23
+    const from = createPositionSelector("component-with-hooks.tsx", 23, 6);
+    // Target: span at line 22
+    const to = createPositionSelector("component-with-hooks.tsx", 22, 6);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(true);
   });
@@ -322,7 +255,7 @@ describe('Move.Before - Dependency Handling', () => {
 // Move.Before - Nested Elements
 // =============================================================================
 
-describe('Move.Before - Nested Elements', () => {
+describe("Move.Before - Nested Elements", () => {
   /**
    * BEFORE-05: Move deeply nested element
    *
@@ -337,17 +270,16 @@ describe('Move.Before - Nested Elements', () => {
    * - Element moves to correct position
    * - Dependencies are properly handled
    */
-  it('BEFORE-05: should move deeply nested element', async () => {
+  it("BEFORE-05: should move deeply nested element", async () => {
     const files = [
-      { path: 'nested-components.tsx', content: nestedComponentContent },
+      { path: "nested-components.tsx", content: nestedComponentContent },
     ];
 
-    // Deep nested element
-    const from = createPositionSelector('nested-components.tsx', 50, 10);
-    // Shallower target
-    const to = createPositionSelector('nested-components.tsx', 45, 6);
+    // Move level-2-footer div (line 76) before Level3 component (line 72)
+    const from = createPositionSelector("nested-components.tsx", 76, 6);
+    const to = createPositionSelector("nested-components.tsx", 72, 6);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(true);
   });
@@ -357,7 +289,7 @@ describe('Move.Before - Nested Elements', () => {
 // Move.Before - Fragments
 // =============================================================================
 
-describe('Move.Before - Fragment Handling', () => {
+describe("Move.Before - Fragment Handling", () => {
   /**
    * BEFORE-06: Move element in fragment
    *
@@ -366,16 +298,16 @@ describe('Move.Before - Fragment Handling', () => {
    * Expected Results:
    * - Element moves correctly within fragment children
    */
-  it('BEFORE-06: should move element within fragment', async () => {
+  it("BEFORE-06: should move element within fragment", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    // FragmentComponent's children
-    const from = createPositionSelector('simple-component.tsx', 45, 6);
-    const to = createPositionSelector('simple-component.tsx', 44, 6);
+    // FragmentComponent's children - move Third before Second
+    const from = createPositionSelector("simple-component.tsx", 52, 6);
+    const to = createPositionSelector("simple-component.tsx", 51, 6);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(true);
   });
@@ -385,7 +317,7 @@ describe('Move.Before - Fragment Handling', () => {
 // Move.Before - Self-Closing Elements
 // =============================================================================
 
-describe('Move.Before - Self-Closing Elements', () => {
+describe("Move.Before - Self-Closing Elements", () => {
   /**
    * BEFORE-07: Move self-closing element
    *
@@ -395,16 +327,16 @@ describe('Move.Before - Self-Closing Elements', () => {
    * - Self-closing element moves to correct position
    * - Format is preserved (<img /> not <img></img>)
    */
-  it('BEFORE-07: should move self-closing element', async () => {
+  it("BEFORE-07: should move self-closing element", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    // Self-closing elements in SelfClosingElements component
-    const from = createPositionSelector('simple-component.tsx', 54, 6);
-    const to = createPositionSelector('simple-component.tsx', 53, 6);
+    // Self-closing elements - move input before img
+    const from = createPositionSelector("simple-component.tsx", 61, 6);
+    const to = createPositionSelector("simple-component.tsx", 60, 6);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(true);
   });
@@ -414,7 +346,7 @@ describe('Move.Before - Self-Closing Elements', () => {
 // Move.Before - Edge Cases
 // =============================================================================
 
-describe('Move.Before - Edge Cases', () => {
+describe("Move.Before - Edge Cases", () => {
   /**
    * BEFORE-08: Move to same position returns unchanged
    *
@@ -424,16 +356,16 @@ describe('Move.Before - Edge Cases', () => {
    * - Result.success === true
    * - Content unchanged
    */
-  it('BEFORE-08: should return unchanged when moving to same position', async () => {
+  it("BEFORE-08: should return unchanged when moving to same position", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
     // Same position
-    const from = createPositionSelector('simple-component.tsx', 17, 8);
-    const to = createPositionSelector('simple-component.tsx', 17, 8);
+    const from = createPositionSelector("simple-component.tsx", 20, 8);
+    const to = createPositionSelector("simple-component.tsx", 20, 8);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(true);
     // Content should be unchanged
@@ -444,16 +376,16 @@ describe('Move.Before - Edge Cases', () => {
    *
    * Test Purpose: Edge case - first child movement
    */
-  it('BEFORE-12: should handle first child movement', async () => {
+  it("BEFORE-12: should handle first child movement", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    // First child
-    const from = createPositionSelector('simple-component.tsx', 15, 6);
-    const to = createPositionSelector('simple-component.tsx', 20, 6);
+    // First child - header at line 16, move before main at line 19
+    const from = createPositionSelector("simple-component.tsx", 16, 6);
+    const to = createPositionSelector("simple-component.tsx", 19, 6);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(true);
   });
@@ -463,16 +395,16 @@ describe('Move.Before - Edge Cases', () => {
    *
    * Test Purpose: Edge case - last to first position
    */
-  it('BEFORE-13: should handle last child to first position', async () => {
+  it("BEFORE-13: should handle last child to first position", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    // Last child to before first
-    const from = createPositionSelector('simple-component.tsx', 21, 6);
-    const to = createPositionSelector('simple-component.tsx', 15, 6);
+    // Last child (footer at line 23) to before first (header at line 16)
+    const from = createPositionSelector("simple-component.tsx", 23, 6);
+    const to = createPositionSelector("simple-component.tsx", 16, 6);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(true);
   });
@@ -482,7 +414,7 @@ describe('Move.Before - Edge Cases', () => {
 // Move.Before - Error Cases
 // =============================================================================
 
-describe('Move.Before - Error Handling', () => {
+describe("Move.Before - Error Handling", () => {
   /**
    * BEFORE-10: Invalid source selector returns error
    *
@@ -492,20 +424,21 @@ describe('Move.Before - Error Handling', () => {
    * - Result.success === false
    * - Result.analysis.reason contains error info
    */
-  it('BEFORE-10: should return error for invalid source selector', async () => {
+  it("BEFORE-10: should return error for invalid source selector", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
     // Invalid source file
-    const from = createPositionSelector('nonexistent.tsx', 10, 5);
-    const to = createPositionSelector('simple-component.tsx', 17, 8);
+    const from = createPositionSelector("nonexistent.tsx", 10, 5);
+    const to = createPositionSelector("simple-component.tsx", 20, 8);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(false);
-    expect(result.value.analysis.canMove).toBe(false);
-    expect(result.value.analysis.reason).toBeDefined();
+    if (!result.ok) {
+      expect(result.error).toBeDefined();
+    }
   });
 
   /**
@@ -517,20 +450,21 @@ describe('Move.Before - Error Handling', () => {
    * - Result.success === false
    * - Result.analysis.reason contains error info
    */
-  it('BEFORE-11: should return error for invalid target selector', async () => {
+  it("BEFORE-11: should return error for invalid target selector", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
     // Invalid target file
-    const from = createPositionSelector('simple-component.tsx', 18, 8);
-    const to = createPositionSelector('nonexistent.tsx', 17, 8);
+    const from = createPositionSelector("simple-component.tsx", 21, 8);
+    const to = createPositionSelector("nonexistent.tsx", 20, 8);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(false);
-    expect(result.value.analysis.canMove).toBe(false);
-    expect(result.value.analysis.reason).toBeDefined();
+    if (!result.ok) {
+      expect(result.error).toBeDefined();
+    }
   });
 });
 
@@ -538,7 +472,7 @@ describe('Move.Before - Error Handling', () => {
 // Move.Before - Code Quality
 // =============================================================================
 
-describe('Move.Before - Code Quality', () => {
+describe("Move.Before - Code Quality", () => {
   /**
    * BEFORE-14: Move preserves comments
    *
@@ -547,16 +481,16 @@ describe('Move.Before - Code Quality', () => {
    * Expected Results:
    * - Comments associated with element are preserved
    */
-  it('BEFORE-14: should preserve comments', async () => {
+  it("BEFORE-14: should preserve comments", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    // Element with comment
-    const from = createPositionSelector('simple-component.tsx', 38, 6);
-    const to = createPositionSelector('simple-component.tsx', 35, 6);
+    // Element with comment - move from ComponentWithProps to SimpleComponent
+    const from = createPositionSelector("simple-component.tsx", 33, 6);
+    const to = createPositionSelector("simple-component.tsx", 17, 8);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(true);
   });
@@ -569,16 +503,16 @@ describe('Move.Before - Code Quality', () => {
    * Expected Results:
    * - Moved element has correct indentation for new position
    */
-  it('BEFORE-15: should adjust indentation', async () => {
+  it("BEFORE-15: should adjust indentation", async () => {
     const files = [
-      { path: 'nested-components.tsx', content: nestedComponentContent },
+      { path: "nested-components.tsx", content: nestedComponentContent },
     ];
 
-    // Element from deep nesting to shallow
-    const from = createPositionSelector('nested-components.tsx', 55, 12);
-    const to = createPositionSelector('nested-components.tsx', 30, 4);
+    // Move span from line 77 to before span at line 44 (both are leaf elements)
+    const from = createPositionSelector("nested-components.tsx", 77, 8);
+    const to = createPositionSelector("nested-components.tsx", 44, 8);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     expect(result.ok).toBe(true);
   });
@@ -588,35 +522,36 @@ describe('Move.Before - Code Quality', () => {
 // Move.Before - Result Structure Validation
 // =============================================================================
 
-describe('Move.Before - Result Structure', () => {
-  it('should return properly structured Result object', async () => {
+describe("Move.Before - Result Structure", () => {
+  it("should return properly structured Result object", async () => {
     const files = [
-      { path: 'simple-component.tsx', content: simpleComponentContent },
+      { path: "simple-component.tsx", content: simpleComponentContent },
     ];
 
-    const from = createPositionSelector('simple-component.tsx', 18, 8);
-    const to = createPositionSelector('simple-component.tsx', 17, 8);
+    const from = createPositionSelector("simple-component.tsx", 21, 8);
+    const to = createPositionSelector("simple-component.tsx", 20, 8);
 
-    const result = await regraft(files, from, to, Move.Before);
+    const result = regraft(files, from, to, Move.Before);
 
     // Validate Result structure
-    expect(result).toHaveProperty('success');
-    expect(result).toHaveProperty('codes');
-    expect(result).toHaveProperty('analysis');
+    expect(result).toHaveProperty("ok");
 
-    // Validate codes array structure
-    expect(Array.isArray(result.value.codes)).toBe(true);
-    if (result.value.codes.length > 0) {
-      expect(result.value.codes[0]).toHaveProperty('file');
-      expect(result.value.codes[0]).toHaveProperty('content');
-      expect(result.value.codes[0]).toHaveProperty('changed');
+    if (result.ok) {
+      expect(result).toHaveProperty("value");
+      // Validate codes array structure
+      expect(Array.isArray(result.value.codes)).toBe(true);
+      if (result.value.codes.length > 0) {
+        expect(result.value.codes[0]).toHaveProperty("file");
+        expect(result.value.codes[0]).toHaveProperty("content");
+        expect(result.value.codes[0]).toHaveProperty("changed");
+      }
+
+      // Validate analysis structure
+      expect(result.value.analysis).toHaveProperty("canMove");
+      expect(result.value.analysis).toHaveProperty("dependencies");
+      expect(result.value.analysis).toHaveProperty("hoistedDeps");
+      expect(Array.isArray(result.value.analysis.dependencies)).toBe(true);
+      expect(Array.isArray(result.value.analysis.hoistedDeps)).toBe(true);
     }
-
-    // Validate analysis structure
-    expect(result.value.analysis).toHaveProperty('canMove');
-    expect(result.value.analysis).toHaveProperty('dependencies');
-    expect(result.value.analysis).toHaveProperty('hoistedDeps');
-    expect(Array.isArray(result.value.analysis.dependencies)).toBe(true);
-    expect(Array.isArray(result.value.analysis.hoistedDeps)).toBe(true);
   });
 });

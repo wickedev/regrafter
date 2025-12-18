@@ -52,7 +52,7 @@ describe('CodeGenerator - Result-based Error Handling', () => {
       const result = generator.generate(invalidAst);
 
       expect(isErr(result)).toBe(true);
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error._tag).toBe('TransformError');
         expect(result.error.message).toContain('Code generation failed');
         expect(result.error.code).toBeDefined();
@@ -63,7 +63,7 @@ describe('CodeGenerator - Result-based Error Handling', () => {
       const invalidAst: t.File = { type: 'Invalid' } as unknown as t.File;
       const result = generator.generate(invalidAst);
 
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error.code).toBe('E060');
         expect(result.error._tag).toBe('TransformError');
       }
@@ -99,7 +99,7 @@ describe('CodeGenerator - Result-based Error Handling', () => {
       const result = generator.generateMultiple(files);
 
       expect(isErr(result)).toBe(true);
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error._tag).toBe('TransformError');
         expect(result.error.file).toBe('invalid.tsx');
       }
@@ -130,7 +130,7 @@ describe('CodeGenerator - Result-based Error Handling', () => {
 
       const result = generator.generate(invalidAst);
 
-      if (!result.ok) {
+      if (isErr(result)) {
         expect(result.error.message).toBeDefined();
         expect(result.error._tag).toBe('TransformError');
       }

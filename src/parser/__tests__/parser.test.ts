@@ -16,6 +16,8 @@ import {
   isJSXFile,
   isSupportedFile,
 } from '../types.js';
+import { ok } from '../../result/index.js';
+import type { File as BabelFile } from '@babel/types';
 
 describe('Parser', () => {
   let parser: Parser;
@@ -31,8 +33,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.js');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
-        expect(result.errors).toHaveLength(0);
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse JavaScript with modern syntax', () => {
@@ -44,7 +47,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.js');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse ES modules', () => {
@@ -55,7 +60,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.jsx');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
     });
 
@@ -65,8 +72,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.jsx');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
-        expect(result.errors).toHaveLength(0);
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse JSX with expressions', () => {
@@ -79,7 +87,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.jsx');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse JSX with fragments', () => {
@@ -94,7 +104,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.jsx');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse JSX with spread attributes', () => {
@@ -102,7 +114,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.jsx');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse JSX with conditional rendering', () => {
@@ -117,7 +131,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.jsx');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse JSX with map expressions', () => {
@@ -131,7 +147,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.jsx');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
     });
 
@@ -146,8 +164,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.ts');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
-        expect(result.errors).toHaveLength(0);
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse TypeScript interfaces', () => {
@@ -160,7 +179,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.ts');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse TypeScript generics', () => {
@@ -173,7 +194,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.ts');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse TypeScript enums', () => {
@@ -188,7 +211,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.ts');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
     });
 
@@ -203,8 +228,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.tsx');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
-        expect(result.errors).toHaveLength(0);
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse TSX with React hooks', () => {
@@ -228,7 +254,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.tsx');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse TSX with generics in JSX', () => {
@@ -245,7 +273,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.tsx');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
     });
 
@@ -261,7 +291,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.tsx');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse class properties', () => {
@@ -279,7 +311,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.ts');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
 
       it('should parse decorators', () => {
@@ -295,7 +329,9 @@ describe('Parser', () => {
         const result = parser.parse(source, 'test.ts');
 
         expect(result.ok).toBe(true);
-        expect(result.value).not.toBeNull();
+        if (result.ok) {
+          expect(result.value).not.toBeNull();
+        }
       });
     });
   });
@@ -305,27 +341,27 @@ describe('Parser', () => {
       const result = parser.parse('', 'test.js');
 
       expect(result.ok).toBe(false);
-      expect(result.value).toBeNull();
-      expect(result.errors).toHaveLength(1);
-      expect(result.error!.code).toBe(ParseErrorCodes.EMPTY_SOURCE);
+      if (!result.ok) {
+        expect(result.error.code).toBe(ParseErrorCodes.EMPTY_SOURCE);
+      }
     });
 
     it('should return error for whitespace-only source', () => {
       const result = parser.parse('   \n\t  ', 'test.js');
 
       expect(result.ok).toBe(false);
-      expect(result.value).toBeNull();
-      expect(result.errors).toHaveLength(1);
-      expect(result.error!.code).toBe(ParseErrorCodes.EMPTY_SOURCE);
+      if (!result.ok) {
+        expect(result.error.code).toBe(ParseErrorCodes.EMPTY_SOURCE);
+      }
     });
 
     it('should return error for unsupported file types', () => {
       const result = parser.parse('content', 'test.py');
 
       expect(result.ok).toBe(false);
-      expect(result.value).toBeNull();
-      expect(result.errors).toHaveLength(1);
-      expect(result.error!.code).toBe(ParseErrorCodes.UNSUPPORTED_FILE);
+      if (!result.ok) {
+        expect(result.error.code).toBe(ParseErrorCodes.UNSUPPORTED_FILE);
+      }
     });
 
     it('should recover from syntax errors when possible', () => {
@@ -339,9 +375,10 @@ describe('Parser', () => {
       `;
       const result = parser.parse(source, 'test.js');
 
-      // With error recovery, we should get an AST with errors
+      // With error recovery, we should get either an AST or an error
       // The exact behavior depends on Babel's error recovery
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
+      expect(result).toBeDefined();
+      expect(typeof result.ok).toBe('boolean');
     });
 
     it('should include location information in errors', () => {
@@ -350,17 +387,20 @@ describe('Parser', () => {
       const result = parser.parse(source, 'test.js');
 
       // If there are errors, they should have location info
-      if (result.errors.length > 0 && result.error!.location) {
-        expect(result.error!.location).toHaveProperty('start');
-        expect(result.error!.location?.start).toHaveProperty('line');
-        expect(result.error!.location?.start).toHaveProperty('column');
+      if (!result.ok && result.error.location) {
+        expect(result.error.location).toHaveProperty('start');
+        expect(result.error.location?.start).toHaveProperty('line');
+        expect(result.error.location?.start).toHaveProperty('column');
       }
     });
 
     it('should include filename in error messages', () => {
       const result = parser.parse('', 'my-component.tsx');
 
-      expect(result.error!.message).toContain('my-component.tsx');
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.message).toContain('my-component.tsx');
+      }
     });
   });
 
@@ -375,9 +415,9 @@ describe('Parser', () => {
       const results = parser.parseFiles(files);
 
       expect(results.size).toBe(3);
-      expect(results.get('file1.js')?.success).toBe(true);
-      expect(results.get('file2.tsx')?.success).toBe(true);
-      expect(results.get('file3.ts')?.success).toBe(true);
+      expect(results.get('file1.js')?.ok).toBe(true);
+      expect(results.get('file2.tsx')?.ok).toBe(true);
+      expect(results.get('file3.ts')?.ok).toBe(true);
     });
 
     it('should handle mix of valid and invalid files', () => {
@@ -390,9 +430,9 @@ describe('Parser', () => {
       const results = parser.parseFiles(files);
 
       expect(results.size).toBe(3);
-      expect(results.get('valid.js')?.success).toBe(true);
-      expect(results.get('empty.js')?.success).toBe(false);
-      expect(results.get('unsupported.py')?.success).toBe(false);
+      expect(results.get('valid.js')?.ok).toBe(true);
+      expect(results.get('empty.js')?.ok).toBe(false);
+      expect(results.get('unsupported.py')?.ok).toBe(false);
     });
 
     it('should return empty map for empty input', () => {
@@ -413,7 +453,7 @@ describe('Parser', () => {
 
       // Second parse with same content should use cache
       const result2 = parser.parse(source, filename);
-      expect(result2.success).toBe(true);
+      expect(result2.ok).toBe(true);
       expect(parser.getCacheSize()).toBe(1);
     });
 
@@ -492,10 +532,9 @@ describe('ASTStore', () => {
   it('should store and retrieve parse results', () => {
     const content = 'const x = 1;';
     const result = {
-      ast: {} as any,
-      errors: [],
-      success: true,
-    };
+      ok: true,
+      value: {} as any,
+    } as any;
 
     store.set('test.js', content, result);
     const cached = store.get('test.js', content);
@@ -510,10 +549,9 @@ describe('ASTStore', () => {
 
   it('should invalidate on content change', () => {
     const result = {
-      ast: {} as any,
-      errors: [],
-      success: true,
-    };
+      ok: true,
+      value: {} as any,
+    } as any;
 
     store.set('test.js', 'const x = 1;', result);
     const cached = store.get('test.js', 'const x = 2;'); // Different content
@@ -523,22 +561,19 @@ describe('ASTStore', () => {
 
   it('should not store failed parses', () => {
     const failedResult = {
-      ast: null,
-      errors: [{ message: 'Error', location: null, code: 'E001' }],
-      success: false,
-    };
+      ok: false,
+      error: { message: 'Error', location: null, code: 'E001' },
+    } as any;
 
     store.set('test.js', 'content', failedResult);
     expect(store.size).toBe(0);
   });
 
   it('should invalidate specific entries', () => {
-    const result = { ast: {}, errors: [], success: true };
+    const result = ok({} as BabelFile);
 
-    // @ts-expect-error - intentional type mismatch for testing
-      store.set('a.js', 'const a = 1;', result);
-    // @ts-expect-error - intentional type mismatch for testing
-      store.set('b.js', 'const b = 2;', result);
+    store.set('a.js', 'const a = 1;', result);
+    store.set('b.js', 'const b = 2;', result);
     expect(store.size).toBe(2);
 
     store.invalidate('a.js');
@@ -548,12 +583,10 @@ describe('ASTStore', () => {
   });
 
   it('should clear all entries', () => {
-    const result = { ast: {}, errors: [], success: true };
+    const result = ok({} as BabelFile);
 
-    // @ts-expect-error - intentional type mismatch for testing
-      store.set('a.js', 'const a = 1;', result);
-    // @ts-expect-error - intentional type mismatch for testing
-      store.set('b.js', 'const b = 2;', result);
+    store.set('a.js', 'const a = 1;', result);
+    store.set('b.js', 'const b = 2;', result);
     store.clear();
 
     expect(store.size).toBe(0);

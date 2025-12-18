@@ -12,7 +12,7 @@
  */
 
 import { bench, describe } from 'vitest';
-import { ok, err, map, flatMap, mapErr, tryCatch } from '../index.js';
+import { ok, err, map, flatMap, mapErr, tryCatch, type Result } from '../index.js';
 
 // =============================================================================
 // Benchmark 1: Result Creation Performance
@@ -51,7 +51,7 @@ describe('Mapping Operations Performance', () => {
   });
 
   bench('map() on Err (passthrough)', () => {
-    map(errValue, (x) => x * 2);
+    map(errValue, (x: number) => x * 2);
   });
 
   bench('flatMap() on Ok', () => {
@@ -59,7 +59,7 @@ describe('Mapping Operations Performance', () => {
   });
 
   bench('flatMap() on Err (passthrough)', () => {
-    flatMap(errValue, (x) => ok(x * 2));
+    flatMap(errValue, (x: number) => ok(x * 2));
   });
 
   bench('mapErr() on Ok (passthrough)', () => {
@@ -80,24 +80,21 @@ describe('Chained Operations Performance', () => {
     const result = ok(10);
     const step1 = map(result, (x) => x * 2);
     const step2 = map(step1, (x) => x + 5);
-    const step3 = map(step2, (x) => x / 3);
-    return step3;
+    map(step2, (x) => x / 3);
   });
 
   bench('flatMap chain (3 operations)', () => {
     const result = ok(10);
     const step1 = flatMap(result, (x) => ok(x * 2));
     const step2 = flatMap(step1, (x) => ok(x + 5));
-    const step3 = flatMap(step2, (x) => ok(x / 3));
-    return step3;
+    flatMap(step2, (x) => ok(x / 3));
   });
 
   bench('mixed chain (map + flatMap + mapErr)', () => {
     const result = ok(10);
     const step1 = map(result, (x) => x * 2);
     const step2 = flatMap(step1, (x) => (x > 15 ? ok(x) : err('too small')));
-    const step3 = mapErr(step2, (e) => `Error: ${e}`);
-    return step3;
+    mapErr(step2, (e) => `Error: ${e}`);
   });
 });
 
@@ -128,7 +125,7 @@ describe('End-to-End Pipeline - Result vs Try-Catch', () => {
 
   function processResult(input: string): Result<number, string> {
     return flatMap(parseNumberResult(input), (num) =>
-      flatMap(validateRangeResult(num), (validated) => ok(validated * 2))
+      flatMap(validateRangeResult(num), (validated: number) => ok(validated * 2))
     );
   }
 
@@ -223,8 +220,7 @@ describe('Stress Test - High Volume', () => {
   bench('1,000 chained operations', () => {
     let result: Result<number, string> = ok(0);
     for (let i = 0; i < 1000; i++) {
-      result = map(result, (x) => x + 1);
+      result = map(result, (x: number) => x + 1);
     }
-    return result;
   });
 });

@@ -21,8 +21,6 @@ import {
   createSuggestedFix,
   createMoveAnalysis,
   createCode,
-  createSuccessResult,
-  createFailureResult,
   createAnalysisStats,
 } from '../../types/factories.js';
 import { DependencyType, ResolutionStrategy } from '../../types/public.js';
@@ -172,24 +170,9 @@ describe('Regression: Factory Functions', () => {
     expect(stats.transitiveDependencies).toBe(0);
   });
 
-  it('createSuccessResult should create valid success result', () => {
-    const codes = [createCode({ file: 'test.tsx', content: 'code' })];
-    const analysis = createMoveAnalysis({ canMove: true });
-    const result = createSuccessResult(codes, analysis);
-
-    expect(result.success).toBe(true);
-    expect(result.codes).toBe(codes);
-    expect(result.analysis).toBe(analysis);
-  });
-
-  it('createFailureResult should create valid failure result', () => {
-    const result = createFailureResult('Test failure');
-
-    expect(result.success).toBe(false);
-    expect(result.codes).toEqual([]);
-    expect(result.analysis.canMove).toBe(false);
-    expect(result.analysis.reason).toBe('Test failure');
-  });
+  // Note: createSuccessResult and createFailureResult have been removed
+  // in favor of the new Result<T, E> type system using ok() and err()
+  // from src/result/index.ts
 });
 
 // ============================================================================

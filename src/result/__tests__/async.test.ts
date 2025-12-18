@@ -90,7 +90,7 @@ describe('mapAsync() operation', () => {
       const error: CustomError = { code: 'E001', message: 'test error' };
       const result: Result<number, CustomError> = err(error);
 
-      const transformed = await mapAsync(result, async (x) => x * 2);
+      const transformed = await mapAsync(result, async (x: number) => x * 2);
 
       expect(transformed.ok).toBe(false);
       if (!transformed.ok) {
@@ -245,7 +245,7 @@ describe('flatMapAsync() operation', () => {
       const error: CustomError = { code: 'E001', message: 'test error' };
       const result: Result<number, CustomError> = err(error);
 
-      const chained = await flatMapAsync(result, async (x) => ok(x * 2));
+      const chained = await flatMapAsync(result, async (x: number) => ok(x * 2));
 
       expect(chained.ok).toBe(false);
       if (!chained.ok) {
@@ -347,7 +347,6 @@ describe('flatMapAsync() operation', () => {
 
     it('should handle error type transformations', async () => {
       type ErrorA = { type: 'A'; message: string };
-      type ErrorB = { type: 'B'; message: string };
 
       const result: Result<number, ErrorA> = ok(42);
 

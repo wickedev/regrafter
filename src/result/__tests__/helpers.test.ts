@@ -751,8 +751,8 @@ describe('Result Combining Operations', () => {
       if (combined.ok) {
         const values: CustomValue[] = combined.value;
         expect(values).toHaveLength(2);
-        expect(values[0].id).toBe(1);
-        expect(values[1].name).toBe('second');
+        expect(values[0]?.id).toBe(1);
+        expect(values[1]?.name).toBe('second');
       }
     });
 
@@ -910,9 +910,9 @@ describe('Result Combining Operations', () => {
       if (!combined.ok) {
         const errors: CustomError[] = combined.error;
         expect(errors).toHaveLength(3);
-        expect(errors[0].code).toBe('E001');
-        expect(errors[1].code).toBe('E002');
-        expect(errors[2].code).toBe('E003');
+        expect(errors[0]?.code).toBe('E001');
+        expect(errors[1]?.code).toBe('E002');
+        expect(errors[2]?.code).toBe('E003');
       }
     });
   });

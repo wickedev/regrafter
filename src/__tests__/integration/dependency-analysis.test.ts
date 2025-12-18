@@ -68,7 +68,7 @@ function Counter() {
       );
 
       expect(analysis.canMove).toBe(true);
-      expect(analysis.dependencies.some(d => d.type === DependencyType.Hook)).toBe(true);
+      expect(analysis.dependencies.some((d) => d.type === DependencyType.Hook)).toBe(true);
     });
 
     it('should detect import dependencies', () => {
@@ -99,7 +99,7 @@ function App() {
       );
 
       expect(analysis.canMove).toBe(true);
-      expect(analysis.dependencies.some(d => d.type === DependencyType.Import)).toBe(true);
+      expect(analysis.dependencies.some((d) => d.type === DependencyType.Import)).toBe(true);
     });
 
     it('should detect variable dependencies', () => {
@@ -128,7 +128,7 @@ function App() {
       );
 
       expect(analysis.canMove).toBe(true);
-      expect(analysis.dependencies.some(d => d.type === DependencyType.Variable)).toBe(true);
+      expect(analysis.dependencies.some((d) => d.type === DependencyType.Variable)).toBe(true);
     });
 
     it('should provide analysis stats', () => {
@@ -231,7 +231,7 @@ function ThemedButton() {
         Move.Before
       );
 
-      expect(analysis.dependencies.some(d => d.type === DependencyType.Context || d.type === DependencyType.Hook)).toBe(true);
+      expect(analysis.dependencies.some((d) => d.type === DependencyType.Context || d.type === DependencyType.Hook)).toBe(true);
     });
 
     it('should handle useRef dependencies', () => {
@@ -261,7 +261,7 @@ function Form() {
         Move.Inside
       );
 
-      expect(analysis.dependencies.some(d => d.type === DependencyType.Ref || d.type === DependencyType.Hook)).toBe(true);
+      expect(analysis.dependencies.some((d) => d.type === DependencyType.Ref || d.type === DependencyType.Hook)).toBe(true);
     });
 
     it('should handle combined dependencies', () => {
@@ -305,7 +305,7 @@ function Dashboard() {
 
       expect(analysis.dependencies.length).toBeGreaterThan(0);
 
-      const depTypes = analysis.dependencies.map(d => d.type);
+      const depTypes = analysis.dependencies.map((d) => d.type);
       expect(depTypes).toContain(DependencyType.Hook);
       // The <ul> element uses data from useState (Hook) but not title (Variable)
       // So we only expect Hook dependencies
@@ -477,18 +477,20 @@ function App() {
       );
 
       expect(result.ok).toBe(true);
-      expect(result.value.analysis).toBeDefined();
-      expect(result.value.analysis?.canMove).toBe(true);
-      expect(result.value.analysis?.dependencies).toBeDefined();
+      if (result.ok) {
+        expect(result.value.analysis).toBeDefined();
+        expect(result.value.analysis?.canMove).toBe(true);
+        expect(result.value.analysis?.dependencies).toBeDefined();
 
-      // Dependencies array should be defined (may be empty if moving within same scope)
-      expect(Array.isArray(result.value.analysis?.dependencies)).toBe(true);
+        // Dependencies array should be defined (may be empty if moving within same scope)
+        expect(Array.isArray(result.value.analysis?.dependencies)).toBe(true);
 
-      // Stats should be defined
-      expect(result.value.analysis?.stats).toBeDefined();
+        // Stats should be defined
+        expect(result.value.analysis?.stats).toBeDefined();
 
-      // Code should not be changed in dryRun mode
-      expect(result.value.codes.every(c => !c.changed)).toBe(true);
+        // Code should not be changed in dryRun mode
+        expect(result.value.codes.every((c) => !c.changed)).toBe(true);
+      }
     });
 
     it('should detect useState dependencies in dryRun mode', () => {
@@ -520,12 +522,14 @@ function Counter() {
       );
 
       expect(result.ok).toBe(true);
-      expect(result.value.analysis).toBeDefined();
-      expect(result.value.analysis?.dependencies.some(d => d.type === DependencyType.Hook)).toBe(true);
+      if (result.ok) {
+        expect(result.value.analysis).toBeDefined();
+        expect(result.value.analysis?.dependencies.some((d) => d.type === DependencyType.Hook)).toBe(true);
 
-      // Stats should be populated
-      expect(result.value.analysis?.stats).toBeDefined();
-      expect(result.value.analysis?.stats?.hookDependencies).toBeGreaterThan(0);
+        // Stats should be populated
+        expect(result.value.analysis?.stats).toBeDefined();
+        expect(result.value.analysis?.stats?.hookDependencies).toBeGreaterThan(0);
+      }
     });
 
     it('should provide stats in dryRun mode', () => {
@@ -558,10 +562,12 @@ function App() {
       );
 
       expect(result.ok).toBe(true);
-      expect(result.value.analysis?.stats).toBeDefined();
-      expect(result.value.analysis?.stats?.totalDependencies).toBeGreaterThan(0);
-      expect(result.value.analysis?.stats?.hookDependencies).toBeGreaterThan(0);
-      expect(result.value.analysis?.stats?.variableDependencies).toBeGreaterThan(0);
+      if (result.ok) {
+        expect(result.value.analysis?.stats).toBeDefined();
+        expect(result.value.analysis?.stats?.totalDependencies).toBeGreaterThan(0);
+        expect(result.value.analysis?.stats?.hookDependencies).toBeGreaterThan(0);
+        expect(result.value.analysis?.stats?.variableDependencies).toBeGreaterThan(0);
+      }
     });
 
     it('should return unchanged code in dryRun mode', () => {
@@ -588,9 +594,11 @@ function App() {
         { dryRun: true }
       );
 
-      expect(result.value.codes).toHaveLength(1);
-      expect(result.value.codes[0]?.changed).toBe(false);
-      expect(result.value.codes[0]?.content).toBe(code);
+      if (result.ok) {
+        expect(result.value.codes).toHaveLength(1);
+        expect(result.value.codes[0]?.changed).toBe(false);
+        expect(result.value.codes[0]?.content).toBe(code);
+      }
     });
 
     it('should handle invalid moves in dryRun mode', () => {
@@ -613,8 +621,9 @@ function App() {
       );
 
       expect(result.ok).toBe(false);
-      expect(result.value.analysis?.canMove).toBe(false);
-      expect(result.value.analysis?.reason).toBeDefined();
+      if (!result.ok) {
+        expect(result.error.message).toBeDefined();
+      }
     });
   });
 });

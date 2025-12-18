@@ -50,7 +50,7 @@ function Footer() {
         console.error('Error:', result.error);
       }
       expect(result.ok).toBe(true);
-      if (result.value.codes[0] !== undefined) {
+      if (result.ok && result.value.codes[0] !== undefined) {
         expect(result.value.codes[0].content).toBe("function Parent() {\n  const isActive = true;\n  return <div><h1>Title</h1><Footer />{isActive && <ActiveStatus />}</div>;\n}\nfunction ActiveStatus() {\n  return <span>Active</span>;\n}\nfunction Footer() {\n  return <div>Footer</div>;\n}");
       }
     });
@@ -96,7 +96,7 @@ function Footer() {
       expect(result.ok).toBe(true);
 
       // Verify the conditional moved before Header
-      if (result.value.codes[0] !== undefined) {
+      if (result.ok && result.value.codes[0] !== undefined) {
         const headerIndex = result.value.codes[0].content.indexOf('<Header />');
         const conditionalIndex = result.value.codes[0].content.indexOf('{user && user.name && <UserProfile');
         expect(conditionalIndex).toBeLessThan(headerIndex);
@@ -140,7 +140,7 @@ function Footer() {
       );
 
       expect(result.ok).toBe(true);
-      if (result.value.codes[0] !== undefined) {
+      if (result.ok && result.value.codes[0] !== undefined) {
         expect(result.value.codes[0].content).toContain('items.map');
         expect(result.value.codes[0].content).toContain('<Footer />');
 
@@ -186,7 +186,7 @@ function Footer() {
       );
 
       expect(result.ok).toBe(true);
-      if (result.value.codes[0] !== undefined) {
+      if (result.ok && result.value.codes[0] !== undefined) {
         expect(result.value.codes[0].content).toContain('data.filter');
 
         // Verify the chained expression moved before h1
@@ -237,7 +237,7 @@ function Footer() {
       );
 
       expect(result.ok).toBe(true);
-      if (result.value.codes[0] !== undefined) {
+      if (result.ok && result.value.codes[0] !== undefined) {
         expect(result.value.codes[0].content).toContain('isLoading ?');
         expect(result.value.codes[0].content).toContain('<Footer />');
 
@@ -287,7 +287,7 @@ function Footer() {
       );
 
       expect(result.ok).toBe(true);
-      if (result.value.codes[0] !== undefined) {
+      if (result.ok && result.value.codes[0] !== undefined) {
         expect(result.value.codes[0].content).toContain('isOpen ?');
 
         // Verify the ternary moved before Header
@@ -340,7 +340,7 @@ function Footer() {
       // This should work - the conditional expression and its dependencies
       // (isVisible, setIsVisible) should be handled as an atomic unit
       expect(result.ok).toBe(true);
-      if (result.value.codes[0] !== undefined) {
+      if (result.ok && result.value.codes[0] !== undefined) {
         expect(result.value.codes[0].content).toContain('isVisible &&');
         expect(result.value.codes[0].content).toContain('setIsVisible');
       }

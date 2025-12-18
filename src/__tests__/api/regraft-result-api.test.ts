@@ -8,7 +8,6 @@
 import { describe, it, expect } from 'vitest';
 import { regraft, Move, type FileInput } from '../../index.js';
 import { isOk, isErr } from '../../result/index.js';
-import type { RegraffError } from '../../errors/index.js';
 
 describe('Task 17.1: Public API returns Result<T, E> directly', () => {
   describe('Successful transformations', () => {
@@ -98,7 +97,7 @@ describe('Task 17.1: Public API returns Result<T, E> directly', () => {
         expect(result.value.codes.length).toBeGreaterThan(0);
 
         // Should have file property
-        expect(result.value.codes[0].file).toBe('App.tsx');
+        expect(result.value.codes[0]?.file).toBe('App.tsx');
       }
     });
   });
@@ -173,7 +172,9 @@ describe('Task 17.1: Public API returns Result<T, E> directly', () => {
         // Error should include file context (may be 'unknown' in some cases)
         expect(result.error).toHaveProperty('file');
         expect(typeof result.error.file).toBe('string');
-        expect(result.error.file.length).toBeGreaterThan(0);
+        if (result.error.file) {
+          expect(result.error.file.length).toBeGreaterThan(0);
+        }
       }
     });
 

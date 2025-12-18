@@ -39,8 +39,10 @@ describe('Selector Helper Functions - No Result Migration Needed', () => {
       // falls within a node's location. It never throws.
       const node = t.identifier('test');
       node.loc = {
-        start: { line: 1, column: 0 },
-        end: { line: 1, column: 4 },
+        start: { line: 1, column: 0, index: 0 },
+        end: { line: 1, column: 4, index: 4 },
+        filename: 'test.tsx',
+        identifierName: undefined,
       };
 
       // Helper is pure - returns boolean, never throws
@@ -53,14 +55,18 @@ describe('Selector Helper Functions - No Result Migration Needed', () => {
       // It's a pure calculation that never fails
       const smallNode = t.identifier('x');
       smallNode.loc = {
-        start: { line: 1, column: 0 },
-        end: { line: 1, column: 1 },
+        start: { line: 1, column: 0, index: 0 },
+        end: { line: 1, column: 1, index: 1 },
+        filename: 'test.tsx',
+        identifierName: undefined,
       };
 
       const largeNode = t.identifier('veryLongIdentifierName');
       largeNode.loc = {
-        start: { line: 1, column: 0 },
-        end: { line: 5, column: 20 },
+        start: { line: 1, column: 0, index: 0 },
+        end: { line: 5, column: 20, index: 100 },
+        filename: 'test.tsx',
+        identifierName: undefined,
       };
 
       // Pure mathematical calculation - no Result needed
