@@ -228,6 +228,7 @@ import type * as t from '@babel/types';
 const traverse = loadTraverseFunction(traverseModule);
 
 import { DependencyAnalyzer, createMoveAnalysisBuilder, validateMoveOperation, type MoveValidationResult } from './analyzer/index.js';
+import type { ScopeInfo } from './types/internal.js';
 import {
   createSuccessResult,
   createErrorResult,
@@ -783,8 +784,31 @@ function moveWithHoisting(
   }
   const depAnalysis = depAnalysisResult.value;
 
+  // Check if targetScope is an ancestor of sourceScope
+  // If so, dependencies are already accessible and hoisting is not needed
+  const targetIsAncestor = (sourceScope: ScopeInfo | null, targetScope: ScopeInfo): boolean => {
+    let current = sourceScope;
+    let depth = 0;
+    const MAX_DEPTH = 100; // Prevent infinite loops
+
+    while (current !== null && depth < MAX_DEPTH) {
+      if (current.id === targetScope.id) {
+        return true;
+      }
+      current = current.parent;
+      depth++;
+    }
+    return false;
+  };
+
+  const shouldSkipHoisting =
+    sourceScope &&
+    targetScope &&
+    depAnalysis.needsHoisting.length > 0 &&
+    targetIsAncestor(sourceScope, targetScope);
+
   // If there are dependencies that need hoisting, create and execute a hoisting plan
-  if (depAnalysis.needsHoisting.length > 0 && sourceScope && targetScope) {
+  if (depAnalysis.needsHoisting.length > 0 && sourceScope && targetScope && !shouldSkipHoisting) {
     // Create hoisting context
     const context: HoistContext = {
       sourceFile: from.file,
@@ -814,6 +838,14 @@ function moveWithHoisting(
       };
 
       executor.execute(hoistPlan, execContext);
+
+      // Recrawl scope to synchronize Babel's internal state after AST modifications
+      traverse(sourceAst, {
+        Program(path: NodePath<t.Program>) {
+          path.scope.crawl();
+          path.stop();
+        },
+      });
 
       // Refresh node paths after hoisting
       const refreshed = refreshNodePaths(

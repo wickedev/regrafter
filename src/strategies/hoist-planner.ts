@@ -9,8 +9,8 @@ import {
   createHoistOperation,
   createPropThreadOperation,
   generateId,
-} from '../types/factories.js';
-import { ScopeType, HoistStrategy } from '../types/internal.js';
+} from "../types/factories.js";
+import { ScopeType, HoistStrategy } from "../types/internal.js";
 import type {
   ComponentScope,
   DependencyAnalysis,
@@ -19,11 +19,11 @@ import type {
   InternalDependency,
   PropThreadOperation,
   ScopeInfo,
-} from '../types/internal.js';
-import { DependencyType } from '../types/public.js';
+} from "../types/internal.js";
+import { DependencyType } from "../types/public.js";
 
-import type { HoistContext, HoistPlan, HoistPlanItem } from './types.js';
-import { isHookName } from './types.js';
+import type { HoistContext, HoistPlan, HoistPlanItem } from "./types.js";
+import { isHookName } from "./types.js";
 
 // ===============================================================================
 // HoistPlanner Class
@@ -68,7 +68,7 @@ export class HoistPlanner {
       const planItem = this.planDependencyHoist(dep, context);
 
       if (planItem) {
-        if (planItem.reason !== undefined && planItem.reason !== '') {
+        if (planItem.reason !== undefined && planItem.reason !== "") {
           // Could not hoist
           plan.unhoistable.push({
             dependency: dep,
@@ -177,8 +177,36 @@ export class HoistPlanner {
         dependency: dep,
         operation: this.createDefaultHoistOperation(dep, context),
         needsBackwardReference: false,
-        reason: 'No valid hook location found in target scope chain',
+        reason: "No valid hook location found in target scope chain",
       };
+    }
+
+    // Check for cross-component hoisting
+    // Hook results can be hoisted within the same file (same-file components are accessible)
+    // But cross-file hoisting to non-ancestor components is not allowed
+    if (
+      dep.scope.type === ScopeType.Component &&
+      validScope.type === ScopeType.Component
+    ) {
+      if (dep.scope.id !== validScope.id) {
+        // Allow same-file hoisting (components in same file can access each other's scope)
+        const isSameFile = dep.origin.file === context.targetFile;
+
+        // If cross-file, check if validScope is an ancestor
+        if (!isSameFile) {
+          const isAncestor = this.isScopeAncestor(validScope, dep.scope);
+          if (!isAncestor) {
+            return {
+              dependency: dep,
+              operation: this.createDefaultHoistOperation(dep, context),
+              needsBackwardReference: false,
+              reason:
+                "Cannot hoist hook results across files to non-ancestor components",
+            };
+          }
+        }
+        // Same-file hoisting is allowed
+      }
     }
 
     // Check if target scope is conditional or in a loop
@@ -191,7 +219,7 @@ export class HoistPlanner {
           operation: this.createDefaultHoistOperation(dep, context),
           needsBackwardReference: false,
           reason:
-            'Cannot hoist hook to conditional or loop scope (Rules of Hooks)',
+            "Cannot hoist hook to conditional or loop scope (Rules of Hooks)",
         };
       }
     }
@@ -354,7 +382,7 @@ export class HoistPlanner {
         dependency: dep,
         operation: this.createDefaultHoistOperation(dep, context),
         needsBackwardReference: false,
-        reason: 'No valid hook location found for ref',
+        reason: "No valid hook location found for ref",
       };
     }
 
@@ -427,17 +455,17 @@ export class HoistPlanner {
     }
 
     return {
-      id: generateId('import'),
+      id: generateId("import"),
       file: context.targetFile,
       importSource: dep.origin.file,
       specifiers: [
         {
-          type: 'named',
+          type: "named",
           imported: dep.symbol,
           local: dep.symbol,
         },
       ],
-      position: 'grouped',
+      position: "grouped",
     };
   }
 
@@ -583,17 +611,21 @@ export class HoistPlanner {
     let functionName: string | undefined;
 
     // Function declaration
-    if (node.type === 'FunctionDeclaration' && node.id !== undefined && node.id !== null) {
+    if (
+      node.type === "FunctionDeclaration" &&
+      node.id !== undefined &&
+      node.id !== null
+    ) {
       functionName = node.id.name;
     }
     // Arrow function or function expression assigned to variable
     else if (
-      (node.type === 'ArrowFunctionExpression' ||
-        node.type === 'FunctionExpression') &&
+      (node.type === "ArrowFunctionExpression" ||
+        node.type === "FunctionExpression") &&
       path.parentPath?.isVariableDeclarator() === true
     ) {
       const id = path.parentPath.node.id;
-      if (id.type === 'Identifier') {
+      if (id.type === "Identifier") {
         functionName = id.name;
       }
     }
@@ -637,7 +669,7 @@ export class HoistPlanner {
     }
 
     // If it's a variable declarator, check the init
-    if (node.type === 'VariableDeclarator') {
+    if (node.type === "VariableDeclarator") {
       const init = node.init;
       if (init === undefined || init === null) {
         return true; // Uninitialized is considered pure
@@ -645,27 +677,30 @@ export class HoistPlanner {
 
       // Literals are pure
       if (
-        init.type === 'StringLiteral' ||
-        init.type === 'NumericLiteral' ||
-        init.type === 'BooleanLiteral' ||
-        init.type === 'NullLiteral'
+        init.type === "StringLiteral" ||
+        init.type === "NumericLiteral" ||
+        init.type === "BooleanLiteral" ||
+        init.type === "NullLiteral"
       ) {
         return true;
       }
 
       // Template literals without expressions are pure
-      if (init.type === 'TemplateLiteral' && init.expressions.length === 0) {
+      if (init.type === "TemplateLiteral" && init.expressions.length === 0) {
         return true;
       }
 
       // Object/Array literals may be pure (simplified check)
-      if (init.type === 'ObjectExpression' || init.type === 'ArrayExpression') {
+      if (init.type === "ObjectExpression" || init.type === "ArrayExpression") {
         return true; // Simplified - should recursively check
       }
 
       // Function expressions and arrow functions can be hoisted
       // They may reference hoisted dependencies, but that's handled separately
-      if (init.type === 'FunctionExpression' || init.type === 'ArrowFunctionExpression') {
+      if (
+        init.type === "FunctionExpression" ||
+        init.type === "ArrowFunctionExpression"
+      ) {
         return true;
       }
     }
@@ -744,6 +779,24 @@ export class HoistPlanner {
   /**
    * Check if a dependency is critical (blocks the move if not resolvable)
    */
+  /**
+   * Check if a scope is an ancestor of another scope
+   */
+  private isScopeAncestor(ancestor: ScopeInfo, descendant: ScopeInfo): boolean {
+    let current: ScopeInfo | null = descendant.parent;
+    let depth = 0;
+    const MAX_DEPTH = 100; // Prevent infinite loops
+
+    while (current !== null && depth < MAX_DEPTH) {
+      if (current.id === ancestor.id) {
+        return true;
+      }
+      current = current.parent;
+      depth++;
+    }
+    return false;
+  }
+
   private isCriticalDependency(dep: InternalDependency): boolean {
     // Hooks are always critical - they must be resolvable
     if (dep.type === DependencyType.Hook) {

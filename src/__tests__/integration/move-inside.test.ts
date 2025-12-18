@@ -324,6 +324,12 @@ describe("Move.Inside - Context Handling", () => {
       console.log('\n=== INSIDE-07 Debug Info ===');
       console.log('Error code:', result.error.code);
       console.log('Error message:', result.error.message);
+      console.log('Error _tag:', result.error._tag);
+      console.log('Full error:', JSON.stringify(result.error, null, 2));
+      if ('cause' in result.error && result.error.cause) {
+        console.log('Cause:', result.error.cause);
+        console.log('Cause stack:', (result.error.cause as Error).stack);
+      }
       console.log('============================\n');
     }
 

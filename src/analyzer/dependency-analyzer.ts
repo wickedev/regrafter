@@ -1676,6 +1676,18 @@ export class DependencyAnalyzer {
     // Imports don't need hoisting, they need re-importing
     if (dep.type === DependencyType.Import) return false;
 
+    // Check if target scope already has bindings for all required symbols
+    // If yes, the references will be rebound to the target scope's bindings (no hoisting needed)
+    const targetBindings = this.scopeManager.getBindingsInScope(targetScope);
+
+    // Parse comma-separated symbols (e.g., "theme, toggleTheme" -> ["theme", "toggleTheme"])
+    const symbols = dep.symbol.split(',').map(s => s.trim());
+    const allSymbolsExist = symbols.every(symbol => targetBindings.has(symbol));
+
+    if (allSymbolsExist) {
+      return false;
+    }
+
     // Check if dependency scope is accessible from target
     const accessibility = this.scopeManager.checkAccessibility(
       dep.scope,
