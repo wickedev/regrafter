@@ -7,7 +7,7 @@
 // Error categories and base classes
 export {
   ErrorCategory,
-  RegraffError,
+  RegraffErrorClass,
   ParseError,
   SelectorError,
   DependencyError,
@@ -15,7 +15,25 @@ export {
   TransformError,
   CircularError,
   InternalError,
-  // Type guards
+  // Error interface types (Task 9)
+  type ParseErrorType,
+  type SelectorErrorType,
+  type DependencyErrorType,
+  type ValidationErrorType,
+  type TransformErrorType,
+  type CircularErrorType,
+  type InternalErrorType,
+  // RegraffError union type (Task 9)
+  type RegraffError,
+  // Factory functions (Task 9)
+  createParseError,
+  createSelectorError,
+  createDependencyError,
+  createValidationError,
+  createTransformError,
+  createCircularError,
+  createInternalError,
+  // Type guards (Task 9)
   isRegraffError,
   isParseError,
   isSelectorError,

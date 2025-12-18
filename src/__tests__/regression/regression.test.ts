@@ -13,7 +13,7 @@ import {
   mergeOptions,
   DEFAULT_OPTIONS,
   ErrorCategory,
-  RegraffError,
+  RegraffErrorClass,
 } from '../../index.js';
 import { validateRegraftInput } from '../../validation/index.js';
 import {
@@ -198,7 +198,7 @@ describe('Regression: Factory Functions', () => {
 
 describe('Regression: Error Handling', () => {
   it('RegraffError should maintain stack trace', () => {
-    const error = new RegraffError({
+    const error = new RegraffErrorClass({
       category: ErrorCategory.Parse,
       code: 'E001',
       message: 'Test error',
@@ -209,7 +209,7 @@ describe('Regression: Error Handling', () => {
   });
 
   it('RegraffError should handle missing location', () => {
-    const error = new RegraffError({
+    const error = new RegraffErrorClass({
       category: ErrorCategory.Parse,
       code: 'E001',
       message: 'Test error',
@@ -222,7 +222,7 @@ describe('Regression: Error Handling', () => {
   });
 
   it('RegraffError toJSON should not include undefined values', () => {
-    const error = new RegraffError({
+    const error = new RegraffErrorClass({
       category: ErrorCategory.Parse,
       code: 'E001',
       message: 'Test error',

@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   ErrorCategory,
-  RegraffError,
+  RegraffErrorClass,
   ParseError,
   SelectorError,
   DependencyError,
@@ -23,6 +23,8 @@ import {
   isTransformError,
   isCircularError,
   isInternalError,
+  createParseError,
+  createSelectorError,
 } from '../error-category.js';
 
 import {
@@ -67,9 +69,9 @@ describe('ErrorCategory', () => {
   });
 });
 
-describe('RegraffError', () => {
+describe('RegraffErrorClass', () => {
   it('should create error with all properties', () => {
-    const error = new RegraffError({
+    const error = new RegraffErrorClass({
       category: ErrorCategory.Parse,
       code: 'E001',
       message: 'Test error',
@@ -89,7 +91,7 @@ describe('RegraffError', () => {
   });
 
   it('should format error string with location', () => {
-    const error = new RegraffError({
+    const error = new RegraffErrorClass({
       category: ErrorCategory.Parse,
       code: 'E001',
       message: 'Test error',
@@ -104,7 +106,7 @@ describe('RegraffError', () => {
   });
 
   it('should convert to JSON', () => {
-    const error = new RegraffError({
+    const error = new RegraffErrorClass({
       category: ErrorCategory.Parse,
       code: 'E001',
       message: 'Test error',
@@ -222,8 +224,8 @@ describe('Specialized Error Classes', () => {
 });
 
 describe('Type Guards', () => {
-  it('should identify RegraffError', () => {
-    const error = new RegraffError({
+  it('should identify RegraffErrorClass', () => {
+    const error = new RegraffErrorClass({
       category: ErrorCategory.Parse,
       code: 'E001',
       message: 'Test',
@@ -249,6 +251,248 @@ describe('Type Guards', () => {
     expect(isTransformError(parseError)).toBe(false);
     expect(isCircularError(parseError)).toBe(false);
     expect(isInternalError(parseError)).toBe(false);
+  });
+});
+
+describe('ParseError Factory Function', () => {
+  describe('createParseError', () => {
+    it('should create ParseError with _tag discriminant', () => {
+      const error = createParseError({
+        code: 'E001',
+        message: 'Failed to parse test.tsx',
+        syntaxError: 'Unexpected token',
+        file: 'test.tsx',
+      });
+
+      expect(error._tag).toBe('ParseError');
+    });
+
+    it('should create ParseError with all required fields', () => {
+      const error = createParseError({
+        code: 'E001',
+        message: 'Failed to parse test.tsx',
+        syntaxError: 'Unexpected token',
+        file: 'test.tsx',
+      });
+
+      expect(error.code).toBe('E001');
+      expect(error.message).toBe('Failed to parse test.tsx');
+      expect(error.syntaxError).toBe('Unexpected token');
+      expect(error.file).toBe('test.tsx');
+      expect(error.suggestions).toEqual([]);
+      expect(error.recoverable).toBe(false);
+    });
+
+    it('should create ParseError with optional location field', () => {
+      const location = {
+        start: { line: 10, column: 5 },
+        end: { line: 10, column: 15 },
+      };
+      const error = createParseError({
+        code: 'E001',
+        message: 'Failed to parse test.tsx',
+        syntaxError: 'Unexpected token',
+        file: 'test.tsx',
+        location,
+      });
+
+      expect(error.location).toEqual(location);
+    });
+
+    it('should create ParseError with optional suggestions field', () => {
+      const suggestions = [
+        { description: 'Check for missing bracket', action: 'fix', automatic: false },
+      ];
+      const error = createParseError({
+        code: 'E001',
+        message: 'Failed to parse test.tsx',
+        syntaxError: 'Unexpected token',
+        file: 'test.tsx',
+        suggestions,
+      });
+
+      expect(error.suggestions).toEqual(suggestions);
+    });
+
+    it('should create ParseError with empty suggestions when not provided', () => {
+      const error = createParseError({
+        code: 'E001',
+        message: 'Failed to parse test.tsx',
+        syntaxError: 'Unexpected token',
+        file: 'test.tsx',
+      });
+
+      expect(error.suggestions).toEqual([]);
+    });
+  });
+
+  describe('isParseError type guard with interface', () => {
+    it('should identify ParseError by _tag discriminant', () => {
+      const error = createParseError({
+        code: 'E001',
+        message: 'Failed to parse test.tsx',
+        syntaxError: 'Unexpected token',
+        file: 'test.tsx',
+      });
+
+      expect(isParseError(error)).toBe(true);
+    });
+
+    it('should reject objects without ParseError _tag', () => {
+      const notParseError = {
+        _tag: 'SelectorError',
+        code: 'E010',
+        message: 'Not found',
+      };
+
+      expect(isParseError(notParseError)).toBe(false);
+    });
+
+    it('should reject null and undefined', () => {
+      expect(isParseError(null)).toBe(false);
+      expect(isParseError(undefined)).toBe(false);
+    });
+
+    it('should reject plain Error objects', () => {
+      const error = new Error('test');
+      expect(isParseError(error)).toBe(false);
+    });
+  });
+});
+
+describe('SelectorError Factory Function', () => {
+  describe('createSelectorError', () => {
+    it('should create SelectorError with _tag discriminant', () => {
+      const selector = { file: 'test.tsx', line: 10, column: 5 };
+      const error = createSelectorError({
+        code: 'E010',
+        message: 'Element not found',
+        selector,
+        file: 'test.tsx',
+      });
+
+      expect(error._tag).toBe('SelectorError');
+    });
+
+    it('should create SelectorError with all required fields', () => {
+      const selector = { file: 'test.tsx', line: 10, column: 5 };
+      const error = createSelectorError({
+        code: 'E010',
+        message: 'Element not found',
+        selector,
+        file: 'test.tsx',
+      });
+
+      expect(error.code).toBe('E010');
+      expect(error.message).toBe('Element not found');
+      expect(error.selector).toBe(selector);
+      expect(error.file).toBe('test.tsx');
+      expect(error.suggestions).toEqual([]);
+      expect(error.recoverable).toBe(false);
+    });
+
+    it('should create SelectorError with optional location field', () => {
+      const selector = { file: 'test.tsx', line: 10, column: 5 };
+      const location = {
+        start: { line: 10, column: 5 },
+        end: { line: 10, column: 15 },
+      };
+      const error = createSelectorError({
+        code: 'E010',
+        message: 'Element not found',
+        selector,
+        file: 'test.tsx',
+        location,
+      });
+
+      expect(error.location).toEqual(location);
+    });
+
+    it('should create SelectorError with optional nearestMatch field', () => {
+      const selector = { file: 'test.tsx', line: 10, column: 5 };
+      const error = createSelectorError({
+        code: 'E011',
+        message: 'Selector ambiguous',
+        selector,
+        file: 'test.tsx',
+        nearestMatch: '<div className="container">',
+      });
+
+      expect(error.nearestMatch).toBe('<div className="container">');
+    });
+
+    it('should create SelectorError with optional suggestions field', () => {
+      const selector = { file: 'test.tsx', line: 10, column: 5 };
+      const suggestions = [
+        { description: 'Check selector', action: 'verify_selector', automatic: false },
+      ];
+      const error = createSelectorError({
+        code: 'E010',
+        message: 'Element not found',
+        selector,
+        file: 'test.tsx',
+        suggestions,
+      });
+
+      expect(error.suggestions).toEqual(suggestions);
+    });
+
+    it('should create SelectorError with empty suggestions when not provided', () => {
+      const selector = { file: 'test.tsx', line: 10, column: 5 };
+      const error = createSelectorError({
+        code: 'E010',
+        message: 'Element not found',
+        selector,
+        file: 'test.tsx',
+      });
+
+      expect(error.suggestions).toEqual([]);
+    });
+  });
+
+  describe('isSelectorError type guard with interface', () => {
+    it('should identify SelectorError by _tag discriminant', () => {
+      const selector = { file: 'test.tsx', line: 10, column: 5 };
+      const error = createSelectorError({
+        code: 'E010',
+        message: 'Element not found',
+        selector,
+        file: 'test.tsx',
+      });
+
+      expect(isSelectorError(error)).toBe(true);
+    });
+
+    it('should reject objects without SelectorError _tag', () => {
+      const notSelectorError = {
+        _tag: 'ParseError',
+        code: 'E001',
+        message: 'Parse failed',
+      };
+
+      expect(isSelectorError(notSelectorError)).toBe(false);
+    });
+
+    it('should reject null and undefined', () => {
+      expect(isSelectorError(null)).toBe(false);
+      expect(isSelectorError(undefined)).toBe(false);
+    });
+
+    it('should reject plain Error objects', () => {
+      const error = new Error('test');
+      expect(isSelectorError(error)).toBe(false);
+    });
+
+    it('should reject plain objects without _tag', () => {
+      const plainObject = {
+        code: 'E010',
+        message: 'Element not found',
+        selector: { file: 'test.tsx', line: 10, column: 5 },
+        file: 'test.tsx',
+      };
+
+      expect(isSelectorError(plainObject)).toBe(false);
+    });
   });
 });
 

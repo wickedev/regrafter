@@ -12,11 +12,12 @@ import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
 import { detectCompoundComponent } from '../analyzer/index.js';
+import { createSelectorError, type SelectorErrorType } from '../errors/error-category.js';
+import { ok, err, type Result } from '../result/index.js';
 import {
   isPositionSelector,
   isPathSelector,
   createResolveResult,
-  createSelectorError,
   createAtomicUnit,
   AtomicUnitType,
 } from '../types/index.js';
@@ -25,6 +26,7 @@ import type {
   PositionSelector,
   PathSelector,
   ResolveResult,
+  AtomicUnit,
 } from '../types/index.js';
 import { loadTraverseFunction } from '../utils/index.js';
 
@@ -34,6 +36,15 @@ import {
   SelectorErrorCodes,
   type ISelectorResolver,
 } from './types.js';
+
+/**
+ * Element data returned on successful selector resolution
+ */
+export interface ElementData {
+  node: t.Node;
+  path: NodePath;
+  atomicUnit: AtomicUnit | null;
+}
 
 /**
  * Check if a node is a JSX element or expression container
@@ -295,7 +306,7 @@ function navigateToPathWithNodePath(
  */
 export class SelectorResolver implements ISelectorResolver {
   /**
-   * Resolve a selector to an AST node and path
+   * Resolve a selector to an AST node and path (legacy method)
    *
    * Automatically detects selector type and delegates to appropriate resolver.
    *
@@ -304,28 +315,65 @@ export class SelectorResolver implements ISelectorResolver {
    * @returns ResolveResult with node, path, and atomic unit
    */
   resolve(selector: Selector, ast: t.File): ResolveResult {
-    if (isPositionSelector(selector)) {
-      return this.resolveByPosition(selector, ast);
-    }
+    // Delegate to Result-based methods and convert back to legacy format
+    const result = this.resolveResult(selector, ast);
 
-    if (isPathSelector(selector)) {
-      return this.resolveByPath(selector, ast);
+    if (result.ok) {
+      return createResolveResult({
+        node: result.value.node,
+        path: result.value.path,
+        computeAtomicUnit: () => result.value.atomicUnit,
+      });
+    } else {
+      // Convert SelectorErrorType to legacy SelectorError
+      const error = result.error;
+      return createResolveResult({
+        node: null,
+        path: null,
+        atomicUnit: null,
+        /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/consistent-type-assertions */
+        error: {
+          message: error.message,
+          code: error.code,
+          location: error.location,
+        } as any,
+        /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/consistent-type-assertions */
+      });
     }
-
-    // Should never happen if types are correct
-    return createResolveResult({
-      node: null,
-      path: null,
-      atomicUnit: null,
-      error: createSelectorError({
-        message: 'Invalid selector type',
-        code: SelectorErrorCodes.INTERNAL_ERROR,
-      }),
-    });
   }
 
   /**
-   * Finds the most specific (innermost) JSX element at the given position.
+   * Resolve a selector to an AST node and path (Result-based)
+   *
+   * Automatically detects selector type and delegates to appropriate resolver.
+   *
+   * @param selector - Position or path-based selector
+   * @param ast - Parsed AST of the file
+   * @returns Result with ElementData or SelectorError
+   */
+  resolveResult(selector: Selector, ast: t.File): Result<ElementData, SelectorErrorType> {
+    if (isPositionSelector(selector)) {
+      return this.resolveByPositionResult(selector, ast);
+    }
+
+    if (isPathSelector(selector)) {
+      return this.resolveByPathResult(selector, ast);
+    }
+
+    // Return Result type for invalid selector
+    // TypeScript narrows selector to never here, but we cast to Selector for error handling
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const unknownSelector = selector as Selector;
+    return err(createSelectorError({
+      code: SelectorErrorCodes.INTERNAL_ERROR,
+      message: 'Invalid selector type',
+      selector: unknownSelector,
+      file: unknownSelector.file,
+    }));
+  }
+
+  /**
+   * Finds the most specific (innermost) JSX element at the given position (legacy method).
    * Uses specificity scoring to prefer smaller, more precisely targeted nodes.
    *
    * @param selector - Position selector with line and column
@@ -333,23 +381,55 @@ export class SelectorResolver implements ISelectorResolver {
    * @returns ResolveResult with resolved node or error
    */
   resolveByPosition(selector: PositionSelector, ast: t.File): ResolveResult {
-    const { line, column } = selector;
+    // Delegate to Result-based method and convert back to legacy format
+    const result = this.resolveByPositionResult(selector, ast);
 
-    // Validate position is positive
-    if (line < 1 || column < 0) {
+    if (result.ok) {
+      return createResolveResult({
+        node: result.value.node,
+        path: result.value.path,
+        computeAtomicUnit: () => result.value.atomicUnit,
+      });
+    } else {
+      const error = result.error;
       return createResolveResult({
         node: null,
         path: null,
         atomicUnit: null,
-        error: createSelectorError({
-          message: `Invalid position: line ${line}, column ${column}. Line must be >= 1, column >= 0.`,
-          code: SelectorErrorCodes.POSITION_OUT_OF_BOUNDS,
-          location: {
-            start: { line, column },
-            end: { line, column },
-          },
-        }),
+        /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/consistent-type-assertions */
+        error: {
+          message: error.message,
+          code: error.code,
+          location: error.location,
+        } as any,
+        /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/consistent-type-assertions */
       });
+    }
+  }
+
+  /**
+   * Finds the most specific (innermost) JSX element at the given position (Result-based).
+   * Uses specificity scoring to prefer smaller, more precisely targeted nodes.
+   *
+   * @param selector - Position selector with line and column
+   * @param ast - Parsed AST of the file
+   * @returns Result with resolved ElementData or SelectorError
+   */
+  resolveByPositionResult(selector: PositionSelector, ast: t.File): Result<ElementData, SelectorErrorType> {
+    const { line, column } = selector;
+
+    // Validate position is positive
+    if (line < 1 || column < 0) {
+      return err(createSelectorError({
+        code: SelectorErrorCodes.POSITION_OUT_OF_BOUNDS,
+        message: `Invalid position: line ${line}, column ${column}. Line must be >= 1, column >= 0.`,
+        selector,
+        file: selector.file,
+        location: {
+          start: { line, column },
+          end: { line, column },
+        },
+      }));
     }
 
     // Track the best matching JSX element or child node
@@ -445,39 +525,37 @@ export class SelectorResolver implements ISelectorResolver {
     const matchedPath = found.path;
 
     if (matchedNode === null || matchedPath === null) {
-      return createResolveResult({
-        node: null,
-        path: null,
-        atomicUnit: null,
-        error: createSelectorError({
-          message: `No JSX element found at line ${line}, column ${column}`,
-          code: SelectorErrorCodes.NO_JSX_AT_POSITION,
-          location: {
-            start: { line, column },
-            end: { line, column },
-          },
-        }),
-      });
+      return err(createSelectorError({
+        code: SelectorErrorCodes.NO_JSX_AT_POSITION,
+        message: `No JSX element found at line ${line}, column ${column}`,
+        selector,
+        file: selector.file,
+        location: {
+          start: { line, column },
+          end: { line, column },
+        },
+      }));
     }
 
-    // Return result with lazy atomic unit computation
-    return createResolveResult({
+    // Compute atomic unit
+    const atomicUnitType = determineAtomicUnitType(matchedPath);
+    const atomicUnitNodes = getAtomicUnitNodes(matchedPath);
+    const atomicUnit = createAtomicUnit({
+      type: atomicUnitType,
+      path: matchedPath,
+      nodes: atomicUnitNodes,
+    });
+
+    // Return successful result
+    return ok({
       node: matchedNode,
       path: matchedPath,
-      computeAtomicUnit: () => {
-        const atomicUnitType = determineAtomicUnitType(matchedPath);
-        const atomicUnitNodes = getAtomicUnitNodes(matchedPath);
-        return createAtomicUnit({
-          type: atomicUnitType,
-          path: matchedPath,
-          nodes: atomicUnitNodes,
-        });
-      },
+      atomicUnit,
     });
   }
 
   /**
-   * Navigates the AST using a dot-notation path string.
+   * Navigates the AST using a dot-notation path string (legacy method).
    * Supports array indexing with bracket notation.
    *
    * @param selector - Path selector with AST path
@@ -485,47 +563,73 @@ export class SelectorResolver implements ISelectorResolver {
    * @returns ResolveResult with resolved node or error
    */
   resolveByPath(selector: PathSelector, ast: t.File): ResolveResult {
-    const { path: pathStr } = selector;
+    // Delegate to Result-based method and convert back to legacy format
+    const result = this.resolveByPathResult(selector, ast);
 
-    // Validate path format
-    if (!pathStr || typeof pathStr !== 'string') {
+    if (result.ok) {
+      return createResolveResult({
+        node: result.value.node,
+        path: result.value.path,
+        computeAtomicUnit: () => result.value.atomicUnit,
+      });
+    } else {
+      const error = result.error;
       return createResolveResult({
         node: null,
         path: null,
         atomicUnit: null,
-        error: createSelectorError({
-          message: 'Invalid path format: path must be a non-empty string',
-          code: SelectorErrorCodes.INVALID_PATH_FORMAT,
-        }),
+        /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/consistent-type-assertions */
+        error: {
+          message: error.message,
+          code: error.code,
+          location: error.location,
+        } as any,
+        /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/consistent-type-assertions */
       });
+    }
+  }
+
+  /**
+   * Navigates the AST using a dot-notation path string (Result-based).
+   * Supports array indexing with bracket notation.
+   *
+   * @param selector - Path selector with AST path
+   * @param ast - Parsed AST of the file
+   * @returns Result with resolved ElementData or SelectorError
+   */
+  resolveByPathResult(selector: PathSelector, ast: t.File): Result<ElementData, SelectorErrorType> {
+    const { path: pathStr } = selector;
+
+    // Validate path format
+    if (!pathStr || typeof pathStr !== 'string') {
+      return err(createSelectorError({
+        code: SelectorErrorCodes.INVALID_PATH_FORMAT,
+        message: 'Invalid path format: path must be a non-empty string',
+        selector,
+        file: selector.file,
+      }));
     }
 
     // Parse the path into segments
     const segments = parseASTPath(pathStr);
     if (segments.length === 0) {
-      return createResolveResult({
-        node: null,
-        path: null,
-        atomicUnit: null,
-        error: createSelectorError({
-          message: `Invalid path format: "${pathStr}" could not be parsed`,
-          code: SelectorErrorCodes.INVALID_PATH_FORMAT,
-        }),
-      });
+      return err(createSelectorError({
+        code: SelectorErrorCodes.INVALID_PATH_FORMAT,
+        message: `Invalid path format: "${pathStr}" could not be parsed`,
+        selector,
+        file: selector.file,
+      }));
     }
 
     // Navigate to the target node and get NodePath in one traversal
     const { node: targetNode, path: nodePath } = navigateToPathWithNodePath(ast, segments);
     if (!targetNode || !nodePath) {
-      return createResolveResult({
-        node: null,
-        path: null,
-        atomicUnit: null,
-        error: createSelectorError({
-          message: `Path not found: "${pathStr}" does not exist in the AST`,
-          code: SelectorErrorCodes.PATH_NOT_FOUND,
-        }),
-      });
+      return err(createSelectorError({
+        code: SelectorErrorCodes.PATH_NOT_FOUND,
+        message: `Path not found: "${pathStr}" does not exist in the AST`,
+        selector,
+        file: selector.file,
+      }));
     }
 
     // Verify the node is a JSX element (or related)
@@ -534,19 +638,20 @@ export class SelectorResolver implements ISelectorResolver {
       // This enables moving expressions and other nodes
     }
 
-    // Return result with lazy atomic unit computation
-    return createResolveResult({
+    // Compute atomic unit
+    const atomicUnitType = determineAtomicUnitType(nodePath);
+    const atomicUnitNodes = getAtomicUnitNodes(nodePath);
+    const atomicUnit = createAtomicUnit({
+      type: atomicUnitType,
+      path: nodePath,
+      nodes: atomicUnitNodes,
+    });
+
+    // Return successful result
+    return ok({
       node: targetNode,
       path: nodePath,
-      computeAtomicUnit: () => {
-        const atomicUnitType = determineAtomicUnitType(nodePath);
-        const atomicUnitNodes = getAtomicUnitNodes(nodePath);
-        return createAtomicUnit({
-          type: atomicUnitType,
-          path: nodePath,
-          nodes: atomicUnitNodes,
-        });
-      },
+      atomicUnit,
     });
   }
 }

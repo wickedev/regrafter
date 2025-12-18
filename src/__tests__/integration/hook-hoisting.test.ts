@@ -48,10 +48,10 @@ async function testHoisting(
 
   // Resolve selectors
   const resolver = createSelectorResolver();
-  const sourceResult = resolver.resolve(fromSelector, ast);
-  const targetResult = resolver.resolve(toSelector, ast);
+  const sourceResult = resolver.resolveResult(fromSelector, ast);
+  const targetResult = resolver.resolveResult(toSelector, ast);
 
-  if (!sourceResult.path || !targetResult.path) {
+  if (!sourceResult.ok || !targetResult.ok) {
     throw new Error("Failed to resolve selectors");
   }
 
@@ -60,19 +60,28 @@ async function testHoisting(
   scopeManager.buildScopeTree(ast);
 
   // Get scopes
-  const sourceScope = scopeManager.getScopeForPath(sourceResult.path);
-  const targetScope = scopeManager.getScopeForPath(targetResult.path);
+  const sourceScope = scopeManager.getScopeForPath(sourceResult.value.path);
+  let targetScope = scopeManager.getScopeForPath(targetResult.value.path);
   const sourceComponent = scopeManager.findEnclosingComponent(
-    sourceResult.path
+    sourceResult.value.path
   );
   const targetComponent = scopeManager.findEnclosingComponent(
-    targetResult.path
+    targetResult.value.path
   );
+
+  // Fallback to component scope if target scope is null (for simple JSX elements)
+  if (!targetScope) {
+    targetScope = targetComponent;
+  }
 
   // Analyze dependencies
   const depAnalyzer = new DependencyAnalyzer(scopeManager);
   depAnalyzer.setCurrentFile("test.tsx");
-  const analysis = depAnalyzer.analyzeElement(sourceResult.path, targetScope);
+  const analysisResult = depAnalyzer.analyzeElement(sourceResult.value.path, targetScope);
+  if (!analysisResult.ok) {
+    throw new Error(`Dependency analysis failed: ${analysisResult.error.message}`);
+  }
+  const analysis = analysisResult.value;
 
   // Create hoist context
   const hoistContext = {
@@ -101,8 +110,8 @@ async function testHoisting(
   const transformer = createJSXTransformer();
   const moveResult = transformer.move(
     ast,
-    sourceResult.path,
-    targetResult.path,
+    sourceResult.value.path,
+    targetResult.value.path,
     mode
   );
 

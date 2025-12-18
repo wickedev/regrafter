@@ -7,6 +7,8 @@
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
 
+import { type DependencyErrorType } from '../errors/error-category.js';
+import { isErr, type Result } from '../result/index.js';
 import { ScopeType } from '../scope/index.js';
 import type { ScopeManager, ScopeInfo } from '../scope/index.js';
 import {
@@ -62,8 +64,30 @@ export class MoveAnalysisBuilder {
     sourceScope: ScopeInfo | null,
     targetScope: ScopeInfo | null
   ): MoveAnalysis {
-    // Perform dependency analysis
-    const analysis = this.analyzer.analyzeElement(elementPath, targetScope);
+    // Perform dependency analysis - now returns Result
+    const analysisResult: Result<DependencyAnalysis, DependencyErrorType> =
+      this.analyzer.analyzeElement(elementPath, targetScope);
+
+    // Handle dependency analysis error
+    if (isErr(analysisResult)) {
+      return createMoveAnalysis({
+        canMove: false,
+        reason: analysisResult.error.message,
+        dependencies: [],
+        hoistedDeps: [],
+        suggestedFixes: analysisResult.error.suggestions,
+        stats: createAnalysisStats({
+          totalDependencies: 0,
+          externalDependencies: 0,
+          hookDependencies: 0,
+          propDependencies: 0,
+          contextDependencies: 0,
+        }),
+      });
+    }
+
+    // Extract successful analysis
+    const analysis = analysisResult.value;
 
     // Check if move is possible
     const canMoveResult = this.checkCanMove(analysis, sourceScope, targetScope);
@@ -110,7 +134,17 @@ export class MoveAnalysisBuilder {
 
     // Get scopes for source and target
     const sourceScope = this.scopeManager.getScopeForPath(sourcePath);
-    const targetScope = this.scopeManager.getScopeForPath(targetPath);
+    let targetScope = this.scopeManager.getScopeForPath(targetPath);
+
+    // If target element doesn't have its own scope (e.g., simple JSX element),
+    // use the enclosing component scope to properly determine if we're moving
+    // within a component or to module level
+    if (!targetScope) {
+      const enclosingComponent = this.scopeManager.findEnclosingComponent(targetPath);
+      if (enclosingComponent) {
+        targetScope = enclosingComponent;
+      }
+    }
 
     // Build and return the analysis
     return this.buildMoveAnalysis(sourcePath, targetPath, sourceScope, targetScope);

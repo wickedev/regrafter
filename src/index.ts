@@ -65,7 +65,8 @@ export {
 export {
   // Error categories and classes
   ErrorCategory,
-  RegraffError,
+  RegraffErrorClass,
+  type RegraffError,
   ParseError,
   SelectorError,
   DependencyError,
@@ -346,14 +347,16 @@ export function move(
   }
 
   // Resolve selectors
-  const sourceResult = resolver.resolve(from, sourceAst);
-  if (!sourceResult.node || !sourceResult.path) {
-    throw new Error(`Failed to resolve source: ${sourceResult.error?.message ?? 'Element not found'}`);
+  const sourceResult = resolver.resolveResult(from, sourceAst);
+  if (!sourceResult.ok) {
+    const error = sourceResult.error;
+    throw new Error(`Failed to resolve source: ${error.message}`);
   }
 
-  const targetResult = resolver.resolve(to, targetAst);
-  if (!targetResult.node || !targetResult.path) {
-    throw new Error(`Failed to resolve target: ${targetResult.error?.message ?? 'Element not found'}`);
+  const targetResult = resolver.resolveResult(to, targetAst);
+  if (!targetResult.ok) {
+    const error = targetResult.error;
+    throw new Error(`Failed to resolve target: ${error.message}`);
   }
 
   // For same-file moves
@@ -361,8 +364,8 @@ export function move(
     // Perform the transformation
     const moveResult = transformer.move(
       sourceAst,
-      sourceResult.path,
-      targetResult.path,
+      sourceResult.value.path,
+      targetResult.value.path,
       mode
     );
 
@@ -430,24 +433,39 @@ function executeCrossFileMove(
   analyzer.setCurrentFile(from.file);
 
   // Resolve source element
-  const sourceResult = resolver.resolve(from, sourceAst);
-  if (!sourceResult.node || !sourceResult.path) {
-    throw new Error(`Failed to resolve source: ${sourceResult.error?.message ?? 'Element not found'}`);
+  const sourceResult = resolver.resolveResult(from, sourceAst);
+  if (!sourceResult.ok) {
+    const error = sourceResult.error;
+    throw new Error(`Failed to resolve source: ${error.message}`);
   }
 
   // Get target scope for dependency analysis
   let targetScope = null;
   const targetAstMaybe = parsedFiles.get(to.file);
   if (targetAstMaybe !== undefined) {
-    const targetResult = resolver.resolve(to, targetAstMaybe);
-    // targetResult.path is NodePath | null, so we only need to check for null
-    if (targetResult.path !== null) {
-      targetScope = scopeManager.getScopeForPath(targetResult.path);
+    const targetResult = resolver.resolveResult(to, targetAstMaybe);
+    if (targetResult.ok) {
+      targetScope = scopeManager.getScopeForPath(targetResult.value.path);
+      // If target element doesn't have its own scope, use enclosing component
+      if (!targetScope) {
+        const enclosingComponent = scopeManager.findEnclosingComponent(targetResult.value.path);
+        if (enclosingComponent) {
+          targetScope = enclosingComponent;
+        }
+      }
     }
   }
 
   // Analyze dependencies
-  const depAnalysis = analyzer.analyzeElement(sourceResult.path, targetScope);
+  const depAnalysisResult = analyzer.analyzeElement(sourceResult.value.path, targetScope);
+  if (!depAnalysisResult.ok) {
+    return {
+      success: false,
+      error: depAnalysisResult.error.message,
+      codes: [],
+    };
+  }
+  const depAnalysis = depAnalysisResult.value;
 
   // Create cross-file context
   const context = createCrossFileContext(
@@ -532,22 +550,40 @@ function moveWithHoisting(
   analyzer.setCurrentFile(from.file);
 
   // Resolve selectors
-  const sourceResult = resolver.resolve(from, sourceAst);
-  if (!sourceResult.node || !sourceResult.path) {
-    throw new Error(`Failed to resolve source: ${sourceResult.error?.message ?? 'Element not found'}`);
+  const sourceResult = resolver.resolveResult(from, sourceAst);
+  if (!sourceResult.ok) {
+    const error = sourceResult.error;
+    throw new Error(`Failed to resolve source: ${error.message}`);
   }
 
-  const targetResult = resolver.resolve(to, sourceAst);
-  if (!targetResult.node || !targetResult.path) {
-    throw new Error(`Failed to resolve target: ${targetResult.error?.message ?? 'Element not found'}`);
+  const targetResult = resolver.resolveResult(to, sourceAst);
+  if (!targetResult.ok) {
+    const error = targetResult.error;
+    throw new Error(`Failed to resolve target: ${error.message}`);
   }
 
   // Get scopes
-  const sourceScope = scopeManager.getScopeForPath(sourceResult.path);
-  const targetScope = scopeManager.getScopeForPath(targetResult.path);
+  const sourceScope = scopeManager.getScopeForPath(sourceResult.value.path);
+  let targetScope = scopeManager.getScopeForPath(targetResult.value.path);
+
+  // If target element doesn't have its own scope, use enclosing component
+  if (!targetScope) {
+    const enclosingComponent = scopeManager.findEnclosingComponent(targetResult.value.path);
+    if (enclosingComponent) {
+      targetScope = enclosingComponent;
+    }
+  }
 
   // Perform dependency analysis
-  const depAnalysis = analyzer.analyzeElement(sourceResult.path, targetScope);
+  const depAnalysisResult = analyzer.analyzeElement(sourceResult.value.path, targetScope);
+  if (!depAnalysisResult.ok) {
+    return {
+      success: false,
+      error: depAnalysisResult.error.message,
+      codes: [],
+    };
+  }
+  const depAnalysis = depAnalysisResult.value;
 
   // If there are dependencies that need hoisting, create and execute a hoisting plan
   if (depAnalysis.needsHoisting.length > 0 && sourceScope && targetScope) {
@@ -630,8 +666,8 @@ function moveWithHoisting(
   // Now perform the element move
   const moveResult = transformer.move(
     sourceAst,
-    sourceResult.path,
-    targetResult.path,
+    sourceResult.value.path,
+    targetResult.value.path,
     mode
   );
 
@@ -719,22 +755,24 @@ export function analyze(
   }
 
   // Resolve selectors
-  const sourceResult = resolver.resolve(from, parseResult.ast);
-  if (!sourceResult.node || !sourceResult.path) {
+  const sourceResult = resolver.resolveResult(from, parseResult.ast);
+  if (!sourceResult.ok) {
+    const error = sourceResult.error;
     return createMoveAnalysis({
       canMove: false,
-      reason: `Failed to resolve source: ${sourceResult.error?.message ?? 'Element not found'}`,
+      reason: `Failed to resolve source: ${error.message}`,
       dependencies: [],
       hoistedDeps: [],
       stats: createAnalysisStats(),
     });
   }
 
-  const targetResult = resolver.resolve(to, parseResult.ast);
-  if (!targetResult.node || !targetResult.path) {
+  const targetResult = resolver.resolveResult(to, parseResult.ast);
+  if (!targetResult.ok) {
+    const error = targetResult.error;
     return createMoveAnalysis({
       canMove: false,
-      reason: `Failed to resolve target: ${targetResult.error?.message ?? 'Element not found'}`,
+      reason: `Failed to resolve target: ${error.message}`,
       dependencies: [],
       hoistedDeps: [],
       stats: createAnalysisStats(),
@@ -747,7 +785,7 @@ export function analyze(
   analysisBuilder.setCurrentFile(from.file);
 
   // Perform full dependency analysis
-  return analysisBuilder.analyze(parseResult.ast, sourceResult.path, targetResult.path);
+  return analysisBuilder.analyze(parseResult.ast, sourceResult.value.path, targetResult.value.path);
 }
 
 /**

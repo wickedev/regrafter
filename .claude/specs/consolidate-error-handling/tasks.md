@@ -155,91 +155,91 @@ This document outlines the implementation tasks for consolidating error handling
 ## Phase 2: Error Type Refactoring
 
 - [ ] 8. Refactor error types to discriminated unions
-  - [ ] 8.1 Write tests for ParseError factory function
+  - [x] 8.1 Write tests for ParseError factory function
     - Test that createParseError returns object with _tag discriminant
     - Test that all required fields are present
     - Test that optional fields work correctly
     - Test type guard isParseError works correctly
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.7, 8.3_
 
-  - [ ] 8.2 Refactor ParseError to interface with factory
+  - [x] 8.2 Refactor ParseError to interface with factory
     - Convert ParseError class to interface with _tag: 'ParseError'
     - Implement createParseError factory function
     - Implement isParseError type guard
     - Update `src/errors/error-category.ts`
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.7_
 
-  - [ ] 8.3 Write tests for SelectorError factory function
+  - [x] 8.3 Write tests for SelectorError factory function
     - Test createSelectorError returns correct structure
     - Test all fields including nearestMatch
     - Test type guard isSelectorError
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.7, 8.3_
 
-  - [ ] 8.4 Refactor SelectorError to interface with factory
+  - [x] 8.4 Refactor SelectorError to interface with factory
     - Convert SelectorError to interface
     - Implement createSelectorError factory
     - Implement isSelectorError type guard
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.7_
 
-  - [ ] 8.5 Write tests for DependencyError factory function
+  - [x] 8.5 Write tests for DependencyError factory function
     - Test createDependencyError returns correct structure
     - Test dependency chain field
     - Test type guard isDependencyError
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.6, 2.7, 8.3_
 
-  - [ ] 8.6 Refactor DependencyError to interface with factory
+  - [x] 8.6 Refactor DependencyError to interface with factory
     - Convert DependencyError to interface
     - Implement createDependencyError factory
     - Implement isDependencyError type guard
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.6, 2.7_
 
-  - [ ] 8.7 Write tests for ValidationError factory function
+  - [x] 8.7 Write tests for ValidationError factory function
     - Test createValidationError returns correct structure
     - Test validation failure information field
     - Test type guard isValidationError
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.7, 8.3_
 
-  - [ ] 8.8 Refactor ValidationError to interface with factory
+  - [x] 8.8 Refactor ValidationError to interface with factory
     - Convert ValidationError to interface
     - Implement createValidationError factory
     - Implement isValidationError type guard
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.7_
 
-  - [ ] 8.9 Write tests for TransformError factory function
+  - [x] 8.9 Write tests for TransformError factory function
     - Test createTransformError returns correct structure
     - Test type guard isTransformError
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.7, 8.3_
 
-  - [ ] 8.10 Refactor TransformError to interface with factory
+  - [x] 8.10 Refactor TransformError to interface with factory
     - Convert TransformError to interface
     - Implement createTransformError factory
     - Implement isTransformError type guard
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.7_
 
-  - [ ] 8.11 Write tests for CircularError factory function
+  - [x] 8.11 Write tests for CircularError factory function
     - Test createCircularError returns correct structure
     - Test circular dependency information
     - Test type guard isCircularError
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.7, 8.3_
 
-  - [ ] 8.12 Refactor CircularError to interface with factory
+  - [x] 8.12 Refactor CircularError to interface with factory
     - Convert CircularError to interface
     - Implement createCircularError factory
     - Implement isCircularError type guard
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.7_
 
-  - [ ] 8.13 Write tests for InternalError factory function
+  - [x] 8.13 Write tests for InternalError factory function
     - Test createInternalError returns correct structure
     - Test type guard isInternalError
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.7, 8.3_
 
-  - [ ] 8.14 Refactor InternalError to interface with factory
+  - [x] 8.14 Refactor InternalError to interface with factory
     - Convert InternalError to interface
     - Implement createInternalError factory
     - Implement isInternalError type guard
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.7_
 
-- [ ] 9. Create unified error type and exports
+- [x] 9. Create unified error type and exports
   - Create RegraffError union type of all error interfaces
   - Export all error types, factories, and type guards from `src/errors/index.ts`
   - Ensure error type hierarchy supports extensibility
@@ -248,7 +248,7 @@ This document outlines the implementation tasks for consolidating error handling
 ## Phase 3: Core Component Migration - Parser
 
 - [ ] 10. Migrate parser to Result-based error handling
-  - [ ] 10.1 Write tests for parseFile with Result return type
+  - [x] 10.1 Write tests for parseFile with Result return type
     - Test parseFile returns Ok<BabelFile> for valid source
     - Test parseFile returns Err<ParseError> for syntax errors
     - Test parseFile returns Err<ParseError> for empty source
@@ -256,7 +256,7 @@ This document outlines the implementation tasks for consolidating error handling
     - Test error includes location information when available
     - _Requirements: 3.1, 3.2, 3.3, 3.5, 4.1, 6.1, 6.3, 8.3, 8.4_
 
-  - [ ] 10.2 Refactor parseFile to return Result
+  - [x] 10.2 Refactor parseFile to return Result
     - Update parseFile signature to return Result<BabelFile, ParseError>
     - Replace throw statements with err(createParseError(...))
     - Wrap Babel parser call with tryCatch
@@ -264,17 +264,17 @@ This document outlines the implementation tasks for consolidating error handling
     - Remove try-catch blocks
     - _Requirements: 3.1, 4.1, 4.2, 4.5, 4.6_
 
-  - [ ] 10.3 Write tests for parser helper functions with Result
+  - [x] 10.3 Write tests for parser helper functions with Result
     - Test getParserOptions returns valid options
     - Test any parser validation functions return Result types
     - _Requirements: 8.1, 8.2_
 
-  - [ ] 10.4 Update parser helper functions to use Result
+  - [x] 10.4 Update parser helper functions to use Result
     - Update any helper functions to return Result where appropriate
     - Ensure all error paths return proper ParseError types
     - _Requirements: 3.1, 3.6_
 
-  - [ ] 10.5 Update all parseFile call sites
+  - [x] 10.5 Update all parseFile call sites
     - Find all locations calling parseFile
     - Update to handle Result return type using isOk/isErr checks or flatMap
     - Ensure error propagation works correctly
@@ -284,7 +284,7 @@ This document outlines the implementation tasks for consolidating error handling
 ## Phase 4: Core Component Migration - Selector
 
 - [ ] 11. Migrate selector to Result-based error handling
-  - [ ] 11.1 Write tests for resolveSelector with Result return type
+  - [x] 11.1 Write tests for resolveSelector with Result return type
     - Test resolveSelector returns Ok<Element> when element is found
     - Test resolveSelector returns Err<SelectorError> when element not found
     - Test error contains selector information and file path
@@ -292,25 +292,25 @@ This document outlines the implementation tasks for consolidating error handling
     - Test error includes suggestions
     - _Requirements: 3.1, 3.2, 3.3, 3.5, 4.1, 6.1, 6.3, 8.3, 8.4_
 
-  - [ ] 11.2 Refactor resolveSelector to return Result
+  - [x] 11.2 Refactor resolveSelector to return Result
     - Update resolveSelector signature to return Result<Element, SelectorError>
     - Replace throw statements with err(createSelectorError(...))
     - Ensure all selector resolution logic returns Result
     - Remove try-catch blocks
     - _Requirements: 3.1, 4.1, 4.6_
 
-  - [ ] 11.3 Write tests for selector helper functions with Result
+  - [x] 11.3 Write tests for selector helper functions with Result
     - Test selector parsing functions return Result
     - Test selector validation returns Result
     - Test any path resolution returns Result
     - _Requirements: 8.1, 8.2_
 
-  - [ ] 11.4 Update selector helper functions to use Result
+  - [x] 11.4 Update selector helper functions to use Result
     - Update helper functions to return Result where appropriate
     - Ensure proper SelectorError creation
     - _Requirements: 3.1, 3.6_
 
-  - [ ] 11.5 Update all resolveSelector call sites
+  - [x] 11.5 Update all resolveSelector call sites
     - Find all locations calling resolveSelector
     - Update to handle Result return type
     - Use flatMap for chaining with other Result-returning operations
@@ -319,8 +319,8 @@ This document outlines the implementation tasks for consolidating error handling
 
 ## Phase 5: Core Component Migration - Analyzer
 
-- [ ] 12. Migrate dependency analyzer to Result-based error handling
-  - [ ] 12.1 Write tests for analyzeDependencies with Result return type
+- [x] 12. Migrate dependency analyzer to Result-based error handling
+  - [x] 12.1 Write tests for analyzeDependencies with Result return type
     - Test analyzeDependencies returns Ok<Dependencies> for valid elements
     - Test analyzeDependencies returns Err<DependencyError> for unresolvable references
     - Test analyzeDependencies returns Err<DependencyError> for eval() usage
@@ -328,25 +328,25 @@ This document outlines the implementation tasks for consolidating error handling
     - Test error includes file path and location
     - _Requirements: 3.1, 3.2, 3.3, 3.5, 4.1, 6.1, 6.3, 6.4, 8.3, 8.4_
 
-  - [ ] 12.2 Refactor analyzeDependencies to return Result
+  - [x] 12.2 Refactor analyzeDependencies to return Result
     - Update analyzeDependencies signature to return Result<Dependencies, DependencyError>
     - Replace throw statements with err(createDependencyError(...))
     - Use tryCatch for any operations that might throw
     - Remove try-catch blocks
     - _Requirements: 3.1, 4.1, 4.2, 4.6_
 
-  - [ ] 12.3 Write tests for dependency analysis helpers with Result
+  - [x] 12.3 Write tests for dependency analysis helpers with Result
     - Test dependency resolution functions return Result
     - Test hoisting analysis returns Result
     - Test circular dependency detection returns Result<void, CircularError>
     - _Requirements: 8.1, 8.2_
 
-  - [ ] 12.4 Update dependency analysis helpers to use Result
+  - [x] 12.4 Update dependency analysis helpers to use Result
     - Update helper functions to return Result
     - Ensure proper error type usage (DependencyError, CircularError)
     - _Requirements: 3.1, 3.6_
 
-  - [ ] 12.5 Update all analyzeDependencies call sites
+  - [x] 12.5 Update all analyzeDependencies call sites
     - Find all locations calling analyzeDependencies
     - Update to handle Result return type
     - Chain with selector and transformer using flatMap

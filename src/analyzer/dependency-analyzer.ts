@@ -7,6 +7,11 @@
 import type { NodePath, Binding } from '@babel/traverse';
 import * as t from '@babel/types';
 
+import {
+  createDependencyError,
+  type DependencyErrorType,
+} from '../errors/error-category.js';
+import { ok, err, tryCatch, type Result } from '../result/index.js';
 import { ScopeType } from '../scope/index.js';
 import type {
   ScopeManager,
@@ -588,21 +593,29 @@ export class DependencyAnalyzer {
    *
    * @param elementPath - Path to the JSX element
    * @param targetScope - Target scope for the move
-   * @returns Full dependency analysis
+   * @returns Result containing full dependency analysis or DependencyError
    */
   analyzeElement(
     elementPath: NodePath,
     targetScope: ScopeInfo | null
-  ): DependencyAnalysis {
+  ): Result<DependencyAnalysis, DependencyErrorType> {
     // First check analyzability
     const analyzability = this.checkAnalyzability(elementPath);
     if (!analyzability.analyzable) {
-      return createDependencyAnalysis({
-        canResolve: false,
-        unresolvedReason:
-          analyzability.blockers?.[0]?.description ??
-          'Code contains unanalyzable patterns',
-      });
+      const blocker = analyzability.blockers?.[0];
+      return err(
+        createDependencyError({
+          code: 'E030',
+          message:
+            blocker?.description ?? 'Code contains unanalyzable patterns',
+          unresolvableReason:
+            blocker?.description ?? 'Code contains unanalyzable patterns',
+          file: this.currentFile,
+          location: blocker?.location,
+          suggestions: [],
+          recoverable: false,
+        })
+      );
     }
 
     // Collect all identifiers
@@ -638,8 +651,24 @@ export class DependencyAnalyzer {
       ...refDeps,
     ];
 
-    // Convert to internal dependencies
-    const allDeps = this.convertToInternalDeps(allSpecificDeps, elementScope);
+    // Convert to internal dependencies - wrapped in tryCatch to handle any throws
+    const allDepsResult = tryCatch(() =>
+      this.convertToInternalDeps(allSpecificDeps, elementScope)
+    );
+    if (!allDepsResult.ok) {
+      return err(
+        createDependencyError({
+          code: 'E032',
+          message: allDepsResult.error.message,
+          unresolvableReason: `Failed to convert dependencies: ${allDepsResult.error.message}`,
+          file: this.currentFile,
+          location: elementPath.node.loc ?? undefined,
+          suggestions: [],
+          recoverable: false,
+        })
+      );
+    }
+    const allDeps = allDepsResult.value;
 
     // Detect transitive dependencies
     const transitiveDeps = this.detectTransitiveDependencies(allSpecificDeps);
@@ -660,14 +689,32 @@ export class DependencyAnalyzer {
     // Check if all dependencies can be resolved
     const canResolve = this.canResolveDependencies(allDeps, targetScope);
 
-    return createDependencyAnalysis({
-      dependencies: allDeps,
-      needsHoisting,
-      needsImport,
-      needsPropThreading,
-      canResolve: canResolve.can,
-      unresolvedReason: canResolve.reason,
-    });
+    // If dependencies cannot be resolved, return error
+    if (!canResolve.can) {
+      return err(
+        createDependencyError({
+          code: 'E031',
+          message: canResolve.reason ?? 'Cannot resolve all dependencies',
+          unresolvableReason:
+            canResolve.reason ?? 'Cannot resolve all dependencies',
+          file: this.currentFile,
+          location: elementPath.node.loc ?? undefined,
+          suggestions: [],
+          recoverable: false,
+        })
+      );
+    }
+
+    return ok(
+      createDependencyAnalysis({
+        dependencies: allDeps,
+        needsHoisting,
+        needsImport,
+        needsPropThreading,
+        canResolve: canResolve.can,
+        unresolvedReason: canResolve.reason,
+      })
+    );
   }
 
   // ===================================================================
@@ -1298,7 +1345,8 @@ export class DependencyAnalyzer {
 
       // Hook dependencies can't be moved outside of components
       if (dep.type === DependencyType.Hook) {
-        if (targetScope && targetScope.type === ScopeType.Module) {
+        // null targetScope or Module scope both indicate moving to module level
+        if (!targetScope || targetScope.type === ScopeType.Module) {
           return {
             can: false,
             reason: `Hook dependency "${dep.symbol}" cannot be moved to module scope`,

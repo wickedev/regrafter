@@ -4,7 +4,7 @@
  * Provides runtime validation for API inputs with helpful error messages.
  */
 
-import { RegraffError, ErrorCategory } from '../errors/error-category.js';
+import { RegraffErrorClass, ErrorCategory } from '../errors/error-category.js';
 import type {
   Selector,
   PositionSelector,
@@ -35,7 +35,7 @@ function isRecord(val: unknown): val is Record<string, unknown> {
 /**
  * Error thrown when input validation fails.
  */
-export class InputValidationError extends RegraffError {
+export class InputValidationError extends RegraffErrorClass {
   /** The parameter name that failed validation */
   readonly parameterName: string;
   /** The expected type/format */

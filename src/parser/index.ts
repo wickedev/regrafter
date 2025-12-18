@@ -6,6 +6,7 @@
  */
 
 export { Parser, createParser, ParseErrorCodes } from './parser.js';
+export { parseFile } from './parse-file.js';
 export { ASTStore, computeContentHash } from './ast-store.js';
 export {
   getExtension,

@@ -7,6 +7,7 @@
 export {
   SelectorResolver,
   createSelectorResolver,
+  type ElementData,
 } from './selector-resolver.js';
 
 export {

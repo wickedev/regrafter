@@ -9,7 +9,7 @@ import {
   Move,
   validateRegraftInput,
   ErrorCategory,
-  RegraffError,
+  RegraffErrorClass,
   isValidSelector,
   isValidMove,
   isValidOptions,
@@ -140,7 +140,7 @@ describe("E2E: Input Validation", () => {
 
 describe("E2E: Error Handling Flow", () => {
   it("should create and handle parse errors", () => {
-    const error = new RegraffError({
+    const error = new RegraffErrorClass({
       category: ErrorCategory.Parse,
       code: "E001",
       message: "Failed to parse test.tsx",
@@ -157,7 +157,7 @@ describe("E2E: Error Handling Flow", () => {
   });
 
   it("should create errors with suggestions", () => {
-    const error = new RegraffError({
+    const error = new RegraffErrorClass({
       category: ErrorCategory.Validation,
       code: "E030",
       message: "Cannot hoist hook to conditional",
@@ -182,7 +182,7 @@ describe("E2E: Error Handling Flow", () => {
   });
 
   it("should serialize errors to JSON", () => {
-    const error = new RegraffError({
+    const error = new RegraffErrorClass({
       category: ErrorCategory.Selector,
       code: "E010",
       message: "Element not found",

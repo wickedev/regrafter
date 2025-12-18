@@ -80,7 +80,7 @@ export async function flatMapAsync<T, U, E>(
   fn: (value: T) => Promise<Result<U, E>>
 ): Promise<Result<U, E>> {
   if (result.ok) {
-    return await fn(result.value);
+    return fn(result.value);
   }
   return result;
 }

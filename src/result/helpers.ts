@@ -260,7 +260,7 @@ export async function tryCatchAsync<T>(
  * }
  * ```
  */
-export function all<T, E>(results: Result<T, E>[]): Result<T[], E> {
+export function all<T, E>(results: Array<Result<T, E>>): Result<T[], E> {
   const values: T[] = [];
 
   for (const result of results) {
@@ -308,7 +308,7 @@ export function all<T, E>(results: Result<T, E>[]): Result<T[], E> {
  * }
  * ```
  */
-export function any<T, E>(results: Result<T, E>[]): Result<T, E[]> {
+export function any<T, E>(results: Array<Result<T, E>>): Result<T, E[]> {
   const errors: E[] = [];
 
   for (const result of results) {
