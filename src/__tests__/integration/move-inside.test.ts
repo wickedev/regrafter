@@ -16,6 +16,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
+import { regraft } from "../../index.js";
 import {
   Move,
   DependencyType,
