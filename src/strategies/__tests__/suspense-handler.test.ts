@@ -9,13 +9,13 @@
  * - Handling ErrorBoundary scenarios
  */
 
-import { describe, it, expect } from 'vitest';
 import { parse } from '@babel/parser';
 import traverseModule, { type NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
+import { describe, it, expect } from 'vitest';
 
-import { SuspenseHandler } from '../suspense-handler.js';
 import { loadTraverseFunction, type TraverseFunction } from '../../utils/index.js';
+import { SuspenseHandler } from '../suspense-handler.js';
 
 const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
 
@@ -188,7 +188,7 @@ describe('SuspenseHandler - Suspense Boundary Detection', () => {
     const ast = parseCode(code);
     const handler = new SuspenseHandler();
 
-    let foundSuspense: boolean = false;
+    let foundSuspense = false;
     traverse(ast, {
       JSXElement(path: NodePath<t.JSXElement>) {
         const openingElement = path.node.openingElement;
@@ -218,7 +218,7 @@ describe('SuspenseHandler - Suspense Boundary Detection', () => {
     const ast = parseCode(code);
     const handler = new SuspenseHandler();
 
-    let foundSuspense: boolean = false;
+    let foundSuspense = false;
     traverse(ast, {
       JSXElement(path: NodePath<t.JSXElement>) {
         const openingElement = path.node.openingElement;
@@ -244,7 +244,7 @@ describe('SuspenseHandler - Suspense Boundary Detection', () => {
     const ast = parseCode(code);
     const handler = new SuspenseHandler();
 
-    let foundSuspense: boolean = false;
+    let foundSuspense = false;
     let checkedElement = false;
     traverse(ast, {
       JSXElement(path: NodePath<t.JSXElement>) {
@@ -281,7 +281,7 @@ describe('SuspenseHandler - Suspense Boundary Detection', () => {
     const ast = parseCode(code);
     const handler = new SuspenseHandler();
 
-    let foundSuspense: boolean = false;
+    let foundSuspense = false;
     traverse(ast, {
       JSXElement(path: NodePath<t.JSXElement>) {
         const openingElement = path.node.openingElement;
@@ -339,9 +339,7 @@ describe('SuspenseHandler - Fallback Extraction', () => {
     });
 
     expect(extractedFallback).not.toBeNull();
-    if (extractedFallback !== null) {
-      expect(t.isJSXElement(extractedFallback)).toBe(true);
-    }
+    expect(t.isJSXElement(extractedFallback)).toBe(true);
   });
 
   it('should return null when no fallback prop exists', () => {
@@ -402,9 +400,7 @@ describe('SuspenseHandler - Fallback Extraction', () => {
     });
 
     expect(extractedFallback).not.toBeNull();
-    if (extractedFallback !== null) {
-      expect(t.isJSXElement(extractedFallback)).toBe(true);
-    }
+    expect(t.isJSXElement(extractedFallback)).toBe(true);
   });
 });
 
@@ -434,21 +430,23 @@ describe('SuspenseHandler - Suspense Wrapper Creation', () => {
     });
 
     expect(suspenseElement).not.toBeNull();
-    if (suspenseElement !== null) {
-      const element: t.JSXElement = suspenseElement;
-      expect(element.openingElement.name.type).toBe('JSXIdentifier');
-      if (element.openingElement.name.type === 'JSXIdentifier') {
-        expect(element.openingElement.name.name).toBe('Suspense');
-      }
+    if (!suspenseElement) return;
 
-      // Should have fallback attribute
-      const attrs = element.openingElement.attributes;
-      const fallbackAttr = attrs.find((attr: t.JSXAttribute | t.JSXSpreadAttribute) =>
-        attr.type === 'JSXAttribute' &&
-        attr.name.name === 'fallback'
-      );
-      expect(fallbackAttr).toBeDefined();
+    // Create a new variable to help TypeScript understand the type
+    const element: t.JSXElement = suspenseElement;
+
+    expect(element.openingElement.name.type).toBe('JSXIdentifier');
+    if (element.openingElement.name.type === 'JSXIdentifier') {
+      expect(element.openingElement.name.name).toBe('Suspense');
     }
+
+    // Should have fallback attribute
+    const attrs = element.openingElement.attributes;
+    const fallbackAttr = attrs.find((attr: t.JSXAttribute | t.JSXSpreadAttribute) =>
+      attr.type === 'JSXAttribute' &&
+      attr.name.name === 'fallback'
+    );
+    expect(fallbackAttr).toBeDefined();
   });
 
   it('should create Suspense wrapper with custom fallback', () => {
@@ -479,22 +477,27 @@ describe('SuspenseHandler - Suspense Wrapper Creation', () => {
     });
 
     expect(suspenseElement).not.toBeNull();
+    if (!suspenseElement) return;
 
-    if (suspenseElement !== null) {
-      const element: t.JSXElement = suspenseElement;
-      // Should have fallback attribute with custom element
-      const attrs = element.openingElement.attributes;
-      const fallbackAttr = attrs.find((attr: t.JSXAttribute | t.JSXSpreadAttribute) =>
+    // Create a new variable to help TypeScript understand the type
+    const element: t.JSXElement = suspenseElement;
+
+    // Should have fallback attribute with custom element
+    const attrs = element.openingElement.attributes;
+    const fallbackAttr = attrs.find((attr): attr is t.JSXAttribute => {
+      return (
         attr.type === 'JSXAttribute' &&
+        'name' in attr &&
+        attr.name.type === 'JSXIdentifier' &&
         attr.name.name === 'fallback'
-      ) as t.JSXAttribute | undefined;
+      );
+    });
 
-      expect(fallbackAttr).toBeDefined();
-      if (fallbackAttr !== undefined && fallbackAttr.value !== null && fallbackAttr.value !== undefined) {
-        expect(fallbackAttr.value.type).toBe('JSXExpressionContainer');
-        if (fallbackAttr.value.type === 'JSXExpressionContainer') {
-          expect(fallbackAttr.value.expression.type).toBe('JSXElement');
-        }
+    expect(fallbackAttr).toBeDefined();
+    if (fallbackAttr !== undefined && fallbackAttr.value !== null && fallbackAttr.value !== undefined) {
+      expect(fallbackAttr.value.type).toBe('JSXExpressionContainer');
+      if (fallbackAttr.value.type === 'JSXExpressionContainer') {
+        expect(fallbackAttr.value.expression.type).toBe('JSXElement');
       }
     }
   });
@@ -520,10 +523,12 @@ describe('SuspenseHandler - Suspense Wrapper Creation', () => {
     });
 
     expect(suspenseElement).not.toBeNull();
-    if (suspenseElement !== null) {
-      const element: t.JSXElement = suspenseElement;
-      expect(element.children.length).toBeGreaterThan(0);
-    }
+    if (!suspenseElement) return;
+
+    // Create a new variable to help TypeScript understand the type
+    const element: t.JSXElement = suspenseElement;
+
+    expect(element.children.length).toBeGreaterThan(0);
   });
 });
 
@@ -548,7 +553,7 @@ describe('SuspenseHandler - isWithinSuspense (TASK-006)', () => {
     const ast = parseCode(code);
     const handler = new SuspenseHandler();
 
-    let isWithin: boolean = false;
+    let isWithin = false;
     traverse(ast, {
       JSXElement(path: NodePath<t.JSXElement>) {
         const openingElement = path.node.openingElement;
@@ -583,7 +588,7 @@ describe('SuspenseHandler - isWithinSuspense (TASK-006)', () => {
     const ast = parseCode(code);
     const handler = new SuspenseHandler();
 
-    let isWithin: boolean = true;
+    let isWithin = true;
     traverse(ast, {
       JSXElement(path: NodePath<t.JSXElement>) {
         const openingElement = path.node.openingElement;
@@ -630,7 +635,7 @@ describe('SuspenseHandler - hasSuspenseBoundary (TASK-006)', () => {
     const ast = parseCode(code);
     const handler = new SuspenseHandler();
 
-    let hasBoundary: boolean = false;
+    let hasBoundary = false;
     let checkedOuter = false;
     traverse(ast, {
       JSXElement(path: NodePath<t.JSXElement>) {
@@ -673,7 +678,7 @@ describe('SuspenseHandler - hasSuspenseBoundary (TASK-006)', () => {
     const ast = parseCode(code);
     const handler = new SuspenseHandler();
 
-    let hasBoundary: boolean = true;
+    let hasBoundary = true;
     let checkedPaths = 0;
     traverse(ast, {
       JSXElement(path: NodePath<t.JSXElement>) {
@@ -725,10 +730,10 @@ describe('SuspenseHandler - TASK-006 Integration', () => {
     });
 
     expect(lazyElement).not.toBeNull();
-    if (lazyElement !== null) {
-      expect(handler.isLazyComponent(lazyElement)).toBe(true);
-      expect(handler.isWithinSuspense(lazyElement)).toBe(true);
-    }
+    if (!lazyElement) return; // Type guard for TypeScript
+
+    expect(handler.isLazyComponent(lazyElement)).toBe(true);
+    expect(handler.isWithinSuspense(lazyElement)).toBe(true);
   });
 
   it('should warn when lazy component is NOT in Suspense', () => {
@@ -755,10 +760,10 @@ describe('SuspenseHandler - TASK-006 Integration', () => {
     });
 
     expect(lazyElement).not.toBeNull();
-    if (lazyElement !== null) {
-      expect(handler.isLazyComponent(lazyElement)).toBe(true);
-      expect(handler.isWithinSuspense(lazyElement)).toBe(false);
-    }
+    if (!lazyElement) return; // Type guard for TypeScript
+
+    expect(handler.isLazyComponent(lazyElement)).toBe(true);
+    expect(handler.isWithinSuspense(lazyElement)).toBe(false);
   });
 
   it('should preserve fallback when creating Suspense wrapper', () => {
@@ -803,22 +808,26 @@ describe('SuspenseHandler - TASK-006 Integration', () => {
 
     expect(originalFallback).not.toBeNull();
     expect(targetElement).not.toBeNull();
+    if (!targetElement || !originalFallback) return; // Type guard for TypeScript
 
-    if (targetElement !== null && originalFallback !== null) {
-      // Create new Suspense with preserved fallback
-      const newSuspense = handler.createSuspenseWrapper(targetElement, originalFallback);
-      expect(newSuspense).toBeDefined();
+    // Create new Suspense with preserved fallback
+    const newSuspense = handler.createSuspenseWrapper(targetElement, originalFallback);
+    expect(newSuspense).toBeDefined();
 
-      // Verify fallback is preserved
-      const attrs = newSuspense.openingElement.attributes;
-      const fallbackAttr = attrs.find((attr: t.JSXAttribute | t.JSXSpreadAttribute) =>
-        attr.type === 'JSXAttribute' && attr.name.name === 'fallback'
-      ) as t.JSXAttribute | undefined;
+    // Verify fallback is preserved
+    const attrs = newSuspense.openingElement.attributes;
+    const fallbackAttr = attrs.find((attr): attr is t.JSXAttribute => {
+      return (
+        attr.type === 'JSXAttribute' &&
+        'name' in attr &&
+        attr.name.type === 'JSXIdentifier' &&
+        attr.name.name === 'fallback'
+      );
+    });
 
-      expect(fallbackAttr).toBeDefined();
-      if (fallbackAttr !== undefined && fallbackAttr.value !== null && fallbackAttr.value !== undefined) {
-        expect(fallbackAttr.value.type).toBe('JSXExpressionContainer');
-      }
+    expect(fallbackAttr).toBeDefined();
+    if (fallbackAttr !== undefined && fallbackAttr.value !== null && fallbackAttr.value !== undefined) {
+      expect(fallbackAttr.value.type).toBe('JSXExpressionContainer');
     }
   });
 });

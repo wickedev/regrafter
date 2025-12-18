@@ -153,7 +153,7 @@ function createContextDependency(
         start: { line: 1, column: 0, index: 0 },
         end: { line: 1, column: 10, index: 10 },
         filename: 'test.tsx',
-        identifierName: undefined,
+        identifierName: symbol,
       },
     },
     scope: createScopeInfo({
@@ -198,7 +198,7 @@ describe('ContextHandler', () => {
             start: { line: 1, column: 0, index: 0 },
             end: { line: 1, column: 10, index: 10 },
             filename: 'test.tsx',
-            identifierName: undefined,
+            identifierName: 'useState',
           },
         },
         scope: createScopeInfo({
@@ -364,8 +364,11 @@ describe('ContextHandler', () => {
 
       const calls = handler.findUseContextCalls(ast);
 
+      expect(calls).toBeDefined();
       expect(calls.length).toBeGreaterThan(0);
-      expect(calls[0]?.variableName).toBe('value');
+      if (calls[0] !== undefined) {
+        expect(calls[0].variableName).toBe('value');
+      }
     });
 
     it('should find useContext calls for specific context', () => {
@@ -374,10 +377,16 @@ describe('ContextHandler', () => {
       const themeCalls = handler.findUseContextCalls(ast, 'ThemeContext');
       const userCalls = handler.findUseContextCalls(ast, 'UserContext');
 
+      expect(themeCalls).toBeDefined();
+      expect(userCalls).toBeDefined();
       expect(themeCalls.length).toBe(1);
       expect(userCalls.length).toBe(1);
-      expect(themeCalls[0]?.variableName).toBe('theme');
-      expect(userCalls[0]?.variableName).toBe('user');
+      if (themeCalls[0] !== undefined) {
+        expect(themeCalls[0].variableName).toBe('theme');
+      }
+      if (userCalls[0] !== undefined) {
+        expect(userCalls[0].variableName).toBe('user');
+      }
     });
   });
 

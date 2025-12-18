@@ -596,8 +596,11 @@ function App() {
 
       if (result.ok) {
         expect(result.value.codes).toHaveLength(1);
-        expect(result.value.codes[0]?.changed).toBe(false);
-        expect(result.value.codes[0]?.content).toBe(code);
+        const firstCode = result.value.codes[0];
+        if (firstCode !== undefined) {
+          expect(firstCode.changed).toBe(false);
+          expect(firstCode.content).toBe(code);
+        }
       }
     });
 

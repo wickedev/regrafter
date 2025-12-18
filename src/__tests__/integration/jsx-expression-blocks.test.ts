@@ -46,9 +46,6 @@ function Footer() {
         Move.After
       );
 
-      if (!result.ok) {
-        console.error('Error:', result.error);
-      }
       expect(result.ok).toBe(true);
       if (result.ok && result.value.codes[0] !== undefined) {
         expect(result.value.codes[0].content).toBe("function Parent() {\n  const isActive = true;\n  return <div><h1>Title</h1><Footer />{isActive && <ActiveStatus />}</div>;\n}\nfunction ActiveStatus() {\n  return <span>Active</span>;\n}\nfunction Footer() {\n  return <div>Footer</div>;\n}");
@@ -95,8 +92,8 @@ function Footer() {
 
       expect(result.ok).toBe(true);
 
-      // Verify the conditional moved before Header
       if (result.ok && result.value.codes[0] !== undefined) {
+        // Verify the conditional moved before Header
         const headerIndex = result.value.codes[0].content.indexOf('<Header />');
         const conditionalIndex = result.value.codes[0].content.indexOf('{user && user.name && <UserProfile');
         expect(conditionalIndex).toBeLessThan(headerIndex);
@@ -337,10 +334,10 @@ function Footer() {
         Move.After
       );
 
-      // This should work - the conditional expression and its dependencies
-      // (isVisible, setIsVisible) should be handled as an atomic unit
       expect(result.ok).toBe(true);
       if (result.ok && result.value.codes[0] !== undefined) {
+        // The conditional expression and its dependencies
+        // (isVisible, setIsVisible) should be handled as an atomic unit
         expect(result.value.codes[0].content).toContain('isVisible &&');
         expect(result.value.codes[0].content).toContain('setIsVisible');
       }

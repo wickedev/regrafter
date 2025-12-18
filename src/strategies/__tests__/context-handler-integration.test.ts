@@ -214,7 +214,7 @@ function createContextDependency(
         start: { line: 1, column: 0, index: 0 },
         end: { line: 1, column: 10, index: 10 },
         filename: 'test.tsx',
-        identifierName: undefined,
+        identifierName: symbol,
       },
     },
     scope: createScopeInfo({

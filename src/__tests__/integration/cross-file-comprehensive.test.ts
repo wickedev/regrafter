@@ -211,7 +211,7 @@ function Target() {
       if (newFiles.length > 0) {
         // If a shared module was created, verify it exports
         const sharedModule = newFiles[0];
-        if (sharedModule) {
+        if (sharedModule !== undefined) {
           expect(sharedModule.content).toContain('export');
         }
       }
@@ -270,7 +270,7 @@ function Target() {
       const newFiles = result.value.codes.filter((c) => c.isNew);
       if (newFiles.length > 0) {
         const sharedModule = newFiles[0];
-        if (sharedModule) {
+        if (sharedModule !== undefined) {
           // Count exports (could be export const helper1, helper2, helper3)
           const exportCount = (sharedModule.content.match(/export/g) || []).length;
           expect(exportCount).toBeGreaterThan(0);
@@ -396,7 +396,7 @@ export function B({ data }: { data: { value: number } }) {
       const newFiles = result.value.codes.filter((c) => c.isNew);
       if (newFiles.length > 0) {
         const sharedModule = newFiles[0];
-        if (sharedModule) {
+        if (sharedModule !== undefined) {
           expect(sharedModule.content).toContain('export');
         }
       }
@@ -531,10 +531,8 @@ function Target() {
         expect(reactImports.length).toBeLessThanOrEqual(3);
 
         // Verify useEffect is imported
-        const hasUseEffect = targetResult.content.includes('useEffect');
-
         // useEffect should definitely be there
-        expect(hasUseEffect).toBe(true);
+        expect(targetResult.content.includes('useEffect')).toBe(true);
       }
     }
   });
@@ -607,10 +605,8 @@ function Target() {
       if (sourceResult) {
         // Verify helper is still accessible
         // (either imported from shared module or kept local)
-        const hasHelper = sourceResult.content.includes('helper');
-
         // At minimum, helper should still be accessible
-        expect(hasHelper).toBe(true);
+        expect(sourceResult.content.includes('helper')).toBe(true);
       }
     }
   });

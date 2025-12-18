@@ -4,27 +4,27 @@
  * Analyzes dependencies of JSX elements for safe move operations.
  */
 
-import type { NodePath, Binding } from '@babel/traverse';
-import * as t from '@babel/types';
+import type { NodePath, Binding } from "@babel/traverse";
+import * as t from "@babel/types";
 
 import {
   createDependencyError,
   type DependencyErrorType,
-} from '../errors/error-category.js';
-import { ok, err, tryCatch, isErr, type Result } from '../result/index.js';
-import { ScopeType } from '../scope/index.js';
+} from "../errors/error-category.js";
+import { ok, err, tryCatch, isErr, type Result } from "../result/index.js";
+import { ScopeType } from "../scope/index.js";
 import type {
   ScopeManager,
   ScopeInfo,
   ComponentScope,
-} from '../scope/index.js';
+} from "../scope/index.js";
 import {
   createInternalDependency,
   createDependencyOrigin,
   createDependencyAnalysis,
-} from '../types/factories.js';
+} from "../types/factories.js";
 
-import { createDynamicCodeDetector } from './dynamic-code-detector.js';
+import { createDynamicCodeDetector } from "./dynamic-code-detector.js";
 import {
   DependencyType,
   type IdentifierReference,
@@ -42,27 +42,27 @@ import {
   type UnanalyzableCode,
   type AnalyzabilityResult,
   mergeAnalyzerOptions,
-} from './types.js';
+} from "./types.js";
 
 /**
  * Set of React hooks
  */
 const REACT_HOOKS = new Set([
-  'useState',
-  'useEffect',
-  'useContext',
-  'useReducer',
-  'useCallback',
-  'useMemo',
-  'useRef',
-  'useImperativeHandle',
-  'useLayoutEffect',
-  'useDebugValue',
-  'useDeferredValue',
-  'useTransition',
-  'useId',
-  'useSyncExternalStore',
-  'useInsertionEffect',
+  "useState",
+  "useEffect",
+  "useContext",
+  "useReducer",
+  "useCallback",
+  "useMemo",
+  "useRef",
+  "useImperativeHandle",
+  "useLayoutEffect",
+  "useDebugValue",
+  "useDeferredValue",
+  "useTransition",
+  "useId",
+  "useSyncExternalStore",
+  "useInsertionEffect",
 ]);
 
 /**
@@ -88,7 +88,7 @@ function getDependencyName(dep: SpecificDependency): string {
 export class DependencyAnalyzer {
   private readonly scopeManager: ScopeManager;
   private readonly options: Required<AnalyzerOptions>;
-  private currentFile = '';
+  private currentFile = "";
 
   constructor(scopeManager: ScopeManager, options?: AnalyzerOptions) {
     this.scopeManager = scopeManager;
@@ -166,21 +166,21 @@ export class DependencyAnalyzer {
             addIdentifier({
               name: nameNode.name,
               path: jsxPath,
-              usage: 'jsx-element',
+              usage: "jsx-element",
               scope,
             });
           }
         } else if (t.isJSXMemberExpression(nameNode)) {
           // Handle Compound.Component pattern
           const names = this.extractMemberExpressionNames(nameNode);
-          if (names.length > 0 && names[0] !== undefined && names[0] !== '') {
-            jsxElementNames.push(names.join('.'));
+          if (names.length > 0 && names[0] !== undefined && names[0] !== "") {
+            jsxElementNames.push(names.join("."));
 
             const scope = this.scopeManager.getScopeForPath(jsxPath);
             addIdentifier({
               name: names[0],
               path: jsxPath,
-              usage: 'jsx-element',
+              usage: "jsx-element",
               scope,
             });
           }
@@ -198,7 +198,7 @@ export class DependencyAnalyzer {
           addIdentifier({
             name: arg.name,
             path: spreadPath,
-            usage: 'spread',
+            usage: "spread",
             scope,
           });
         }
@@ -213,7 +213,7 @@ export class DependencyAnalyzer {
           addIdentifier({
             name: rootObject.name,
             path: memberPath,
-            usage: 'value',
+            usage: "value",
             scope,
           });
         }
@@ -229,7 +229,7 @@ export class DependencyAnalyzer {
           addIdentifier({
             name: callee.name,
             path: callPath,
-            usage: 'call',
+            usage: "call",
             scope,
           });
         }
@@ -242,7 +242,7 @@ export class DependencyAnalyzer {
             addIdentifier({
               name: rootObject.name,
               path: callPath,
-              usage: 'call',
+              usage: "call",
               scope,
             });
           }
@@ -338,7 +338,7 @@ export class DependencyAnalyzer {
           name: idRef.name,
           path: binding.path,
           type: DependencyType.Variable,
-          isConst: binding.kind === 'const',
+          isConst: binding.kind === "const",
           initializer: declarator.init ?? undefined,
         });
       } else if (t.isFunctionDeclaration(declarator)) {
@@ -571,7 +571,10 @@ export class DependencyAnalyzer {
   ): Array<{ dependency: InternalDependency; path: NodePath }> {
     if (!elementScope) return [];
 
-    const relatedDeps: Array<{ dependency: InternalDependency; path: NodePath }> = [];
+    const relatedDeps: Array<{
+      dependency: InternalDependency;
+      path: NodePath;
+    }> = [];
     const processed = new Set<string>();
 
     // Get all symbols from dependencies that will be hoisted
@@ -581,7 +584,7 @@ export class DependencyAnalyzer {
     for (const dep of dependencies) {
       existingSymbols.add(dep.symbol);
       // Split compound symbols on ", " and add each part
-      const parts = dep.symbol.split(', ');
+      const parts = dep.symbol.split(", ");
       for (const part of parts) {
         hoistedSymbols.add(part.trim());
       }
@@ -590,7 +593,7 @@ export class DependencyAnalyzer {
     // Find the function body containing the element
     let functionPath: NodePath | null = elementPath;
     while (functionPath && !functionPath.isFunction()) {
-      const parent = functionPath.parentPath;
+      const parent: NodePath | null = functionPath.parentPath;
       if (!parent) break;
       functionPath = parent;
     }
@@ -598,13 +601,13 @@ export class DependencyAnalyzer {
     if (!functionPath || !functionPath.isFunction()) return [];
 
     // Get the function body
-    const bodyPath = functionPath.get('body');
+    const bodyPath = functionPath.get("body");
     if (!bodyPath || Array.isArray(bodyPath) || !bodyPath.isBlockStatement()) {
       return [];
     }
 
     // Scan all statements in the function body
-    const statements = bodyPath.get('body');
+    const statements = bodyPath.get("body");
     if (!Array.isArray(statements)) return [];
 
     for (const stmtPath of statements) {
@@ -615,10 +618,10 @@ export class DependencyAnalyzer {
 
       // Check for useEffect calls
       if (stmtPath.isExpressionStatement()) {
-        const expr = stmtPath.get('expression');
+        const expr = stmtPath.get("expression");
         if (expr.isCallExpression()) {
-          const callee = expr.get('callee');
-          if (callee.isIdentifier() && callee.node.name === 'useEffect') {
+          const callee = expr.get("callee");
+          if (callee.isIdentifier() && callee.node.name === "useEffect") {
             // Check if this useEffect references any hoisted symbols
             const referencesHoistedSymbol = this.referencesAnySymbol(
               expr,
@@ -627,10 +630,10 @@ export class DependencyAnalyzer {
 
             if (referencesHoistedSymbol) {
               // Skip if useEffect is already being hoisted
-              if (!existingSymbols.has('useEffect')) {
+              if (!existingSymbols.has("useEffect")) {
                 relatedDeps.push({
                   dependency: createInternalDependency({
-                    symbol: 'useEffect',
+                    symbol: "useEffect",
                     type: DependencyType.Hook,
                     origin: createDependencyOrigin({
                       node: stmtPath.node,
@@ -650,20 +653,17 @@ export class DependencyAnalyzer {
 
       // Check for variable declarations with function expressions/arrow functions
       if (stmtPath.isVariableDeclaration()) {
-        for (const declarator of stmtPath.get('declarations')) {
+        for (const declarator of stmtPath.get("declarations")) {
           if (!declarator.isVariableDeclarator()) continue;
 
-          const init = declarator.get('init');
-          const id = declarator.get('id');
+          const init = declarator.get("init");
+          const id = declarator.get("id");
 
           if (!id.isIdentifier()) continue;
           const functionName = id.node.name;
 
           // Check if the initializer is a function
-          if (
-            init.isFunctionExpression() ||
-            init.isArrowFunctionExpression()
-          ) {
+          if (init.isFunctionExpression() || init.isArrowFunctionExpression()) {
             // Check if this function references any hoisted symbols
             const referencesHoistedSymbol = this.referencesAnySymbol(
               init,
@@ -695,7 +695,7 @@ export class DependencyAnalyzer {
 
       // Check for function declarations
       if (stmtPath.isFunctionDeclaration()) {
-        const id = stmtPath.get('id');
+        const id = stmtPath.get("id");
         if (id.isIdentifier()) {
           const functionName = id.node.name;
 
@@ -734,23 +734,21 @@ export class DependencyAnalyzer {
   /**
    * Check if a path references any of the given symbols
    */
-  private referencesAnySymbol(
-    path: NodePath,
-    symbols: Set<string>
-  ): boolean {
+  private referencesAnySymbol(path: NodePath, symbols: Set<string>): boolean {
     let found = false;
 
     path.traverse({
-      Identifier(idPath: NodePath) {
+      Identifier(idPath: NodePath<t.Identifier>) {
         if (found) return;
 
         // Skip if this is a binding identifier (like function parameter names)
         const parent = idPath.parent;
         if (
-          t.isVariableDeclarator(parent) && parent.id === idPath.node ||
-          t.isFunctionDeclaration(parent) && parent.id === idPath.node ||
-          t.isFunctionExpression(parent) && parent.id === idPath.node ||
-          t.isArrowFunctionExpression(parent) && parent.params.includes(idPath.node as any)
+          (t.isVariableDeclarator(parent) && parent.id === idPath.node) ||
+          (t.isFunctionDeclaration(parent) && parent.id === idPath.node) ||
+          (t.isFunctionExpression(parent) && parent.id === idPath.node) ||
+          (t.isArrowFunctionExpression(parent) &&
+            parent.params.includes(idPath.node))
         ) {
           return;
         }
@@ -783,14 +781,14 @@ export class DependencyAnalyzer {
 
     // Convert DynamicCodeInfo to UnanalyzableCode
     const blockers: UnanalyzableCode[] = dynamicCode.map((dc) => ({
-      type: dc.type === 'eval' ? 'eval' : 'dynamicCode',
+      type: dc.type === "eval" ? "eval" : "dynamicCode",
       location: dc.location,
       description:
-        dc.type === 'eval'
-          ? 'Use of eval() makes static analysis impossible'
-          : dc.type === 'Function'
-            ? 'Use of Function constructor creates dynamic code'
-            : 'Dynamic import with non-static argument cannot be statically analyzed',
+        dc.type === "eval"
+          ? "Use of eval() makes static analysis impossible"
+          : dc.type === "Function"
+            ? "Use of Function constructor creates dynamic code"
+            : "Dynamic import with non-static argument cannot be statically analyzed",
     }));
 
     return {
@@ -816,11 +814,11 @@ export class DependencyAnalyzer {
       const blocker = analyzability.blockers?.[0];
       return err(
         createDependencyError({
-          code: 'E030',
+          code: "E030",
           message:
-            blocker?.description ?? 'Code contains unanalyzable patterns',
+            blocker?.description ?? "Code contains unanalyzable patterns",
           unresolvableReason:
-            blocker?.description ?? 'Code contains unanalyzable patterns',
+            blocker?.description ?? "Code contains unanalyzable patterns",
           file: this.currentFile,
           location: blocker?.location,
           suggestions: [],
@@ -875,13 +873,13 @@ export class DependencyAnalyzer {
 
     for (const dep of allSpecificDeps) {
       const symbol =
-        'name' in dep
+        "name" in dep
           ? dep.name
-          : 'bindings' in dep
-            ? dep.bindings.join(',')
-            : 'localName' in dep
+          : "bindings" in dep
+            ? dep.bindings.join(",")
+            : "localName" in dep
               ? dep.localName
-              : 'unknown';
+              : "unknown";
 
       const existing = seenSymbols.get(symbol);
       if (existing) {
@@ -914,13 +912,13 @@ export class DependencyAnalyzer {
     const tempPathMap = new Map<string, NodePath>();
     for (const dep of deduplicatedDeps) {
       const name =
-        'name' in dep
+        "name" in dep
           ? dep.name
-          : 'bindings' in dep
-            ? dep.bindings.join(', ')
-            : 'localName' in dep
+          : "bindings" in dep
+            ? dep.bindings.join(", ")
+            : "localName" in dep
               ? dep.localName
-              : 'unknown';
+              : "unknown";
       const key = `${name}:${dep.type}`;
       tempPathMap.set(key, dep.path);
     }
@@ -930,10 +928,13 @@ export class DependencyAnalyzer {
       this.convertToInternalDeps(deduplicatedDeps, elementScope)
     );
     if (isErr(allDepsResult)) {
-      const errorMsg = allDepsResult.error instanceof Error ? allDepsResult.error.message : String(allDepsResult.error);
+      const errorMsg =
+        allDepsResult.error instanceof Error
+          ? allDepsResult.error.message
+          : String(allDepsResult.error);
       return err(
         createDependencyError({
-          code: 'E032',
+          code: "E032",
           message: errorMsg,
           unresolvableReason: `Failed to convert dependencies: ${errorMsg}`,
           file: this.currentFile,
@@ -960,7 +961,11 @@ export class DependencyAnalyzer {
     allDeps.push(...transitiveDeps);
 
     // Detect related dependencies (useEffect, helper functions that use hoisted deps)
-    const relatedDepsWithPaths = this.detectRelatedDependencies(allDeps, elementScope, elementPath);
+    const relatedDepsWithPaths = this.detectRelatedDependencies(
+      allDeps,
+      elementScope,
+      elementPath
+    );
 
     // Add related dependencies and their paths
     for (const { dependency, path } of relatedDepsWithPaths) {
@@ -987,10 +992,10 @@ export class DependencyAnalyzer {
     if (!canResolve.can) {
       return err(
         createDependencyError({
-          code: 'E031',
-          message: canResolve.reason ?? 'Cannot resolve all dependencies',
+          code: "E031",
+          message: canResolve.reason ?? "Cannot resolve all dependencies",
           unresolvableReason:
-            canResolve.reason ?? 'Cannot resolve all dependencies',
+            canResolve.reason ?? "Cannot resolve all dependencies",
           file: this.currentFile,
           location: elementPath.node.loc ?? undefined,
           suggestions: [],
@@ -1023,7 +1028,8 @@ export class DependencyAnalyzer {
     const parent = path.parent;
     return (
       t.isJSXOpeningElement(parent) &&
-      ((t.isJSXIdentifier(parent.name) && parent.name.name === path.node.name) ||
+      ((t.isJSXIdentifier(parent.name) &&
+        parent.name.name === path.node.name) ||
         this.isPartOfJSXName(parent.name, path.node))
     );
   }
@@ -1087,22 +1093,22 @@ export class DependencyAnalyzer {
    */
   private getIdentifierUsage(
     path: NodePath<t.Identifier>
-  ): IdentifierReference['usage'] {
+  ): IdentifierReference["usage"] {
     const parent = path.parent;
 
     if (t.isCallExpression(parent) && parent.callee === path.node) {
-      return 'call';
+      return "call";
     }
 
     if (t.isJSXExpressionContainer(parent)) {
-      return 'value';
+      return "value";
     }
 
     if (t.isJSXAttribute(parent)) {
-      return 'jsx-attribute';
+      return "jsx-attribute";
     }
 
-    return 'value';
+    return "value";
   }
 
   /**
@@ -1207,7 +1213,7 @@ export class DependencyAnalyzer {
           hookName = callee.property.name;
         }
 
-        if (hookName !== null && hookName !== '') {
+        if (hookName !== null && hookName !== "") {
           // Get all bindings created by this hook
           const bindings: string[] = [];
           if (t.isIdentifier(decl.id)) {
@@ -1230,7 +1236,7 @@ export class DependencyAnalyzer {
           let dependencies: string[] | undefined;
           const depsArg = decl.init.arguments[1];
           if (
-            ['useEffect', 'useLayoutEffect', 'useMemo', 'useCallback'].includes(
+            ["useEffect", "useLayoutEffect", "useMemo", "useCallback"].includes(
               hookName
             ) &&
             t.isArrayExpression(depsArg)
@@ -1268,7 +1274,7 @@ export class DependencyAnalyzer {
    * Check if a binding is a function parameter
    */
   private isParameterBinding(binding: Binding): boolean {
-    return binding.kind === 'param';
+    return binding.kind === "param";
   }
 
   /**
@@ -1278,7 +1284,7 @@ export class DependencyAnalyzer {
     localName: string;
     importedName: string;
     source: string;
-    type: 'default' | 'named' | 'namespace';
+    type: "default" | "named" | "namespace";
   } | null {
     const node = binding.path.node;
     const importDecl = binding.path.parent;
@@ -1290,18 +1296,18 @@ export class DependencyAnalyzer {
     if (t.isImportDefaultSpecifier(node)) {
       return {
         localName: node.local.name,
-        importedName: 'default',
+        importedName: "default",
         source,
-        type: 'default',
+        type: "default",
       };
     }
 
     if (t.isImportNamespaceSpecifier(node)) {
       return {
         localName: node.local.name,
-        importedName: '*',
+        importedName: "*",
         source,
-        type: 'namespace',
+        type: "namespace",
       };
     }
 
@@ -1313,7 +1319,7 @@ export class DependencyAnalyzer {
         localName: node.local.name,
         importedName: imported,
         source,
-        type: 'named',
+        type: "named",
       };
     }
 
@@ -1377,7 +1383,7 @@ export class DependencyAnalyzer {
                 : binding.identifier.name;
             return {
               name: propName,
-              component: componentScope?.componentName ?? 'Unknown',
+              component: componentScope?.componentName ?? "Unknown",
               isDestructured: true,
             };
           }
@@ -1405,16 +1411,16 @@ export class DependencyAnalyzer {
 
         // Check for useContext call
         const isUseContext =
-          (t.isIdentifier(callee) && callee.name === 'useContext') ||
+          (t.isIdentifier(callee) && callee.name === "useContext") ||
           (t.isMemberExpression(callee) &&
             t.isIdentifier(callee.property) &&
-            callee.property.name === 'useContext');
+            callee.property.name === "useContext");
 
         if (!isUseContext) continue;
 
         // Get context name from argument
         const contextArg = decl.init.arguments[0];
-        let contextName = 'UnknownContext';
+        let contextName = "UnknownContext";
         if (t.isIdentifier(contextArg)) {
           contextName = contextArg.name;
         } else if (
@@ -1430,7 +1436,7 @@ export class DependencyAnalyzer {
           name = decl.id.name;
         }
 
-        if (name !== null && name !== '') {
+        if (name !== null && name !== "") {
           return { name, contextName };
         }
       }
@@ -1456,10 +1462,10 @@ export class DependencyAnalyzer {
 
         // Check for useRef call
         const isUseRef =
-          (t.isIdentifier(callee) && callee.name === 'useRef') ||
+          (t.isIdentifier(callee) && callee.name === "useRef") ||
           (t.isMemberExpression(callee) &&
             t.isIdentifier(callee.property) &&
-            callee.property.name === 'useRef');
+            callee.property.name === "useRef");
 
         if (!isUseRef) continue;
 
@@ -1471,9 +1477,12 @@ export class DependencyAnalyzer {
 
         // Get initial value if any
         const firstArg = decl.init.arguments[0];
-        const initialValue = firstArg !== undefined && t.isExpression(firstArg) ? firstArg : undefined;
+        const initialValue =
+          firstArg !== undefined && t.isExpression(firstArg)
+            ? firstArg
+            : undefined;
 
-        if (name !== null && name !== '') {
+        if (name !== null && name !== "") {
           return { name, initialValue };
         }
       }
@@ -1494,7 +1503,7 @@ export class DependencyAnalyzer {
     // For variables, analyze their initializers
     if (
       dep.type === DependencyType.Variable &&
-      'initializer' in dep &&
+      "initializer" in dep &&
       dep.initializer
     ) {
       const initPath = dep.path;
@@ -1519,7 +1528,7 @@ export class DependencyAnalyzer {
               name,
               path: binding.path,
               type: DependencyType.Variable,
-              isConst: binding.kind === 'const',
+              isConst: binding.kind === "const",
             });
           }
         },
@@ -1551,17 +1560,18 @@ export class DependencyAnalyzer {
         scope =
           this.scopeManager.getScopeForPath(dep.path) ??
           elementScope ??
-          this.scopeManager.getScopeTree()?.root;
+          this.scopeManager.getScopeTree()?.root ??
+          null;
       }
 
       const name =
-        'name' in dep
+        "name" in dep
           ? dep.name
-          : 'bindings' in dep
-            ? dep.bindings.join(', ')
-            : 'localName' in dep
+          : "bindings" in dep
+            ? dep.bindings.join(", ")
+            : "localName" in dep
               ? dep.localName
-              : 'unknown';
+              : "unknown";
 
       if (!scope) {
         throw new Error(`Failed to resolve scope for dependency: ${name}`);

@@ -18,16 +18,25 @@
  * - Test async error handling
  */
 
-import { describe, it, expect } from 'vitest';
-import type { File as BabelFile } from '@babel/types';
-import { parseFile } from '../../parser/parse-file.js';
-import { createSelectorResolver } from '../../selector/index.js';
-import { createDependencyAnalyzer } from '../../analyzer/index.js';
-import { createScopeManager } from '../../scope/index.js';
-import { ok, err, isOk, isErr, flatMap, flatMapAsync, mapAsync, mapErr } from '../../result/index.js';
-import type { Result } from '../../result/index.js';
-import type { PositionSelector } from '../../selector/types.js';
-import type { DependencyAnalysis } from '../../types/internal.js';
+import { describe, it, expect } from "vitest";
+import type { File as BabelFile } from "@babel/types";
+import { parseFile } from "../../parser/parse-file.js";
+import { createSelectorResolver } from "../../selector/index.js";
+import { createDependencyAnalyzer } from "../../analyzer/index.js";
+import { createScopeManager } from "../../scope/index.js";
+import {
+  ok,
+  err,
+  isOk,
+  isErr,
+  flatMap,
+  flatMapAsync,
+  mapAsync,
+  mapErr,
+} from "../../result/index.js";
+import type { Result } from "../../result/index.js";
+import type { PositionSelector } from "../../selector/types.js";
+import type { DependencyAnalysis } from "../../types/internal.js";
 
 /**
  * Helper function to analyze dependencies in an element
@@ -36,10 +45,20 @@ import type { DependencyAnalysis } from '../../types/internal.js';
 function analyzeDependencies(
   _elementPath: string,
   _context: { componentPath: string; scopeManager: unknown }
-): Result<DependencyAnalysis, { _tag: 'InternalError'; code: string; message: string; file: string; recoverable: boolean; suggestions: never[] }> {
-  // This is a mock implementation for test purposes
+): Result<
+  DependencyAnalysis,
+  {
+    _tag: "InternalError";
+    code: string;
+    message: string;
+    file: string;
+    recoverable: boolean;
+    suggestions: never[];
+  }
+> {
   return ok({
     dependencies: [],
+    dependencyPaths: new Map(),
     needsHoisting: [],
     needsImport: [],
     needsPropThreading: [],
@@ -50,8 +69,8 @@ function analyzeDependencies(
 /**
  * Task 19.1: Integration test for successful pipeline
  */
-describe('Task 19.1: Successful pipeline integration', () => {
-  it('should complete full pipeline parse -> select -> analyze and return Ok', () => {
+describe("Task 19.1: Successful pipeline integration", () => {
+  it("should complete full pipeline parse -> select -> analyze and return Ok", () => {
     // Arrange: Simple valid React component
     const source = `
       import React from 'react';
@@ -61,7 +80,7 @@ describe('Task 19.1: Successful pipeline integration', () => {
         return <div>{message}</div>;
       }
     `;
-    const filename = 'App.tsx';
+    const filename = "App.tsx";
     const resolver = createSelectorResolver();
 
     // Act: Execute full pipeline using flatMap to chain Result-returning operations
@@ -69,14 +88,28 @@ describe('Task 19.1: Successful pipeline integration', () => {
 
     const selectResult = flatMap(parseResult, (ast) => {
       // Select the div element at position (line 6, column 17)
-      const selector: PositionSelector = { file: filename, line: 6, column: 17 };
-      return mapErr(resolver.resolveByPositionResult(selector, ast), (err) => err as any);
+      const selector: PositionSelector = {
+        file: filename,
+        line: 6,
+        column: 17,
+      };
+      return mapErr(
+        resolver.resolveByPositionResult(selector, ast),
+        (err) => err as any
+      );
     });
 
     const analysisResult = flatMap(selectResult, (element) => {
       // Create scope manager and build scope tree
       if (!parseResult.ok) {
-        return err({ _tag: 'InternalError' as const, code: 'E999', message: 'No AST', file: filename, recoverable: false, suggestions: [] });
+        return err({
+          _tag: "InternalError" as const,
+          code: "E999",
+          message: "No AST",
+          file: filename,
+          recoverable: false,
+          suggestions: [],
+        });
       }
 
       const ast = parseResult.value;
@@ -89,7 +122,10 @@ describe('Task 19.1: Successful pipeline integration', () => {
       // Find the enclosing component scope
       const componentScope = scopeManager.findEnclosingComponent(element.path);
 
-      return mapErr(analyzer.analyzeElement(element.path, componentScope), (err) => err as any);
+      return mapErr(
+        analyzer.analyzeElement(element.path, componentScope),
+        (err) => err as any
+      );
     });
 
     // Assert: Verify entire pipeline returns Ok
@@ -106,33 +142,46 @@ describe('Task 19.1: Successful pipeline integration', () => {
     }
   });
 
-  it('should handle successful pipeline with no dependencies', () => {
+  it("should handle successful pipeline with no dependencies", () => {
     // Arrange: Simple JSX with no dependencies
     const source = `
       function App() {
         return <div>Static content</div>;
       }
     `;
-    const filename = 'App.tsx';
+    const filename = "App.tsx";
     const resolver = createSelectorResolver();
 
     // Act: Execute pipeline
-    const parseResult = mapErr(parseFile(filename, source), (err) => err as any);
-
-    const result = flatMap(
-      parseResult,
-      (ast) => {
-        const scopeManager = createScopeManager();
-        scopeManager.buildScopeTree(ast);
-        const analyzer = createDependencyAnalyzer(scopeManager);
-        analyzer.setCurrentFile(filename);
-
-        return flatMap(
-          mapErr(resolver.resolveByPositionResult({ file: filename, line: 3, column: 16 }, ast), (err) => err as any),
-          (element) => mapErr(analyzer.analyzeElement((element as any).path, scopeManager.findEnclosingComponent((element as any).path)), (err) => err as any)
-        );
-      }
+    const parseResult = mapErr(
+      parseFile(filename, source),
+      (err) => err as any
     );
+
+    const result = flatMap(parseResult, (ast) => {
+      const scopeManager = createScopeManager();
+      scopeManager.buildScopeTree(ast);
+      const analyzer = createDependencyAnalyzer(scopeManager);
+      analyzer.setCurrentFile(filename);
+
+      return flatMap(
+        mapErr(
+          resolver.resolveByPositionResult(
+            { file: filename, line: 3, column: 16 },
+            ast
+          ),
+          (err) => err as any
+        ),
+        (element) =>
+          mapErr(
+            analyzer.analyzeElement(
+              (element as any).path,
+              scopeManager.findEnclosingComponent((element as any).path)
+            ),
+            (err) => err as any
+          )
+      );
+    });
 
     // Assert: Pipeline succeeds with empty dependencies
     expect(isOk(result)).toBe(true);
@@ -146,71 +195,85 @@ describe('Task 19.1: Successful pipeline integration', () => {
 /**
  * Task 19.2: Integration tests for error propagation
  */
-describe('Task 19.2: Error propagation through pipeline', () => {
-  it('should propagate parse error through pipeline', () => {
+describe("Task 19.2: Error propagation through pipeline", () => {
+  it("should propagate parse error through pipeline", () => {
     // Arrange: Invalid syntax that will fail parsing
-    const source = 'const x ='; // Incomplete statement
-    const filename = 'invalid.ts';
+    const source = "const x ="; // Incomplete statement
+    const filename = "invalid.ts";
     const resolver = createSelectorResolver();
 
     // Act: Attempt to execute pipeline
     const result = flatMap(
       mapErr(parseFile(filename, source), (err) => err as any),
-      (ast) => flatMap(
-        mapErr(resolver.resolveByPositionResult({ file: filename, line: 1, column: 7 }, ast), (err) => err as any),
-        (element) => {
-          const path = (element as any).path ?? '';
-          return analyzeDependencies(path, {
-            componentPath: path,
-            scopeManager: null,
-          });
-        }
-      )
+      (ast) =>
+        flatMap(
+          mapErr(
+            resolver.resolveByPositionResult(
+              { file: filename, line: 1, column: 7 },
+              ast
+            ),
+            (err) => err as any
+          ),
+          (element) => {
+            const path = (element as any).path ?? "";
+            return analyzeDependencies(path, {
+              componentPath: path,
+              scopeManager: null,
+            });
+          }
+        )
     );
 
     // Assert: Parse error propagates to final result
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
-      expect((result.error as any)._tag).toBe('ParseError');
+      expect((result.error as any)._tag).toBe("ParseError");
       expect((result.error as any).file).toBe(filename);
       expect((result.error as any).message).toBeDefined();
     }
   });
 
-  it('should propagate selector error through pipeline', () => {
+  it("should propagate selector error through pipeline", () => {
     // Arrange: Valid source but invalid selector position
     const source = `
       function App() {
         return <div>Hello</div>;
       }
     `;
-    const filename = 'App.tsx';
+    const filename = "App.tsx";
     const resolver = createSelectorResolver();
 
     // Act: Try to select at position that doesn't exist
     const result = flatMap(
       mapErr(parseFile(filename, source), (err) => err as any),
-      (ast) => flatMap(
-        mapErr(resolver.resolveByPositionResult({ file: filename, line: 999, column: 999 }, ast), (err) => err as any),
-        (element) => {
-          const path = (element as any).path ?? '';
-          return analyzeDependencies(path, {
-            componentPath: path,
-            scopeManager: null,
-          });
-        }
-      )
+      (ast) =>
+        flatMap(
+          mapErr(
+            resolver.resolveByPositionResult(
+              { file: filename, line: 999, column: 999 },
+              ast
+            ),
+            (err) => err as any
+          ),
+          (element) => {
+            const path = (element as any).path ?? "";
+            return analyzeDependencies(path, {
+              componentPath: path,
+              scopeManager: null,
+            });
+          }
+        )
     );
 
     // Assert: Selector error propagates
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
-      expect((result.error as any)._tag).toBe('SelectorError');
+      expect((result.error as any)._tag).toBe("SelectorError");
       expect((result.error as any).file).toBe(filename);
     }
   });
 
-  it('should propagate dependency error through pipeline', () => {
+  it("should propagate dependency error through pipeline", () => {
     // Arrange: Code with eval() which creates unanalyzable dependency
     const source = `
       function App() {
@@ -218,55 +281,74 @@ describe('Task 19.2: Error propagation through pipeline', () => {
         return <div>{x}</div>;
       }
     `;
-    const filename = 'App.tsx';
+    const filename = "App.tsx";
     const resolver = createSelectorResolver();
 
     // Act: Execute pipeline - should fail at dependency analysis
     const parseResult = parseFile(filename, source);
 
-    const result = flatMap(
-      parseResult,
-      (ast) => {
-        const scopeManager = createScopeManager();
-        scopeManager.buildScopeTree(ast);
-        const analyzer = createDependencyAnalyzer(scopeManager);
-        analyzer.setCurrentFile(filename);
+    const result = flatMap(parseResult, (ast) => {
+      const scopeManager = createScopeManager();
+      scopeManager.buildScopeTree(ast);
+      const analyzer = createDependencyAnalyzer(scopeManager);
+      analyzer.setCurrentFile(filename);
 
-        return flatMap(
-          mapErr(resolver.resolveByPositionResult({ file: filename, line: 4, column: 16 }, ast), (err) => err as any),
-          (element) => mapErr(analyzer.analyzeElement((element as any).path, scopeManager.findEnclosingComponent((element as any).path)), (err) => err as any)
-        );
-      }
-    );
+      return flatMap(
+        mapErr(
+          resolver.resolveByPositionResult(
+            { file: filename, line: 4, column: 16 },
+            ast
+          ),
+          (err) => err as any
+        ),
+        (element) =>
+          mapErr(
+            analyzer.analyzeElement(
+              (element as any).path,
+              scopeManager.findEnclosingComponent((element as any).path)
+            ),
+            (err) => err as any
+          )
+      );
+    });
 
     // Assert: Dependency error may propagate (if eval is detected)
     // Note: The actual behavior depends on the analyzer implementation
     // This test verifies that IF a dependency error occurs, it propagates correctly
     if (!result.ok) {
-      expect(['DependencyError', 'ParseError', 'SelectorError']).toContain((result.error as any)._tag);
+      expect(["DependencyError", "ParseError", "SelectorError"]).toContain(
+        (result.error as any)._tag
+      );
       expect((result.error as any).file).toBe(filename);
     }
   });
 
-  it('should preserve error context through pipeline', () => {
+  it("should preserve error context through pipeline", () => {
     // Arrange: Invalid source
-    const source = 'function App() { const x = ; }'; // Syntax error
-    const filename = 'context-test.tsx';
+    const source = "function App() { const x = ; }"; // Syntax error
+    const filename = "context-test.tsx";
     const resolver = createSelectorResolver();
 
     // Act: Execute pipeline
     const result = flatMap(
       mapErr(parseFile(filename, source), (err) => err as any),
-      (ast) => flatMap(
-        mapErr(resolver.resolveByPositionResult({ file: filename, line: 1, column: 1 }, ast), (err) => err as any),
-        (element) => {
-          const path = (element as any).path ?? '';
-          return analyzeDependencies(path, {
-            componentPath: path,
-            scopeManager: null,
-          });
-        }
-      )
+      (ast) =>
+        flatMap(
+          mapErr(
+            resolver.resolveByPositionResult(
+              { file: filename, line: 1, column: 1 },
+              ast
+            ),
+            (err) => err as any
+          ),
+          (element) => {
+            const path = (element as any).path ?? "";
+            return analyzeDependencies(path, {
+              componentPath: path,
+              scopeManager: null,
+            });
+          }
+        )
     );
 
     // Assert: Error context is preserved
@@ -288,10 +370,12 @@ describe('Task 19.2: Error propagation through pipeline', () => {
 /**
  * Task 19.3: Integration tests for async operations
  */
-describe('Task 19.3: Async operations with Result', () => {
-  it('should handle async file operations returning Promise<Result>', async () => {
+describe("Task 19.3: Async operations with Result", () => {
+  it("should handle async file operations returning Promise<Result>", async () => {
     // Arrange: Simulate async file read
-    async function readFileAsync(_filename: string): Promise<Result<string, { message: string }>> {
+    async function readFileAsync(
+      _filename: string
+    ): Promise<Result<string, { message: string }>> {
       // Simulate async file reading
       return new Promise((resolve) => {
         setTimeout(() => {
@@ -306,9 +390,9 @@ describe('Task 19.3: Async operations with Result', () => {
     }
 
     // Act: Chain async file read with parsing
-    const fileResult = await readFileAsync('async.tsx');
+    const fileResult = await readFileAsync("async.tsx");
     const parseResult = flatMap(fileResult, (source) =>
-      mapErr(parseFile('async.tsx', source), (err) => err as any)
+      mapErr(parseFile("async.tsx", source), (err) => err as any)
     );
 
     // Assert: Async operation returns Promise<Result>
@@ -318,7 +402,7 @@ describe('Task 19.3: Async operations with Result', () => {
     }
   });
 
-  it('should chain async operations with flatMapAsync', async () => {
+  it("should chain async operations with flatMapAsync", async () => {
     // Arrange: Source code and async transformation
     const source = `
       function App() {
@@ -326,27 +410,32 @@ describe('Task 19.3: Async operations with Result', () => {
       }
     `;
 
-    async function asyncTransform(_ast: BabelFile): Promise<Result<string, { message: string }>> {
+    async function asyncTransform(
+      _ast: BabelFile
+    ): Promise<Result<string, { message: string }>> {
       // Simulate async transformation (e.g., code generation)
       return new Promise((resolve) => {
         setTimeout(() => {
-          resolve(ok('transformed code'));
+          resolve(ok("transformed code"));
         }, 10);
       });
     }
 
     // Act: Chain operations with flatMapAsync
-    const parseResult = mapErr(parseFile('test.tsx', source), (err) => err as any);
+    const parseResult = mapErr(
+      parseFile("test.tsx", source),
+      (err) => err as any
+    );
     const transformResult = await flatMapAsync(parseResult, asyncTransform);
 
     // Assert: flatMapAsync chains correctly
     expect(isOk(transformResult)).toBe(true);
     if (transformResult.ok) {
-      expect(transformResult.value).toBe('transformed code');
+      expect(transformResult.value).toBe("transformed code");
     }
   });
 
-  it('should handle async operation chaining with multiple steps', async () => {
+  it("should handle async operation chaining with multiple steps", async () => {
     // Arrange: Multi-step async pipeline
     const source = `
       function App() {
@@ -355,7 +444,9 @@ describe('Task 19.3: Async operations with Result', () => {
       }
     `;
 
-    async function asyncValidate(_ast: BabelFile): Promise<Result<BabelFile, { message: string }>> {
+    async function asyncValidate(
+      _ast: BabelFile
+    ): Promise<Result<BabelFile, { message: string }>> {
       return new Promise((resolve) => {
         setTimeout(() => {
           // Simulate validation
@@ -364,7 +455,9 @@ describe('Task 19.3: Async operations with Result', () => {
       });
     }
 
-    async function asyncAnalyze(_ast: BabelFile): Promise<Result<{ nodeCount: number }, { message: string }>> {
+    async function asyncAnalyze(
+      _ast: BabelFile
+    ): Promise<Result<{ nodeCount: number }, { message: string }>> {
       return new Promise((resolve) => {
         setTimeout(() => {
           // Simulate analysis
@@ -374,7 +467,10 @@ describe('Task 19.3: Async operations with Result', () => {
     }
 
     // Act: Chain multiple async operations
-    const parseResult = mapErr(parseFile('multi-async.tsx', source), (err) => err as any);
+    const parseResult = mapErr(
+      parseFile("multi-async.tsx", source),
+      (err) => err as any
+    );
 
     const validatedResult = await flatMapAsync(parseResult, asyncValidate);
     const analyzedResult = await flatMapAsync(validatedResult, asyncAnalyze);
@@ -386,17 +482,21 @@ describe('Task 19.3: Async operations with Result', () => {
     }
   });
 
-  it('should handle async error propagation', async () => {
+  it("should handle async error propagation", async () => {
     // Arrange: Async operation that fails
-    async function asyncOperationThatFails(): Promise<Result<string, { message: string }>> {
+    async function asyncOperationThatFails(): Promise<
+      Result<string, { message: string }>
+    > {
       return new Promise((resolve) => {
         setTimeout(() => {
-          resolve(err({ message: 'Async operation failed' }));
+          resolve(err({ message: "Async operation failed" }));
         }, 10);
       });
     }
 
-    async function asyncFollowUp(data: string): Promise<Result<number, { message: string }>> {
+    async function asyncFollowUp(
+      data: string
+    ): Promise<Result<number, { message: string }>> {
       return new Promise((resolve) => {
         resolve(ok(data.length));
       });
@@ -409,13 +509,13 @@ describe('Task 19.3: Async operations with Result', () => {
     // Assert: Error propagates through async chain
     expect(isErr(chainedResult)).toBe(true);
     if (!chainedResult.ok) {
-      expect(chainedResult.error.message).toBe('Async operation failed');
+      expect(chainedResult.error.message).toBe("Async operation failed");
     }
   });
 
-  it('should use mapAsync to transform Ok values asynchronously', async () => {
+  it("should use mapAsync to transform Ok values asynchronously", async () => {
     // Arrange: Source and async transformer
-    const source = 'const x = 42;';
+    const source = "const x = 42;";
 
     async function asyncCounter(_ast: BabelFile): Promise<number> {
       return new Promise((resolve) => {
@@ -427,7 +527,7 @@ describe('Task 19.3: Async operations with Result', () => {
     }
 
     // Act: Use mapAsync to transform
-    const parseResult = parseFile('count.ts', source);
+    const parseResult = parseFile("count.ts", source);
     const countResult = await mapAsync(parseResult, asyncCounter);
 
     // Assert: mapAsync transforms successfully
@@ -437,25 +537,25 @@ describe('Task 19.3: Async operations with Result', () => {
     }
   });
 
-  it('should preserve Err through mapAsync without calling transform', async () => {
+  it("should preserve Err through mapAsync without calling transform", async () => {
     // Arrange: Invalid source
-    const source = 'const x ='; // Parse error
+    const source = "const x ="; // Parse error
 
     let transformCalled = false;
     async function asyncTransform(_ast: BabelFile): Promise<string> {
       transformCalled = true;
-      return Promise.resolve('should not be called');
+      return Promise.resolve("should not be called");
     }
 
     // Act: mapAsync on Err result
-    const parseResult = parseFile('err.ts', source);
+    const parseResult = parseFile("err.ts", source);
     const mappedResult = await mapAsync(parseResult, asyncTransform);
 
     // Assert: Transform not called, error preserved
     expect(isErr(mappedResult)).toBe(true);
     expect(transformCalled).toBe(false);
     if (!mappedResult.ok) {
-      expect(mappedResult.error._tag).toBe('ParseError');
+      expect(mappedResult.error._tag).toBe("ParseError");
     }
   });
 });
