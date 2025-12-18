@@ -56,8 +56,15 @@ export class HoistPlanner {
       valid: true,
     };
 
+    // Sort dependencies by source line number to maintain declaration order
+    const sortedDeps = [...analysis.needsHoisting].sort((a, b) => {
+      const aLine = a.origin.location?.start.line ?? 0;
+      const bLine = b.origin.location?.start.line ?? 0;
+      return aLine - bLine;
+    });
+
     // Process each dependency that needs hoisting
-    for (const dep of analysis.needsHoisting) {
+    for (const dep of sortedDeps) {
       const planItem = this.planDependencyHoist(dep, context);
 
       if (planItem) {
@@ -655,6 +662,12 @@ export class HoistPlanner {
       // Object/Array literals may be pure (simplified check)
       if (init.type === 'ObjectExpression' || init.type === 'ArrayExpression') {
         return true; // Simplified - should recursively check
+      }
+
+      // Function expressions and arrow functions can be hoisted
+      // They may reference hoisted dependencies, but that's handled separately
+      if (init.type === 'FunctionExpression' || init.type === 'ArrowFunctionExpression') {
+        return true;
       }
     }
 

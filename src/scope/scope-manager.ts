@@ -293,7 +293,18 @@ export class ScopeManager {
       };
     }
 
-    // Sibling scopes - needs hoisting to LCA
+    // Sibling scopes - check if both are components
+    // Variables in sibling component scopes are not accessible without hoisting
+    if (isComponentScope(sourceScope) && isComponentScope(targetScope)) {
+      return {
+        accessible: false,
+        scopePath,
+        lca: lcaResult.lca,
+        reason: 'Variables in sibling component scopes require hoisting to common ancestor',
+      };
+    }
+
+    // Other sibling scopes (e.g., sibling functions within same component) are accessible
     return {
       accessible: true,
       scopePath,

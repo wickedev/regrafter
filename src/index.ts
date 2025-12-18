@@ -224,6 +224,9 @@ export {
 import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
+import { loadTraverseFunction } from './utils/index.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 import { DependencyAnalyzer, createMoveAnalysisBuilder, validateMoveOperation, type MoveValidationResult } from './analyzer/index.js';
 import {
@@ -253,9 +256,6 @@ import {
   createAnalysisStats,
   createSuggestedFix,
 } from './types/index.js';
-import { loadTraverseFunction, type TraverseFunction } from './utils/index.js';
-
-const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
 
 /**
  * Main entry point for the regraft operation.
@@ -316,6 +316,25 @@ const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
  * @see {@link ../api/types.js!TransformedCode} for the success value type
  * @see {@link ../errors/index.js!RegraffError} for the error type
  */
+
+/**
+ * Helper function to find a fresh NodePath for a given node
+ */
+function findNodePath(ast: t.File, targetNode: t.Node): NodePath | null {
+  let foundPath: NodePath | null = null;
+
+  traverse(ast, {
+    enter(path: NodePath) {
+      if (path.node === targetNode) {
+        foundPath = path;
+        path.stop();
+      }
+    },
+  });
+
+  return foundPath;
+}
+
 export function regraft(
   files: FileInput[],
   from: Selector,
@@ -413,13 +432,13 @@ export function move(
   }
 
   // Resolve selectors
-  const sourceResult = resolver.resolveResult(from, sourceAst);
+  let sourceResult = resolver.resolveResult(from, sourceAst);
   if (isErr(sourceResult)) {
     const error = sourceResult.error;
     throw new Error(`Failed to resolve source: ${error.message}`);
   }
 
-  const targetResult = resolver.resolveResult(to, targetAst);
+  let targetResult = resolver.resolveResult(to, targetAst);
   if (isErr(targetResult)) {
     const error = targetResult.error;
     throw new Error(`Failed to resolve target: ${error.message}`);
@@ -570,19 +589,6 @@ function moveWithHoisting(
   mode: Move,
   options?: { insertIndex?: number; preserveComments?: boolean }
 ): Code[] {
-  // Type guard for dependencies with location property
-  function hasLocationProperty(obj: unknown): obj is { location: { path: NodePath } } {
-    return (
-      obj !== null &&
-      obj !== undefined &&
-      typeof obj === 'object' &&
-      'location' in obj &&
-      typeof obj.location === 'object' &&
-      obj.location !== null &&
-      'path' in obj.location
-    );
-  }
-
   // Create required instances
   const generator = new CodeGenerator();
   const resolver = createSelectorResolver();
@@ -618,21 +624,29 @@ function moveWithHoisting(
   analyzer.setCurrentFile(from.file);
 
   // Resolve selectors
-  const sourceResult = resolver.resolveResult(from, sourceAst);
+  let sourceResult = resolver.resolveResult(from, sourceAst);
   if (isErr(sourceResult)) {
     const error = sourceResult.error;
     throw new Error(`Failed to resolve source: ${error.message}`);
   }
 
-  const targetResult = resolver.resolveResult(to, sourceAst);
+  let targetResult = resolver.resolveResult(to, sourceAst);
   if (isErr(targetResult)) {
     const error = targetResult.error;
     throw new Error(`Failed to resolve target: ${error.message}`);
   }
 
   // Get scopes
-  const sourceScope = scopeManager.getScopeForPath(sourceResult.value.path);
+  let sourceScope = scopeManager.getScopeForPath(sourceResult.value.path);
   let targetScope = scopeManager.getScopeForPath(targetResult.value.path);
+
+  // If source element doesn't have its own scope, use enclosing component
+  if (!sourceScope) {
+    const enclosingComponent = scopeManager.findEnclosingComponent(sourceResult.value.path);
+    if (enclosingComponent) {
+      sourceScope = enclosingComponent;
+    }
+  }
 
   // If target element doesn't have its own scope, use enclosing component
   if (!targetScope) {
@@ -668,50 +682,28 @@ function moveWithHoisting(
 
     // If the plan is valid, execute it
     if (hoistPlan.valid) {
-      // Build dependency paths map for executor
-      const dependencyPaths = new Map<string, NodePath>();
+      // Use dependency paths from analysis (already built before conversion)
+      const dependencyPaths = depAnalysis.dependencyPaths;
       const scopePaths = new Map<string, NodePath>();
 
-      // Collect dependency paths
-      for (const dep of depAnalysis.dependencies) {
-        if (hasLocationProperty(dep)) {
-          dependencyPaths.set(dep.id, dep.location.path);
-        }
-      }
-
-      // Collect scope paths by traversing the AST
+      // Collect scope paths using scope IDs from the scope manager
       traverse(sourceAst, {
         FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
-          if (path.node.id !== null && path.node.id !== undefined) {
-            scopePaths.set(path.node.id.name, path);
+          const scope = scopeManager.getScopeForPath(path);
+          if (scope) {
+            scopePaths.set(scope.id, path);
           }
         },
         FunctionExpression(path: NodePath<t.FunctionExpression>) {
-          const parent = path.parent;
-          // parent is always an object (t.Node), and typeof check excludes null
-          if (
-            typeof parent === 'object' &&
-            'id' in parent &&
-            typeof parent.id === 'object' &&
-            parent.id !== null &&
-            'name' in parent.id &&
-            typeof parent.id.name === 'string'
-          ) {
-            scopePaths.set(parent.id.name, path);
+          const scope = scopeManager.getScopeForPath(path);
+          if (scope) {
+            scopePaths.set(scope.id, path);
           }
         },
         ArrowFunctionExpression(path: NodePath<t.ArrowFunctionExpression>) {
-          const parent = path.parent;
-          // parent is always an object (t.Node), and typeof check excludes null
-          if (
-            typeof parent === 'object' &&
-            'id' in parent &&
-            typeof parent.id === 'object' &&
-            parent.id !== null &&
-            'name' in parent.id &&
-            typeof parent.id.name === 'string'
-          ) {
-            scopePaths.set(parent.id.name, path);
+          const scope = scopeManager.getScopeForPath(path);
+          if (scope) {
+            scopePaths.set(scope.id, path);
           }
         },
       });
@@ -724,6 +716,42 @@ function moveWithHoisting(
       };
 
       executor.execute(hoistPlan, execContext);
+
+      // After hoisting, the AST structure has changed but the node references
+      // we want to move are still valid. However, the NodePaths may be stale.
+      // We need to find fresh NodePaths for the same nodes.
+      const sourceNode = sourceResult.value.path.node;
+      const targetNode = targetResult.value.path.node;
+
+      // Find fresh paths for the same nodes
+      const freshSourcePath = findNodePath(sourceAst, sourceNode);
+      const freshTargetPath = findNodePath(sourceAst, targetNode);
+
+      if (!freshSourcePath) {
+        throw new Error('Failed to find source node after hoisting');
+      }
+      if (!freshTargetPath) {
+        throw new Error('Failed to find target node after hoisting');
+      }
+
+      // Update the results with fresh paths
+      sourceResult = {
+        ok: true,
+        value: {
+          node: sourceNode,
+          path: freshSourcePath,
+          atomicUnit: sourceResult.value.atomicUnit,
+        },
+      };
+
+      targetResult = {
+        ok: true,
+        value: {
+          node: targetNode,
+          path: freshTargetPath,
+          atomicUnit: targetResult.value.atomicUnit,
+        },
+      };
     }
   }
 

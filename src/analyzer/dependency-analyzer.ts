@@ -554,6 +554,217 @@ export class DependencyAnalyzer {
   }
 
   /**
+   * Detect related dependencies that should be hoisted together.
+   * This includes:
+   * - useEffect calls that reference hoisted state
+   * - Helper functions that use hoisted variables
+   *
+   * @param dependencies - All dependencies detected so far
+   * @param elementScope - Scope of the element being moved
+   * @param elementPath - Path to the element being moved
+   * @returns Array of {dependency, path} tuples
+   */
+  detectRelatedDependencies(
+    dependencies: InternalDependency[],
+    elementScope: ScopeInfo | null,
+    elementPath: NodePath
+  ): Array<{ dependency: InternalDependency; path: NodePath }> {
+    if (!elementScope) return [];
+
+    const relatedDeps: Array<{ dependency: InternalDependency; path: NodePath }> = [];
+    const processed = new Set<string>();
+
+    // Get all symbols from dependencies that will be hoisted
+    // Split compound symbols (e.g., "count, setCount" -> ["count", "setCount"])
+    const hoistedSymbols = new Set<string>();
+    const existingSymbols = new Set<string>(); // Track already hoisted symbols
+    for (const dep of dependencies) {
+      existingSymbols.add(dep.symbol);
+      // Split compound symbols on ", " and add each part
+      const parts = dep.symbol.split(', ');
+      for (const part of parts) {
+        hoistedSymbols.add(part.trim());
+      }
+    }
+
+    // Find the function body containing the element
+    let functionPath: NodePath | null = elementPath;
+    while (functionPath && !functionPath.isFunction()) {
+      const parent = functionPath.parentPath;
+      if (!parent) break;
+      functionPath = parent;
+    }
+
+    if (!functionPath || !functionPath.isFunction()) return [];
+
+    // Get the function body
+    const bodyPath = functionPath.get('body');
+    if (!bodyPath || Array.isArray(bodyPath) || !bodyPath.isBlockStatement()) {
+      return [];
+    }
+
+    // Scan all statements in the function body
+    const statements = bodyPath.get('body');
+    if (!Array.isArray(statements)) return [];
+
+    for (const stmtPath of statements) {
+      // Skip if already processed
+      const key = `${stmtPath.node.loc?.start.line}:${stmtPath.node.loc?.start.column}`;
+      if (processed.has(key)) continue;
+      processed.add(key);
+
+      // Check for useEffect calls
+      if (stmtPath.isExpressionStatement()) {
+        const expr = stmtPath.get('expression');
+        if (expr.isCallExpression()) {
+          const callee = expr.get('callee');
+          if (callee.isIdentifier() && callee.node.name === 'useEffect') {
+            // Check if this useEffect references any hoisted symbols
+            const referencesHoistedSymbol = this.referencesAnySymbol(
+              expr,
+              hoistedSymbols
+            );
+
+            if (referencesHoistedSymbol) {
+              // Skip if useEffect is already being hoisted
+              if (!existingSymbols.has('useEffect')) {
+                relatedDeps.push({
+                  dependency: createInternalDependency({
+                    symbol: 'useEffect',
+                    type: DependencyType.Hook,
+                    origin: createDependencyOrigin({
+                      node: stmtPath.node,
+                      file: this.currentFile,
+                      location: stmtPath.node.loc,
+                    }),
+                    scope: elementScope,
+                    isTransitive: false,
+                  }),
+                  path: stmtPath,
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // Check for variable declarations with function expressions/arrow functions
+      if (stmtPath.isVariableDeclaration()) {
+        for (const declarator of stmtPath.get('declarations')) {
+          if (!declarator.isVariableDeclarator()) continue;
+
+          const init = declarator.get('init');
+          const id = declarator.get('id');
+
+          if (!id.isIdentifier()) continue;
+          const functionName = id.node.name;
+
+          // Check if the initializer is a function
+          if (
+            init.isFunctionExpression() ||
+            init.isArrowFunctionExpression()
+          ) {
+            // Check if this function references any hoisted symbols
+            const referencesHoistedSymbol = this.referencesAnySymbol(
+              init,
+              hoistedSymbols
+            );
+
+            if (referencesHoistedSymbol) {
+              // Skip if this function is already being hoisted
+              if (!existingSymbols.has(functionName)) {
+                relatedDeps.push({
+                  dependency: createInternalDependency({
+                    symbol: functionName,
+                    type: DependencyType.Variable,
+                    origin: createDependencyOrigin({
+                      node: stmtPath.node,
+                      file: this.currentFile,
+                      location: stmtPath.node.loc,
+                    }),
+                    scope: elementScope,
+                    isTransitive: false,
+                  }),
+                  path: stmtPath,
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // Check for function declarations
+      if (stmtPath.isFunctionDeclaration()) {
+        const id = stmtPath.get('id');
+        if (id.isIdentifier()) {
+          const functionName = id.node.name;
+
+          // Check if this function references any hoisted symbols
+          const referencesHoistedSymbol = this.referencesAnySymbol(
+            stmtPath,
+            hoistedSymbols
+          );
+
+          if (referencesHoistedSymbol) {
+            // Skip if this function is already being hoisted
+            if (!existingSymbols.has(functionName)) {
+              relatedDeps.push({
+                dependency: createInternalDependency({
+                  symbol: functionName,
+                  type: DependencyType.Variable,
+                  origin: createDependencyOrigin({
+                    node: stmtPath.node,
+                    file: this.currentFile,
+                    location: stmtPath.node.loc,
+                  }),
+                  scope: elementScope,
+                  isTransitive: false,
+                }),
+                path: stmtPath,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return relatedDeps;
+  }
+
+  /**
+   * Check if a path references any of the given symbols
+   */
+  private referencesAnySymbol(
+    path: NodePath,
+    symbols: Set<string>
+  ): boolean {
+    let found = false;
+
+    path.traverse({
+      Identifier(idPath: NodePath) {
+        if (found) return;
+
+        // Skip if this is a binding identifier (like function parameter names)
+        const parent = idPath.parent;
+        if (
+          t.isVariableDeclarator(parent) && parent.id === idPath.node ||
+          t.isFunctionDeclaration(parent) && parent.id === idPath.node ||
+          t.isFunctionExpression(parent) && parent.id === idPath.node ||
+          t.isArrowFunctionExpression(parent) && parent.params.includes(idPath.node as any)
+        ) {
+          return;
+        }
+
+        if (symbols.has(idPath.node.name)) {
+          found = true;
+        }
+      },
+    });
+
+    return found;
+  }
+
+  /**
    * Identifies code patterns that cannot be statically analyzed,
    * such as eval(), dynamic property access, etc.
    *
@@ -620,7 +831,13 @@ export class DependencyAnalyzer {
 
     // Collect all identifiers
     const collection = this.collectIdentifiers(elementPath);
-    const elementScope = this.scopeManager.getScopeForPath(elementPath);
+    let elementScope = this.scopeManager.getScopeForPath(elementPath);
+
+    // If element doesn't have its own scope (e.g., JSX elements), use enclosing component
+    if (!elementScope) {
+      elementScope = this.scopeManager.findEnclosingComponent(elementPath);
+    }
+
     const componentScope =
       this.scopeManager.findEnclosingComponent(elementPath);
 
@@ -651,9 +868,66 @@ export class DependencyAnalyzer {
       ...refDeps,
     ];
 
+    // Deduplicate dependencies - useRef creates both Hook and Ref dependencies
+    // Keep only Hook dependencies when there's a duplicate, as they're more complete
+    const deduplicatedDeps: SpecificDependency[] = [];
+    const seenSymbols = new Map<string, SpecificDependency>();
+
+    for (const dep of allSpecificDeps) {
+      const symbol =
+        'name' in dep
+          ? dep.name
+          : 'bindings' in dep
+            ? dep.bindings.join(',')
+            : 'localName' in dep
+              ? dep.localName
+              : 'unknown';
+
+      const existing = seenSymbols.get(symbol);
+      if (existing) {
+        // If we have both Hook and Ref for the same symbol, keep Hook
+        if (
+          existing.type === DependencyType.Hook &&
+          dep.type === DependencyType.Ref
+        ) {
+          continue; // Skip the Ref, keep the Hook
+        }
+        if (
+          existing.type === DependencyType.Ref &&
+          dep.type === DependencyType.Hook
+        ) {
+          // Replace Ref with Hook
+          const index = deduplicatedDeps.indexOf(existing);
+          if (index !== -1) {
+            deduplicatedDeps[index] = dep;
+          }
+          seenSymbols.set(symbol, dep);
+          continue;
+        }
+      }
+
+      seenSymbols.set(symbol, dep);
+      deduplicatedDeps.push(dep);
+    }
+
+    // Build temporary map from symbol:type to NodePath using deduplicated dependencies
+    const tempPathMap = new Map<string, NodePath>();
+    for (const dep of deduplicatedDeps) {
+      const name =
+        'name' in dep
+          ? dep.name
+          : 'bindings' in dep
+            ? dep.bindings.join(', ')
+            : 'localName' in dep
+              ? dep.localName
+              : 'unknown';
+      const key = `${name}:${dep.type}`;
+      tempPathMap.set(key, dep.path);
+    }
+
     // Convert to internal dependencies - wrapped in tryCatch to handle any throws
     const allDepsResult = tryCatch(() =>
-      this.convertToInternalDeps(allSpecificDeps, elementScope)
+      this.convertToInternalDeps(deduplicatedDeps, elementScope)
     );
     if (isErr(allDepsResult)) {
       const errorMsg = allDepsResult.error instanceof Error ? allDepsResult.error.message : String(allDepsResult.error);
@@ -671,9 +945,28 @@ export class DependencyAnalyzer {
     }
     const allDeps = allDepsResult.value;
 
-    // Detect transitive dependencies
-    const transitiveDeps = this.detectTransitiveDependencies(allSpecificDeps);
+    // Build final dependency paths map using InternalDependency IDs
+    const dependencyPaths = new Map<string, NodePath>();
+    for (const dep of allDeps) {
+      const key = `${dep.symbol}:${dep.type}`;
+      const path = tempPathMap.get(key);
+      if (path) {
+        dependencyPaths.set(dep.id, path);
+      }
+    }
+
+    // Detect transitive dependencies using deduplicated dependencies
+    const transitiveDeps = this.detectTransitiveDependencies(deduplicatedDeps);
     allDeps.push(...transitiveDeps);
+
+    // Detect related dependencies (useEffect, helper functions that use hoisted deps)
+    const relatedDepsWithPaths = this.detectRelatedDependencies(allDeps, elementScope, elementPath);
+
+    // Add related dependencies and their paths
+    for (const { dependency, path } of relatedDepsWithPaths) {
+      allDeps.push(dependency);
+      dependencyPaths.set(dependency.id, path);
+    }
 
     // Classify dependencies by what action is needed
     const needsHoisting = allDeps.filter((d) =>
@@ -714,6 +1007,7 @@ export class DependencyAnalyzer {
         needsPropThreading,
         canResolve: canResolve.can,
         unresolvedReason: canResolve.reason,
+        dependencyPaths,
       })
     );
   }
@@ -1243,10 +1537,22 @@ export class DependencyAnalyzer {
     elementScope: ScopeInfo | null
   ): InternalDependency[] {
     return deps.map((dep) => {
-      const scope =
-        this.scopeManager.getScopeForPath(dep.path) ??
-        elementScope ??
-        this.scopeManager.getScopeTree()?.root;
+      // For variable dependencies, find the enclosing component scope
+      // instead of using getScopeForPath which may return module scope
+      let scope: ScopeInfo | null = null;
+
+      if (dep.type === DependencyType.Variable) {
+        // For variables, find the component they're declared in
+        scope = this.scopeManager.findEnclosingComponent(dep.path);
+      }
+
+      // Fallback to original logic for other types or if no component found
+      if (!scope) {
+        scope =
+          this.scopeManager.getScopeForPath(dep.path) ??
+          elementScope ??
+          this.scopeManager.getScopeTree()?.root;
+      }
 
       const name =
         'name' in dep

@@ -36,6 +36,8 @@ export interface HoistExecutionContext {
   scopePaths: Map<string, NodePath>;
   /** The dependency being hoisted */
   dependency?: InternalDependency;
+  /** Track insertion indices per scope to maintain order */
+  insertionIndices?: Map<string, number>;
 }
 
 /**
@@ -50,6 +52,11 @@ export class HoistExecutor {
       throw new Error(
         `Cannot execute invalid hoisting plan: ${plan.invalidReason ?? 'Unknown reason'}`
       );
+    }
+
+    // Initialize insertion index tracking
+    if (!context.insertionIndices) {
+      context.insertionIndices = new Map();
     }
 
     // Execute hoisting operations first (move declarations)
@@ -150,36 +157,55 @@ export class HoistExecutor {
     // Clone the declaration
     const declarationNode = t.cloneNode(declarationPath.node, true, true);
 
-    // Find insertion point in target scope
-    let insertionPath: NodePath | null = null;
+    // Get or initialize insertion index for this scope
+    const scopeId = operation.toScope;
+    const insertionIndices = context.insertionIndices ?? new Map();
+    const currentIndex = insertionIndices.get(scopeId) ?? 0;
 
-    // For function/component scopes, insert at the beginning of the body
+    // For function/component scopes, insert at the tracked position
     if (targetPath.isFunctionDeclaration() || targetPath.isFunctionExpression() || targetPath.isArrowFunctionExpression()) {
       const bodyPath = targetPath.get('body');
       if (Array.isArray(bodyPath)) {
-        insertionPath = bodyPath[0] ?? null;
+        // Not a block statement, can't insert multiple declarations
+        logger.warn(`Cannot hoist to non-block function body`);
+        return;
       } else if (bodyPath.isBlockStatement()) {
-        const bodyStatements = bodyPath.get('body');
-        if (Array.isArray(bodyStatements) && bodyStatements.length > 0) {
-          insertionPath = bodyStatements[0] ?? null;
+        const body = bodyPath.node.body;
+        // Insert at the current index position
+        body.splice(currentIndex, 0, declarationNode);
+        // Increment the insertion index for next insertion in this scope
+        insertionIndices.set(scopeId, currentIndex + 1);
+
+        // Remove the original declaration
+        // Check if this would leave the parent function empty
+        const parentFunction = declarationPath.getFunctionParent();
+        if (parentFunction) {
+          const parentBodyPath = parentFunction.get('body');
+          if (parentBodyPath.isBlockStatement()) {
+            // Count how many statements will remain after removal
+            const currentStatements = parentBodyPath.node.body;
+            if (currentStatements.length === 1) {
+              // This is the last statement - replace with empty return to keep function valid
+              declarationPath.replaceWith(t.returnStatement());
+            } else {
+              // Safe to remove - there are other statements
+              declarationPath.remove();
+            }
+          } else {
+            // Not a block statement, safe to remove
+            declarationPath.remove();
+          }
         } else {
-          // Empty body, add to the block
-          bodyPath.unshiftContainer('body', declarationNode);
-          return;
+          // No parent function, safe to remove
+          declarationPath.remove();
         }
+      } else {
+        logger.warn(`Cannot find block statement in target scope`);
+        return;
       }
-    }
-
-    if (insertionPath) {
-      // Insert the declaration at the top of the target scope
-      insertionPath.insertBefore(declarationNode);
-
-      // Remove the original declaration
-      declarationPath.remove();
     } else {
-      logger.warn(
-        `Cannot hoist: could not find insertion point for ${operation.symbol}`
-      );
+      logger.warn(`Target scope is not a function`);
+      return;
     }
   }
 

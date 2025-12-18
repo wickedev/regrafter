@@ -552,6 +552,8 @@ export interface DependencyAnalysis {
   canResolve: boolean;
   /** Reason if cannot resolve */
   unresolvedReason?: string;
+  /** Map of dependency IDs to their NodePaths (for transformation) */
+  dependencyPaths: Map<string, NodePath>;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

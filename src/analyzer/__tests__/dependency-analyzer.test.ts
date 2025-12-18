@@ -32,7 +32,12 @@ import {
   createNodeMetadata,
   createScopeInfo,
   ScopeType,
+  type PositionSelector,
 } from "../../types/index.js";
+import { createParser } from "../../parser/index.js";
+import { createScopeManager, type ComponentScope } from "../../scope/index.js";
+import { createSelectorResolver } from "../../selector/index.js";
+import { DependencyAnalyzer } from "../dependency-analyzer.js";
 
 // =============================================================================
 // Test Cases Overview
@@ -1049,5 +1054,88 @@ describe("DependencyAnalyzer - Result Structure", () => {
       expect(dep.scope).toBeDefined();
       expect(dep.scope.type).toBeDefined();
     });
+  });
+});
+
+describe("Variable Scope Detection", () => {
+  it("should detect local variable scope correctly", () => {
+    const code = `function Parent() {
+  return <div><Child /></div>;
+}
+
+function Child() {
+  const message = 'Hello';
+  return <div><span>{message}</span></div>;
+}`;
+
+    // Parse the code
+    const parser = createParser();
+    const parseResult = parser.parse(code, "test.tsx");
+    if (!parseResult.ok) {
+      throw new Error(`Parse failed: ${parseResult.error.message}`);
+    }
+    const ast = parseResult.value;
+
+    // Build scope tree
+    const scopeManager = createScopeManager();
+    scopeManager.buildScopeTree(ast);
+
+    // Find the <span>{message}</span> element
+    // It's on line 7, column 15 (the opening <span> tag)
+    const spanSelector: PositionSelector = {
+      file: "test.tsx",
+      line: 7,
+      column: 15,
+    };
+
+    // Resolve the selector to get the element path
+    const resolver = createSelectorResolver();
+    const spanResult = resolver.resolveResult(spanSelector, ast);
+    expect(spanResult.ok).toBe(true);
+    if (!spanResult.ok) return;
+
+    // Get the target scope (Parent component)
+    const parentSelector: PositionSelector = {
+      file: "test.tsx",
+      line: 2,
+      column: 10,
+    };
+    const parentResult = resolver.resolveResult(parentSelector, ast);
+    expect(parentResult.ok).toBe(true);
+    if (!parentResult.ok) return;
+
+    const targetScope = scopeManager.getScopeForPath(parentResult.value.path);
+
+    // Analyze dependencies of the <span> element
+    const depAnalyzer = new DependencyAnalyzer(scopeManager);
+    depAnalyzer.setCurrentFile("test.tsx");
+    const analysisResult = depAnalyzer.analyzeElement(
+      spanResult.value.path,
+      targetScope
+    );
+
+    expect(analysisResult.ok).toBe(true);
+    if (!analysisResult.ok) {
+      console.error("Analysis failed:", analysisResult.error);
+      return;
+    }
+
+    const analysis = analysisResult.value;
+
+    // Should find 'message' as a dependency
+    const messageDep = analysis.dependencies.find(
+      (d) => d.symbol === "message"
+    );
+    expect(messageDep).toBeDefined();
+    expect(messageDep?.type).toBe(DependencyType.Variable);
+
+    // CRITICAL: scope should be 'Child' (component), not 'module'
+    // This is the bug we're testing for
+    expect(messageDep?.scope.type).toBe(ScopeType.Component);
+    if (messageDep?.scope.type === ScopeType.Component) {
+      // Type assertion after checking scope.type === Component
+      const componentScope = messageDep.scope as ComponentScope;
+      expect(componentScope.componentName).toBe("Child");
+    }
   });
 });

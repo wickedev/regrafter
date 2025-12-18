@@ -544,12 +544,12 @@ function Child() {
       expect(result.ok).toBe(true);
       // Should hoist useState to Parent component
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
+  const [count, setCount] = useState(0);
   return <div><button onClick={() => setCount(count + 1)}>{count}</button>
       <Child />
     </div>;
 }
 function Child() {
-  const [count, setCount] = useState(0);
   return;
 }`);
     });
@@ -578,19 +578,23 @@ function Child() {
       ];
 
       const from = { file: "App.tsx", line: 10, column: 5 }; // div with multiple states
-      const to = { file: "App.tsx", line: 2, column: 15 }; // inside Parent div
+      const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
       const result = regraft(files, from, to, Move.Inside);
 
       expect(result.ok).toBe(true);
       // All hooks should be hoisted in order
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
-  return <div><Child /></div>;
-}
-function Child() {
   const [name, setName] = useState('');
   const [age, setAge] = useState(0);
   const [email, setEmail] = useState('');
+  return <div><div>
+      <input value={name} onChange={e => setName(e.target.value)} />
+      <input value={age} onChange={e => setAge(Number(e.target.value))} />
+      <input value={email} onChange={e => setEmail(e.target.value)} />
+    </div><Child /></div>;
+}
+function Child() {
   return;
 }`);
     });
@@ -618,19 +622,19 @@ function Child() {
       ];
 
       const from = { file: "App.tsx", line: 12, column: 10 }; // button with effect
-      const to = { file: "App.tsx", line: 2, column: 15 }; // inside Parent div
+      const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
       const result = regraft(files, from, to, Move.Inside);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
-  return <div><Child /></div>;
-}
-function Child() {
   const [count, setCount] = useState(0);
   useEffect(() => {
     console.log('Count changed:', count);
   }, [count]);
+  return <div><button onClick={() => setCount(count + 1)}>{count}</button><Child /></div>;
+}
+function Child() {
   return;
 }`);
     });
@@ -660,15 +664,12 @@ function Timer() {
       ];
 
       const from = { file: "App.tsx", line: 16, column: 10 }; // timer div
-      const to = { file: "App.tsx", line: 2, column: 15 }; // inside Parent div
+      const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
       const result = regraft(files, from, to, Move.Inside);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
-  return <div><Timer /></div>;
-}
-function Timer() {
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
     const interval = setInterval(() => {
@@ -676,6 +677,9 @@ function Timer() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+  return <div><div>{seconds}</div><Timer /></div>;
+}
+function Timer() {
   return;
 }`);
     });
@@ -708,19 +712,22 @@ function Child() {
       ];
 
       const from = { file: "App.tsx", line: 13, column: 5 }; // div with ref
-      const to = { file: "App.tsx", line: 2, column: 15 }; // inside Parent div
+      const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
       const result = regraft(files, from, to, Move.Inside);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
-  return <div><Child /></div>;
-}
-function Child() {
   const inputRef = useRef(null);
   const focusInput = () => {
     inputRef.current?.focus();
   };
+  return <div><div>
+      <input ref={inputRef} />
+      <button onClick={focusInput}>Focus</button>
+    </div><Child /></div>;
+}
+function Child() {
   return;
 }`);
     });
@@ -757,13 +764,22 @@ function Counter() {
       ];
 
       const from = { file: "App.tsx", line: 16, column: 5 }; // Counter div
-      const to = { file: "App.tsx", line: 2, column: 15 }; // inside Parent div
+      const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
       const result = regraft(files, from, to, Move.Inside);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
-  return <div><Counter /></div>;
+  const {
+    count,
+    increment,
+    decrement
+  } = useCounter(0);
+  return <div><div>
+      <button onClick={decrement}>-</button>
+      <span>{count}</span>
+      <button onClick={increment}>+</button>
+    </div><Counter /></div>;
 }
 function useCounter(initial = 0) {
   const [count, setCount] = useState(initial);
@@ -776,11 +792,6 @@ function useCounter(initial = 0) {
   };
 }
 function Counter() {
-  const {
-    count,
-    increment,
-    decrement
-  } = useCounter(0);
   return;
 }`);
     });
@@ -804,16 +815,16 @@ function Child() {
     ];
 
     const from = { file: "App.tsx", line: 7, column: 10 }; // div with message
-    const to = { file: "App.tsx", line: 2, column: 15 }; // inside Parent div
+    const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
     const result = regraft(files, from, to, Move.Inside);
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
-  return <div><Child /></div>;
+  const message = 'Hello World';
+  return <div><div>{message}</div><Child /></div>;
 }
 function Child() {
-  const message = 'Hello World';
   return;
 }`);
   });
@@ -837,18 +848,18 @@ function Child() {
     ];
 
     const from = { file: "App.tsx", line: 10, column: 10 }; // button with handler
-    const to = { file: "App.tsx", line: 2, column: 15 }; // inside Parent div
+    const to = { file: "App.tsx", line: 2, column: 11 }; // inside Parent div (the div element, not Child)
 
     const result = regraft(files, from, to, Move.Inside);
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
-  return <div><Child /></div>;
-}
-function Child() {
   const handleClick = () => {
     console.log('Clicked!');
   };
+  return <div><button onClick={handleClick}>Click me</button><Child /></div>;
+}
+function Child() {
   return;
 }`);
   });
@@ -924,15 +935,12 @@ function Form() {
     ];
 
     const from = { file: "App.tsx", line: 19, column: 5 }; // form element
-    const to = { file: "App.tsx", line: 2, column: 15 }; // inside Parent div
+    const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
     const result = regraft(files, from, to, Move.Inside);
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
-  return <div><Form /></div>;
-}
-function Form() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const inputRef = useRef(null);
@@ -942,6 +950,13 @@ function Form() {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+  return <div><form>
+      <input ref={inputRef} value={name} onChange={e => setName(e.target.value)} />
+      <input value={email} onChange={e => setEmail(e.target.value)} />
+      <button disabled={!validate()}>Submit</button>
+    </form><Form /></div>;
+}
+function Form() {
   return;
 }`);
   });
@@ -973,10 +988,10 @@ function Child() {
       // Compare entire expected output using template string
       // Default insertIndex is 0, so JSX is inserted at the start
       const expected = `function Parent() {
+  const message = 'Hello';
   return <div><div><span>{message}</span></div><Child /></div>;
 }
 function Child() {
-  const message = 'Hello';
   return;
 }`;
 
@@ -1010,10 +1025,10 @@ function Child() {
 
       // Should insert at the start, before <Child />
       const expected = `function Parent() {
+  const message = 'Hello';
   return <div><div><span>{message}</span></div><Child /></div>;
 }
 function Child() {
-  const message = 'Hello';
   return;
 }`;
 
