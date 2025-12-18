@@ -7,6 +7,9 @@
 
 import type { File as BabelFile , SourceLocation } from '@babel/types';
 
+import type { Result } from '../result/index.js';
+import type { ParseErrorType } from '../errors/error-category.js';
+
 /**
  * Input file for parsing
  */
@@ -40,16 +43,16 @@ export interface IParser {
    * Parse a single source file
    * @param source - Source code content
    * @param filename - File path (used for error messages and file type detection)
-   * @returns ParseResult with AST and any errors
+   * @returns Result with AST or parse error
    */
-  parse(source: string, filename: string): ParseResult;
+  parse(source: string, filename: string): Result<BabelFile, ParseErrorType>;
 
   /**
    * Parse multiple files in batch
    * @param files - Array of file inputs to parse
-   * @returns Map from file path to ParseResult
+   * @returns Map from file path to Result
    */
-  parseFiles(files: FileInput[]): Map<string, ParseResult>;
+  parseFiles(files: FileInput[]): Map<string, Result<BabelFile, ParseErrorType>>;
 
   /**
    * Invalidate cached AST for a file

@@ -136,8 +136,8 @@ export class Optimizer implements IOptimizer {
 
     for (const file of files) {
       const result = parseResults.get(file.path);
-      if (result !== undefined && result.success === true && result.ast) {
-        asts.set(file.path, result.ast);
+      if (result !== undefined && result.ok) {
+        asts.set(file.path, result.value);
         originalContents.set(file.path, file.content);
       }
     }

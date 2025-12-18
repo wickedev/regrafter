@@ -18,6 +18,5 @@ export type {
   FileInput,
   IParser,
   ParseError,
-  ParseResult,
   SupportedExtension,
 } from './types.js';

@@ -7,7 +7,8 @@
 
 import type { File as BabelFile } from '@babel/types';
 
-import type { ParseResult } from './types.js';
+import type { Result } from '../result/index.js';
+import type { ParseErrorType } from '../errors/error-category.js';
 
 /**
  * Entry in the AST cache
@@ -20,7 +21,7 @@ interface ASTCacheEntry {
   /** Timestamp when entry was created */
   timestamp: number;
   /** The original parse result */
-  result: ParseResult;
+  result: Result<BabelFile, ParseErrorType>;
 }
 
 /**
@@ -49,9 +50,9 @@ export class ASTStore {
    * Get a cached parse result for a file
    * @param filename - File path to look up
    * @param content - Current content for hash validation
-   * @returns Cached ParseResult if valid, undefined otherwise
+   * @returns Cached Result if valid, undefined otherwise
    */
-  get(filename: string, content: string): ParseResult | undefined {
+  get(filename: string, content: string): Result<BabelFile, ParseErrorType> | undefined {
     const entry = this.cache.get(filename);
     if (!entry) {
       return undefined;
@@ -72,16 +73,16 @@ export class ASTStore {
    * Store a parse result in the cache
    * @param filename - File path as cache key
    * @param content - Source content for hash generation
-   * @param result - ParseResult to cache
+   * @param result - Parse result to cache
    */
-  set(filename: string, content: string, result: ParseResult): void {
+  set(filename: string, content: string, result: Result<BabelFile, ParseErrorType>): void {
     // Only cache successful parses with valid ASTs
-    if (!result.success || !result.ast) {
+    if (!result.ok) {
       return;
     }
 
     const entry: ASTCacheEntry = {
-      ast: result.ast,
+      ast: result.value,
       contentHash: hashString(content),
       timestamp: Date.now(),
       result,

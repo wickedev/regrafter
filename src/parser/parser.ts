@@ -9,12 +9,15 @@ import type { ParserOptions, ParserPlugin } from '@babel/parser';
 import { parse as babelParse } from '@babel/parser';
 import type { File as BabelFile, SourceLocation } from '@babel/types';
 
+import { ok, err, type Result } from '../result/index.js';
+import { createParseError } from '../errors/index.js';
+import type { ParseErrorType } from '../errors/error-category.js';
+
 import { ASTStore } from './ast-store.js';
 import type {
   FileInput,
   IParser,
-  ParseError,
-  ParseResult} from './types.js';
+  ParseError} from './types.js';
 import {
   getExtension,
   isTypeScriptFile,
@@ -270,38 +273,28 @@ export class Parser implements IParser {
    * Parse a single source file
    * @param source - Source code content
    * @param filename - File path (used for error messages and file type detection)
-   * @returns ParseResult with AST and any errors
+   * @returns Result with AST or parse error
    */
-  parse(source: string, filename: string): ParseResult {
+  parse(source: string, filename: string): Result<BabelFile, ParseErrorType> {
     // Check for empty source
     if (!source || source.trim() === '') {
-      return {
-        ast: null,
-        errors: [
-          {
-            message: `Empty source file: ${filename}`,
-            location: null,
-            code: ParseErrorCodes.EMPTY_SOURCE,
-          },
-        ],
-        success: false,
-      };
+      return err(createParseError({
+        code: ParseErrorCodes.EMPTY_SOURCE,
+        message: `Empty source file: ${filename}`,
+        file: filename,
+        suggestions: [],
+      }));
     }
 
     // Check for unsupported file extensions
     const ext = getExtension(filename);
     if (ext && !['.ts', '.tsx', '.js', '.jsx', ''].includes(ext)) {
-      return {
-        ast: null,
-        errors: [
-          {
-            message: `Unsupported file type: ${ext}`,
-            location: null,
-            code: ParseErrorCodes.UNSUPPORTED_FILE,
-          },
-        ],
-        success: false,
-      };
+      return err(createParseError({
+        code: ParseErrorCodes.UNSUPPORTED_FILE,
+        message: `Unsupported file type: ${ext}`,
+        file: filename,
+        suggestions: [],
+      }));
     }
 
     // Check cache first
@@ -314,37 +307,35 @@ export class Parser implements IParser {
       const options = getParserOptions(filename);
       const ast = babelParse(source, options);
 
-      // Extract any errors from recovery mode
-      const recoveredErrors = extractRecoveredErrors(ast, filename);
+      // Extract any errors from recovery mode (ignored for now - we succeed if we got AST)
+      // const recoveredErrors = extractRecoveredErrors(ast, filename);
 
-      const result: ParseResult = {
-        ast,
-        errors: recoveredErrors,
-        // Success if we got an AST, even with recovered errors
-        success: true,
-      };
+      const result = ok(ast);
 
       // Cache the result
       this.astStore.set(filename, source, result);
 
       return result;
     } catch (error) {
-      // Complete parsing failure (shouldn't happen often with errorRecovery)
-      return {
-        ast: null,
-        errors: [toBabelParseError(error, filename)],
-        success: false,
-      };
+      // Complete parsing failure
+      const parseError = toBabelParseError(error, filename);
+      return err(createParseError({
+        code: parseError.code,
+        message: parseError.message,
+        file: filename,
+        location: parseError.location ?? undefined,
+        suggestions: [],
+      }));
     }
   }
 
   /**
    * Parse multiple files in batch
    * @param files - Array of file inputs to parse
-   * @returns Map from file path to ParseResult
+   * @returns Map from file path to Result
    */
-  parseFiles(files: FileInput[]): Map<string, ParseResult> {
-    const results = new Map<string, ParseResult>();
+  parseFiles(files: FileInput[]): Map<string, Result<BabelFile, ParseErrorType>> {
+    const results = new Map<string, Result<BabelFile, ParseErrorType>>();
 
     for (const file of files) {
       const result = this.parse(file.content, file.path);

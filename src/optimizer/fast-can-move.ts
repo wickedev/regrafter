@@ -112,7 +112,7 @@ export class FastCanMove {
 
       // Parse ASTs
       const sourceResult = this.parser.parse(sourceFile.content, sourceFile.path);
-      if (!sourceResult.success || !sourceResult.ast) {
+      if (!sourceResult.ok) {
         blockingIssues.push({
           type: 'source_not_found',
           description: `Failed to parse source file: ${from.file}`,
@@ -122,7 +122,7 @@ export class FastCanMove {
       }
 
       const targetResult = this.parser.parse(targetFile.content, targetFile.path);
-      if (!targetResult.success || !targetResult.ast) {
+      if (!targetResult.ok) {
         blockingIssues.push({
           type: 'target_not_found',
           description: `Failed to parse target file: ${to.file}`,
@@ -131,12 +131,15 @@ export class FastCanMove {
         return this.buildResult(false, blockingIssues, 0, startTime);
       }
 
+      const sourceAST = sourceResult.value;
+      const targetAST = targetResult.value;
+
       if (checkTimeout()) {
         return this.buildResult(true, blockingIssues, complexityEstimate, startTime, true);
       }
 
       // Find source element
-      const sourceNode = this.findNodeByPath(sourceResult.ast, from.path);
+      const sourceNode = this.findNodeByPath(sourceAST, from.path);
       if (!sourceNode) {
         blockingIssues.push({
           type: 'source_not_found',
@@ -147,7 +150,7 @@ export class FastCanMove {
       }
 
       // Find target element
-      const targetNode = this.findNodeByPath(targetResult.ast, to.path);
+      const targetNode = this.findNodeByPath(targetAST, to.path);
       if (!targetNode) {
         blockingIssues.push({
           type: 'target_not_found',
@@ -163,7 +166,7 @@ export class FastCanMove {
 
       // Check hook rules (fast check)
       if (opts.checkHookRules && !opts.skipDetailedChecks) {
-        const hookIssues = this.checkHookRules(sourceNode, targetResult.ast);
+        const hookIssues = this.checkHookRules(sourceNode, targetAST);
         blockingIssues.push(...hookIssues);
         if (hookIssues.some((i) => i.severity === 'error')) {
           return this.buildResult(false, blockingIssues, complexityEstimate, startTime);

@@ -868,31 +868,36 @@ export function validateMove(
 
   // Parse source file
   const sourceParseResult = parser.parse(sourceContent, sourceFile);
-  if (!sourceParseResult.success || !sourceParseResult.ast) {
+  if (!sourceParseResult.ok) {
     return {
       valid: false,
-      reason: `Failed to parse source file: ${sourceParseResult.errors.map(e => e.message).join(', ')}`,
+      reason: `Failed to parse source file: ${sourceParseResult.error.message}`,
       errorCode: MoveValidationError.PARSE_ERROR,
       warnings,
     };
   }
 
   // Parse target file (may be same as source)
-  let targetParseResult = sourceParseResult;
+  let targetAST: t.File;
   if (targetFile !== sourceFile) {
-    targetParseResult = parser.parse(targetContent, targetFile);
-    if (!targetParseResult.success || !targetParseResult.ast) {
+    const targetParseResult = parser.parse(targetContent, targetFile);
+    if (!targetParseResult.ok) {
       return {
         valid: false,
-        reason: `Failed to parse target file: ${targetParseResult.errors.map(e => e.message).join(', ')}`,
+        reason: `Failed to parse target file: ${targetParseResult.error.message}`,
         errorCode: MoveValidationError.PARSE_ERROR,
         warnings,
       };
     }
+    targetAST = targetParseResult.value;
+  } else {
+    targetAST = sourceParseResult.value;
   }
 
+  const sourceAST = sourceParseResult.value;
+
   // Check analyzability
-  const sourceAnalyzability = checkAnalyzability(sourceParseResult.ast);
+  const sourceAnalyzability = checkAnalyzability(sourceAST);
   if (!sourceAnalyzability.analyzable) {
     return {
       valid: false,
@@ -903,8 +908,8 @@ export function validateMove(
     };
   }
 
-  if (targetFile !== sourceFile && targetParseResult.ast) {
-    const targetAnalyzability = checkAnalyzability(targetParseResult.ast);
+  if (targetFile !== sourceFile) {
+    const targetAnalyzability = checkAnalyzability(targetAST);
     if (!targetAnalyzability.analyzable) {
       return {
         valid: false,
@@ -917,7 +922,7 @@ export function validateMove(
   }
 
   // Resolve source selector
-  let source = resolveSelector(from, sourceParseResult.ast, sourceFile);
+  let source = resolveSelector(from, sourceAST, sourceFile);
   if (source.error !== undefined || !source.node) {
     return {
       valid: false,
@@ -932,16 +937,7 @@ export function validateMove(
   source = normalizeToJSXElement(source);
 
   // Resolve target selector
-  if (!targetParseResult.ast) {
-    return {
-      valid: false,
-      reason: 'Failed to parse target file AST',
-      errorCode: MoveValidationError.PARSE_ERROR,
-      warnings,
-    };
-  }
-
-  let target = resolveSelector(to, targetParseResult.ast, targetFile);
+  let target = resolveSelector(to, targetAST, targetFile);
   if (target.error !== undefined || !target.node) {
     return {
       valid: false,
@@ -958,9 +954,9 @@ export function validateMove(
 
   // Build AST map
   const astMap = new Map<string, t.File>();
-  astMap.set(sourceFile, sourceParseResult.ast);
+  astMap.set(sourceFile, sourceAST);
   if (targetFile !== sourceFile) {
-    astMap.set(targetFile, targetParseResult.ast);
+    astMap.set(targetFile, targetAST);
   }
 
   // Build validation context

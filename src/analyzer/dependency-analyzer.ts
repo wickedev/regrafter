@@ -11,7 +11,7 @@ import {
   createDependencyError,
   type DependencyErrorType,
 } from '../errors/error-category.js';
-import { ok, err, tryCatch, type Result } from '../result/index.js';
+import { ok, err, tryCatch, isErr, type Result } from '../result/index.js';
 import { ScopeType } from '../scope/index.js';
 import type {
   ScopeManager,
