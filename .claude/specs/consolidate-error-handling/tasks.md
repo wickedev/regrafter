@@ -4,7 +4,7 @@ This document outlines the implementation tasks for consolidating error handling
 
 ## Phase 1: Foundation - Result Type System
 
-- [ ] 1. Create Result type core infrastructure
+- [x] 1. Create Result type core infrastructure
   - Create `src/result/types.ts` with Result<T, E>, Ok<T>, and Err<E> type definitions
   - Implement ok() and err() constructor functions
   - Implement isOk() and isErr() type guards
@@ -100,14 +100,14 @@ This document outlines the implementation tasks for consolidating error handling
     - _Requirements: 5.2_
 
 - [ ] 5. Implement exception conversion helpers
-  - [ ] 5.1 Write tests for tryCatch() helper
+  - [x] 5.1 Write tests for tryCatch() helper
     - Test that tryCatch returns Ok for successful function execution
     - Test that tryCatch returns Err for thrown exceptions
     - Test that Err contains original error message
     - Test with different error types (Error, string, object)
     - _Requirements: 4.2, 5.3, 8.1_
 
-  - [ ] 5.2 Implement tryCatch() function
+  - [x] 5.2 Implement tryCatch() function
     - Implement tryCatch() to satisfy tests
     - Ensure proper error context preservation
     - _Requirements: 4.2, 4.5, 5.3_

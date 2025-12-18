@@ -34,9 +34,9 @@ Regrafter empowers you to safely move React components, elements, text, and expr
 
 ## Installation
 
-
+```bash
 npm install regrafter
-
+```
 
 **Requirements:**
 - Node.js ≥18
@@ -44,7 +44,7 @@ npm install regrafter
 
 ## Quick Start
 
-
+```typescript
 import { regraft, Move } from 'regrafter';
 
 const files = [{
@@ -75,7 +75,7 @@ if (result.success) {
   console.log('Transformed code:', result.codes[0].content);
   console.log('Dependencies hoisted:', result.analysis.hoistedDeps);
 }
-
+```
 
 ## API Reference
 
@@ -97,29 +97,29 @@ The main entry point for element relocation with automatic dependency management
 
 **Returns:** `Result` object with transformed code and analysis.
 
-
+```typescript
 interface Result {
   success: boolean;
   codes: Code[];
   analysis: MoveAnalysis;
 }
-
+```
 
 #### `canMove(files, from, to, mode): boolean`
 
 Quick validation check without executing the transformation. Use this for IDE feedback or before expensive operations.
 
-
+```typescript
 if (canMove(files, from, to, Move.Inside)) {
   // Safe to proceed with transformation
 }
-
+```
 
 #### `analyze(files, from, to, mode): MoveAnalysis`
 
 Detailed dependency analysis without performing transformation. Returns information about what hoisting would be required.
 
-
+```typescript
 const analysis = analyze(files, from, to, Move.Inside);
 
 if (analysis.canMove) {
@@ -130,25 +130,25 @@ if (analysis.canMove) {
   console.log('Cannot move:', analysis.reason);
   console.log('Suggested fixes:', analysis.suggestedFixes);
 }
-
+```
 
 #### `move(files, from, to, mode): Code[]`
 
 Lower-level API that executes movement without validation or optimization. For advanced workflows where you've already validated the operation.
 
-
+```typescript
 const codes = move(files, from, to, Move.Inside);
-
+```
 
 #### `optimize(files, options?): Code[]`
 
 Optimize files by sinking over-hoisted dependencies to their minimal necessary scopes.
 
-
+```typescript
 const optimized = optimize(files, {
   aggressive: false  // Conservative optimization by default
 });
-
+```
 
 ### Types
 
@@ -156,7 +156,7 @@ const optimized = optimize(files, {
 
 Element selection using either position or AST path.
 
-
+```typescript
 // Position selector (ideal for IDE integration)
 const posSelector: PositionSelector = {
   file: 'src/App.tsx',
@@ -169,49 +169,49 @@ const pathSelector: PathSelector = {
   file: 'src/App.tsx',
   path: 'Program.body[0].declaration.body.body[2]'
 };
-
+```
 
 #### `Move`
 
 Element positioning mode relative to target.
 
-
+```typescript
 enum Move {
   Inside = 'inside',   // Insert as child of target
   Before = 'before',   // Insert as sibling before target
   After = 'after'      // Insert as sibling after target
 }
-
+```
 
 #### `Options`
 
 Configuration options for `regraft()`.
 
-
+```typescript
 interface Options {
   optimize?: boolean;         // Run dependency sinking optimization (default: true)
   dryRun?: boolean;          // Preview only, no transformation (default: false)
   preserveComments?: boolean; // Preserve code comments (default: true)
   formatOutput?: boolean;     // Format output with Prettier (default: true)
 }
-
+```
 
 #### `FileInput`
 
 Input file with path and content.
 
-
+```typescript
 interface FileInput {
   path: string;      // File path (relative or absolute)
   content: string;   // Source code content
 }
-
+```
 
 #### `Code`
 
 Output file with transformation metadata.
 
-
+```typescript
 interface Code {
   file: string;      // File path
   content: string;   // Transformed code
@@ -219,13 +219,13 @@ interface Code {
   isNew?: boolean;   // Whether file is newly created
   original?: string; // Original content if changed
 }
-
+```
 
 ### Error Handling
 
 Regrafter provides comprehensive error handling with recovery suggestions.
 
-
+```typescript
 import {
   regraft,
   RegraffError,
@@ -262,7 +262,7 @@ try {
     }
   }
 }
-
+```
 
 #### Error Categories
 
@@ -278,7 +278,7 @@ try {
 
 #### Error Types
 
-
+```typescript
 // Specialized error classes
 ParseError      // Parsing failures (syntax errors)
 SelectorError   // Element not found, ambiguous selection
@@ -287,13 +287,13 @@ ValidationError // Hook rules violations, invalid moves
 CircularError   // Circular dependency detected
 TransformError  // AST mutation failures
 InternalError   // Internal consistency errors
-
+```
 
 ### Input Validation
 
 Runtime validation for API inputs with helpful error messages.
 
-
+```typescript
 import {
   validateRegraftInput,
   assertRegraftInput,
@@ -322,7 +322,7 @@ try {
 // Validate individual inputs
 const selectorValidation = validateSelector(from);
 const moveValidation = validateMove(mode);
-
+```
 
 ## Dependency Types
 
@@ -341,18 +341,18 @@ Regrafter automatically tracks and manages these dependency types:
 
 ### Move Element Within Same Component
 
-
+```typescript
 const result = regraft(
   [{ path: 'App.tsx', content: appSource }],
   { file: 'App.tsx', line: 10, column: 5 },
   { file: 'App.tsx', line: 20, column: 5 },
   Move.Inside
 );
-
+```
 
 ### Move Element to Different File
 
-
+```typescript
 const files = [
   { path: 'Dashboard.tsx', content: dashboardSource },
   { path: 'Sidebar.tsx', content: sidebarSource }
@@ -370,11 +370,11 @@ const newFiles = result.codes.filter(c => c.isNew);
 if (newFiles.length > 0) {
   console.log('Created shared modules:', newFiles.map(f => f.file));
 }
-
+```
 
 ### Dry Run Preview
 
-
+```typescript
 const result = regraft(
   files, from, to, Move.Inside,
   { dryRun: true }
@@ -383,11 +383,11 @@ const result = regraft(
 console.log('Would modify:', result.codes.filter(c => c.changed).map(c => c.file));
 console.log('Dependencies:', result.analysis.dependencies);
 console.log('Hoisting required:', result.analysis.hoistedDeps);
-
+```
 
 ### Handle Complex Dependencies
 
-
+```typescript
 const analysis = analyze(files, from, to, Move.Inside);
 
 // Check hook dependencies
@@ -411,11 +411,11 @@ if (!analysis.canMove && analysis.suggestedFixes) {
     }
   }
 }
-
+```
 
 ### Using Path Selectors
 
-
+```typescript
 import { regraft, Move } from 'regrafter';
 
 // Use AST paths for precise programmatic control
@@ -431,11 +431,11 @@ const result = regraft(
   },
   Move.Inside
 );
-
+```
 
 ### Move Text Nodes and Expressions
 
-
+```typescript
 const files = [{
   path: 'Component.tsx',
   content: `
@@ -466,11 +466,11 @@ const result2 = regraft(
   { file: 'Component.tsx', line: 6, column: 11 },  // <h1> element
   Move.Before
 );
-
+```
 
 ### Optimization Example
 
-
+```typescript
 // First, perform multiple moves
 let result = regraft(files, from1, to1, Move.Inside);
 result = regraft(result.codes, from2, to2, Move.After);
@@ -482,13 +482,13 @@ const optimized = optimize(result.codes, {
 });
 
 console.log('Final optimized code:', optimized);
-
+```
 
 ## Error Recovery
 
 Regrafter provides automatic recovery for certain error conditions.
 
-
+```typescript
 import {
   regraft,
   isRecoverable,
@@ -515,13 +515,13 @@ try {
     }
   }
 }
-
+```
 
 ## Advanced Usage
 
 ### Custom Dependency Analysis
 
-
+```typescript
 import {
   DependencyAnalyzer,
   createDependencyAnalyzer,
@@ -534,11 +534,11 @@ const analyzer = createDependencyAnalyzer(scopeManager);
 // Perform custom analysis
 const dependencies = analyzer.analyzeElement(elementPath, targetScope);
 console.log('All dependencies:', dependencies);
-
+```
 
 ### Hoisting Strategy Control
 
-
+```typescript
 import {
   HoistPlanner,
   createConfiguredHoistPlanner,
@@ -560,11 +560,11 @@ const executor = createHoistExecutor();
 // Execute custom hoisting plan
 const plan = planner.plan(dependencies, context);
 executor.execute(plan, executionContext);
-
+```
 
 ### Atomic Unit Detection
 
-
+```typescript
 import {
   detectAtomicUnit,
   detectConditionalExpression,
@@ -581,7 +581,7 @@ if (atomicUnit) {
 
 // Find enclosing atomic unit
 const enclosing = findEnclosingAtomicUnit(elementPath);
-
+```
 
 ## Tech Stack
 
@@ -596,7 +596,7 @@ Regrafter is built on industry-standard AST manipulation tools:
 
 ## Project Structure
 
-
+```
 regrafter/
 ├── src/
 │   ├── index.ts              # Public API exports
@@ -629,19 +629,19 @@ regrafter/
 │   └── fixtures/             # Test fixtures
 ├── config/                   # Build and test configs
 └── dist/                     # Built output (ESM, CJS, types)
-
+```
 
 ## Development
 
 ### Build
 
-
+```bash
 npm run build
-
+```
 
 ### Test
 
-
+```bash
 # Run all tests
 npm test
 
@@ -653,11 +653,11 @@ npm run test:e2e
 
 # Coverage
 npm run test:coverage
-
+```
 
 ### Linting & Formatting
 
-
+```bash
 # Lint
 npm run lint
 npm run lint:fix
@@ -668,11 +668,11 @@ npm run format:check
 
 # Type check
 npm run typecheck
-
+```
 
 ### Benchmarking
 
-
+```bash
 # Run benchmarks
 npm run bench
 
@@ -681,7 +681,7 @@ npm run bench:memory
 
 # Generate flamegraph
 npm run bench:flamegraph
-
+```
 
 ## Performance
 
@@ -714,7 +714,7 @@ This project follows Kent Beck's Test-Driven Development and "Tidy First" method
 
 Regrafter is written in TypeScript with comprehensive type definitions.
 
-
+```typescript
 import type {
   // Main types
   FileInput,
@@ -744,7 +744,7 @@ import type {
   ErrorCategory,
   RecoveryResult,
 } from 'regrafter';
-
+```
 
 ## License
 
