@@ -1,8 +1,8 @@
 # Regrafter
 
-Programmatic AST transformation library for relocating React/JSX elements with automatic dependency management.
+Programmatic AST transformation library for relocating React/JSX elements, text nodes, and expressions with automatic dependency management.
 
-Regrafter empowers you to safely move React components and elements within and across files while automatically managing all their dependencies—hooks, variables, imports, props, context, and refs. Transform your codebase with confidence.
+Regrafter empowers you to safely move React components, elements, text, and expressions within and across files while automatically managing all their dependencies—hooks, variables, imports, props, context, and refs. Transform your codebase with confidence.
 
 ## Why Regrafter?
 
@@ -15,7 +15,7 @@ Regrafter empowers you to safely move React components and elements within and a
 
 ### Core Capabilities
 
-- **Safe Element Relocation**: Move JSX elements as children (Inside), before, or after target elements
+- **Safe Element Relocation**: Move JSX elements, text nodes, and expression containers as children (Inside), before, or after target elements
 - **Automatic Dependency Analysis**: Tracks Hook, Variable, Import, Prop, Context, and Ref dependencies
 - **Smart Hoisting**: Automatically hoists dependencies to valid scopes following React Hook rules
 - **Cross-File Movement**: Move elements between files with automatic import/export management
@@ -27,6 +27,7 @@ Regrafter empowers you to safely move React components and elements within and a
 - Position-based and AST path-based selectors for flexible targeting
 - Dry-run mode for safe preview of transformations
 - Atomic unit detection (conditionals, map expressions, compound components)
+- Support for JSX elements, text nodes, and expression containers (`{expression}`)
 - Circular dependency detection and resolution
 - Structured error handling with automatic recovery suggestions
 - Performance optimized for files <1000 lines in <100ms
@@ -429,6 +430,41 @@ const result = regraft(
     path: 'Program.body[0].declaration.body.body[2].argument.children[0]'
   },
   Move.Inside
+);
+
+
+### Move Text Nodes and Expressions
+
+
+const files = [{
+  path: 'Component.tsx',
+  content: `
+    function Component() {
+      const name = "World";
+      return (
+        <div>
+          <h1>Hello</h1>
+          <p>{name}</p>
+        </div>
+      );
+    }
+  `
+}];
+
+// Move text node "Hello" from <h1> to <p>
+const result1 = regraft(
+  files,
+  { file: 'Component.tsx', line: 6, column: 15 },  // "Hello" text
+  { file: 'Component.tsx', line: 7, column: 14 },  // <p> element
+  Move.Inside
+);
+
+// Move expression container {name} to different location
+const result2 = regraft(
+  files,
+  { file: 'Component.tsx', line: 7, column: 14 },  // {name} expression
+  { file: 'Component.tsx', line: 6, column: 11 },  // <h1> element
+  Move.Before
 );
 
 
