@@ -516,7 +516,6 @@ describe("E2E: Simple JSX Moves", () => {
 
 describe("E2E: Moves with State Dependencies", () => {
   describe("useState hoisting", () => {
-    // TODO: Cross-function moves with hoisting not yet fully implemented
     it("should hoist useState when moving component with state", () => {
       const files = [
         {
@@ -901,7 +900,6 @@ function Child() {
 });
 
 describe("E2E: Complex Component Moves", () => {
-  // TODO: Cross-function moves with hoisting not yet fully implemented
   it("should move component with mixed hooks and variables", () => {
     const files = [
       {
