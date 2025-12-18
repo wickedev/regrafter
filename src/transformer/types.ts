@@ -64,26 +64,6 @@ export type InsertionPoint = TransformedCode;
 export type InsertionResult = Result<InsertionPoint, TransformError | ValidationError>;
 
 /**
- * Result of a move operation
- */
-export interface MoveResult {
-  /** Whether the move was successful */
-  success: boolean;
-  /** The modified AST */
-  ast: t.File;
-  /** Error message if failed */
-  error?: string;
-  /** Error code if failed */
-  errorCode?: TransformerErrorCode;
-  /** The moved node */
-  movedNode?: t.Node;
-  /** The new location of the moved node */
-  newPath?: NodePath;
-  /** Whether this was a no-op (source and target are same) */
-  wasNoOp?: boolean;
-}
-
-/**
  * Options for move operations
  */
 export interface MoveOptions {
