@@ -260,14 +260,9 @@ export interface Code {
 /**
  * Result of a regraft operation.
  */
-export interface Result {
-  /** Whether the operation completed successfully */
-  success: boolean;
-  /** Array of file contents (all input files + any new files) */
-  codes: Code[];
-  /** Detailed analysis of the move operation */
-  analysis: MoveAnalysis;
-}
+// Result interface removed - use Result<TransformedCode, RegraffError> from ../result/index.js
+// This was the old non-generic result wrapper that should not be used anymore
+// See ../api/types.ts for TransformedCode definition
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // File Input Types

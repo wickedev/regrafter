@@ -30,8 +30,8 @@ describe('Parser', () => {
         const source = `const x = 1;`;
         const result = parser.parse(source, 'test.js');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
         expect(result.errors).toHaveLength(0);
       });
 
@@ -43,8 +43,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.js');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
 
       it('should parse ES modules', () => {
@@ -54,8 +54,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.jsx');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
     });
 
@@ -64,8 +64,8 @@ describe('Parser', () => {
         const source = `const element = <div>Hello</div>;`;
         const result = parser.parse(source, 'test.jsx');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
         expect(result.errors).toHaveLength(0);
       });
 
@@ -78,8 +78,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.jsx');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
 
       it('should parse JSX with fragments', () => {
@@ -93,16 +93,16 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.jsx');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
 
       it('should parse JSX with spread attributes', () => {
         const source = `const element = <div {...props} className="test" />;`;
         const result = parser.parse(source, 'test.jsx');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
 
       it('should parse JSX with conditional rendering', () => {
@@ -116,8 +116,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.jsx');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
 
       it('should parse JSX with map expressions', () => {
@@ -130,8 +130,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.jsx');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
     });
 
@@ -145,8 +145,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.ts');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
         expect(result.errors).toHaveLength(0);
       });
 
@@ -159,8 +159,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.ts');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
 
       it('should parse TypeScript generics', () => {
@@ -172,8 +172,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.ts');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
 
       it('should parse TypeScript enums', () => {
@@ -187,8 +187,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.ts');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
     });
 
@@ -202,8 +202,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.tsx');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
         expect(result.errors).toHaveLength(0);
       });
 
@@ -227,8 +227,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.tsx');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
 
       it('should parse TSX with generics in JSX', () => {
@@ -244,8 +244,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.tsx');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
     });
 
@@ -260,8 +260,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.tsx');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
 
       it('should parse class properties', () => {
@@ -278,8 +278,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.ts');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
 
       it('should parse decorators', () => {
@@ -294,8 +294,8 @@ describe('Parser', () => {
         `;
         const result = parser.parse(source, 'test.ts');
 
-        expect(result.success).toBe(true);
-        expect(result.ast).not.toBeNull();
+        expect(result.ok).toBe(true);
+        expect(result.value).not.toBeNull();
       });
     });
   });
@@ -304,28 +304,28 @@ describe('Parser', () => {
     it('should return error for empty source', () => {
       const result = parser.parse('', 'test.js');
 
-      expect(result.success).toBe(false);
-      expect(result.ast).toBeNull();
+      expect(result.ok).toBe(false);
+      expect(result.value).toBeNull();
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]!.code).toBe(ParseErrorCodes.EMPTY_SOURCE);
+      expect(result.error!.code).toBe(ParseErrorCodes.EMPTY_SOURCE);
     });
 
     it('should return error for whitespace-only source', () => {
       const result = parser.parse('   \n\t  ', 'test.js');
 
-      expect(result.success).toBe(false);
-      expect(result.ast).toBeNull();
+      expect(result.ok).toBe(false);
+      expect(result.value).toBeNull();
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]!.code).toBe(ParseErrorCodes.EMPTY_SOURCE);
+      expect(result.error!.code).toBe(ParseErrorCodes.EMPTY_SOURCE);
     });
 
     it('should return error for unsupported file types', () => {
       const result = parser.parse('content', 'test.py');
 
-      expect(result.success).toBe(false);
-      expect(result.ast).toBeNull();
+      expect(result.ok).toBe(false);
+      expect(result.value).toBeNull();
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]!.code).toBe(ParseErrorCodes.UNSUPPORTED_FILE);
+      expect(result.error!.code).toBe(ParseErrorCodes.UNSUPPORTED_FILE);
     });
 
     it('should recover from syntax errors when possible', () => {
@@ -350,17 +350,17 @@ describe('Parser', () => {
       const result = parser.parse(source, 'test.js');
 
       // If there are errors, they should have location info
-      if (result.errors.length > 0 && result.errors[0]!.location) {
-        expect(result.errors[0]!.location).toHaveProperty('start');
-        expect(result.errors[0]!.location?.start).toHaveProperty('line');
-        expect(result.errors[0]!.location?.start).toHaveProperty('column');
+      if (result.errors.length > 0 && result.error!.location) {
+        expect(result.error!.location).toHaveProperty('start');
+        expect(result.error!.location?.start).toHaveProperty('line');
+        expect(result.error!.location?.start).toHaveProperty('column');
       }
     });
 
     it('should include filename in error messages', () => {
       const result = parser.parse('', 'my-component.tsx');
 
-      expect(result.errors[0]!.message).toContain('my-component.tsx');
+      expect(result.error!.message).toContain('my-component.tsx');
     });
   });
 

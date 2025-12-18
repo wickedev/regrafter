@@ -20,7 +20,6 @@ export {
   type Options,
 
   // Result types
-  type Result,
   type Code,
   type MoveAnalysis,
   type AnalysisStats,

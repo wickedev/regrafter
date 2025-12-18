@@ -237,6 +237,7 @@ import { CodeGenerator } from './generator/code-generator.js';
 import { createOptimizer } from './optimizer/optimizer.js';
 import type { OptimizeOptions } from './optimizer/types.js';
 import { parseFile } from './parser/parse-file.js';
+import type { Result } from './result/index.js';
 import { createScopeManager } from './scope/index.js';
 import { createSelectorResolver } from './selector/index.js';
 import { createCrossFileContext, executeCrossFileTransform } from './strategies/cross-file/index.js';
@@ -244,7 +245,7 @@ import type { HoistExecutionContext } from './strategies/hoist-executor.js';
 import { createConfiguredHoistPlanner, createHoistExecutor } from './strategies/index.js';
 import type { HoistContext } from './strategies/types.js';
 import { createJSXTransformer } from './transformer/index.js';
-import type { Code, FileInput, MoveAnalysis, Move, Options, Result, Selector, SuggestedFix } from './types/index.js';
+import type { Code, FileInput, MoveAnalysis, Move, Options, Selector, SuggestedFix } from './types/index.js';
 import {
   mergeOptions,
   createMoveAnalysis,
