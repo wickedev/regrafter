@@ -116,7 +116,7 @@ export interface Options {
   /**
    * Whether to format the output code using Prettier.
    * When false, original formatting is preserved as much as possible.
-   * @default false
+   * @default true
    */
   formatOutput?: boolean;
 }
@@ -425,7 +425,7 @@ export const DEFAULT_OPTIONS: Required<Options> = {
   optimize: true,
   dryRun: false,
   preserveComments: true,
-  formatOutput: false,
+  formatOutput: true,
 };
 
 /**

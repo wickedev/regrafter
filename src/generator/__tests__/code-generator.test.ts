@@ -523,7 +523,7 @@ function Component() {
       const options = defaultGenerator.getOptions();
 
       expect(options.preserveComments).toBe(true);
-      expect(options.formatOutput).toBe(false);
+      expect(options.formatOutput).toBe(true);
       expect(options.indentSize).toBe(2);
       expect(options.useTabs).toBe(false);
     });

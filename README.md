@@ -192,7 +192,7 @@ interface Options {
   optimize?: boolean;         // Run dependency sinking optimization (default: true)
   dryRun?: boolean;          // Preview only, no transformation (default: false)
   preserveComments?: boolean; // Preserve code comments (default: true)
-  formatOutput?: boolean;     // Format output with Prettier (default: false)
+  formatOutput?: boolean;     // Format output with Prettier (default: true)
 }
 
 

@@ -13,7 +13,7 @@ export interface GeneratorOptions {
 
   /**
    * Whether to format the output code
-   * @default false
+   * @default true
    */
   formatOutput?: boolean;
 
@@ -153,7 +153,7 @@ export interface IndentationInfo {
  */
 export const DEFAULT_GENERATOR_OPTIONS: Required<GeneratorOptions> = {
   preserveComments: true,
-  formatOutput: false,
+  formatOutput: true,
   indentSize: 2,
   useTabs: false,
   printWidth: 80,

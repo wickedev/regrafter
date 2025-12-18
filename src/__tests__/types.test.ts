@@ -349,14 +349,14 @@ describe('Factory functions (integration)', () => {
    * - optimize: true
    * - dryRun: false
    * - preserveComments: true
-   * - formatOutput: false
+   * - formatOutput: true
    */
   it('TYPE-17: DEFAULT_OPTIONS should have all defaults', () => {
     expect(DEFAULT_OPTIONS).toEqual({
       optimize: true,
       dryRun: false,
       preserveComments: true,
-      formatOutput: false,
+      formatOutput: true,
     });
   });
 

@@ -227,7 +227,7 @@ describe('DEFAULT_OPTIONS', () => {
     expect(DEFAULT_OPTIONS.optimize).toBe(true);
     expect(DEFAULT_OPTIONS.dryRun).toBe(false);
     expect(DEFAULT_OPTIONS.preserveComments).toBe(true);
-    expect(DEFAULT_OPTIONS.formatOutput).toBe(false);
+    expect(DEFAULT_OPTIONS.formatOutput).toBe(true);
   });
 
   it('should be frozen (immutable)', () => {
@@ -252,7 +252,7 @@ describe('mergeOptions', () => {
     expect(result.optimize).toBe(false);
     expect(result.dryRun).toBe(false);
     expect(result.preserveComments).toBe(true);
-    expect(result.formatOutput).toBe(false);
+    expect(result.formatOutput).toBe(true);
   });
 
   it('should override multiple defaults', () => {
