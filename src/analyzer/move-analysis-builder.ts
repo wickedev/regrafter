@@ -78,10 +78,11 @@ export class MoveAnalysisBuilder {
         suggestedFixes: analysisResult.error.suggestions,
         stats: createAnalysisStats({
           totalDependencies: 0,
-          externalDependencies: 0,
           hookDependencies: 0,
+          variableDependencies: 0,
+          importDependencies: 0,
           propDependencies: 0,
-          contextDependencies: 0,
+          transitiveDependencies: 0,
         }),
       });
     }

@@ -656,11 +656,12 @@ export class DependencyAnalyzer {
       this.convertToInternalDeps(allSpecificDeps, elementScope)
     );
     if (!allDepsResult.ok) {
+      const errorMsg = allDepsResult.error instanceof Error ? allDepsResult.error.message : String(allDepsResult.error);
       return err(
         createDependencyError({
           code: 'E032',
-          message: allDepsResult.error.message,
-          unresolvableReason: `Failed to convert dependencies: ${allDepsResult.error.message}`,
+          message: errorMsg,
+          unresolvableReason: `Failed to convert dependencies: ${errorMsg}`,
           file: this.currentFile,
           location: elementPath.node.loc ?? undefined,
           suggestions: [],

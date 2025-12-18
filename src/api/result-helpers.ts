@@ -50,8 +50,8 @@ export function createErrorResult(
   const error: RegraffError = createValidationError({
     code: 'MOVE_FAILED',
     message,
-    rule: 'general',
-    constraint: 'Move validation failed',
+    constraint: 'general',
+    details: 'Move validation failed',
     file: file ?? codes?.[0]?.file ?? 'unknown',
     suggestions: suggestedFixes ?? [],
   });
@@ -86,8 +86,7 @@ export function createErrorFromException(
     code: 'INTERNAL_ERROR',
     message: `Internal error: ${message}`,
     file: context?.file ?? 'unknown',
-    actualError: error instanceof Error ? error : new Error(message),
-    context: context?.operation ?? 'regraft',
+    cause: error instanceof Error ? error : new Error(message),
     suggestions: [],
   });
 

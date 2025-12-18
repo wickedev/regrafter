@@ -276,6 +276,7 @@ export class JSXTransformer {
       return err(createTransformError({
         code: TransformerErrorCodes.INVALID_SOURCE,
         message: 'Source must be a JSX element, expression container, or fragment',
+        operation: 'moveBefore',
         file: '',
         suggestions: [],
       }));
@@ -295,6 +296,7 @@ export class JSXTransformer {
       return err(createTransformError({
         code: TransformerErrorCodes.NO_PARENT,
         message: 'Target has no parent',
+        operation: 'moveBefore',
         file: '',
         suggestions: [],
       }));
@@ -312,6 +314,7 @@ export class JSXTransformer {
       return err(createTransformError({
         code: TransformerErrorCodes.INTERNAL_ERROR,
         message: 'Could not find target in parent',
+        operation: 'moveBefore',
         file: '',
         suggestions: [],
       }));
@@ -379,6 +382,7 @@ export class JSXTransformer {
       return err(createTransformError({
         code: TransformerErrorCodes.INVALID_SOURCE,
         message: 'Source must be a JSX element, expression container, or fragment',
+        operation: 'moveAfter',
         file: '',
         suggestions: [],
       }));
@@ -398,6 +402,7 @@ export class JSXTransformer {
       return err(createTransformError({
         code: TransformerErrorCodes.NO_PARENT,
         message: 'Target has no parent',
+        operation: 'moveAfter',
         file: '',
         suggestions: [],
       }));
@@ -415,6 +420,7 @@ export class JSXTransformer {
       return err(createTransformError({
         code: TransformerErrorCodes.INTERNAL_ERROR,
         message: 'Could not find target in parent',
+        operation: 'moveAfter',
         file: '',
         suggestions: [],
       }));
@@ -944,10 +950,7 @@ export class JSXTransformer {
           code: 'V001',
           message: 'Cannot move an element into itself or its descendants',
           constraint: 'circular_reference',
-          value: {
-            source: sourcePath.node,
-            target: targetPath.node,
-          },
+        details: 'Moving an element into itself or its descendants would create a circular reference',
           file: '',
         })
       );

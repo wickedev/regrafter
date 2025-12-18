@@ -99,6 +99,7 @@ export class CodeGenerator {
       return err(createTransformError({
         code: 'E060',
         message: `Code generation failed: ${errorMessage}`,
+        operation: 'generate',
         file: 'unknown',
       }));
     }
@@ -125,6 +126,7 @@ export class CodeGenerator {
         return err(createTransformError({
           code: result.error.code,
           message: result.error.message,
+          operation: 'generateMultiple',
           file: filename,
         }));
       }

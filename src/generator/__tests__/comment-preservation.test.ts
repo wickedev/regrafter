@@ -183,8 +183,8 @@ function User({
         expect(result.value.code).toBe(`/**
  * Helper function to format data
  */
-const formatData = data => data.toString();
-      }`);
+const formatData = data => data.toString();`);
+      }
     });
   });
 
@@ -355,11 +355,11 @@ const formatData = data => data.toString();
         expect(result.value.code).toBe(`function Component() {
   // Setup section
   const data = fetchData();
-      }
 
   // Render section
   return <div>{data}</div>;
 }`);
+      }
     });
 
     it('should preserve comments inside object literals', () => {
@@ -436,12 +436,12 @@ const formatData = data => data.toString();
       if (result.ok) {
         expect(result.value.code).toBe(`const Component = () => {
   const [state, setState] = useState(0);
-      }
   return <div>
               {}
               <span>{state}</span>
             </div>;
 };`);
+      }
     });
   });
 
