@@ -1315,8 +1315,8 @@ export function inline(
     };
 
     // Get the AST for the specified file
-    const ast = parsedFiles.get(componentFile);
-    if (!ast) {
+    const componentDefSourceAst = parsedFiles.get(componentFile);
+    if (!componentDefSourceAst) {
       return err(createValidationError({
         code: 'ELEMENT_NOT_FOUND',
         message: `Component '${componentName}' not found in file '${componentFile}'`,
@@ -1326,7 +1326,7 @@ export function inline(
     }
 
     // Find the component in the specified file
-    const componentInfo = findComponentDefinition(ast, componentName);
+    const componentInfo = findComponentDefinition(componentDefSourceAst, componentName);
     if (!componentInfo) {
       return err(createValidationError({
         code: 'ELEMENT_NOT_FOUND',
@@ -1337,7 +1337,7 @@ export function inline(
     }
 
     // Clone the AST for use in inlining
-    const cloneResult = cloneAst(ast, componentFile);
+    const cloneResult = cloneAst(componentDefSourceAst, componentFile);
     if (isErr(cloneResult)) {
       return err(cloneResult.error);
     }
@@ -1348,12 +1348,12 @@ export function inline(
     const usageFiles: Set<string> = new Set();
     const modifiedAsts = new Map<string, t.File>();
 
-    for (const [filePath, ast] of parsedFiles.entries()) {
+    for (const [filePath, fileAst] of parsedFiles.entries()) {
       // Pass componentDefAst for all files (including definition file)
       // ComponentInliner will handle finding component in cross-file scenario
       // Only remove component definition in the file that contains it
       const shouldRemoveDefinition = filePath === componentFile;
-      const result = inliner.inline(ast, componentName, componentDefAst, shouldRemoveDefinition);
+      const result = inliner.inline(fileAst, componentName, componentDefAst, shouldRemoveDefinition);
 
       if (result.success && result.inlinedCount > 0) {
         // This file had usages that were inlined
@@ -1373,15 +1373,15 @@ export function inline(
         modifiedAsts.set(filePath, result.ast);
       } else {
         // No changes to this file
-        modifiedAsts.set(filePath, ast);
+        modifiedAsts.set(filePath, fileAst);
       }
     }
 
     // Generate code for all files
     const codes: Code[] = [];
     for (const file of files) {
-      const ast = modifiedAsts.get(file.path) ?? parsedFiles.get(file.path);
-      if (ast === undefined) {
+      const finalAst = modifiedAsts.get(file.path) ?? parsedFiles.get(file.path);
+      if (finalAst === undefined) {
         codes.push({
           file: file.path,
           content: file.content,
@@ -1390,7 +1390,7 @@ export function inline(
         continue;
       }
 
-      const generateResult = generator.generate(ast);
+      const generateResult = generator.generate(finalAst);
       if (isErr(generateResult)) {
         return err(generateResult.error);
       }
