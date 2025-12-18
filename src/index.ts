@@ -140,7 +140,6 @@ export {
 
 // Export new API types (Task 17.2)
 export {
-  type RegraftResult,
   type TransformedCode,
 } from './api/types.js';
 
@@ -232,7 +231,8 @@ import {
   createErrorResult,
   createErrorFromException,
 } from './api/result-helpers.js';
-import type { RegraftResult } from './api/types.js';
+import type { TransformedCode } from './api/types.js';
+import type { RegraffError } from './errors/index.js';
 import { CodeGenerator } from './generator/code-generator.js';
 import { createOptimizer } from './optimizer/optimizer.js';
 import type { OptimizeOptions } from './optimizer/types.js';
@@ -323,7 +323,7 @@ export function regraft(
   to: Selector,
   mode: Move,
   options?: Options
-): RegraftResult {
+): Result<TransformedCode, RegraffError> {
   const mergedOptions = mergeOptions(options);
 
   // Validate the move first
@@ -931,7 +931,7 @@ function createDryRunResult(
   from: Selector,
   to: Selector,
   mode: Move
-): RegraftResult {
+): Result<TransformedCode, RegraffError> {
   // Create unchanged code results
   const codes: Code[] = files.map(file =>
     createCode({
@@ -967,7 +967,7 @@ function executeTransformation(
   mode: Move,
   options: Required<Options>,
   _validation: MoveValidationResult
-): RegraftResult {
+): Result<TransformedCode, RegraffError> {
   try {
     // Perform dependency analysis
     const fullAnalysis = analyze(files, from, to, mode);

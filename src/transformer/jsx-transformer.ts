@@ -136,7 +136,7 @@ export class JSXTransformer {
     targetPath: NodePath,
     mode: Move,
     options?: MoveOptions
-  ): InsertionResult {
+  ): Result<InsertionPoint, TransformError | ValidationError> {
     const mergedOptions = mergeMoveOptions(options);
 
     // Check for source-target identity (no-op case)
@@ -180,7 +180,7 @@ export class JSXTransformer {
    * @param context - Move context with source, target, and options
    * @returns InsertionResult with transformed AST or error
    */
-  moveInside(context: MoveContext): InsertionResult {
+  moveInside(context: MoveContext): Result<InsertionPoint, TransformError | ValidationError> {
     const { ast, sourcePath, targetPath, options } = context;
 
     // Validate source is a JSX element
@@ -264,7 +264,7 @@ export class JSXTransformer {
    * @param context - Move context with source, target, and options
    * @returns InsertionResult with transformed AST or error
    */
-  moveBefore(context: MoveContext): InsertionResult {
+  moveBefore(context: MoveContext): Result<InsertionPoint, TransformError | ValidationError> {
     const { ast, options } = context;
 
     // Normalize paths to handle JSXExpressionContainer
@@ -370,7 +370,7 @@ export class JSXTransformer {
    * @param context - Move context with source, target, and options
    * @returns InsertionResult with transformed AST or error
    */
-  moveAfter(context: MoveContext): InsertionResult {
+  moveAfter(context: MoveContext): Result<InsertionPoint, TransformError | ValidationError> {
     const { ast, options } = context;
 
     // Normalize paths to handle JSXExpressionContainer

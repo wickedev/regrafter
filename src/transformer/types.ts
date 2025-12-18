@@ -59,11 +59,6 @@ export interface TransformedCode {
 export type InsertionPoint = TransformedCode;
 
 /**
- * Result type for insertion strategies using functional error handling
- */
-export type InsertionResult = Result<InsertionPoint, TransformError | ValidationError>;
-
-/**
  * Options for move operations
  */
 export interface MoveOptions {

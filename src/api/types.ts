@@ -128,4 +128,3 @@ export interface TransformedCode {
  * @see {@link ../errors/index.js!RegraffError} for the error type
  * @see {@link ../result/index.js!Result} for the Result type definition
  */
-export type RegraftResult = Result<TransformedCode, RegraffError>;

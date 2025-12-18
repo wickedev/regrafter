@@ -8,10 +8,10 @@
 
 import type { RegraffError } from '../errors/index.js';
 import { createInternalError, createValidationError } from '../errors/index.js';
-import { ok, err } from '../result/index.js';
+import { ok, err, type Result } from '../result/index.js';
 import type { Code, MoveAnalysis } from '../types/index.js';
 
-import type { RegraftResult, TransformedCode } from './types.js';
+import type { TransformedCode } from './types.js';
 
 /**
  * Create a successful regraft result.
@@ -23,7 +23,7 @@ import type { RegraftResult, TransformedCode } from './types.js';
 export function createSuccessResult(
   codes: Code[],
   analysis: MoveAnalysis
-): RegraftResult {
+): Result<TransformedCode, RegraffError> {
   const transformed: TransformedCode = {
     codes,
     analysis,
@@ -45,7 +45,7 @@ export function createErrorResult(
   codes?: Code[],
   suggestedFixes?: Array<{ description: string; action: string; automatic: boolean }>,
   file?: string
-): RegraftResult {
+): Result<TransformedCode, RegraffError> {
   // Create a validation error for general failures
   const error: RegraffError = createValidationError({
     code: 'MOVE_FAILED',
@@ -65,7 +65,7 @@ export function createErrorResult(
  * @param error - RegraffError instance
  * @returns Err<RegraffError>
  */
-export function createErrorFromRegraffError(error: RegraffError): RegraftResult {
+export function createErrorFromRegraffError(error: RegraffError): Result<TransformedCode, RegraffError> {
   return err(error);
 }
 
@@ -79,7 +79,7 @@ export function createErrorFromRegraffError(error: RegraffError): RegraftResult 
 export function createErrorFromException(
   error: unknown,
   context?: { file?: string; operation?: string }
-): RegraftResult {
+): Result<TransformedCode, RegraffError> {
   const message = error instanceof Error ? error.message : String(error);
 
   const internalError: RegraffError = createInternalError({
