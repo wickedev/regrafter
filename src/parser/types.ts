@@ -19,6 +19,9 @@ export interface FileInput {
 
 /**
  * Error that occurred during parsing
+ *
+ * Note: This interface is deprecated and will be removed in favor of
+ * the unified RegraffError system. Parser now returns Result<BabelFile, ParseErrorType>.
  */
 export interface ParseError {
   /** Human-readable error message */
@@ -27,18 +30,6 @@ export interface ParseError {
   location: SourceLocation | null;
   /** Error code for programmatic handling (e.g., 'E001', 'E002') */
   code: string;
-}
-
-/**
- * Result of parsing a single file
- */
-export interface ParseResult {
-  /** The parsed Babel AST (null if parsing completely failed) */
-  ast: BabelFile | null;
-  /** Array of errors encountered during parsing */
-  errors: ParseError[];
-  /** Whether parsing succeeded (may have recovered from some errors) */
-  success: boolean;
 }
 
 /**

@@ -21,8 +21,7 @@ import type { GeneratorOptions } from './types.js';
 export { CodeGenerator } from './code-generator.js';
 export type {
   GeneratorOptions,
-  GenerateResult,
-  GeneratorError,
+  GeneratedCode,
   SourceMap,
   CommentAttachment,
   IndentationInfo,
@@ -63,7 +62,7 @@ export function generateCode(
   // Create generator with options
   const generator = new CodeGenerator(options);
 
-  // Generate code - this now returns Result<GenerateResult, TransformError>
+  // Generate code - this now returns Result<GeneratedCode, TransformError>
   const generateResult = generator.generate(ast);
 
   if (!generateResult.ok) {
@@ -71,6 +70,6 @@ export function generateCode(
     return generateResult;
   }
 
-  // Extract just the code string from the GenerateResult
+  // Extract just the code string from the GeneratedCode
   return ok(generateResult.value.code);
 }

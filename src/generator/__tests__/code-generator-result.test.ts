@@ -25,7 +25,7 @@ describe('CodeGenerator - Result-based Error Handling', () => {
   });
 
   describe('generate() with Result return type', () => {
-    it('should return Ok with GenerateResult for valid AST', () => {
+    it('should return Ok with GeneratedCode for valid AST', () => {
       const code = `const x = 1;`;
       const ast = parseCode(code);
       const result = generator.generate(ast);
@@ -33,7 +33,6 @@ describe('CodeGenerator - Result-based Error Handling', () => {
       expect(isOk(result)).toBe(true);
       if (result.ok) {
         expect(result.value.code).toBe(`const x = 1;`);
-        expect(result.value.errors).toHaveLength(0);
       }
     });
 

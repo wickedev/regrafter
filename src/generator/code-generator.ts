@@ -43,8 +43,7 @@ import { ok, err, type Result } from '../result/index.js';
 
 import type {
   GeneratorOptions,
-  GenerateResult,
-  GeneratorError,
+  GeneratedCode,
   IndentationInfo,
   CommentAttachment} from './types.js';
 import {
@@ -75,11 +74,10 @@ export class CodeGenerator {
    *
    * @param ast - The Babel AST to generate code from
    * @param options - Optional generation options to override defaults
-   * @returns Result with GenerateResult on success, or TransformError on failure
+   * @returns Result with GeneratedCode on success, or TransformError on failure
    */
-  generate(ast: t.File, options?: GeneratorOptions): Result<GenerateResult, TransformErrorType> {
+  generate(ast: t.File, options?: GeneratorOptions): Result<GeneratedCode, TransformErrorType> {
     const mergedOptions = { ...this.options, ...options };
-    const errors: GeneratorError[] = [];
 
     try {
       // Configure Babel generator options
@@ -94,7 +92,6 @@ export class CodeGenerator {
       return ok({
         code: cleanedCode,
         map: result.map ? this.convertSourceMap(result.map) : undefined,
-        errors,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -112,13 +109,13 @@ export class CodeGenerator {
    *
    * @param asts - Map of filename to AST
    * @param options - Optional generation options
-   * @returns Result with Map of filename to GenerateResult on success, or TransformError on failure
+   * @returns Result with Map of filename to GeneratedCode on success, or TransformError on failure
    */
   generateMultiple(
     asts: Map<string, t.File>,
     options?: GeneratorOptions
-  ): Result<Map<string, GenerateResult>, TransformErrorType> {
-    const results = new Map<string, GenerateResult>();
+  ): Result<Map<string, GeneratedCode>, TransformErrorType> {
+    const results = new Map<string, GeneratedCode>();
 
     for (const [filename, ast] of Array.from(asts)) {
       const result = this.generate(ast, options);
@@ -174,7 +171,7 @@ export class CodeGenerator {
   /**
    * Convert Babel source map to our SourceMap format
    */
-  private convertSourceMap(babelMap: unknown): GenerateResult['map'] {
+  private convertSourceMap(babelMap: unknown): GeneratedCode['map'] {
     if (babelMap === null || babelMap === undefined || typeof babelMap !== 'object') {
       return undefined;
     }

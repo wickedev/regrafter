@@ -236,7 +236,7 @@ import type { RegraftResult } from './api/types.js';
 import { CodeGenerator } from './generator/code-generator.js';
 import { createOptimizer } from './optimizer/optimizer.js';
 import type { OptimizeOptions } from './optimizer/types.js';
-import { createParser } from './parser/index.js';
+import { parseFile } from './parser/parse-file.js';
 import { createScopeManager } from './scope/index.js';
 import { createSelectorResolver } from './selector/index.js';
 import { createCrossFileContext, executeCrossFileTransform } from './strategies/cross-file/index.js';
@@ -388,7 +388,6 @@ export function move(
   mode: Move
 ): Code[] {
   // Create required instances
-  const parser = createParser();
   const generator = new CodeGenerator();
   const resolver = createSelectorResolver();
   const transformer = createJSXTransformer();
@@ -396,11 +395,11 @@ export function move(
   // Parse all files
   const parsedFiles = new Map<string, t.File>();
   for (const file of files) {
-    const result = parser.parse(file.content, file.path);
-    if (!result.success || !result.ast) {
-      throw new Error(`Failed to parse ${file.path}: ${result.errors[0]?.message ?? 'Unknown error'}`);
+    const result = parseFile(file.path, file.content);
+    if (!result.ok) {
+      throw new Error(`Failed to parse ${file.path}: ${result.error.message}`);
     }
-    parsedFiles.set(file.path, result.ast);
+    parsedFiles.set(file.path, result.value);
   }
 
   // Get the AST for source and target files
@@ -479,7 +478,6 @@ function executeCrossFileMove(
   to: Selector,
   _mode: Move
 ): Code[] {
-  const parser = createParser();
   const scopeManager = createScopeManager();
   const analyzer = new DependencyAnalyzer(scopeManager);
   const resolver = createSelectorResolver();
@@ -489,11 +487,11 @@ function executeCrossFileMove(
   const originalContents = new Map<string, string>();
 
   for (const file of files) {
-    const result = parser.parse(file.content, file.path);
-    if (!result.success || !result.ast) {
-      throw new Error(`Failed to parse ${file.path}: ${result.errors[0]?.message ?? 'Unknown error'}`);
+    const result = parseFile(file.path, file.content);
+    if (!result.ok) {
+      throw new Error(`Failed to parse ${file.path}: ${result.error.message}`);
     }
-    parsedFiles.set(file.path, result.ast);
+    parsedFiles.set(file.path, result.value);
     originalContents.set(file.path, file.content);
   }
 
@@ -590,7 +588,6 @@ function moveWithHoisting(
   }
 
   // Create required instances
-  const parser = createParser();
   const generator = new CodeGenerator();
   const resolver = createSelectorResolver();
   const transformer = createJSXTransformer();
@@ -602,11 +599,11 @@ function moveWithHoisting(
   // Parse all files
   const parsedFiles = new Map<string, t.File>();
   for (const file of files) {
-    const result = parser.parse(file.content, file.path);
-    if (!result.success || !result.ast) {
-      throw new Error(`Failed to parse ${file.path}: ${result.errors[0]?.message ?? 'Unknown error'}`);
+    const result = parseFile(file.path, file.content);
+    if (!result.ok) {
+      throw new Error(`Failed to parse ${file.path}: ${result.error.message}`);
     }
-    parsedFiles.set(file.path, result.ast);
+    parsedFiles.set(file.path, result.value);
   }
 
   // Get the AST for source file
@@ -807,7 +804,6 @@ export function analyze(
   }
 
   // Create required instances for dependency analysis
-  const parser = createParser();
   const resolver = createSelectorResolver();
 
   // Note: HoistPlanner and strategies are available via ./strategies/index.js
@@ -825,11 +821,11 @@ export function analyze(
     });
   }
 
-  const parseResult = parser.parse(sourceFile.content, sourceFile.path);
-  if (!parseResult.success || !parseResult.ast) {
+  const parseResult = parseFile(sourceFile.path, sourceFile.content);
+  if (!parseResult.ok) {
     return createMoveAnalysis({
       canMove: false,
-      reason: `Failed to parse ${from.file}: ${parseResult.errors[0]?.message ?? 'Unknown error'}`,
+      reason: `Failed to parse ${from.file}: ${parseResult.error.message}`,
       dependencies: [],
       hoistedDeps: [],
       stats: createAnalysisStats(),
@@ -837,7 +833,7 @@ export function analyze(
   }
 
   // Resolve selectors
-  const sourceResult = resolver.resolveResult(from, parseResult.ast);
+  const sourceResult = resolver.resolveResult(from, parseResult.value);
   if (!sourceResult.ok) {
     const error = sourceResult.error;
     return createMoveAnalysis({

@@ -61,26 +61,6 @@ export interface GeneratorOptions {
 }
 
 /**
- * Result of code generation
- */
-export interface GenerateResult {
-  /**
-   * The generated code string
-   */
-  code: string;
-
-  /**
-   * Source map for the generated code (if requested)
-   */
-  map?: SourceMap;
-
-  /**
-   * Any errors encountered during generation
-   */
-  errors: GeneratorError[];
-}
-
-/**
  * Source map structure
  */
 export interface SourceMap {
@@ -92,15 +72,18 @@ export interface SourceMap {
 }
 
 /**
- * Error that occurred during code generation
+ * Generated code payload returned in Result<T, E> success variant
  */
-export interface GeneratorError {
-  message: string;
-  location?: {
-    line: number;
-    column: number;
-  };
-  code?: string;
+export interface GeneratedCode {
+  /**
+   * The generated code string
+   */
+  code: string;
+
+  /**
+   * Source map for the generated code (if requested)
+   */
+  map?: SourceMap;
 }
 
 /**
