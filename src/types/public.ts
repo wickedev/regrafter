@@ -119,6 +119,15 @@ export interface Options {
    * @default true
    */
   formatOutput?: boolean;
+
+  /**
+   * Position index for Move.Inside operation.
+   * - Use 0 to insert at the start of the target's children (default)
+   * - Use positive number to insert at specific index
+   * - Use -1 to append at the end
+   * @default 0
+   */
+  insertIndex?: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -421,6 +430,7 @@ export const DEFAULT_OPTIONS: Required<Options> = {
   dryRun: false,
   preserveComments: true,
   formatOutput: true,
+  insertIndex: 0,
 };
 
 /**

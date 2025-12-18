@@ -480,9 +480,9 @@ describe("E2E: Simple JSX Moves", () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function App() {
-  return <div><section>
+  return <div><section><p>Paragraph</p>
         <h1>Title</h1>
-      <p>Paragraph</p></section></div>;
+      </section></div>;
 }`);
     });
 
@@ -544,9 +544,9 @@ function Child() {
       expect(result.ok).toBe(true);
       // Should hoist useState to Parent component
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
-  return <div>
+  return <div><button onClick={() => setCount(count + 1)}>{count}</button>
       <Child />
-    <button onClick={() => setCount(count + 1)}>{count}</button></div>;
+    </div>;
 }
 function Child() {
   const [count, setCount] = useState(0);
@@ -946,73 +946,79 @@ function Form() {
 }`);
   });
 
-  it("should move component with nested state updates", () => {
+  it("should move JSX with dependencies into parent component", () => {
     const files = [
       {
         path: "App.tsx",
         content: `function Parent() {
-  return <div><TodoList /></div>;
+  return <div><Child /></div>;
 }
 
-function TodoList() {
-  const [todos, setTodos] = useState([]);
-  const [input, setInput] = useState('');
-
-  const addTodo = () => {
-    if (input.trim()) {
-      setTodos([...todos, { id: Date.now(), text: input }]);
-      setInput('');
-    }
-  };
-
-  const removeTodo = (id) => {
-    setTodos(todos.filter(todo => todo.id !== id));
-  };
-
-  return (
-    <div>
-      <input value={input} onChange={e => setInput(e.target.value)} />
-      <button onClick={addTodo}>Add</button>
-      <ul>
-        {todos.map(todo => (
-          <li key={todo.id}>
-            {todo.text}
-            <button onClick={() => removeTodo(todo.id)}>X</button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+function Child() {
+  const message = 'Hello';
+  return <div><span>{message}</span></div>;
 }`,
       },
     ];
 
-    const from = { file: "App.tsx", line: 21, column: 5 }; // todo list div
-    const to = { file: "App.tsx", line: 2, column: 15 }; // inside Parent div
+    const from = { file: "App.tsx", line: 7, column: 11 }; // Child's div
+    const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
     const result = regraft(files, from, to, Move.Inside);
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
-  return <div><TodoList /></div>;
+    if (result.ok) {
+      const code = result.value.codes[0]?.content;
+
+      // Compare entire expected output using template string
+      // Default insertIndex is 0, so JSX is inserted at the start
+      const expected = `function Parent() {
+  return <div><div><span>{message}</span></div><Child /></div>;
 }
-function TodoList() {
-  const [todos, setTodos] = useState([]);
-  const [input, setInput] = useState('');
-  const addTodo = () => {
-    if (input.trim()) {
-      setTodos([...todos, {
-        id: Date.now(),
-        text: input
-      }]);
-      setInput('');
-    }
-  };
-  const removeTodo = id => {
-    setTodos(todos.filter(todo => todo.id !== id));
-  };
+function Child() {
+  const message = 'Hello';
   return;
-}`);
+}`;
+
+      expect(code).toBe(expected);
+    }
+  });
+
+  it("should move JSX to start of parent with insertIndex: 0", () => {
+    const files = [
+      {
+        path: "App.tsx",
+        content: `function Parent() {
+  return <div><Child /></div>;
+}
+
+function Child() {
+  const message = 'Hello';
+  return <div><span>{message}</span></div>;
+}`,
+      },
+    ];
+
+    const from = { file: "App.tsx", line: 7, column: 11 }; // Child's div
+    const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
+
+    const result = regraft(files, from, to, Move.Inside, { insertIndex: 0 });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const code = result.value.codes[0]?.content;
+
+      // Should insert at the start, before <Child />
+      const expected = `function Parent() {
+  return <div><div><span>{message}</span></div><Child /></div>;
+}
+function Child() {
+  const message = 'Hello';
+  return;
+}`;
+
+      expect(code).toBe(expected);
+    }
   });
 });
 

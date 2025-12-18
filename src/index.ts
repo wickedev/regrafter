@@ -567,7 +567,8 @@ function moveWithHoisting(
   files: FileInput[],
   from: Selector,
   to: Selector,
-  mode: Move
+  mode: Move,
+  options?: { insertIndex?: number; preserveComments?: boolean }
 ): Code[] {
   // Type guard for dependencies with location property
   function hasLocationProperty(obj: unknown): obj is { location: { path: NodePath } } {
@@ -731,7 +732,8 @@ function moveWithHoisting(
     sourceAst,
     sourceResult.value.path,
     targetResult.value.path,
-    mode
+    mode,
+    options
   );
 
   if (isErr(moveResult)) {
@@ -977,7 +979,10 @@ function executeTransformation(
     }
 
     // Use the moveWithHoisting function for transformation with automatic hoisting
-    let codes = moveWithHoisting(files, from, to, mode);
+    let codes = moveWithHoisting(files, from, to, mode, {
+      insertIndex: options.insertIndex,
+      preserveComments: options.preserveComments,
+    });
 
     // Optionally run optimization
     if (options.optimize) {

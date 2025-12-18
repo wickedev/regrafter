@@ -352,6 +352,7 @@ describe('Factory functions (integration)', () => {
       dryRun: false,
       preserveComments: true,
       formatOutput: true,
+      insertIndex: 0,
     });
   });
 
