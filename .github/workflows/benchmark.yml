@@ -36,6 +36,14 @@ jobs:
       - name: Convert to BenchmarkJS format
         run: node scripts/vitest-to-benchmarkjs.js bench-output.json benchmark-results.json
 
+      - name: Debug - Verify benchmark files exist
+        run: |
+          echo "Checking if benchmark files exist..."
+          ls -lh bench-output.json benchmark-results.json
+          echo ""
+          echo "First 20 lines of benchmark-results.json:"
+          head -n 20 benchmark-results.json
+
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
         with:
