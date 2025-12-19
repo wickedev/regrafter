@@ -49,8 +49,8 @@ jobs:
           echo "=== Git status before cleanup ==="
           git status --short
           echo ""
-          echo "=== Stashing any local changes ==="
-          git stash --include-untracked || true
+          echo "=== Resetting yarn.lock changes ==="
+          git checkout -- yarn.lock || true
           echo ""
           echo "=== Git status after cleanup ==="
           git status --short
