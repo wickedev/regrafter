@@ -1,7 +1,7 @@
 /**
  * TypeInferrer
  *
- * Task 14.2: TypeInferrer 기본 타입 구현
+ * Task 14.2: Basic TypeInferrer type implementation
  *
  * Infers TypeScript types from dependencies and builds Props interfaces
  */
@@ -11,13 +11,13 @@ import { ok, type Result } from '../result/index.js';
 import type { PropType, VariableDependency, FunctionDependency } from './types.js';
 
 /**
- * 의존성으로부터 TypeScript 타입을 추론하고 Props 인터페이스를 생성
+ * Infer TypeScript types from dependencies and generate Props interface
  */
 export class TypeInferrer {
   /**
-   * 의존성 목록으로부터 Props 타입 추론
+   * Infer Props types from dependency list
    *
-   * @param dependencies - 변수 또는 함수 의존성 배열
+   * @param dependencies - Array of variable or function dependencies
    * @returns Result<PropType[], RegraffError>
    */
   inferPropTypes(
@@ -40,57 +40,57 @@ export class TypeInferrer {
   }
 
   /**
-   * 의존성으로부터 TypeScript 타입 AST 추출
+   * Extract TypeScript type AST from dependency
    */
   private extractTypeAnnotation(
     dep: VariableDependency | FunctionDependency
   ): t.TSType {
-    // 이미 타입이 있으면 그대로 사용
+    // Use type as-is if already present
     if (dep.type) {
       return dep.type;
     }
 
-    // 타입 어노테이션이 없으면 any 타입 사용
+    // Use any type if no type annotation
     return t.tsAnyKeyword();
   }
 
   /**
-   * 타입을 정규화하고 optional 여부를 결정
-   * Union 타입에서 undefined를 제거하고 optional로 변환
+   * Normalize type and determine optional status
+   * Remove undefined from Union type and convert to optional
    */
   private normalizeType(type: t.TSType): { typeAnnotation: t.TSType; optional: boolean } {
-    // Union 타입 처리
+    // Handle Union type
     if (t.isTSUnionType(type)) {
       const hasUndefined = type.types.some((tsType) => t.isTSUndefinedKeyword(tsType));
 
       if (hasUndefined) {
-        // undefined를 제외한 타입들만 추출
+        // Extract only types excluding undefined
         const nonUndefinedTypes = type.types.filter((tsType) => !t.isTSUndefinedKeyword(tsType));
 
-        // undefined만 있으면 any 타입으로 대체
+        // Replace with any type if only undefined
         if (nonUndefinedTypes.length === 0) {
           return { typeAnnotation: t.tsAnyKeyword(), optional: true };
         }
 
-        // 하나의 타입만 남으면 union을 풀어서 반환
+        // Unwrap union if only one type remains
         if (nonUndefinedTypes.length === 1) {
           return { typeAnnotation: nonUndefinedTypes[0], optional: true };
         }
 
-        // 여러 타입이 남으면 새로운 union 생성
+        // Create new union if multiple types remain
         return { typeAnnotation: t.tsUnionType(nonUndefinedTypes), optional: true };
       }
     }
 
-    // 기본적으로 optional이 아님
+    // Not optional by default
     return { typeAnnotation: type, optional: false };
   }
 
   /**
-   * PropType 배열로부터 TypeScript Props 인터페이스 생성
+   * Generate TypeScript Props interface from PropType array
    *
-   * @param propTypes - Prop 타입 배열
-   * @param interfaceName - 생성할 인터페이스 이름
+   * @param propTypes - Prop type array
+   * @param interfaceName - Interface name to create
    * @returns TSInterfaceDeclaration
    */
   buildPropsInterface(

@@ -1,18 +1,18 @@
 /**
  * Extract E2E Integration Tests
  *
- * Task 12.1: MVP E2E 통합 테스트 작성
+ * Task 12.1: MVP E2E integration test implementation
  *
  * Requirements:
- * - 실제 React 컴포넌트 파일로 테스트
- * - 간단한 div 추출 시나리오
- * - 변수 의존성이 있는 추출 시나리오
+ * - Test with actual React component files
+ * - Simple div extraction scenario
+ * - Extraction scenario with variable dependencies
  *
  * Test Requirements:
- * - 1.1: JSX 노드 선택 및 추출
- * - 2.1: 의존성 자동 분석
- * - 3.1: 같은 파일 내 컴포넌트 추출
- * - 3.6: Props 전달
+ * - 1.1: JSX node selection and extraction
+ * - 2.1: Automatic dependency analysis
+ * - 3.1: Component extraction within the same file
+ * - 3.6: Props passing
  */
 
 import { describe, it, expect } from 'vitest';
@@ -21,9 +21,9 @@ import type { FileInput } from '../../types/public.js';
 import type { ExtractOptions } from '../types.js';
 
 describe('Extract E2E Integration Tests', () => {
-  describe('간단한 div 추출 시나리오', () => {
+  describe('Simple div extraction scenario', () => {
     it('should extract a simple div element into a new component', () => {
-      // Arrange: 실제 React 컴포넌트 파일
+      // Arrange: actual React component file
       const sourceCode = `import React from 'react';
 
 function App() {
@@ -47,61 +47,61 @@ export default App;
         { path: 'App.tsx', content: sourceCode },
       ];
 
-      // header div를 선택 - '<' 문자의 위치
+      // Select header div - position of the '<' character
       const selector = {
         file: 'App.tsx',
         line: 6,
-        column: 7, // '<div' 의 '<' 위치
+        column: 7, // position of '<' in '<div'
       };
 
       const options: ExtractOptions = {
         componentName: 'Header',
       };
 
-      // Act: extract 함수 호출
+      // Act: call extract function
       const result = extract(files, selector, options);
 
-      // Assert: 추출 성공 확인
+      // Assert: verify successful extraction
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
       const extractResult = result.value;
 
-      // 컴포넌트 정보 확인
+      // Verify component information
       expect(extractResult.component.name).toBe('Header');
       expect(extractResult.component.file).toBe('App.tsx');
-      expect(extractResult.component.props).toHaveLength(0); // Props 없음
+      expect(extractResult.component.props).toHaveLength(0); // No props
 
-      // 코드 변환 확인
+      // Verify code transformation
       expect(extractResult.codes).toHaveLength(1);
       const code = extractResult.codes[0];
       expect(code.path).toBe('App.tsx');
 
-      // 새 컴포넌트가 생성되었는지 확인
+      // Verify new component was created
       expect(code.content).toContain('function Header()');
       expect(code.content).toContain('<h1>Welcome</h1>');
       expect(code.content).toContain('<p>This is a simple app</p>');
 
-      // 원본 위치에 컴포넌트 호출이 있는지 확인
+      // Verify component call is in the original location
       expect(code.content).toContain('<Header />');
 
-      // 원본 JSX가 제거되었는지 확인
-      // 주의: 추출된 컴포넌트 내부에는 여전히 header div가 있음
-      // App 컴포넌트 내부에만 없으면 됨
+      // Verify original JSX was removed
+      // Note: header div still exists inside the extracted component
+      // It just needs to be absent from inside the App component
       const appFunctionMatch = code.content.match(/function App\(\)[^}]+\{([^}]+)\}/s);
       if (appFunctionMatch) {
         const appBody = appFunctionMatch[1];
         expect(appBody).not.toContain('<div className="header">');
       }
 
-      // 통계 확인
+      // Verify statistics
       expect(extractResult.stats.nodesExtracted).toBe(1);
       expect(extractResult.stats.dependenciesFound).toBe(0);
       expect(extractResult.stats.propsGenerated).toBe(0);
     });
 
     it('should preserve other elements when extracting a single element', () => {
-      // Arrange: 여러 엘리먼트가 있는 컴포넌트
+      // Arrange: Component with multiple elements
       const sourceCode = `function App() {
   return (
     <div>
@@ -117,7 +117,7 @@ export default App;
         { path: 'App.tsx', content: sourceCode },
       ];
 
-      // main 엘리먼트 선택
+      // Select main element
       const selector = {
         file: 'App.tsx',
         line: 5,
@@ -137,22 +137,22 @@ export default App;
 
       const code = result.value.codes[0];
 
-      // 추출된 컴포넌트 확인
+      // Verify extracted component
       expect(code.content).toContain('function MainContent()');
       expect(code.content).toContain('<main>Content</main>');
 
-      // 다른 엘리먼트들은 그대로 유지
+      // Other elements should remain unchanged
       expect(code.content).toContain('<nav>Navigation</nav>');
       expect(code.content).toContain('<footer>Footer</footer>');
 
-      // 원본 위치에 컴포넌트 호출
+      // Component call at original location
       expect(code.content).toContain('<MainContent />');
     });
   });
 
-  describe('변수 의존성이 있는 추출 시나리오', () => {
+  describe('Extraction scenario with variable dependencies', () => {
     it('should extract JSX with variable dependencies and pass them as props', () => {
-      // Arrange: 변수를 사용하는 컴포넌트
+      // Arrange: Component using variables
       const sourceCode = `function App() {
   const title = "Dashboard";
   const userName = "John Doe";
@@ -175,7 +175,7 @@ export default App;
         { path: 'App.tsx', content: sourceCode },
       ];
 
-      // header div 선택 (변수 의존성 있음)
+      // Select header div (has variable dependencies)
       const selector = {
         file: 'App.tsx',
         line: 6,
@@ -195,7 +195,7 @@ export default App;
 
       const extractResult = result.value;
 
-      // Props 확인
+      // Verify Props
       expect(extractResult.component.props.length).toBeGreaterThan(0);
       const propNames = extractResult.component.props.map(p => p.name);
       expect(propNames).toContain('title');
@@ -203,24 +203,24 @@ export default App;
 
       const code = extractResult.codes[0];
 
-      // 새 컴포넌트가 props를 받는지 확인
+      // Verify new component receives props
       expect(code.content).toContain('function DashboardHeader(');
-      // Props를 받는지 확인 (destructuring 또는 props 파라미터)
+      // Verify receiving Props (destructuring or props parameter)
       const hasTitleProp = code.content.includes('title') && code.content.includes('DashboardHeader');
       expect(hasTitleProp).toBe(true);
 
-      // 원본 위치에서 props를 전달하는지 확인
+      // Verify props are passed at original location
       expect(code.content).toContain('<DashboardHeader');
       expect(code.content).toContain('title={title}');
       expect(code.content).toContain('userName={userName}');
 
-      // 통계 확인
+      // Verify statistics
       expect(extractResult.stats.dependenciesFound).toBeGreaterThan(0);
       expect(extractResult.stats.propsGenerated).toBeGreaterThan(0);
     });
 
     it('should handle multiple variable dependencies correctly', () => {
-      // Arrange: 여러 변수를 사용하는 컴포넌트
+      // Arrange: Component using multiple variables
       const sourceCode = `function ProductCard() {
   const productName = "iPhone 15";
   const price = 999;
@@ -242,7 +242,7 @@ export default App;
         { path: 'ProductCard.tsx', content: sourceCode },
       ];
 
-      // card div 선택
+      // Select card div
       const selector = {
         file: 'ProductCard.tsx',
         line: 8,
@@ -262,14 +262,14 @@ export default App;
 
       const extractResult = result.value;
 
-      // 4개의 변수가 모두 props로 전달되는지 확인
+      // Verify all 4 variables are passed as props
       expect(extractResult.component.props.length).toBe(4);
       const propNames = extractResult.component.props.map(p => p.name).sort();
       expect(propNames).toEqual(['inStock', 'price', 'productName', 'rating']);
 
       const code = extractResult.codes[0];
 
-      // Props 전달 확인
+      // Verify Props passing
       expect(code.content).toContain('productName={productName}');
       expect(code.content).toContain('price={price}');
       expect(code.content).toContain('inStock={inStock}');
@@ -277,7 +277,7 @@ export default App;
     });
 
     it('should extract JSX with function dependencies', () => {
-      // Arrange: 함수를 사용하는 컴포넌트
+      // Arrange: Component using functions
       const sourceCode = `function App() {
   const handleClick = () => {
     console.log('Button clicked');
@@ -295,7 +295,7 @@ export default App;
         { path: 'App.tsx', content: sourceCode },
       ];
 
-      // button 선택 - 정확한 위치 지정
+      // Select button - specify exact location
       const selector = {
         file: 'App.tsx',
         line: 8,
@@ -318,7 +318,7 @@ export default App;
 
       const extractResult = result.value;
 
-      // 함수가 props로 전달되는지 확인
+      // Verify functions are passed as props
       if (extractResult.component.props.length === 0) {
         console.log('Generated code:', extractResult.codes[0].content);
       }
@@ -331,7 +331,7 @@ export default App;
     });
   });
 
-  describe('컴포넌트 배치 및 구조', () => {
+  describe('Component placement and structure', () => {
     it('should place the new component before the original component', () => {
       // Arrange
       const sourceCode = `function App() {
@@ -369,7 +369,7 @@ export default App;
 
       const code = result.value.codes[0];
 
-      // 새 컴포넌트가 생성되었는지 확인 (형식은 유연하게)
+      // Verify new component was created (format flexible)
       const hasTitleComponent = code.content.includes('Title') &&
         (code.content.includes('function Title') || code.content.includes('const Title'));
 
@@ -378,10 +378,10 @@ export default App;
       }
       expect(hasTitleComponent).toBe(true);
 
-      // App 컴포넌트도 있는지 확인
+      // Verify App component also exists
       expect(code.content).toContain('function App()');
 
-      // Title 컴포넌트가 App 컴포넌트보다 앞에 있는지 확인
+      // Verify Title component comes before App component
       const titleIndex = code.content.search(/(?:function|const)\s+Title/);
       const appIndex = code.content.indexOf('function App()');
 
@@ -426,15 +426,15 @@ export default App;
 
       const code = result.value.codes[0];
 
-      // 들여쓰기가 올바른지 확인 (정확한 들여쓰기는 포맷터에 따라 다를 수 있음)
+      // Verify indentation is correct (exact indentation may vary depending on formatter)
       expect(code.content).toContain('function NestedDiv()');
       expect(code.content).toContain('<p>Nested content</p>');
     });
   });
 
-  describe('에러 처리', () => {
+  describe('Error handling', () => {
     it('should return error when selector points to non-JSX node', () => {
-      // Arrange: JSX가 아닌 노드 선택
+      // Arrange: Select non-JSX node
       const sourceCode = `function App() {
   const value = 42;
   return <div>Hello</div>;
@@ -445,7 +445,7 @@ export default App;
         { path: 'App.tsx', content: sourceCode },
       ];
 
-      // 변수 선언을 가리키는 selector (JSX가 아님)
+      // Selector pointing to variable declaration (not JSX)
       const selector = {
         file: 'App.tsx',
         line: 2,
@@ -459,18 +459,18 @@ export default App;
       // Act
       const result = extract(files, selector, options);
 
-      // Assert: 에러 반환
+      // Assert: Return error
       expect(result.ok).toBe(false);
     });
 
     it('should return error when file is not found', () => {
-      // Arrange: 존재하지 않는 파일
+      // Arrange: Non-existent file
       const files: FileInput[] = [
         { path: 'App.tsx', content: 'function App() { return <div />; }' },
       ];
 
       const selector = {
-        file: 'NonExistent.tsx', // 존재하지 않는 파일
+        file: 'NonExistent.tsx', // Non-existent file
         line: 1,
         column: 1,
       };
@@ -482,22 +482,22 @@ export default App;
       // Act
       const result = extract(files, selector, options);
 
-      // Assert: 에러 반환
+      // Assert: Return error
       expect(result.ok).toBe(false);
     });
   });
 
   /**
-   * Task 23.1: E2E 시나리오 테스트 작성
+   * Task 23.1: E2E scenario test implementation
    *
    * Requirements:
-   * - 실제 프로젝트 시나리오 재현
-   * - 복잡한 의존성 그래프 테스트
-   * - 다중 파일 의존성 테스트
+   * - Reproduce real project scenarios
+   * - Test complex dependency graph
+   * - Test multi-file dependencies
    */
-  describe('실제 프로젝트 시나리오', () => {
+  describe('Real project scenarios', () => {
     it('should extract a form component with validation logic', () => {
-      // Arrange: 유효성 검증 로직이 있는 폼 컴포넌트
+      // Arrange: Form component with validation logic
       const sourceCode = `import React, { useState } from 'react';
 
 function LoginPage() {
@@ -566,7 +566,7 @@ export default LoginPage;
         { path: 'LoginPage.tsx', content: sourceCode },
       ];
 
-      // form 엘리먼트를 선택하여 추출
+      // Select and extract form element
       const selector = {
         file: 'LoginPage.tsx',
         line: 37,
@@ -589,7 +589,7 @@ export default LoginPage;
 
       const extractResult = result.value;
 
-      // 복잡한 의존성이 모두 props로 전달되는지 확인
+      // Verify all complex dependencies are passed as props
       const propNames = extractResult.component.props.map(p => p.name);
       expect(propNames).toContain('email');
       expect(propNames).toContain('setEmail');
@@ -600,24 +600,24 @@ export default LoginPage;
 
       const code = extractResult.codes[0];
 
-      // 새 컴포넌트가 생성되었는지 확인
+      // Verify new component was created
       expect(code.content).toContain('function LoginForm(');
 
-      // Props 전달 확인
+      // Verify Props passing
       expect(code.content).toContain('email={email}');
       expect(code.content).toContain('password={password}');
       expect(code.content).toContain('errors={errors}');
       expect(code.content).toContain('handleSubmit={handleSubmit}');
 
-      // 원본 컴포넌트에서 form이 제거되고 LoginForm 컴포넌트가 사용되는지 확인
+      // Verify form is removed from original component and LoginForm component is used
       expect(code.content).toContain('<LoginForm');
 
-      // 통계 확인
+      // Verify statistics
       expect(extractResult.stats.dependenciesFound).toBeGreaterThan(0);
     });
 
     it('should extract a data fetching component with loading states', () => {
-      // Arrange: 데이터 페칭과 로딩 상태가 있는 컴포넌트
+      // Arrange: Component with data fetching and loading states
       const sourceCode = `import React, { useState, useEffect } from 'react';
 
 function UserProfile({ userId }) {
@@ -668,7 +668,7 @@ export default UserProfile;
         { path: 'UserProfile.tsx', content: sourceCode },
       ];
 
-      // user-details div를 선택하여 추출
+      // Select and extract user-details div
       const selector = {
         file: 'UserProfile.tsx',
         line: 32,
@@ -691,28 +691,28 @@ export default UserProfile;
 
       const extractResult = result.value;
 
-      // 의존성 확인
+      // Verify dependencies
       const propNames = extractResult.component.props.map(p => p.name);
       expect(propNames).toContain('user');
       expect(propNames).toContain('formatDate');
 
       const code = extractResult.codes[0];
 
-      // 새 컴포넌트 생성 확인
+      // Verify new component creation
       expect(code.content).toContain('function UserDetails(');
 
-      // Props 전달 확인
+      // Verify Props passing
       expect(code.content).toContain('user={user}');
       expect(code.content).toContain('formatDate={formatDate}');
 
-      // 컴포넌트 호출 확인
+      // Verify component call
       expect(code.content).toContain('<UserDetails');
     });
   });
 
-  describe('복잡한 의존성 그래프', () => {
+  describe('Complex dependency graph', () => {
     it('should handle nested function dependencies', () => {
-      // Arrange: 중첩된 함수 의존성
+      // Arrange: Nested function dependencies
       const sourceCode = `function Calculator() {
   const add = (a, b) => a + b;
   const multiply = (a, b) => a * b;
@@ -736,7 +736,7 @@ export default UserProfile;
         { path: 'Calculator.tsx', content: sourceCode },
       ];
 
-      // result div 선택
+      // Select result div
       const selector = {
         file: 'Calculator.tsx',
         line: 11,
@@ -759,7 +759,7 @@ export default UserProfile;
 
       const extractResult = result.value;
 
-      // result 변수가 props로 전달되는지 확인
+      // Verify result variable is passed as props
       const propNames = extractResult.component.props.map(p => p.name);
       expect(propNames).toContain('result');
 
@@ -768,7 +768,7 @@ export default UserProfile;
     });
 
     it('should handle multiple variable types in dependencies', () => {
-      // Arrange: 다양한 타입의 변수가 혼합된 의존성
+      // Arrange: Dependencies with various types of variables mixed
       const sourceCode = `function Dashboard() {
   const userName = "Alice";
   const userAge = 30;
@@ -796,7 +796,7 @@ export default UserProfile;
         { path: 'Dashboard.tsx', content: sourceCode },
       ];
 
-      // user-card div 선택
+      // user-Select card div
       const selector = {
         file: 'Dashboard.tsx',
         line: 11,
@@ -819,7 +819,7 @@ export default UserProfile;
 
       const extractResult = result.value;
 
-      // 모든 변수 타입이 props로 전달되는지 확인
+      // Verify all variable types are passed as props
       const propNames = extractResult.component.props.map(p => p.name).sort();
       expect(propNames).toContain('userName'); // string
       expect(propNames).toContain('userAge'); // number
@@ -828,12 +828,12 @@ export default UserProfile;
       expect(propNames).toContain('settings'); // object
       expect(propNames).toContain('currentDate'); // Date object
 
-      // 통계 확인
+      // Verify statistics
       expect(extractResult.stats.dependenciesFound).toBe(6);
     });
 
     it('should handle conditional rendering dependencies', () => {
-      // Arrange: 조건부 렌더링이 있는 컴포넌트
+      // Arrange: Component with conditional rendering
       const sourceCode = `function ConditionalComponent() {
   const isLoggedIn = true;
   const hasPermission = false;
@@ -862,7 +862,7 @@ export default UserProfile;
         { path: 'ConditionalComponent.tsx', content: sourceCode },
       ];
 
-      // content div 선택
+      // Select content div
       const selector = {
         file: 'ConditionalComponent.tsx',
         line: 9,
@@ -885,7 +885,7 @@ export default UserProfile;
 
       const extractResult = result.value;
 
-      // 조건부 렌더링에 사용된 모든 변수가 props로 전달되는지 확인
+      // Verify all variables used in conditional rendering are passed as props
       const propNames = extractResult.component.props.map(p => p.name).sort();
       expect(propNames).toContain('isLoggedIn');
       expect(propNames).toContain('hasPermission');
@@ -894,9 +894,9 @@ export default UserProfile;
     });
   });
 
-  describe('다중 파일 의존성', () => {
+  describe('Multi-file dependencies', () => {
     it('should extract component that uses imported utilities', () => {
-      // Arrange: import된 유틸리티를 사용하는 컴포넌트
+      // Arrange: Component using imported utilities
       const sourceCode = `import React from 'react';
 import { formatCurrency } from '../utils/format';
 import { calculateTax } from '../utils/tax';
@@ -926,7 +926,7 @@ export default PriceCalculator;
         { path: 'PriceCalculator.tsx', content: sourceCode },
       ];
 
-      // price-details div 선택
+      // Select price-details div
       const selector = {
         file: 'PriceCalculator.tsx',
         line: 14,
@@ -949,7 +949,7 @@ export default PriceCalculator;
 
       const extractResult = result.value;
 
-      // 의존성 확인
+      // Verify dependencies
       const propNames = extractResult.component.props.map(p => p.name);
       expect(propNames).toContain('basePrice');
       expect(propNames).toContain('tax');
@@ -958,12 +958,12 @@ export default PriceCalculator;
 
       const code = extractResult.codes[0];
 
-      // 새 컴포넌트가 formatCurrency를 props로 받는지 확인
+      // Verify new component receives formatCurrency as props
       expect(code.content).toContain('formatCurrency={formatCurrency}');
     });
 
     it('should extract component with React hooks from external imports', () => {
-      // Arrange: 외부 라이브러리 Hook을 사용하는 컴포넌트
+      // Arrange: Component using external library Hook
       const sourceCode = `import React, { useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -1002,7 +1002,7 @@ export default SettingsPanel;
         { path: 'SettingsPanel.tsx', content: sourceCode },
       ];
 
-      // theme-selector div 선택
+      // Select theme-selector div
       const selector = {
         file: 'SettingsPanel.tsx',
         line: 11,
@@ -1025,7 +1025,7 @@ export default SettingsPanel;
 
       const extractResult = result.value;
 
-      // useState로 관리되는 상태가 props로 전달되는지 확인
+      // Verify state managed by useState is passed as props
       const propNames = extractResult.component.props.map(p => p.name);
       expect(propNames).toContain('theme');
       expect(propNames).toContain('setTheme');
@@ -1036,7 +1036,7 @@ export default SettingsPanel;
     });
 
     it('should handle components with multiple React imports', () => {
-      // Arrange: 여러 React import를 사용하는 컴포넌트
+      // Arrange: Component using multiple React imports
       const sourceCode = `import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 function ComplexComponent() {
@@ -1074,7 +1074,7 @@ export default ComplexComponent;
         { path: 'ComplexComponent.tsx', content: sourceCode },
       ];
 
-      // counter div 선택
+      // Select counter div
       const selector = {
         file: 'ComplexComponent.tsx',
         line: 22,
@@ -1097,7 +1097,7 @@ export default ComplexComponent;
 
       const extractResult = result.value;
 
-      // Hook과 상태가 올바르게 처리되는지 확인
+      // Verify Hooks and state are handled correctly
       const propNames = extractResult.component.props.map(p => p.name);
       expect(propNames).toContain('count');
       expect(propNames).toContain('expensiveValue');
@@ -1111,15 +1111,15 @@ export default ComplexComponent;
   });
 
   /**
-   * Task 14.6: TypeScript 통합 테스트
+   * Task 14.6: TypeScript integration test
    *
    * Requirements:
-   * - TypeScript 파일에서 추출 테스트
-   * - Props 타입 올바르게 생성 확인
+   * - Test extraction from TypeScript files
+   * - Verify Props types are generated correctly
    */
-  describe('TypeScript 타입 생성', () => {
+  describe('TypeScript type generation', () => {
     it('should generate Props interface with correct types', () => {
-      // Arrange: TypeScript 컴포넌트
+      // Arrange: TypeScript component
       const sourceCode = `import React from 'react';
 
 interface User {
@@ -1157,7 +1157,7 @@ export default UserProfile;
         { path: 'UserProfile.tsx', content: sourceCode },
       ];
 
-      // user-info div 선택
+      // Select user-info div
       const selector = {
         file: 'UserProfile.tsx',
         line: 21,
@@ -1180,14 +1180,14 @@ export default UserProfile;
 
       const extractResult = result.value;
 
-      // Props 확인
+      // Verify Props
       const props = extractResult.component.props;
       expect(props).toHaveLength(3);
 
-      // 각 prop의 타입 확인
+      // Verify type of each prop
       const userProp = props.find(p => p.name === 'user');
       expect(userProp).toBeDefined();
-      expect(userProp!.type).toContain('User'); // User 타입 참조
+      expect(userProp!.type).toContain('User'); // User type reference
 
       const ageProp = props.find(p => p.name === 'age');
       expect(ageProp).toBeDefined();
@@ -1197,21 +1197,21 @@ export default UserProfile;
       expect(isActiveProp).toBeDefined();
       expect(isActiveProp!.type).toBe('boolean');
 
-      // Props 인터페이스가 생성되었는지 확인
+      // Verify Props interface was created
       const code = extractResult.codes[0];
       expect(code.content).toContain('interface UserInfoProps');
 
-      // Props 인터페이스가 컴포넌트 앞에 있는지 확인
+      // Verify Props interface comes before component
       const propsInterfaceIndex = code.content.indexOf('interface UserInfoProps');
       const componentIndex = code.content.indexOf('function UserInfo(');
       expect(propsInterfaceIndex).toBeLessThan(componentIndex);
 
-      // 컴포넌트가 Props 타입을 사용하는지 확인
+      // Verify component uses Props type
       expect(code.content).toMatch(/function UserInfo\s*\(\s*\{\s*\w+/); // destructuring with types
     });
 
     it('should handle optional types with undefined union', () => {
-      // Arrange: optional 타입이 있는 컴포넌트
+      // Arrange: Component with optional types
       const sourceCode = `import React from 'react';
 
 function OptionalPropsComponent() {
@@ -1237,7 +1237,7 @@ export default OptionalPropsComponent;
         { path: 'OptionalPropsComponent.tsx', content: sourceCode },
       ];
 
-      // content div 선택
+      // Select content div
       const selector = {
         file: 'OptionalPropsComponent.tsx',
         line: 10,
@@ -1261,7 +1261,7 @@ export default OptionalPropsComponent;
       const extractResult = result.value;
       const props = extractResult.component.props;
 
-      // title은 required, subtitle과 count는 optional
+      // title is required, subtitle and count are optional
       const titleProp = props.find(p => p.name === 'title');
       expect(titleProp).toBeDefined();
       expect(titleProp!.optional).toBe(false);
@@ -1269,21 +1269,21 @@ export default OptionalPropsComponent;
       const subtitleProp = props.find(p => p.name === 'subtitle');
       expect(subtitleProp).toBeDefined();
       expect(subtitleProp!.optional).toBe(true);
-      expect(subtitleProp!.type).toBe('string'); // undefined가 제거된 타입
+      expect(subtitleProp!.type).toBe('string'); // Type with undefined removed
 
       const countProp = props.find(p => p.name === 'count');
       expect(countProp).toBeDefined();
       expect(countProp!.optional).toBe(true);
-      expect(countProp!.type).toBe('number'); // undefined가 제거된 타입
+      expect(countProp!.type).toBe('number'); // Type with undefined removed
 
-      // Props 인터페이스에 optional 표시가 있는지 확인
+      // Verify Props interface has optional indicators
       const code = extractResult.codes[0];
       expect(code.content).toMatch(/subtitle\?:\s*string/);
       expect(code.content).toMatch(/count\?:\s*number/);
     });
 
     it('should handle complex TypeScript types', () => {
-      // Arrange: 복잡한 TypeScript 타입
+      // Arrange: Complex TypeScript types
       const sourceCode = `import React from 'react';
 
 type Status = 'active' | 'inactive' | 'pending';
@@ -1323,7 +1323,7 @@ export default ComplexTypesComponent;
         { path: 'ComplexTypesComponent.tsx', content: sourceCode },
       ];
 
-      // complex-content div 선택
+      // complex-Select content div
       const selector = {
         file: 'ComplexTypesComponent.tsx',
         line: 20,
@@ -1347,27 +1347,27 @@ export default ComplexTypesComponent;
       const extractResult = result.value;
       const props = extractResult.component.props;
 
-      // Union 타입 확인
+      // Verify Union type
       const statusProp = props.find(p => p.name === 'status');
       expect(statusProp).toBeDefined();
       expect(statusProp!.type).toContain('active'); // Union literal
 
-      // 배열 타입 확인
+      // Verify array type
       const itemsProp = props.find(p => p.name === 'items');
       expect(itemsProp).toBeDefined();
       expect(itemsProp!.type).toContain('Item'); // Array of Item
 
-      // Tuple 타입 확인
+      // Verify Tuple type
       const pairProp = props.find(p => p.name === 'pair');
       expect(pairProp).toBeDefined();
-      // Tuple은 [string, number] 형태로 표현됨
+      // Tuple is represented as [string, number]
 
       const code = extractResult.codes[0];
       expect(code.content).toContain('interface ComplexContentProps');
     });
 
     it('should handle function types in props', () => {
-      // Arrange: 함수 타입이 있는 컴포넌트
+      // Arrange: Component with function types
       const sourceCode = `import React from 'react';
 
 function FunctionPropsComponent() {
@@ -1396,7 +1396,7 @@ export default FunctionPropsComponent;
         { path: 'FunctionPropsComponent.tsx', content: sourceCode },
       ];
 
-      // buttons div 선택
+      // Select buttons div
       const selector = {
         file: 'FunctionPropsComponent.tsx',
         line: 13,
@@ -1420,14 +1420,14 @@ export default FunctionPropsComponent;
       const extractResult = result.value;
       const props = extractResult.component.props;
 
-      // 함수 타입 확인
+      // Verify function type
       const handleClickProp = props.find(p => p.name === 'handleClick');
       expect(handleClickProp).toBeDefined();
-      // 함수 타입은 (id: number) => void 형태
+      // Function type is in form (id: number) => void
 
       const formatValueProp = props.find(p => p.name === 'formatValue');
       expect(formatValueProp).toBeDefined();
-      // 함수 타입은 (value: string) => string 형태
+      // Function type is in form (value: string) => string
 
       const code = extractResult.codes[0];
       expect(code.content).toContain('interface ButtonsProps');

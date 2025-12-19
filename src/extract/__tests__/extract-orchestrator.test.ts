@@ -1,12 +1,12 @@
 /**
  * ExtractOrchestrator Tests
  *
- * Task 10.1: ExtractOrchestrator 테스트 작성 - E2E MVP
+ * Task 10.1: ExtractOrchestrator test implementation - E2E MVP
  *
  * Requirements:
- * - 1.1: JSX 노드 선택 및 추출
- * - 2.1: 의존성 자동 분석
- * - 3.1: 같은 파일 내 컴포넌트 추출
+ * - 1.1: JSX node selection and extraction
+ * - 2.1: Automatic dependency analysis
+ * - 3.1: Extract component within the same file
  */
 
 import { describe, it, expect } from 'vitest';
@@ -50,21 +50,21 @@ function App() {
       // Assert
       expect(result.ok).toBe(true);
       if (result.ok) {
-        // 변환된 코드가 반환되어야 함
+        // Transformed code should be returned
         expect(result.value.codes).toHaveLength(1);
         expect(result.value.codes[0].path).toBe('App.tsx');
 
-        // 생성된 컴포넌트 정보 확인
+        // Verify generated component information
         expect(result.value.component.name).toBe('Greeting');
         expect(result.value.component.file).toBe('App.tsx');
         expect(result.value.component.props).toEqual([]);
 
-        // 통계 확인
+        // Verify statistics
         expect(result.value.stats.nodesExtracted).toBe(1);
         expect(result.value.stats.dependenciesFound).toBe(0);
         expect(result.value.stats.propsGenerated).toBe(0);
 
-        // 생성된 코드 확인
+        // Verify generated code
         const generatedCode = result.value.codes[0].content;
         expect(generatedCode).toContain('function Greeting');
         expect(generatedCode).toContain('<h1>Hello World</h1>');
@@ -107,15 +107,15 @@ function App() {
       // Assert
       expect(result.ok).toBe(true);
       if (result.ok) {
-        // Props가 생성되어야 함
+        // Props should be generated
         expect(result.value.component.props).toHaveLength(1);
         expect(result.value.component.props[0].name).toBe('message');
 
-        // 통계 확인
+        // Verify statistics
         expect(result.value.stats.dependenciesFound).toBe(1);
         expect(result.value.stats.propsGenerated).toBe(1);
 
-        // 생성된 코드 확인
+        // Verify generated code
         const generatedCode = result.value.codes[0].content;
         expect(generatedCode).toContain('function Greeting');
         expect(generatedCode).toContain('<Greeting message={message} />');

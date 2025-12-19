@@ -1,14 +1,14 @@
 /**
  * ExtractExecutor Tests
  *
- * Task 9.1, 9.3: ExtractExecutor 테스트 작성
+ * Task 9.1, 9.3: ExtractExecutor test implementation
  *
  * Requirements:
- * - 3.1: 같은 파일 내 컴포넌트 생성
- * - 3.2: 원본 컴포넌트 정의 앞에 새 컴포넌트 배치
- * - 3.3: 원본 위치의 JSX 코드를 새 컴포넌트 호출로 교체
- * - 2.1: 변수 의존성을 props로 전달
- * - 3.6: Props 전달 코드 생성
+ * - 3.1: Create component within the same file
+ * - 3.2: Place new component before original component definition
+ * - 3.3: Replace JSX code at original location with new component call
+ * - 2.1: Pass variable dependencies as props
+ * - 3.6: Generate props passing code
  */
 
 import { describe, it, expect } from 'vitest';
@@ -20,9 +20,9 @@ import * as t from '@babel/types';
 import generate from '@babel/generator';
 
 describe('ExtractExecutor', () => {
-  describe('Task 9.1 - 간단한 추출', () => {
+  describe('Task 9.1 - Simple extraction', () => {
     it('should extract component without props in same file', () => {
-      // Given: 간단한 JSX가 있는 컴포넌트
+      // Given: component with simple JSX
       const sourceCode = `
 function App() {
   return (
@@ -38,7 +38,7 @@ function App() {
       if (!parseResult.ok) return;
       const ast = parseResult.value;
 
-      // h1 노드 선택
+      // Select h1 node
       let h1NodePath: any = null;
       traverse(ast, {
         JSXElement(path) {
@@ -54,7 +54,7 @@ function App() {
 
       expect(h1NodePath).not.toBeNull();
 
-      // ExtractPlan 생성
+      // Create ExtractPlan
       const plan: ExtractPlan = {
         selectedNodes: [h1NodePath],
         sourceFile: 'App.tsx',
@@ -75,11 +75,11 @@ function App() {
 
       const asts = new Map([['App.tsx', ast]]);
 
-      // When: ExtractExecutor 실행
+      // When: execute ExtractExecutor
       const executor = new ExtractExecutor();
       const result = executor.execute(plan, asts);
 
-      // Then: 성공
+      // Then: success
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -87,24 +87,24 @@ function App() {
       const updatedAst = updatedAsts.get('App.tsx');
       expect(updatedAst).toBeDefined();
 
-      // 코드 생성
+      // Generate code
       const generatedCode = generate(updatedAst!).code;
 
-      // 새 컴포넌트가 생성되었는지 확인
+      // Verify new component was created
       expect(generatedCode).toContain('function ExtractedComponent()');
       expect(generatedCode).toContain('<h1>Hello</h1>');
 
-      // 원본 코드가 컴포넌트 호출로 교체되었는지 확인
+      // Verify original code was replaced with component call
       expect(generatedCode).toContain('<ExtractedComponent />');
 
-      // 새 컴포넌트가 원본 컴포넌트 앞에 있는지 확인
+      // Verify new component is placed before original component
       const componentIndex = generatedCode.indexOf('function ExtractedComponent');
       const appIndex = generatedCode.indexOf('function App');
       expect(componentIndex).toBeLessThan(appIndex);
     });
 
     it('should replace original JSX with component call', () => {
-      // Given: 추출 대상 JSX
+      // Given: JSX to extract
       const sourceCode = `
 function App() {
   return (
@@ -120,7 +120,7 @@ function App() {
       if (!parseResult.ok) return;
       const ast = parseResult.value;
 
-      // span 노드 선택
+      // Select span node
       let spanNodePath: any = null;
       traverse(ast, {
         JSXElement(path) {
@@ -154,20 +154,20 @@ function App() {
 
       const asts = new Map([['App.tsx', ast]]);
 
-      // When: 추출 실행
+      // When: Execute extraction
       const executor = new ExtractExecutor();
       const result = executor.execute(plan, asts);
 
-      // Then: 원본 JSX가 컴포넌트 호출로 교체됨
+      // Then: Original JSX replaced with component call
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
       const updatedAst = result.value.get('App.tsx');
       const generatedCode = generate(updatedAst!).code;
 
-      // App 함수 내부에서 span이 사라지고 WorldComponent로 교체됨
+      // span disappears inside App function and replaced with WorldComponent
       expect(generatedCode).toContain('<WorldComponent />');
-      // App 함수 내부에서 <span>World</span>가 사라짐 확인
+      // Verify <span>World</span> is removed inside App function
       const appFunctionMatch = generatedCode.match(/function App\(\) \{[\s\S]*?\n\}/);
       expect(appFunctionMatch).toBeTruthy();
       const appFunction = appFunctionMatch![0];
@@ -175,9 +175,9 @@ function App() {
     });
   });
 
-  describe('Task 9.3 - Props 전달', () => {
+  describe('Task 9.3 - Props passing', () => {
     it('should extract component with variable dependencies as props', () => {
-      // Given: 변수 의존성이 있는 JSX
+      // Given: JSX with variable dependencies
       const sourceCode = `
 function App() {
   const message = "Hello";
@@ -194,7 +194,7 @@ function App() {
       if (!parseResult.ok) return;
       const ast = parseResult.value;
 
-      // p 노드 선택 및 변수 선언 찾기
+      // Select p node and find variable declaration
       let pNodePath: any = null;
       let messageDeclaration: any = null;
       traverse(ast, {
@@ -216,7 +216,7 @@ function App() {
       expect(pNodePath).not.toBeNull();
       expect(messageDeclaration).not.toBeNull();
 
-      // ExtractPlan 생성 (변수 의존성 포함)
+      // Create ExtractPlan (including variable dependencies)
       const plan: ExtractPlan = {
         selectedNodes: [pNodePath],
         sourceFile: 'App.tsx',
@@ -248,33 +248,33 @@ function App() {
 
       const asts = new Map([['App.tsx', ast]]);
 
-      // When: 추출 실행
+      // When: Execute extraction
       const executor = new ExtractExecutor();
       const result = executor.execute(plan, asts);
 
-      // Then: Props가 올바르게 전달됨
+      // Then: Props are passed correctly
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
       const updatedAst = result.value.get('App.tsx');
       const generatedCode = generate(updatedAst!).code;
 
-      // Props 인터페이스 생성 확인
+      // Verify Props interface creation
       expect(generatedCode).toContain('interface MessageComponentProps');
       expect(generatedCode).toContain('message: string');
 
-      // Props destructuring 확인
+      // Verify Props destructuring
       expect(generatedCode).toContain('function MessageComponent({');
       expect(generatedCode).toContain('message');
 
-      // Props 전달 확인
+      // Verify Props passing
       expect(generatedCode).toContain('<MessageComponent message={message} />');
     });
   });
 
-  describe('Task 16.3 - 새 파일 생성', () => {
+  describe('Task 16.3 - Create new file', () => {
     it('should create new file when target file does not exist', () => {
-      // Given: 추출 대상 JSX
+      // Given: JSX to extract
       const sourceCode = `
 function App() {
   return (
@@ -290,7 +290,7 @@ function App() {
       if (!parseResult.ok) return;
       const ast = parseResult.value;
 
-      // h1 노드 선택
+      // Select h1 node
       let h1NodePath: any = null;
       traverse(ast, {
         JSXElement(path) {
@@ -306,7 +306,7 @@ function App() {
 
       expect(h1NodePath).not.toBeNull();
 
-      // ExtractPlan 생성 (다른 파일로 추출)
+      // Create ExtractPlan (extract to different file)
       const plan: ExtractPlan = {
         selectedNodes: [h1NodePath],
         sourceFile: 'App.tsx',
@@ -327,33 +327,33 @@ function App() {
 
       const asts = new Map([['App.tsx', ast]]);
 
-      // When: ExtractExecutor 실행
+      // When: Execute ExtractExecutor
       const executor = new ExtractExecutor();
       const result = executor.execute(plan, asts);
 
-      // Then: 새 파일이 생성됨
+      // Then: New file is created
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
       const updatedAsts = result.value;
 
-      // 새 파일 AST가 생성되었는지 확인
+      // Verify new file AST was created
       const newFileAst = updatedAsts.get('components/Greeting.tsx');
       expect(newFileAst).toBeDefined();
 
-      // 새 파일 코드 생성
+      // Generate new file code
       const newFileCode = generate(newFileAst!).code;
 
-      // 컴포넌트가 export되는지 확인
+      // Verify component is exported
       expect(newFileCode).toContain('export function Greeting()');
       expect(newFileCode).toContain('<h1>Hello</h1>');
 
-      // React import 확인
+      // Verify React import
       expect(newFileCode).toMatch(/import React from ['"]react['"]/);
     });
 
     it('should export component in new file', () => {
-      // Given: 간단한 JSX
+      // Given: Simple JSX
       const sourceCode = `
 function App() {
   return (
@@ -369,7 +369,7 @@ function App() {
       if (!parseResult.ok) return;
       const ast = parseResult.value;
 
-      // button 노드 선택
+      // Select button node
       let buttonNodePath: any = null;
       traverse(ast, {
         JSXElement(path) {
@@ -403,23 +403,23 @@ function App() {
 
       const asts = new Map([['App.tsx', ast]]);
 
-      // When: 추출 실행
+      // When: Execute extraction
       const executor = new ExtractExecutor();
       const result = executor.execute(plan, asts);
 
-      // Then: export된 컴포넌트 확인
+      // Then: Verify exported component
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
       const newFileAst = result.value.get('components/Button.tsx');
       const newFileCode = generate(newFileAst!).code;
 
-      // export 키워드 확인
+      // Verify export keyword
       expect(newFileCode).toContain('export function Button()');
     });
 
     it('should export Props interface when component has props', () => {
-      // Given: Props가 있는 컴포넌트
+      // Given: Component with Props
       const sourceCode = `
 function App() {
   const title = "Welcome";
@@ -436,7 +436,7 @@ function App() {
       if (!parseResult.ok) return;
       const ast = parseResult.value;
 
-      // h2 노드 선택 및 변수 선언 찾기
+      // Select h2 node and find variable declaration
       let h2NodePath: any = null;
       let titleDeclaration: any = null;
       traverse(ast, {
@@ -486,26 +486,26 @@ function App() {
 
       const asts = new Map([['App.tsx', ast]]);
 
-      // When: 추출 실행
+      // When: Execute extraction
       const executor = new ExtractExecutor();
       const result = executor.execute(plan, asts);
 
-      // Then: Props 인터페이스가 export됨
+      // Then: Props interface is exported
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
       const newFileAst = result.value.get('components/Title.tsx');
       const newFileCode = generate(newFileAst!).code;
 
-      // export된 Props 인터페이스 확인
+      // Verify exported Props interface
       expect(newFileCode).toContain('export interface TitleProps');
       expect(newFileCode).toContain('title: string');
     });
   });
 
-  describe('Task 16.5 - 기존 파일에 추가', () => {
+  describe('Task 16.5 - Add to existing file', () => {
     it('should add component to existing file', () => {
-      // Given: 기존 파일과 추출 대상 JSX
+      // Given: Existing file and JSX to extract
       const existingFileCode = `
 import React from 'react';
 
@@ -534,7 +534,7 @@ function App() {
       if (!sourceParseResult.ok) return;
       const sourceAst = sourceParseResult.value;
 
-      // span 노드 선택
+      // Select span node
       let spanNodePath: any = null;
       traverse(sourceAst, {
         JSXElement(path) {
@@ -571,32 +571,32 @@ function App() {
         ['components/Shared.tsx', existingAst],
       ]);
 
-      // When: 추출 실행
+      // When: Execute extraction
       const executor = new ExtractExecutor();
       const result = executor.execute(plan, asts);
 
-      // Then: 기존 파일에 새 컴포넌트가 추가됨
+      // Then: New component added to existing file
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
       const updatedAst = result.value.get('components/Shared.tsx');
       const updatedCode = generate(updatedAst!).code;
 
-      // 기존 컴포넌트 유지
+      // Preserve existing component
       expect(updatedCode).toContain('function ExistingComponent()');
       expect(updatedCode).toContain('<div>Existing</div>');
 
-      // 새 컴포넌트 추가
+      // Add new component
       expect(updatedCode).toContain('export function NewComponent()');
       expect(updatedCode).toContain('<span>New Component</span>');
 
-      // React import 하나만 존재 (중복 방지)
+      // Only one React import exists (prevent duplicates)
       const reactImportCount = (updatedCode.match(/import React from/g) || []).length;
       expect(reactImportCount).toBe(1);
     });
 
     it('should preserve existing imports in target file', () => {
-      // Given: import가 있는 기존 파일
+      // Given: Existing file with imports
       const existingFileCode = `
 import React from 'react';
 import { useState } from 'react';
@@ -627,7 +627,7 @@ function App() {
       if (!sourceParseResult.ok) return;
       const sourceAst = sourceParseResult.value;
 
-      // p 노드 선택
+      // Select p node
       let pNodePath: any = null;
       traverse(sourceAst, {
         JSXElement(path) {
@@ -664,26 +664,26 @@ function App() {
         ['components/Shared.tsx', existingAst],
       ]);
 
-      // When: 추출 실행
+      // When: Execute extraction
       const executor = new ExtractExecutor();
       const result = executor.execute(plan, asts);
 
-      // Then: 기존 import 유지
+      // Then: Preserve existing imports
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
       const updatedAst = result.value.get('components/Shared.tsx');
       const updatedCode = generate(updatedAst!).code;
 
-      // 기존 imports 유지
+      // Preserve existing imports
       expect(updatedCode).toContain("import { useState } from");
       expect(updatedCode).toContain("import styles from");
     });
   });
 
-  describe('Task 16.8 - 다른 파일로 추출 통합 테스트', () => {
+  describe('Task 16.8 - Extract to different file integration test', () => {
     it('should extract to new file with complete workflow', () => {
-      // Given: 변수 의존성이 있는 컴포넌트
+      // Given: Component with variable dependencies
       const sourceCode = `
 function App() {
   const userName = "John";
@@ -705,7 +705,7 @@ function App() {
       if (!parseResult.ok) return;
       const sourceAst = parseResult.value;
 
-      // user-info div 선택
+      // Select user-info div
       let userInfoNodePath: any = null;
       let userNameDeclaration: any = null;
       let userAgeDeclaration: any = null;
@@ -783,56 +783,56 @@ function App() {
 
       const asts = new Map([['src/App.tsx', sourceAst]]);
 
-      // When: 추출 실행
+      // When: Execute extraction
       const executor = new ExtractExecutor();
       const result = executor.execute(plan, asts);
 
-      // Then: 성공
+      // Then: Success
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
       const updatedAsts = result.value;
 
-      // 1. 새 파일이 생성됨
+      // 1. New file is created
       const newFileAst = updatedAsts.get('src/components/UserInfo.tsx');
       expect(newFileAst).toBeDefined();
 
       const newFileCode = generate(newFileAst!).code;
 
-      // React import 확인
+      // Verify React import
       expect(newFileCode).toMatch(/import React from ['"]react['"]/);
 
-      // Props 인터페이스 export 확인
+      // Verify Props interface export
       expect(newFileCode).toContain('export interface UserInfoProps');
       expect(newFileCode).toContain('userName: string');
       expect(newFileCode).toContain('userAge: number');
 
-      // 컴포넌트 export 확인
+      // Verify component export
       expect(newFileCode).toContain('export function UserInfo(');
       expect(newFileCode).toContain('{userName}');
       expect(newFileCode).toContain('{userAge}');
 
-      // 2. 원본 파일에서 JSX가 컴포넌트 호출로 교체됨
+      // 2. JSX replaced with component call in original file
       const updatedSourceAst = updatedAsts.get('src/App.tsx');
       expect(updatedSourceAst).toBeDefined();
 
       const updatedSourceCode = generate(updatedSourceAst!).code;
 
-      // import 추가 확인
+      // Verify import addition
       expect(updatedSourceCode).toContain('UserInfo');
       expect(updatedSourceCode).toContain('./components/UserInfo');
 
-      // 컴포넌트 호출 확인
+      // Verify component call
       expect(updatedSourceCode).toContain('<UserInfo');
       expect(updatedSourceCode).toContain('userName={userName}');
       expect(updatedSourceCode).toContain('userAge={userAge}');
 
-      // 원본 JSX는 제거되었는지 확인
+      // Verify original JSX was removed
       expect(updatedSourceCode).not.toContain('className="user-info"');
     });
 
     it('should extract to existing file with import path resolution', () => {
-      // Given: 다른 디렉토리에 있는 파일들
+      // Given: Files in different directories
       const sourceCode = `
 function Dashboard() {
   return (
@@ -864,7 +864,7 @@ export function ExistingWidget() {
       if (!existingParseResult.ok) return;
       const existingAst = existingParseResult.value;
 
-      // header 노드 선택
+      // Select header node
       let headerNodePath: any = null;
       traverse(sourceAst, {
         JSXElement(path) {
@@ -901,35 +901,35 @@ export function ExistingWidget() {
         ['src/components/widgets/index.tsx', existingAst],
       ]);
 
-      // When: 추출 실행
+      // When: Execute extraction
       const executor = new ExtractExecutor();
       const result = executor.execute(plan, asts);
 
-      // Then: 성공
+      // Then: Success
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
-      // 상대 경로가 올바르게 계산되는지 확인
+      // Verify relative path is calculated correctly
       const updatedSourceAst = result.value.get('src/pages/Dashboard.tsx');
       const updatedSourceCode = generate(updatedSourceAst!).code;
 
-      // 상대 경로 import 확인
+      // Verify relative path import
       expect(updatedSourceCode).toContain('../components/widgets');
       expect(updatedSourceCode).toContain('DashboardHeader');
 
-      // 대상 파일에 컴포넌트 추가 확인
+      // Verify component addition to target file
       const updatedTargetAst = result.value.get('src/components/widgets/index.tsx');
       const updatedTargetCode = generate(updatedTargetAst!).code;
 
-      // 기존 컴포넌트 유지
+      // Preserve existing component
       expect(updatedTargetCode).toContain('ExistingWidget');
 
-      // 새 컴포넌트 추가
+      // Add new component
       expect(updatedTargetCode).toContain('export function DashboardHeader()');
     });
 
     it('should handle complex scenario with props and state dependencies', () => {
-      // Given: useState를 사용하는 컴포넌트
+      // Given: Component using useState
       const sourceCode = `
 import React, { useState } from 'react';
 
@@ -953,7 +953,7 @@ function Counter() {
       if (!parseResult.ok) return;
       const sourceAst = parseResult.value;
 
-      // display div 선택
+      // Select display div
       let displayNodePath: any = null;
       let countDeclaration: any = null;
       let setCountDeclaration: any = null;
@@ -980,7 +980,7 @@ function Counter() {
           }
         },
         VariableDeclarator(path) {
-          // useState 결과값 찾기
+          // Find useState result value
           if (
             t.isArrayPattern(path.node.id) &&
             t.isCallExpression(path.node.init) &&
@@ -994,10 +994,10 @@ function Counter() {
               elements[0].name === 'count'
             ) {
               countDeclaration = path;
-              setCountDeclaration = path; // 동일한 선언
+              setCountDeclaration = path; // Same declaration
             }
           }
-          // increment 함수 찾기
+          // Find increment function
           if (
             t.isIdentifier(path.node.id) &&
             path.node.id.name === 'increment'
@@ -1039,7 +1039,7 @@ function Counter() {
           },
           {
             name: 'setCount',
-            typeAnnotation: t.tsAnyKeyword(), // 간단히 any로
+            typeAnnotation: t.tsAnyKeyword(), // Simply use any
             optional: false,
           },
           {
@@ -1054,11 +1054,11 @@ function Counter() {
 
       const asts = new Map([['src/Counter.tsx', sourceAst]]);
 
-      // When: 추출 실행
+      // When: Execute extraction
       const executor = new ExtractExecutor();
       const result = executor.execute(plan, asts);
 
-      // Then: 성공
+      // Then: Success
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -1067,26 +1067,26 @@ function Counter() {
 
       const newFileCode = generate(newFileAst!).code;
 
-      // Props 인터페이스 확인
+      // Verify Props interface
       expect(newFileCode).toContain('export interface CounterDisplayProps');
       expect(newFileCode).toContain('count:');
       expect(newFileCode).toContain('setCount:');
       expect(newFileCode).toContain('increment:');
 
-      // 컴포넌트 확인
+      // Verify component
       expect(newFileCode).toContain('export function CounterDisplay(');
       expect(newFileCode).toContain('{count}');
       expect(newFileCode).toContain('onClick={increment}');
 
-      // 원본 파일 확인
+      // Verify original file
       const updatedSourceAst = result.value.get('src/Counter.tsx');
       const updatedSourceCode = generate(updatedSourceAst!).code;
 
-      // import 추가 확인
+      // Verify import addition
       expect(updatedSourceCode).toContain('CounterDisplay');
       expect(updatedSourceCode).toContain('./components/CounterDisplay');
 
-      // Props 전달 확인
+      // Verify Props passing
       expect(updatedSourceCode).toContain('<CounterDisplay');
       expect(updatedSourceCode).toContain('count={count}');
       expect(updatedSourceCode).toContain('setCount={setCount}');

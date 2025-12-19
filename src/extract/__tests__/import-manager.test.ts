@@ -1,7 +1,7 @@
 /**
  * ImportManager Tests
  *
- * Task 16.1: ImportManager 테스트 작성
+ * Task 16.1: ImportManager test implementation
  * Tests for import statement management and path resolution
  */
 
@@ -12,9 +12,9 @@ import generate from '@babel/generator';
 import { ImportManager } from '../import-manager.js';
 
 describe('ImportManager', () => {
-  describe('addImport - Import 문 추가', () => {
+  describe('addImport - Add import statement', () => {
     it('should add default import to empty file', () => {
-      // Given: import 문이 없는 빈 파일
+      // Given: empty file without import statements
       const code = `
         function App() {
           return <div>Hello</div>;
@@ -26,18 +26,18 @@ describe('ImportManager', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      // When: default import 추가
+      // When: add default import
       const manager = new ImportManager();
       manager.addImport(ast, 'React', 'react', true);
 
-      // Then: import 문이 추가되어야 함
+      // Then: import statement should be added
       const output = generate(ast).code;
       expect(output).toMatch(/import React from ['"]react['"]/);
 
     });
 
     it('should add named import to empty file', () => {
-      // Given: import 문이 없는 빈 파일
+      // Given: empty file without import statements
       const code = `
         function App() {
           return <div>Hello</div>;
@@ -49,18 +49,18 @@ describe('ImportManager', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      // When: named import 추가
+      // When: add named import
       const manager = new ImportManager();
       manager.addImport(ast, 'useState', 'react', false);
 
-      // Then: named import 문이 추가되어야 함
+      // Then: named import statement should be added
       const output = generate(ast).code;
       expect(output).toMatch(/import \{ useState \} from ['"]react['"]/);
 
     });
 
     it('should add import at the top of the file', () => {
-      // Given: 기존 코드가 있는 파일
+      // Given: file with existing code
       const code = `
         const value = 42;
 
@@ -74,18 +74,18 @@ describe('ImportManager', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      // When: import 추가
+      // When: add import
       const manager = new ImportManager();
       manager.addImport(ast, 'React', 'react', true);
 
-      // Then: import가 파일 최상단에 위치해야 함
+      // Then: import should be at the top of the file
       const output = generate(ast).code;
       const lines = output.split('\n').filter(line => line.trim());
       expect(lines[0]).toMatch(/import React from ['"]react['"]/);
     });
 
     it('should add multiple named imports from same source', () => {
-      // Given: 빈 파일
+      // Given: empty file
       const code = `
         function App() {
           return <div>Hello</div>;
@@ -97,19 +97,19 @@ describe('ImportManager', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      // When: 같은 소스에서 여러 named import 추가
+      // When: add multiple named imports from the same source
       const manager = new ImportManager();
       manager.addImport(ast, 'useState', 'react', false);
       manager.addImport(ast, 'useEffect', 'react', false);
 
-      // Then: 두 import가 모두 추가되어야 함
+      // Then: both imports should be added
       const output = generate(ast).code;
       expect(output).toContain('useState');
       expect(output).toContain('useEffect');
     });
 
     it('should not add duplicate import for same name and source', () => {
-      // Given: 이미 import가 있는 파일
+      // Given: file with existing import
       const code = `
         import React from 'react';
 
@@ -123,18 +123,18 @@ describe('ImportManager', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      // When: 동일한 import를 추가 시도
+      // When: attempt to add the same import
       const manager = new ImportManager();
       manager.addImport(ast, 'React', 'react', true);
 
-      // Then: 중복된 import가 추가되지 않아야 함
+      // Then: duplicate import should not be added
       const output = generate(ast).code;
       const importCount = (output.match(/import React from 'react'/g) || []).length;
       expect(importCount).toBe(1);
     });
 
     it('should add import to existing import statement from same source', () => {
-      // Given: 같은 소스의 import가 이미 있는 파일
+      // Given: file with existing import from the same source
       const code = `
         import { useState } from 'react';
 
@@ -148,11 +148,11 @@ describe('ImportManager', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      // When: 같은 소스에서 다른 named import 추가
+      // When: add another named import from the same source
       const manager = new ImportManager();
       manager.addImport(ast, 'useEffect', 'react', false);
 
-      // Then: 기존 import 문에 새 specifier가 추가되어야 함
+      // Then: new specifier should be added to existing import statement
       const output = generate(ast).code;
       expect(output).toContain('useState');
       expect(output).toContain('useEffect');
@@ -160,69 +160,69 @@ describe('ImportManager', () => {
     });
   });
 
-  describe('resolveRelativePath - 상대 경로 해석', () => {
+  describe('resolveRelativePath - Resolve relative path', () => {
     it('should resolve relative path from same directory', () => {
-      // Given: 같은 디렉토리의 파일들
+      // Given: files in the same directory
       const fromFile = '/project/src/App.tsx';
       const toFile = '/project/src/UserProfile.tsx';
 
-      // When: 상대 경로 계산
+      // When: calculate relative path
       const manager = new ImportManager();
       const result = manager.resolveRelativePath(fromFile, toFile);
 
-      // Then: ./UserProfile 형태여야 함
+      // Then: should be in the form ./UserProfile
       expect(result).toBe('./UserProfile');
     });
 
     it('should resolve relative path from child to parent directory', () => {
-      // Given: 하위 디렉토리에서 상위 디렉토리로
+      // Given: from child directory to parent directory
       const fromFile = '/project/src/components/App.tsx';
       const toFile = '/project/src/UserProfile.tsx';
 
-      // When: 상대 경로 계산
+      // When: calculate relative path
       const manager = new ImportManager();
       const result = manager.resolveRelativePath(fromFile, toFile);
 
-      // Then: ../UserProfile 형태여야 함
+      // Then: should be in the form ../UserProfile
       expect(result).toBe('../UserProfile');
     });
 
     it('should resolve relative path from parent to child directory', () => {
-      // Given: 상위 디렉토리에서 하위 디렉토리로
+      // Given: from parent directory to child directory
       const fromFile = '/project/src/App.tsx';
       const toFile = '/project/src/components/UserProfile.tsx';
 
-      // When: 상대 경로 계산
+      // When: calculate relative path
       const manager = new ImportManager();
       const result = manager.resolveRelativePath(fromFile, toFile);
 
-      // Then: ./components/UserProfile 형태여야 함
+      // Then: should be in the form ./components/UserProfile
       expect(result).toBe('./components/UserProfile');
     });
 
     it('should resolve relative path across different directories', () => {
-      // Given: 다른 디렉토리 간의 파일들
+      // Given: files in different directories
       const fromFile = '/project/src/pages/Home.tsx';
       const toFile = '/project/src/components/UserProfile.tsx';
 
-      // When: 상대 경로 계산
+      // When: calculate relative path
       const manager = new ImportManager();
       const result = manager.resolveRelativePath(fromFile, toFile);
 
-      // Then: ../components/UserProfile 형태여야 함
+      // Then: should be in the form ../components/UserProfile
       expect(result).toBe('../components/UserProfile');
     });
 
     it('should remove file extension from path', () => {
-      // Given: 확장자가 포함된 파일 경로
+      // Given: file path with extension
       const fromFile = '/project/src/App.tsx';
       const toFile = '/project/src/UserProfile.tsx';
 
-      // When: 상대 경로 계산
+      // When: calculate relative path
       const manager = new ImportManager();
       const result = manager.resolveRelativePath(fromFile, toFile);
 
-      // Then: 확장자가 제거되어야 함
+      // Then: extension should be removed
       expect(result).not.toContain('.tsx');
       expect(result).not.toContain('.ts');
       expect(result).not.toContain('.jsx');
@@ -230,22 +230,22 @@ describe('ImportManager', () => {
     });
 
     it('should handle deeply nested paths', () => {
-      // Given: 깊게 중첩된 경로
+      // Given: deeply nested paths
       const fromFile = '/project/src/features/auth/pages/Login.tsx';
       const toFile = '/project/src/components/common/Button.tsx';
 
-      // When: 상대 경로 계산
+      // When: calculate relative path
       const manager = new ImportManager();
       const result = manager.resolveRelativePath(fromFile, toFile);
 
-      // Then: 올바른 상대 경로여야 함
+      // Then: should be the correct relative path
       expect(result).toBe('../../../components/common/Button');
     });
   });
 
-  describe('removeImport - Import 문 제거', () => {
+  describe('removeImport - Remove import statement', () => {
     it('should remove default import', () => {
-      // Given: default import가 있는 파일
+      // Given: file with default import
       const code = `
         import React from 'react';
 
@@ -259,17 +259,17 @@ describe('ImportManager', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      // When: default import 제거
+      // When: remove default import
       const manager = new ImportManager();
       manager.removeImport(ast, 'React');
 
-      // Then: import 문이 제거되어야 함
+      // Then: import statement should be removed
       const output = generate(ast).code;
       expect(output).not.toContain('import React');
     });
 
     it('should remove specific named import from import statement', () => {
-      // Given: 여러 named import가 있는 파일
+      // Given: file with multiple named imports
       const code = `
         import { useState, useEffect, useCallback } from 'react';
 
@@ -283,11 +283,11 @@ describe('ImportManager', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      // When: 하나의 named import만 제거
+      // When: remove only one named import
       const manager = new ImportManager();
       manager.removeImport(ast, 'useEffect');
 
-      // Then: 해당 import만 제거되고 나머지는 유지되어야 함
+      // Then: that import should be removed and others should remain
       const output = generate(ast).code;
       expect(output).toContain('useState');
       expect(output).toContain('useCallback');
@@ -295,7 +295,7 @@ describe('ImportManager', () => {
     });
 
     it('should remove entire import statement when last specifier is removed', () => {
-      // Given: 하나의 named import만 있는 파일
+      // Given: file with only one named import
       const code = `
         import { useState } from 'react';
 
@@ -309,18 +309,18 @@ describe('ImportManager', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      // When: 마지막 남은 import 제거
+      // When: remove the last remaining import
       const manager = new ImportManager();
       manager.removeImport(ast, 'useState');
 
-      // Then: import 문 전체가 제거되어야 함
+      // Then: entire import statement should be removed
       const output = generate(ast).code;
       expect(output).not.toContain('import');
       expect(output).not.toContain('react');
     });
 
     it('should do nothing when import name does not exist', () => {
-      // Given: import가 있는 파일
+      // Given: file with import
       const code = `
         import { useState } from 'react';
 
@@ -334,11 +334,11 @@ describe('ImportManager', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      // When: 존재하지 않는 import 제거 시도
+      // When: attempt to remove non-existent import
       const manager = new ImportManager();
       manager.removeImport(ast, 'useEffect');
 
-      // Then: 기존 import는 유지되어야 함
+      // Then: existing import should be maintained
       const output = generate(ast).code;
       expect(output).toContain('useState');
     });

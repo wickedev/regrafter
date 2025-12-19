@@ -1,7 +1,7 @@
 /**
  * ExtractPlanner Tests
  *
- * Task 8.1: ExtractPlanner 테스트 작성 - 간단한 추출 계획
+ * Task 8.1: ExtractPlanner test implementation - Simple extraction plan
  */
 
 import { describe, it, expect } from 'vitest';
@@ -27,7 +27,7 @@ function parseFilesToAsts(files: FileInput[]): Map<string, t.File> {
 }
 
 describe('ExtractPlanner', () => {
-  describe('plan() - 단일 노드 선택 및 계획 생성', () => {
+  describe('plan() - Single node selection and plan generation', () => {
     it('should create a plan for simple JSX element extraction', () => {
       // Arrange
       const sourceCode = `
@@ -66,21 +66,21 @@ function App() {
       if (result.ok) {
         const plan = result.value;
 
-        // 선택된 노드가 있어야 함
+        // Should have selected nodes
         expect(plan.selectedNodes).toHaveLength(1);
 
-        // 소스 파일 경로 확인
+        // Verify source file path
         expect(plan.sourceFile).toBe('App.tsx');
 
-        // 대상 파일은 같은 파일 (options.targetFile이 없으므로)
+        // Target file is the same file (since options.targetFile is not provided)
         expect(plan.targetFile).toBe('App.tsx');
         expect(plan.isSameFile).toBe(true);
 
-        // 컴포넌트 이름이 생성되어야 함
+        // Component name should be generated
         expect(plan.componentName).toBeTruthy();
         expect(plan.componentName).toMatch(/^[A-Z][A-Za-z0-9]*$/); // PascalCase
 
-        // Props 인터페이스 이름이 생성되어야 함
+        // Props interface name should be generated
         expect(plan.propsInterfaceName).toBe(`${plan.componentName}Props`);
       }
     });
@@ -124,7 +124,7 @@ function App() {
     });
   });
 
-  describe('plan() - 변수 의존성 분석', () => {
+  describe('plan() - Variable dependency analysis', () => {
     it('should identify variable dependencies', () => {
       // Arrange
       const sourceCode = `
@@ -165,7 +165,7 @@ function App() {
       if (result.ok) {
         const plan = result.value;
 
-        // 변수 의존성이 식별되어야 함
+        // Variable dependencies should be identified
         expect(plan.dependencies.variables).toHaveLength(2);
 
         const variableNames = plan.dependencies.variables.map(v => v.name);
@@ -209,17 +209,17 @@ function App() {
       if (result.ok) {
         const plan = result.value;
 
-        // Props가 생성되어야 함
+        // Props should be generated
         expect(plan.propTypes.length).toBeGreaterThan(0);
 
-        // message prop이 포함되어야 함
+        // message prop should be included
         const messageProp = plan.propTypes.find(p => p.name === 'message');
         expect(messageProp).toBeDefined();
       }
     });
   });
 
-  describe('plan() - 에러 처리', () => {
+  describe('plan() - Error handling', () => {
     it('should return error for invalid selector', () => {
       // Arrange
       const sourceCode = `
@@ -275,7 +275,7 @@ function App() {
     });
   });
 
-  describe('plan() - 대상 파일 처리', () => {
+  describe('plan() - Target file handling', () => {
     it('should set targetFile to same file when not provided', () => {
       // Arrange
       const sourceCode = `

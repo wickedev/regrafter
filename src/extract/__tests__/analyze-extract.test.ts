@@ -1,9 +1,9 @@
 /**
- * analyzeExtract() 함수 테스트
+ * analyzeExtract() function tests
  *
- * Task 21.3: analyzeExtract() 함수 테스트 작성
+ * Task 21.3: analyzeExtract() function tests implementation
  * Requirements:
- * - 2.5: 의존성 분석만 수행하고 변환 생략
+ * - 2.5: Perform dependency analysis only and skip transformation
  */
 
 import { describe, it, expect } from 'vitest';
@@ -11,8 +11,8 @@ import { analyzeExtract } from '../extract.js';
 import type { FileInput, Selector } from '../../types/public.js';
 
 describe('analyzeExtract', () => {
-  describe('의존성 분석', () => {
-    it('변수 의존성을 분석하여 반환해야 한다', () => {
+  describe('Dependency analysis', () => {
+    it('should analyze and return variable dependencies', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',
@@ -40,7 +40,7 @@ describe('analyzeExtract', () => {
       }
     });
 
-    it('함수 의존성을 분석하여 반환해야 한다', () => {
+    it('should analyze and return function dependencies', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',
@@ -67,7 +67,7 @@ describe('analyzeExtract', () => {
       }
     });
 
-    it('상태 의존성을 분석하여 반환해야 한다', () => {
+    it('should analyze and return state dependencies', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',
@@ -103,7 +103,7 @@ describe('analyzeExtract', () => {
       }
     });
 
-    it('여러 타입의 의존성을 동시에 분석해야 한다', () => {
+    it('should simultaneously analyze multiple types of dependencies', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',
@@ -139,10 +139,10 @@ describe('analyzeExtract', () => {
       if (result.ok) {
         const { dependencies } = result.value;
 
-        // 변수 의존성 확인
+        // Verify variable dependencies
         expect(dependencies.variables).toContain('name');
 
-        // 상태 의존성 확인
+        // Verify state dependencies
         expect(dependencies.states).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
@@ -152,14 +152,14 @@ describe('analyzeExtract', () => {
           ])
         );
 
-        // 함수 의존성 확인
+        // Verify function dependencies
         expect(dependencies.functions).toContain('handleClick');
       }
     });
   });
 
-  describe('컴포넌트 정보 분석', () => {
-    it('생성될 컴포넌트 이름을 포함해야 한다', () => {
+  describe('Component information analysis', () => {
+    it('should include the name of the component to be generated', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',
@@ -186,7 +186,7 @@ describe('analyzeExtract', () => {
       }
     });
 
-    it('같은 파일 내 추출 여부를 포함해야 한다', () => {
+    it('should include whether extraction is within the same file', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',
@@ -213,7 +213,7 @@ describe('analyzeExtract', () => {
       }
     });
 
-    it('Props 타입 정보를 포함해야 한다', () => {
+    it('should include Props type information', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',
@@ -248,8 +248,8 @@ describe('analyzeExtract', () => {
     });
   });
 
-  describe('에러 처리', () => {
-    it('유효하지 않은 selector에 대해 에러를 반환해야 한다', () => {
+  describe('Error handling', () => {
+    it('should return error for invalid selector', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',
@@ -272,7 +272,7 @@ describe('analyzeExtract', () => {
       expect(result.ok).toBe(false);
     });
 
-    it('빈 파일 목록에 대해 에러를 반환해야 한다', () => {
+    it('should return error for empty file list', () => {
       const files: FileInput[] = [];
 
       const selector: Selector = {
@@ -286,7 +286,7 @@ describe('analyzeExtract', () => {
       expect(result.ok).toBe(false);
     });
 
-    it('JSX가 아닌 노드에 대해 에러를 반환해야 한다', () => {
+    it('should return error for non-JSX node', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',
@@ -299,7 +299,7 @@ describe('analyzeExtract', () => {
         },
       ];
 
-      // 변수 선언을 가리키는 selector
+      // Selector pointing to variable declaration
       const selector: Selector = {
         file: 'App.tsx',
         line: 3,
@@ -312,8 +312,8 @@ describe('analyzeExtract', () => {
     });
   });
 
-  describe('변환 없이 분석만 수행', () => {
-    it('실제 변환을 수행하지 않아야 한다', () => {
+  describe('Perform analysis only without transformation', () => {
+    it('should not perform actual transformation', () => {
       const originalContent = `
         function App() {
           const name = "World";
@@ -338,11 +338,11 @@ describe('analyzeExtract', () => {
 
       expect(result.ok).toBe(true);
 
-      // 파일 내용이 변경되지 않았는지 확인
+      // Verify file content has not changed
       expect(files[0].content).toBe(originalContent);
     });
 
-    it('여러 번 호출해도 동일한 결과를 반환해야 한다 (멱등성)', () => {
+    it('should return same results when called multiple times (idempotency)', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',

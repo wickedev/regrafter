@@ -1,8 +1,8 @@
 /**
  * ExtractDependencyAnalyzer Tests
  *
- * Task 4.1: 변수 의존성 테스트
- * Task 4.3: 함수 의존성 테스트
+ * Task 4.1: Variable dependency tests
+ * Task 4.3: Function dependency tests
  */
 
 import { describe, it, expect } from 'vitest';
@@ -20,8 +20,8 @@ function parseCode(code: string): t.File {
 }
 
 describe('ExtractDependencyAnalyzer', () => {
-  describe('Task 4.1: 변수 의존성 분석', () => {
-    it('외부 변수 참조를 식별해야 한다', () => {
+  describe('Task 4.1: Variable dependency analysis', () => {
+    it('should identify external variable references', () => {
       const code = `
 const Component = () => {
   const externalVar = 'hello';
@@ -37,11 +37,11 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // div 엘리먼트를 선택
+      // Select div element
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 5, column: 5 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('div 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find div node');
       const divPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
@@ -55,7 +55,7 @@ const Component = () => {
       expect(dependencies.variables[0].name).toBe('externalVar');
     });
 
-    it('로컬 변수는 의존성에서 제외해야 한다', () => {
+    it('should exclude local variables from dependencies', () => {
       const code = `
 const Component = () => {
   const externalVar = 'hello';
@@ -76,11 +76,11 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // div 엘리먼트를 선택
+      // Select div element
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 5, column: 5 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('div 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find div node');
       const divPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
@@ -90,12 +90,12 @@ const Component = () => {
       if (!result.ok) throw result.error;
 
       const dependencies = result.value;
-      // localVar는 포함되지 않아야 함
+      // localVar should not be included
       const variableNames = dependencies.variables.map(v => v.name);
       expect(variableNames).not.toContain('localVar');
     });
 
-    it('여러 변수 의존성을 식별해야 한다', () => {
+    it('should identify multiple variable dependencies', () => {
       const code = `
 const Component = () => {
   const name = 'John';
@@ -117,11 +117,11 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // div 엘리먼트를 선택
+      // Select div element
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 7, column: 5 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('div 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find div node');
       const divPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
@@ -138,8 +138,8 @@ const Component = () => {
     });
   });
 
-  describe('Task 4.3: 함수 의존성 분석', () => {
-    it('외부 함수 호출을 식별해야 한다', () => {
+  describe('Task 4.3: Function dependency analysis', () => {
+    it('should identify external function calls', () => {
       const code = `
 const Component = () => {
   const handleClick = () => console.log('clicked');
@@ -155,11 +155,11 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // button 엘리먼트를 선택
+      // Select button element
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 5, column: 5 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('button 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find button node');
       const buttonPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
@@ -173,7 +173,7 @@ const Component = () => {
       expect(dependencies.functions[0].name).toBe('handleClick');
     });
 
-    it('여러 함수 의존성을 식별해야 한다', () => {
+    it('should identify multiple function dependencies', () => {
       const code = `
 const Component = () => {
   const handleClick = () => console.log('clicked');
@@ -195,11 +195,11 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // div 엘리먼트를 선택
+      // Select div element
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 7, column: 5 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('div 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find div node');
       const divPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
@@ -216,8 +216,8 @@ const Component = () => {
     });
   });
 
-  describe('Task 15.1: useState 의존성 분석', () => {
-    it('useState 호출을 식별해야 한다', () => {
+  describe('Task 15.1: useState dependency analysis', () => {
+    it('should identify useState calls', () => {
       const code = `
 const Component = () => {
   const [count, setCount] = useState(0);
@@ -236,11 +236,11 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // div 엘리먼트를 선택
+      // Select div element
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 5, column: 5 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('div 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find div node');
       const divPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
@@ -255,7 +255,7 @@ const Component = () => {
       expect(dependencies.states[0].setterName).toBe('setCount');
     });
 
-    it('상태 변수와 setter를 모두 식별해야 한다', () => {
+    it('should identify both state variable and setter', () => {
       const code = `
 const Component = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -274,11 +274,11 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // div 엘리먼트를 선택
+      // Select div element
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 5, column: 5 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('div 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find div node');
       const divPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
@@ -294,12 +294,12 @@ const Component = () => {
       expect(state.stateName).toBe('isOpen');
       expect(state.setterName).toBe('setIsOpen');
 
-      // 상태 변수와 setter 모두 참조되어야 함
+      // Both state variable and setter should be referenced
       expect(state.stateName).toBeDefined();
       expect(state.setterName).toBeDefined();
     });
 
-    it('여러 useState 호출을 식별해야 한다', () => {
+    it('should identify multiple useState calls', () => {
       const code = `
 const Component = () => {
   const [name, setName] = useState('');
@@ -319,11 +319,11 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // div 엘리먼트를 선택
+      // Select div element
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 6, column: 5 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('div 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find div node');
       const divPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
@@ -343,8 +343,8 @@ const Component = () => {
     });
   });
 
-  describe('Task 17.1: Import 의존성 분석', () => {
-    it('외부 라이브러리 import를 식별해야 한다', () => {
+  describe('Task 17.1: Import dependency analysis', () => {
+    it('should identify external library imports', () => {
       const code = `
 import { Button } from 'antd';
 import moment from 'moment';
@@ -365,11 +365,11 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // div 엘리먼트를 선택
+      // Select div element
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 7, column: 5 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('div 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find div node');
       const divPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
@@ -384,18 +384,18 @@ const Component = () => {
       const importNames = dependencies.imports.map(i => i.name).sort();
       expect(importNames).toEqual(['Button', 'moment']);
 
-      // moment는 default import
+      // moment is default import
       const momentImport = dependencies.imports.find(i => i.name === 'moment');
       expect(momentImport?.isDefault).toBe(true);
       expect(momentImport?.source).toBe('moment');
 
-      // Button은 named import
+      // Button is named import
       const buttonImport = dependencies.imports.find(i => i.name === 'Button');
       expect(buttonImport?.isDefault).toBe(false);
       expect(buttonImport?.source).toBe('antd');
     });
 
-    it('로컬 모듈 import를 식별해야 한다', () => {
+    it('should identify local module imports', () => {
       const code = `
 import { CustomButton } from './components/CustomButton';
 import UserProfile from '../UserProfile';
@@ -416,11 +416,11 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // div 엘리먼트를 선택
+      // Select div element
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 7, column: 5 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('div 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find div node');
       const divPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
@@ -435,18 +435,18 @@ const Component = () => {
       const importNames = dependencies.imports.map(i => i.name).sort();
       expect(importNames).toEqual(['CustomButton', 'UserProfile']);
 
-      // CustomButton은 named import
+      // CustomButton is named import
       const customButtonImport = dependencies.imports.find(i => i.name === 'CustomButton');
       expect(customButtonImport?.isDefault).toBe(false);
       expect(customButtonImport?.source).toBe('./components/CustomButton');
 
-      // UserProfile은 default import
+      // UserProfile is default import
       const userProfileImport = dependencies.imports.find(i => i.name === 'UserProfile');
       expect(userProfileImport?.isDefault).toBe(true);
       expect(userProfileImport?.source).toBe('../UserProfile');
     });
 
-    it('import된 변수를 변수 의존성이 아닌 import 의존성으로 분류해야 한다', () => {
+    it('should classify imported variables as import dependencies, not variable dependencies', () => {
       const code = `
 import { formatDate } from './utils';
 
@@ -467,11 +467,11 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // div 엘리먼트를 선택
+      // Select div element
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 7, column: 5 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('div 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find div node');
       const divPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
@@ -482,20 +482,20 @@ const Component = () => {
 
       const dependencies = result.value;
 
-      // formatDate는 import 의존성으로 분류
+      // formatDate should be classified as import dependency
       expect(dependencies.imports).toHaveLength(1);
       expect(dependencies.imports[0].name).toBe('formatDate');
 
-      // localVar는 변수 의존성으로 분류
+      // localVar should be classified as variable dependency
       expect(dependencies.variables).toHaveLength(1);
       expect(dependencies.variables[0].name).toBe('localVar');
 
-      // formatDate는 functions에 포함되지 않아야 함
+      // formatDate should not be included in functions
       const functionNames = dependencies.functions.map(f => f.name);
       expect(functionNames).not.toContain('formatDate');
     });
 
-    it('JSX 컴포넌트와 일반 함수 import를 모두 식별해야 한다', () => {
+    it('should identify both JSX component and regular function imports', () => {
       const code = `
 import React from 'react';
 import { Card, Avatar } from 'antd';
@@ -522,11 +522,11 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // Card 엘리먼트를 선택
+      // Select Card element
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 10, column: 5 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('Card 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find Card node');
       const cardPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
@@ -537,7 +537,7 @@ const Component = () => {
 
       const dependencies = result.value;
 
-      // Card, Avatar, formatName, calculateAge import 의존성
+      // Card, Avatar, formatName, calculateAge import dependencies
       expect(dependencies.imports.length).toBeGreaterThanOrEqual(4);
 
       const importNames = dependencies.imports.map(i => i.name).sort();
@@ -546,14 +546,14 @@ const Component = () => {
       expect(importNames).toContain('formatName');
       expect(importNames).toContain('calculateAge');
 
-      // name과 birthDate는 변수 의존성
+      // name and birthDate are variable dependencies
       const variableNames = dependencies.variables.map(v => v.name).sort();
       expect(variableNames).toEqual(['birthDate', 'name']);
     });
   });
 
-  describe('Task 19.1: 순환 의존성 감지', () => {
-    it('함수가 추출 영역 내 변수를 참조하는 경우 순환 의존성을 감지해야 한다', () => {
+  describe('Task 19.1: Circular dependency detection', () => {
+    it('should detect circular dependency when function references a variable within the extraction region', () => {
       const code = `
 const Component = () => {
   const handleClick = () => {
@@ -579,25 +579,25 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // button 엘리먼트를 선택 (추출할 영역)
+      // Select button element (area to extract)
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 9, column: 7 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('button 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find button node');
       const buttonPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
       const result = analyzer.analyze([buttonPath], scopeTreeResult.value.root);
 
-      // 순환 의존성 에러를 반환해야 함
+      // Should return circular dependency error
       expect(result.ok).toBe(false);
-      if (result.ok) throw new Error('순환 의존성이 감지되어야 합니다');
+      if (result.ok) throw new Error('Circular dependency should be detected');
 
       expect(result.error.code).toBe('CIRCULAR_DEPENDENCY');
-      expect(result.error.message).toContain('순환 의존성');
+      expect(result.error.message).toContain('Circular dependency');
     });
 
-    it('적절한 에러 메시지를 반환해야 한다', () => {
+    it('should return an appropriate error message', () => {
       const code = `
 const Component = () => {
   const handleClick = () => {
@@ -623,23 +623,23 @@ const Component = () => {
       const scopeTreeResult = scopeManager.buildScopeTree(ast);
       if (!scopeTreeResult.ok) throw scopeTreeResult.error;
 
-      // button 엘리먼트를 선택 (추출할 영역)
+      // Select button element (area to extract)
       const resolver = createSelectorResolver();
       const resolveResult = resolver.resolve({ file: 'test.tsx', line: 9, column: 7 }, ast);
       if (resolveResult.error) throw resolveResult.error;
-      if (!resolveResult.path) throw new Error('button 노드를 찾을 수 없습니다');
+      if (!resolveResult.path) throw new Error('Cannot find button node');
       const buttonPath = resolveResult.path;
 
       const analyzer = new ExtractDependencyAnalyzer(scopeManager);
       const result = analyzer.analyze([buttonPath], scopeTreeResult.value.root);
 
-      // 순환 의존성 에러를 반환해야 함
+      // Should return circular dependency error
       expect(result.ok).toBe(false);
-      if (result.ok) throw new Error('순환 의존성이 감지되어야 합니다');
+      if (result.ok) throw new Error('Circular dependency should be detected');
 
       expect(result.error.code).toBe('CIRCULAR_DEPENDENCY');
-      // 에러 메시지가 정의되어 있어야 함
-      expect(result.error.message).toContain('순환 의존성');
+      // Error message should be defined
+      expect(result.error.message).toContain('Circular dependency');
       expect(result.error.message).toBeDefined();
       expect(result.error.message.length).toBeGreaterThan(0);
     });

@@ -1,7 +1,7 @@
 /**
  * ComponentNameGenerator
  *
- * Task 5.2: ComponentNameGenerator 구현
+ * Task 5.2: ComponentNameGenerator implementation
  * Generates unique component names following React naming conventions
  */
 

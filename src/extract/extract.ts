@@ -1,13 +1,13 @@
 /**
  * Extract Public API
  *
- * Task 10.3: extract() API 함수 구현
+ * Task 10.3: extract() API function implementation
  *
  * Requirements:
- * - 10.1: 소스 파일 경로를 필수 파라미터로 요구
- * - 10.2: selector를 필수 파라미터로 요구
- * - 10.7: 생성된 컴포넌트 정보와 수정된 파일 목록을 반환
- * - 10.8: 실패 시 구체적인 에러 객체를 throw
+ * - 10.1: Require source file path as mandatory parameter
+ * - 10.2: Require selector as mandatory parameter
+ * - 10.7: Return generated component info and modified file list
+ * - 10.8: Throw specific error object on failure
  */
 
 import type { FileInput, Selector } from "../types/public.js";
@@ -22,15 +22,15 @@ import type {
 import { ExtractOrchestrator } from "./extract-orchestrator.js";
 
 /**
- * JSX 노드를 새로운 컴포넌트로 추출
+ * Extract JSX nodes into a new component
  *
- * @param files - 파일 입력 배열
- * @param selector - JSX 노드를 선택하는 Selector 또는 RangeSelector
- * @param options - 추출 옵션
+ * @param files - Array of file inputs
+ * @param selector - Selector or RangeSelector to select JSX nodes
+ * @param options - Extract options
  * @returns Result<ExtractResult, RegraffError>
  *
  * @example
- * // 같은 파일 내 추출
+ * // Extract within same file
  * const result = extract(
  *   [{ path: 'App.tsx', content: sourceCode }],
  *   { file: 'App.tsx', line: 10, column: 5 },
@@ -38,7 +38,7 @@ import { ExtractOrchestrator } from "./extract-orchestrator.js";
  * );
  *
  * @example
- * // 다른 파일로 추출
+ * // Extract to different file
  * const result = extract(
  *   files,
  *   { file: 'App.tsx', line: 10, column: 5 },
@@ -49,7 +49,7 @@ import { ExtractOrchestrator } from "./extract-orchestrator.js";
  * );
  *
  * @example
- * // 범위 선택으로 여러 노드 추출
+ * // Extract multiple nodes with range selection
  * const result = extract(
  *   files,
  *   {
@@ -70,20 +70,20 @@ export function extract(
 }
 
 /**
- * 추출 가능 여부를 빠르게 확인 (dry-run)
+ * Quickly check if extraction is possible (dry-run)
  *
- * Task 21.2: canExtract() 함수 구현
+ * Task 21.2: canExtract() function implementation
  *
- * @param files - 파일 입력 배열
- * @param selector - JSX 노드를 선택하는 Selector 또는 RangeSelector
- * @returns boolean - 추출 가능 여부
+ * @param files - Array of file inputs
+ * @param selector - Selector or RangeSelector to select JSX nodes
+ * @returns boolean - Whether extraction is possible
  *
  * Requirements:
- * - 10.7: 검증만 수행하고 변환 생략
+ * - 10.7: Perform validation only and skip transformation
  *
  * @example
  * if (canExtract(files, selector)) {
- *   // 추출 수행
+ *   // Perform extraction
  *   const result = extract(files, selector, options);
  * }
  */
@@ -97,16 +97,16 @@ export function canExtract(
 }
 
 /**
- * 추출 분석만 수행 (변환 없이)
+ * Perform extraction analysis only (without transformation)
  *
- * Task 21.4: analyzeExtract() 함수 구현
+ * Task 21.4: analyzeExtract() function implementation
  *
- * @param files - 파일 입력 배열
- * @param selector - JSX 노드를 선택하는 Selector 또는 RangeSelector
+ * @param files - Array of file inputs
+ * @param selector - Selector or RangeSelector to select JSX nodes
  * @returns Result<ExtractAnalysis, RegraffError>
  *
  * Requirements:
- * - 2.5: 의존성 분석만 수행하고 코드 변환 생략
+ * - 2.5: Perform dependency analysis only and skip code transformation
  *
  * @example
  * const analysis = analyzeExtract(files, selector);

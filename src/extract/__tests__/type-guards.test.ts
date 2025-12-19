@@ -1,7 +1,7 @@
 /**
  * Type Guards Tests
  *
- * Task 22.1: 타입 가드 테스트 작성
+ * Task 22.1: Type guard test implementation
  * Tests for isRangeSelector and isExtractSuccess type guards
  */
 

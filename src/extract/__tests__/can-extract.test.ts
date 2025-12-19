@@ -1,9 +1,9 @@
 /**
- * canExtract() 함수 테스트
+ * canExtract() function tests
  *
- * Task 21.1: canExtract() 함수 테스트 작성
+ * Task 21.1: canExtract() function test implementation
  * Requirements:
- * - 10.7: 추출 가능 여부를 빠르게 확인
+ * - 10.7: Quickly check if extraction is possible
  */
 
 import { describe, it, expect } from 'vitest';
@@ -11,8 +11,8 @@ import { canExtract } from '../extract.js';
 import type { FileInput, Selector } from '../../types/public.js';
 
 describe('canExtract', () => {
-  describe('추출 가능 여부 확인', () => {
-    it('유효한 JSX 노드를 선택하면 true를 반환해야 한다', () => {
+  describe('Check extraction feasibility', () => {
+    it('should return true when a valid JSX node is selected', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',
@@ -36,7 +36,7 @@ describe('canExtract', () => {
       expect(result).toBe(true);
     });
 
-    it('유효하지 않은 selector를 제공하면 false를 반환해야 한다', () => {
+    it('should return false when an invalid selector is provided', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',
@@ -59,7 +59,7 @@ describe('canExtract', () => {
       expect(result).toBe(false);
     });
 
-    it('JSX가 아닌 노드를 선택하면 false를 반환해야 한다', () => {
+    it('should return false when a non-JSX node is selected', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',
@@ -72,7 +72,7 @@ describe('canExtract', () => {
         },
       ];
 
-      // 변수 선언을 가리키는 selector
+      // selector pointing to a variable declaration
       const selector: Selector = {
         file: 'App.tsx',
         line: 3,
@@ -84,7 +84,7 @@ describe('canExtract', () => {
       expect(result).toBe(false);
     });
 
-    it('빈 파일 목록이 제공되면 false를 반환해야 한다', () => {
+    it('should return false when an empty file list is provided', () => {
       const files: FileInput[] = [];
 
       const selector: Selector = {
@@ -99,8 +99,8 @@ describe('canExtract', () => {
     });
   });
 
-  describe('dry-run 모드', () => {
-    it('실제 변환을 수행하지 않고 검증만 수행해야 한다', () => {
+  describe('dry-run mode', () => {
+    it('should only perform validation without actual transformation', () => {
       const originalContent = `
         function App() {
           const name = "World";
@@ -121,15 +121,15 @@ describe('canExtract', () => {
         column: 18,
       };
 
-      // canExtract 호출
+      // Call canExtract
       canExtract(files, selector);
 
-      // 파일 내용이 변경되지 않았는지 확인
-      // (실제로는 파일 시스템을 변경하지 않지만, 이 테스트는 개념적 확인)
+      // Verify that file content has not changed
+      // (In practice, the file system is not modified, but this test is a conceptual verification)
       expect(files[0].content).toBe(originalContent);
     });
 
-    it('여러 번 호출해도 동일한 결과를 반환해야 한다 (멱등성)', () => {
+    it('should return the same result when called multiple times (idempotency)', () => {
       const files: FileInput[] = [
         {
           path: 'App.tsx',

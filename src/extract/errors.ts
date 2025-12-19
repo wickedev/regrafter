@@ -1,7 +1,7 @@
 /**
  * Extract Feature Error Definitions
  *
- * Task 1.3: 에러 타입 정의
+ * Task 1.3: Error type definition
  * Defines all error codes and error creation utilities for extract feature
  */
 
@@ -21,68 +21,68 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Extract 기능 전용 에러 코드
+ * Extract feature specific error codes
  */
 export enum ExtractErrorCode {
-  // 검증 에러
+  // Validation errors
   EMPTY_INPUT = 'EMPTY_INPUT',
   INVALID_SELECTOR = 'INVALID_SELECTOR',
   FILE_NOT_FOUND = 'FILE_NOT_FOUND',
 
-  // 선택 에러
+  // Selection errors
   NODE_NOT_FOUND = 'NODE_NOT_FOUND',
   INVALID_SELECTION = 'INVALID_SELECTION',
   NON_CONTIGUOUS_NODES = 'NON_CONTIGUOUS_NODES',
   DIFFERENT_PARENTS = 'DIFFERENT_PARENTS',
   NOT_JSX_NODE = 'NOT_JSX_NODE',
 
-  // 의존성 분석 에러
+  // Dependency analysis errors
   CIRCULAR_DEPENDENCY = 'CIRCULAR_DEPENDENCY',
   UNRESOLVABLE_DEPENDENCY = 'UNRESOLVABLE_DEPENDENCY',
   HOOK_RULE_VIOLATION = 'HOOK_RULE_VIOLATION',
 
-  // 타입 추론 에러
+  // Type inference errors
   TYPE_INFERENCE_FAILED = 'TYPE_INFERENCE_FAILED',
   COMPLEX_TYPE_UNSUPPORTED = 'COMPLEX_TYPE_UNSUPPORTED',
 
-  // 이름 생성 에러
+  // Name generation errors
   INVALID_COMPONENT_NAME = 'INVALID_COMPONENT_NAME',
   NAME_CONFLICT = 'NAME_CONFLICT',
 
-  // 코드 생성 에러
+  // Code generation errors
   COMPONENT_BUILD_FAILED = 'COMPONENT_BUILD_FAILED',
   CODE_GENERATION_FAILED = 'CODE_GENERATION_FAILED',
   INVALID_JSX_STRUCTURE = 'INVALID_JSX_STRUCTURE',
 
-  // 파일 작업 에러
+  // File operation errors
   FILE_WRITE_FAILED = 'FILE_WRITE_FAILED',
   FILE_READ_FAILED = 'FILE_READ_FAILED',
 }
 
 /**
- * 에러 코드별 메시지 매핑
+ * Error code to message mapping
  */
 export const ERROR_MESSAGES: Record<ExtractErrorCode, string> = {
-  [ExtractErrorCode.EMPTY_INPUT]: '파일 목록이 비어있습니다',
-  [ExtractErrorCode.INVALID_SELECTOR]: '유효하지 않은 selector입니다',
-  [ExtractErrorCode.FILE_NOT_FOUND]: '파일을 찾을 수 없습니다',
-  [ExtractErrorCode.NODE_NOT_FOUND]: '지정된 위치에서 노드를 찾을 수 없습니다',
-  [ExtractErrorCode.INVALID_SELECTION]: '선택된 노드가 추출 가능한 JSX 노드가 아닙니다',
-  [ExtractErrorCode.NON_CONTIGUOUS_NODES]: '선택된 노드들이 연속되어 있지 않습니다',
-  [ExtractErrorCode.DIFFERENT_PARENTS]: '선택된 노드들의 부모가 서로 다릅니다',
-  [ExtractErrorCode.NOT_JSX_NODE]: 'JSX 노드만 추출 가능합니다',
-  [ExtractErrorCode.CIRCULAR_DEPENDENCY]: '순환 의존성이 감지되었습니다',
-  [ExtractErrorCode.UNRESOLVABLE_DEPENDENCY]: '해결할 수 없는 의존성이 있습니다',
-  [ExtractErrorCode.HOOK_RULE_VIOLATION]: 'React Hook 규칙 위반이 감지되었습니다',
-  [ExtractErrorCode.TYPE_INFERENCE_FAILED]: '타입 추론에 실패했습니다',
-  [ExtractErrorCode.COMPLEX_TYPE_UNSUPPORTED]: '지원하지 않는 복잡한 타입입니다',
-  [ExtractErrorCode.INVALID_COMPONENT_NAME]: '유효하지 않은 컴포넌트 이름입니다',
-  [ExtractErrorCode.NAME_CONFLICT]: '동일한 이름의 컴포넌트가 이미 존재합니다',
-  [ExtractErrorCode.COMPONENT_BUILD_FAILED]: '컴포넌트 생성에 실패했습니다',
-  [ExtractErrorCode.CODE_GENERATION_FAILED]: '코드 생성에 실패했습니다',
-  [ExtractErrorCode.INVALID_JSX_STRUCTURE]: '유효하지 않은 JSX 구조입니다',
-  [ExtractErrorCode.FILE_WRITE_FAILED]: '파일 쓰기에 실패했습니다',
-  [ExtractErrorCode.FILE_READ_FAILED]: '파일 읽기에 실패했습니다',
+  [ExtractErrorCode.EMPTY_INPUT]: 'File list is empty',
+  [ExtractErrorCode.INVALID_SELECTOR]: 'Invalid selector',
+  [ExtractErrorCode.FILE_NOT_FOUND]: 'File not found',
+  [ExtractErrorCode.NODE_NOT_FOUND]: 'Node not found at specified location',
+  [ExtractErrorCode.INVALID_SELECTION]: 'Selected node is not an extractable JSX node',
+  [ExtractErrorCode.NON_CONTIGUOUS_NODES]: 'Selected nodes are not contiguous',
+  [ExtractErrorCode.DIFFERENT_PARENTS]: 'Selected nodes have different parents',
+  [ExtractErrorCode.NOT_JSX_NODE]: 'Only JSX nodes can be extracted',
+  [ExtractErrorCode.CIRCULAR_DEPENDENCY]: 'Circular dependency detected',
+  [ExtractErrorCode.UNRESOLVABLE_DEPENDENCY]: 'Unresolvable dependency found',
+  [ExtractErrorCode.HOOK_RULE_VIOLATION]: 'React Hook rule violation detected',
+  [ExtractErrorCode.TYPE_INFERENCE_FAILED]: 'Type inference failed',
+  [ExtractErrorCode.COMPLEX_TYPE_UNSUPPORTED]: 'Unsupported complex type',
+  [ExtractErrorCode.INVALID_COMPONENT_NAME]: 'Invalid component name',
+  [ExtractErrorCode.NAME_CONFLICT]: 'Component with the same name already exists',
+  [ExtractErrorCode.COMPONENT_BUILD_FAILED]: 'Component build failed',
+  [ExtractErrorCode.CODE_GENERATION_FAILED]: 'Code generation failed',
+  [ExtractErrorCode.INVALID_JSX_STRUCTURE]: 'Invalid JSX structure',
+  [ExtractErrorCode.FILE_WRITE_FAILED]: 'File write failed',
+  [ExtractErrorCode.FILE_READ_FAILED]: 'File read failed',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -90,7 +90,7 @@ export const ERROR_MESSAGES: Record<ExtractErrorCode, string> = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Extract 에러 생성 파라미터
+ * Extract error creation parameters
  */
 interface ExtractErrorParams {
   selector?: Selector;
@@ -106,7 +106,7 @@ interface ExtractErrorParams {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Extract 에러 생성 함수
+ * Extract error creation function
  */
 export function createExtractError(
   code: ExtractErrorCode,
@@ -114,9 +114,9 @@ export function createExtractError(
 ): RegraffError {
   const message = ERROR_MESSAGES[code];
 
-  // 에러 코드에 따라 적절한 카테고리의 에러 생성
+  // Create error of appropriate category based on error code
   switch (code) {
-    // 검증 에러
+    // Validation errors
     case ExtractErrorCode.EMPTY_INPUT:
     case ExtractErrorCode.FILE_NOT_FOUND:
       return new ValidationError({
@@ -130,7 +130,7 @@ export function createExtractError(
         recoverable: false,
       });
 
-    // 선택 에러
+    // Selection errors
     case ExtractErrorCode.INVALID_SELECTOR:
     case ExtractErrorCode.NODE_NOT_FOUND:
     case ExtractErrorCode.INVALID_SELECTION:
@@ -146,7 +146,7 @@ export function createExtractError(
         suggestions: params.suggestions,
       });
 
-    // 의존성 분석 에러
+    // Dependency analysis errors
     case ExtractErrorCode.CIRCULAR_DEPENDENCY:
     case ExtractErrorCode.UNRESOLVABLE_DEPENDENCY:
     case ExtractErrorCode.HOOK_RULE_VIOLATION:
@@ -160,7 +160,7 @@ export function createExtractError(
         recoverable: code !== ExtractErrorCode.HOOK_RULE_VIOLATION,
       });
 
-    // 코드 생성 에러
+    // Code generation errors
     case ExtractErrorCode.COMPONENT_BUILD_FAILED:
     case ExtractErrorCode.CODE_GENERATION_FAILED:
     case ExtractErrorCode.INVALID_JSX_STRUCTURE:
@@ -176,7 +176,7 @@ export function createExtractError(
         cause: params.cause,
       });
 
-    // 타입 추론 및 이름 생성 에러
+    // Type inference and name generation errors
     case ExtractErrorCode.TYPE_INFERENCE_FAILED:
     case ExtractErrorCode.COMPLEX_TYPE_UNSUPPORTED:
     case ExtractErrorCode.INVALID_COMPONENT_NAME:
@@ -210,7 +210,7 @@ export function createExtractError(
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Extract 에러 타입 가드
+ * Extract error type guard
  */
 export function isExtractError(error: unknown): error is RegraffError {
   if (!error || typeof error !== 'object') {

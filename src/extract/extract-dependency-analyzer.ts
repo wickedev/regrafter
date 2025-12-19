@@ -1,8 +1,8 @@
 /**
  * ExtractDependencyAnalyzer
  *
- * Task 4.2: 변수 의존성 구현
- * Task 4.4: 함수 의존성 구현
+ * Task 4.2: Variable dependency implementation
+ * Task 4.4: Function dependency implementation
  *
  * Analyzes dependencies of selected JSX nodes for extract operation
  */
@@ -29,7 +29,7 @@ const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
 /**
  * ExtractDependencyAnalyzer
  *
- * 선택된 JSX 노드들의 의존성을 분석하여 Props로 전달해야 할 목록을 생성
+ * Analyzes dependencies of selected JSX nodes to generate list of items to pass as Props
  */
 export class ExtractDependencyAnalyzer {
   private readonly scopeManager: ScopeManager;
@@ -39,10 +39,10 @@ export class ExtractDependencyAnalyzer {
   }
 
   /**
-   * 선택된 노드들의 의존성 분석
+   * Analyze dependencies of selected nodes
    *
-   * @param nodes - 선택된 JSX 노드 경로 배열
-   * @param sourceScope - 소스 컴포넌트의 스코프 정보
+   * @param nodes - Array of selected JSX node paths
+   * @param sourceScope - Source component scope information
    * @returns Result<ExtractDependencies, RegraffError>
    */
   analyze(
@@ -55,15 +55,15 @@ export class ExtractDependencyAnalyzer {
     const imports: ImportDependency[] = [];
     const identifierNames = new Set<string>();
 
-    // AST 루트에서 import 정보 수집
+    // Collect import information from AST root
     const importMap = this.collectImports(nodes[0]);
 
-    // 모든 노드 순회하여 Identifier 수집
+    // Traverse all nodes to collect Identifiers
     for (const nodePath of nodes) {
       this.collectIdentifiers(nodePath, identifierNames);
     }
 
-    // 각 identifier의 스코프 확인
+    // Check scope of each identifier
     for (const name of identifierNames) {
       const dependency = this.analyzeDependency(name, nodes[0], sourceScope, importMap);
       if (dependency) {
@@ -72,7 +72,7 @@ export class ExtractDependencyAnalyzer {
         } else if (dependency.type === 'function') {
           functions.push(dependency.data);
         } else if (dependency.type === 'state') {
-          // state 의존성은 별도로 처리
+          // Handle state dependencies separately
           const existingState = states.find(
             s => s.stateName === dependency.data.stateName || s.setterName === dependency.data.setterName
           );
@@ -93,7 +93,7 @@ export class ExtractDependencyAnalyzer {
       imports,
     };
 
-    // 순환 의존성 검사
+    // Check circular dependency
     const circularDependencyResult = this.detectCircularDependency(dependencies, nodes);
     if (!circularDependencyResult.ok) {
       return circularDependencyResult;
@@ -103,7 +103,7 @@ export class ExtractDependencyAnalyzer {
   }
 
   /**
-   * AST 노드를 순회하여 모든 Identifier를 수집
+   * Traverse AST node to collect all Identifiers
    */
   private collectIdentifiers(nodePath: NodePath, identifiers: Set<string>): void {
     const node = nodePath.node;
@@ -112,11 +112,11 @@ export class ExtractDependencyAnalyzer {
       node,
       {
         Identifier(path) {
-          // JSX 속성 이름은 제외
+          // Exclude JSX attribute names
           if (t.isJSXAttribute(path.parent) && path.parent.name === path.node) {
             return;
           }
-          // 객체 프로퍼티 키는 제외 (computed가 아닌 경우)
+          // Exclude object property keys (when not computed)
           if (
             t.isObjectProperty(path.parent) &&
             path.parent.key === path.node &&
@@ -128,7 +128,7 @@ export class ExtractDependencyAnalyzer {
           identifiers.add(path.node.name);
         },
         JSXIdentifier(path) {
-          // JSX 엘리먼트 이름만 수집 (속성 이름 제외)
+          // Collect only JSX element names (exclude attribute names)
           if (t.isJSXOpeningElement(path.parent) || t.isJSXClosingElement(path.parent)) {
             identifiers.add(path.node.name);
           }
@@ -139,12 +139,12 @@ export class ExtractDependencyAnalyzer {
   }
 
   /**
-   * AST 루트에서 import 정보 수집
+   * Collect import information from AST root
    */
   private collectImports(contextPath: NodePath): Map<string, { source: string; isDefault: boolean }> {
     const importMap = new Map<string, { source: string; isDefault: boolean }>();
 
-    // contextPath.hub.file을 통해 전체 AST에 접근
+    // Access entire AST through contextPath
     const programPath = contextPath.scope.getProgramParent().path;
     const program = programPath.node;
 
@@ -173,7 +173,7 @@ export class ExtractDependencyAnalyzer {
   }
 
   /**
-   * 개별 identifier의 의존성 분석
+   * Analyze dependency of individual identifier
    */
   private analyzeDependency(
     name: string,
@@ -181,7 +181,7 @@ export class ExtractDependencyAnalyzer {
     sourceScope: ScopeInfo,
     importMap: Map<string, { source: string; isDefault: boolean }>
   ): { type: 'variable' | 'function' | 'state' | 'import'; data: VariableDependency | FunctionDependency | StateDependency | ImportDependency } | null {
-    // import된 식별자인지 먼저 확인
+    // Check if it's an imported identifier first
     const importInfo = importMap.get(name);
     if (importInfo) {
       const importDep: ImportDependency = {
@@ -194,18 +194,18 @@ export class ExtractDependencyAnalyzer {
 
     const binding = contextPath.scope.getBinding(name);
     if (!binding) {
-      // 바인딩이 없으면 전역 변수이거나 React 컴포넌트일 수 있음
-      // 현재는 무시
+      // If no binding, it might be a global variable or React component
+      // Currently ignored
       return null;
     }
 
-    // 현재 노드의 스코프에서 선언된 것은 제외
+    // Exclude declarations in current node's scope
     const declarationPath = binding.path;
     if (this.isWithinNodes(declarationPath, contextPath)) {
       return null;
     }
 
-    // useState 호출인지 확인
+    // Check if it's a useState call
     const stateInfo = this.getStateInfo(declarationPath);
     if (stateInfo) {
       const type = this.extractTypeFromDeclaration(declarationPath);
@@ -218,7 +218,7 @@ export class ExtractDependencyAnalyzer {
       return { type: 'state', data: stateDep };
     }
 
-    // 함수인지 변수인지 확인
+    // Check if it's a function or variable
     if (this.isFunctionBinding(binding)) {
       const type = this.extractTypeFromDeclaration(declarationPath);
       const functionDep: FunctionDependency = {
@@ -326,7 +326,7 @@ export class ExtractDependencyAnalyzer {
   }
 
   /**
-   * 선언이 선택된 노드 내부에 있는지 확인
+   * Check if declaration is within selected nodes
    */
   private isWithinNodes(declarationPath: NodePath, contextPath: NodePath): boolean {
     let current: NodePath | null = declarationPath;
@@ -340,7 +340,7 @@ export class ExtractDependencyAnalyzer {
   }
 
   /**
-   * 바인딩이 함수인지 확인
+   * Check if binding is a function
    */
   private isFunctionBinding(binding: any): boolean {
     const path = binding.path;
@@ -365,46 +365,46 @@ export class ExtractDependencyAnalyzer {
   }
 
   /**
-   * CallExpression이 Hook 호출인지 확인
+   * Check if CallExpression is a Hook call
    */
   private isHookCall(node: t.CallExpression): boolean {
     if (t.isIdentifier(node.callee)) {
       const name = node.callee.name;
-      // useCallback, useMemo 같은 Hook들
+      // Hooks like useCallback, useMemo
       return name.startsWith('use') && name.length > 3;
     }
     return false;
   }
 
   /**
-   * 선언이 useState 호출인지 확인하고 상태 정보 반환
+   * Check if declaration is useState call and return state info
    */
   private getStateInfo(declarationPath: NodePath): { stateName: string; setterName: string } | null {
     const node = declarationPath.node;
 
-    // VariableDeclarator인지 확인
+    // Check if VariableDeclarator
     if (!t.isVariableDeclarator(node)) {
       return null;
     }
 
-    // init이 CallExpression이고 useState 호출인지 확인
+    // Check if init is CallExpression and useState call
     const init = node.init;
     if (!t.isCallExpression(init)) {
       return null;
     }
 
-    // callee가 'useState'인지 확인
+    // Check if callee is 'useState'
     if (!t.isIdentifier(init.callee) || init.callee.name !== 'useState') {
       return null;
     }
 
-    // id가 ArrayPattern인지 확인 (const [state, setState] = ...)
+    // Check if id is ArrayPattern (const [state, setState] = ...)
     const id = node.id;
     if (!t.isArrayPattern(id)) {
       return null;
     }
 
-    // 배열 패턴에서 상태 변수와 setter 이름 추출
+    // Extract state variable and setter names from array pattern
     const elements = id.elements;
     if (elements.length < 2) {
       return null;
@@ -424,17 +424,17 @@ export class ExtractDependencyAnalyzer {
   }
 
   /**
-   * 순환 의존성 검사
-   * Task 19.2: 순환 의존성 감지 구현
+   * Check circular dependency
+   * Task 19.2: Circular dependency detection implementation
    */
   private detectCircularDependency(
     dependencies: ExtractDependencies,
     extractNodes: NodePath[]
   ): Result<void, any> {
-    // 추출 영역 내에서 선언된 식별자들을 수집
+    // Collect identifiers declared in extract region
     const declaredInExtractRegion = this.collectDeclaredIdentifiers(extractNodes);
 
-    // 각 의존성이 추출 영역 내의 식별자를 참조하는지 검사
+    // Check if each dependency references identifiers in extract region
     const allDependencies = [
       ...dependencies.variables,
       ...dependencies.functions,
@@ -443,12 +443,12 @@ export class ExtractDependencyAnalyzer {
     for (const dep of allDependencies) {
       const referencedIdentifiers = this.collectReferencedIdentifiers(dep.declaration);
 
-      // 의존성이 추출 영역 내에서 선언된 식별자를 참조하면 순환 의존성
+      // If dependency references identifier declared in extract region, circular dependency
       for (const refName of referencedIdentifiers) {
         if (declaredInExtractRegion.has(refName)) {
           return err(
             createExtractError(ExtractErrorCode.CIRCULAR_DEPENDENCY, {
-              details: `의존성 '${dep.name}'이(가) 추출 영역 내의 변수 '${refName}'을(를) 참조합니다`,
+              details: `Dependency '${dep.name}' references variable '${refName}' in extract region`,
             })
           );
         }
@@ -459,7 +459,7 @@ export class ExtractDependencyAnalyzer {
   }
 
   /**
-   * 추출 영역 내에서 선언된 모든 식별자 수집
+   * Collect all identifiers declared in extract region
    */
   private collectDeclaredIdentifiers(nodes: NodePath[]): Set<string> {
     const declared = new Set<string>();
@@ -503,7 +503,7 @@ export class ExtractDependencyAnalyzer {
   }
 
   /**
-   * 의존성 선언부가 참조하는 모든 식별자 수집
+   * Collect all identifiers referenced by dependency declaration
    */
   private collectReferencedIdentifiers(declarationPath: NodePath): Set<string> {
     const referenced = new Set<string>();
@@ -513,7 +513,7 @@ export class ExtractDependencyAnalyzer {
       node,
       {
         Identifier(path) {
-          // 선언이 아닌 참조만 수집
+          // Collect only references, not declarations
           if (path.isReferencedIdentifier()) {
             referenced.add(path.node.name);
           }

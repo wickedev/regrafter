@@ -1,7 +1,7 @@
 /**
  * NodeSelector Tests
  *
- * Task 3.1: NodeSelector 테스트 작성 - PositionSelector
+ * Task 3.1: NodeSelector test implementation - PositionSelector
  * Tests for selecting and validating JSX nodes for extraction
  */
 
@@ -316,7 +316,7 @@ describe('NodeSelector - PositionSelector', () => {
 });
 
 /**
- * Task 13.1: RangeSelector 테스트 작성
+ * Task 13.1: RangeSelector test implementation
  * Tests for selecting multiple contiguous JSX nodes using RangeSelector
  */
 describe('NodeSelector - RangeSelector', () => {

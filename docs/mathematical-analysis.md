@@ -1,6 +1,6 @@
-# Regrafter - 수학적 구현 가능성 분석
+# Regrafter - Mathematical Implementation Feasibility Analysis
 
-> **Regrafter**: 프로그래매틱 AST 변환을 통한 React 엘리먼트 재배치 라이브러리
+> **Regrafter**: React Element Rearrangement Library Through Programmatic AST Transformation
 
 > **📝 Document Status**: Updated to reflect actual implementation (v3.1, 2025-12-18)
 > - API updated to use Result<T, E> pattern
@@ -9,15 +9,15 @@
 
 ---
 
-## 1. 문제 정의
+## 1. Problem Definition
 
-### 1.1 목표 API
+### 1.1 Target API
 
 ```typescript
 import { regraft, canMove, analyze, optimize, Move } from 'regrafter';
 import type { Result } from 'regrafter/result';
 
-// 통합 API (canMove + move + analyze + optimize)
+// Unified API (canMove + move + analyze + optimize)
 regraft(
   files: FileInput[],
   from: Selector,
@@ -27,86 +27,86 @@ regraft(
 ): Result<TransformedCode, RegraffError>
 
 interface Options {
-  optimize?: boolean;        // 싱킹 최적화 (default: true)
-  dryRun?: boolean;          // 실제 변환 없이 분석만 (default: false)
-  preserveComments?: boolean; // 주석 보존 (default: true)
-  formatOutput?: boolean;    // Prettier 포맷팅 (default: true)
+  optimize?: boolean;        // Sinking optimization (default: true)
+  dryRun?: boolean;          // Analysis only without actual transformation (default: false)
+  preserveComments?: boolean; // Preserve comments (default: true)
+  formatOutput?: boolean;    // Prettier formatting (default: true)
 }
 
-// Result 패턴 (함수형 에러 처리)
+// Result pattern (functional error handling)
 type Result<T, E> = Ok<T> | Err<E>
 
 interface TransformedCode {
-  codes: Code[];           // 변환된 코드
-  analysis: MoveAnalysis;  // 분석 결과
+  codes: Code[];           // Transformed code
+  analysis: MoveAnalysis;  // Analysis results
 }
 
 enum Move {
-  Inside = 'inside',  // to의 자식으로
-  Before = 'before',  // to의 이전 형제로
-  After = 'after'     // to의 다음 형제로
+  Inside = 'inside',  // As a child of 'to'
+  Before = 'before',  // As a previous sibling of 'to'
+  After = 'after'     // As a next sibling of 'to'
 }
 
-// 개별 API (독립 함수)
+// Individual APIs (independent functions)
 canMove(files, from, to, mode): boolean
 analyze(files, from, to, mode): MoveAnalysis
 optimize(files, options?): Code[]
 ```
 
-### 1.2 핵심 요구사항
+### 1.2 Core Requirements
 
 ```
-1. 엘리먼트 이동 시 의존성도 함께 이동
-   - useState, useEffect 등 훅
-   - const, let 변수 선언
-   - import 문
+1. When moving an element, dependencies must also move
+   - Hooks like useState, useEffect, etc.
+   - Variable declarations (const, let)
+   - Import statements
 
-2. 이동 후 코드가 정상 빌드되어야 함
+2. Code must build successfully after the move
 
-3. 불가능한 이동은 사전에 검증 가능해야 함
+3. Impossible moves must be detectable in advance
 ```
 
-### 1.3 수학적 표현
+### 1.3 Mathematical Representation
 
 ```
 regraft: (Files, From, To, Mode) → Code[] | ⊥
 
 where:
-  Files = 소스 파일 집합
-  From  = 이동할 엘리먼트 선택자
-  To    = 목적지 선택자
+  Files = Source file set
+  From  = Selector for element to move
+  To    = Destination selector
   Mode  = Inside | Before | After
-  ⊥     = 이동 불가능 (canRegraft로 사전 검증)
+  ⊥     = Move impossible (validated in advance by canRegraft)
 ```
 
 ---
 
-## 2. 의존성 그래프 모델
+## 2. Dependency Graph Model
 
-### 2.1 의존성 정의
+### 2.1 Dependency Definition
 
-엘리먼트 E가 참조하는 모든 심볼의 집합:
+The set of all symbols referenced by element E:
 
 ```
-deps(E) = { s | E가 심볼 s를 참조 }
+deps(E) = { s | E references symbol s }
 
-심볼 종류:
+Symbol types:
 ├── Hook: useState, useEffect, useContext, ...
-├── Variable: const, let 선언
-├── Import: 외부 모듈
-└── Prop: 상위에서 전달받은 값
+├── Variable: const, let declarations
+├── Import: External modules
+└── Prop: Values passed from parent
 ```
 
-### 2.2 예시
+### 2.2 Example
 
 ```tsx
 function Parent() {
-  const [count, setCount] = useState(0);  // ← 의존성 D1
-  const label = "Count: ";                 // ← 의존성 D2
+  const [count, setCount] = useState(0);  // ← Dependency D1
+  const label = "Count: ";                 // ← Dependency D2
 
   return (
     <div>
-      <Child count={count} label={label} />  // ← 이동 대상 E
+      <Child count={count} label={label} />  // ← Target element E to move
     </div>
   );
 }
@@ -118,27 +118,27 @@ origin(count) = useState(0)  → Hook
 origin(label) = "Count: "    → Variable
 ```
 
-### 2.3 의존성 그래프
+### 2.3 Dependency Graph
 
 ```
 G = (V, E)
 
-V = 모든 심볼 + 모든 JSX 엘리먼트
-E = { (a, b) | b가 a를 참조 }
+V = All symbols + All JSX elements
+E = { (a, b) | b references a }
 
-예시:
+Example:
   useState(0) ← count ← <Child />
   "Count: "   ← label ← <Child />
 ```
 
 ---
 
-## 3. 이동 연산 정의
+## 3. Move Operation Definition
 
 ### 3.1 Move.Inside
 
 ```
-move_inside(E, T): E를 T의 자식으로 이동
+move_inside(E, T): Move E as a child of T
 
 Before:                    After:
 <Parent>                   <Parent>
@@ -151,7 +151,7 @@ Before:                    After:
 ### 3.2 Move.Before
 
 ```
-move_before(E, T): E를 T의 이전 형제로 이동
+move_before(E, T): Move E as a previous sibling of T
 
 Before:                    After:
 <Parent>                   <Parent>
@@ -163,7 +163,7 @@ Before:                    After:
 ### 3.3 Move.After
 
 ```
-move_after(E, T): E를 T의 다음 형제로 이동
+move_after(E, T): Move E as a next sibling of T
 
 Before:                    After:
 <Parent>                   <Parent>
@@ -174,25 +174,25 @@ Before:                    After:
 
 ---
 
-## 4. 의존성 이동 알고리즘
+## 4. Dependency Movement Algorithm
 
-### 4.1 핵심 원리
+### 4.1 Core Principle
 
-엘리먼트 E가 이동할 때, deps(E)도 유효한 스코프에 있어야 함.
+When element E moves, deps(E) must also be in a valid scope.
 
 ```
 ∀ d ∈ deps(E): scope(d) ⊇ scope(E')
 
-where E' = 이동 후 E의 새 위치
+where E' = New position of E after move
 ```
 
-### 4.2 의존성 이동 전략
+### 4.2 Dependency Movement Strategy
 
 ```
 Strategy: ResolveDependencies(E, target)
 
 FOR EACH d IN deps(E):
-  IF d가 target 스코프에서 접근 불가:
+  IF d is not accessible in target scope:
     CASE d.type:
       Hook     → hoist_to_common_ancestor(d, E, target)
       Variable → hoist_or_pass_as_prop(d, E, target)
@@ -200,20 +200,20 @@ FOR EACH d IN deps(E):
       Prop     → thread_through_ancestors(d, E, target)
 ```
 
-### 4.3 Hook 호이스팅
+### 4.3 Hook Hoisting
 
-React Hook은 컴포넌트 최상위에서만 호출 가능:
+React Hooks can only be called at component top level:
 
 ```tsx
-// Before: E가 Parent 안에서 count 사용
+// Before: E uses count inside Parent
 function Parent() {
   const [count, setCount] = useState(0);
   return <E count={count} />;
 }
 
-// After: E가 GrandParent로 이동
+// After: E moves to GrandParent
 function GrandParent() {
-  const [count, setCount] = useState(0);  // ← Hook도 함께 호이스팅
+  const [count, setCount] = useState(0);  // ← Hook also hoisted
   return (
     <E count={count} />
     <Parent />
@@ -221,83 +221,83 @@ function GrandParent() {
 }
 ```
 
-### 4.4 변수 호이스팅 또는 Prop 전달
+### 4.4 Variable Hoisting or Prop Passing
 
 ```tsx
-// 전략 1: 호이스팅 (순수 값인 경우)
-const label = "Count: ";  // 상위로 이동
+// Strategy 1: Hoisting (for pure values)
+const label = "Count: ";  // Move to parent
 
-// 전략 2: Prop 전달 (컨텍스트 의존인 경우)
+// Strategy 2: Prop passing (for context-dependent values)
 <Parent label={label}>
-  <E label={label} />     // prop으로 전달
+  <E label={label} />     // Pass as prop
 </Parent>
 ```
 
 ---
 
-## 5. 이동 불가능 조건
+## 5. Impossible Move Conditions
 
-### 5.1 불가능 케이스 정의
+### 5.1 Impossible Case Definition
 
 ```typescript
 regraft.canMove(files, from, to, mode): boolean
 
-// 모든 케이스가 해결 가능 (원자적 단위 취급)
+// All cases are resolvable (treated as atomic units)
 return true;
 ```
 
-### 5.2 Case 1: 구조적 역전 (해결 가능)
+### 5.2 Case 1: Structural Inversion (Resolvable)
 
 ```tsx
-// Before: Parent가 Child를 감싸고 있음
+// Before: Parent wraps Child
 <Parent>
   <Child />
 </Parent>
 
-// After: Child가 Parent를 감싸도록 역전
+// After: Child wraps Parent (inverted)
 <Child>
   <Parent />
 </Child>
 ```
 
 ```
-AST 레벨에서는 단순히 중첩 구조 변경
-= 완전히 가능
+At AST level, this is simply a nesting structure change
+= Completely possible
 
 regraft.canMove = true
 ```
 
-### 5.3 Case 2: 조건부 렌더링 (해결 가능)
+### 5.3 Case 2: Conditional Rendering (Resolvable)
 
 ```tsx
-// 조건문 전체를 하나의 단위로 취급
-{condition && <E />}  // 이 전체가 하나의 이동 단위
+// Treat entire conditional as one unit
+{condition && <E />}  // This entire expression is one move unit
 
 // Before:
 <Parent>
   {show && <Modal />}
 </Parent>
 
-// After: 조건문 전체가 이동
+// After: Entire conditional moves
 <Container>
-  {show && <Modal />}  // 조건 + 컴포넌트가 함께 이동
+  {show && <Modal />}  // Condition + component move together
 </Container>
 <Parent />
 ```
 
 ```
-해결 전략:
-- 조건 표현식 전체를 원자적 단위(atomic unit)로 취급
-- 조건과 컴포넌트가 함께 이동
-- Hook이 있어도 조건부 호출 구조 유지
+Resolution strategy:
+- Treat entire conditional expression as atomic unit
+- Condition and component move together
+- Even with Hooks, maintain conditional call structure
 
-regraft.canMove = true (조건문 전체를 단위로 이동)
+regraft.canMove = true (move entire conditional as a unit)
 ```
 
-### 5.4 Case 3: 동적 리스트 (해결 가능)
+### 5.4 Case 3: Dynamic Lists (Resolvable)
 
 ```tsx
-// map 표현식 전체를 하나의 단위로 취급
+// Treat entire map expression as one unit
 {list.map((item) => <Card key={item.id}>{item.name}</Card>)}
 
 // Before:
@@ -305,7 +305,7 @@ regraft.canMove = true (조건문 전체를 단위로 이동)
   {users.map((u) => <UserCard key={u.id} user={u} />)}
 </Parent>
 
-// After: map 전체가 이동
+// After: Entire map moves
 <Container>
   {users.map((u) => <UserCard key={u.id} user={u} />)}
 </Container>
@@ -313,67 +313,67 @@ regraft.canMove = true (조건문 전체를 단위로 이동)
 ```
 
 ```
-해결 전략:
-- map/filter/reduce 표현식 전체를 원자적 단위로 취급
-- 반복 로직 + 렌더링이 함께 이동
-- 의존성(users)은 기존 패턴대로 호이스팅 + props
+Resolution strategy:
+- Treat entire map/filter/reduce expression as atomic unit
+- Iteration logic + rendering move together
+- Dependencies (users) are hoisted + passed as props using existing patterns
 
-regraft.canMove = true (동적 리스트 전체를 단위로 이동)
+regraft.canMove = true (move entire dynamic list as a unit)
 ```
 
-### 5.5 Case 4: Context 의존성 (해결 가능)
+### 5.5 Case 4: Context Dependencies (Resolvable)
 
 ```tsx
-// Before: Child가 ThemeContext를 사용
+// Before: Child uses ThemeContext
 <ThemeProvider>
   <Parent>
-    <Child />  // useContext(ThemeContext) 사용
+    <Child />  // Uses useContext(ThemeContext)
   </Parent>
 </ThemeProvider>
 
-// 문제: Child를 ThemeProvider 밖으로 이동하면?
+// Problem: What if Child moves outside ThemeProvider?
 ```
 
-**해결 전략 A: Provider 호이스팅**
+**Resolution Strategy A: Provider Hoisting**
 ```tsx
-// Provider를 상위로 이동하여 새 위치도 감싸도록
+// Move Provider up to wrap the new position
 <ThemeProvider>
-  <Child />      // 이동된 위치
+  <Child />      // Moved position
   <Parent />
 </ThemeProvider>
 ```
 
-**해결 전략 B: Context → Props 변환**
+**Resolution Strategy B: Context → Props Conversion**
 ```tsx
-// Context 사용을 props로 변환
+// Convert context usage to props
 function Parent() {
-  const theme = useContext(ThemeContext);  // Parent가 추출
-  return <Child theme={theme} />;          // props로 전달
+  const theme = useContext(ThemeContext);  // Parent extracts
+  return <Child theme={theme} />;          // Pass as props
 }
 
-function Child({ theme }) {  // useContext 대신 props
+function Child({ theme }) {  // Props instead of useContext
   return <div style={{ color: theme.primary }}>...</div>;
 }
 ```
 
 ```
-regraft.canMove = true (Provider 호이스팅 또는 props 변환)
+regraft.canMove = true (Provider hoisting or props conversion)
 ```
 
-### 5.6 Case 5: Suspense/Lazy 컴포넌트 (해결 가능)
+### 5.6 Case 5: Suspense/Lazy Components (Resolvable)
 
 ```tsx
-// Before: LazyComponent가 Suspense 안에 있음
+// Before: LazyComponent is inside Suspense
 <Suspense fallback={<Loading />}>
   <LazyComponent />
 </Suspense>
 
-// 문제: LazyComponent를 Suspense 밖으로 이동하면 에러
+// Problem: Error if LazyComponent moves outside Suspense
 ```
 
-**해결 전략: Suspense 자동 래핑**
+**Resolution Strategy: Automatic Suspense Wrapping**
 ```tsx
-// 이동 시 Suspense도 함께 이동하거나 새로 생성
+// Move Suspense along with component or create new one
 <NewParent>
   <Suspense fallback={<Loading />}>
     <LazyComponent />
@@ -382,35 +382,35 @@ regraft.canMove = true (Provider 호이스팅 또는 props 변환)
 ```
 
 ```
-regraft.canMove = true (Suspense 경계 자동 생성/이동)
+regraft.canMove = true (automatic Suspense boundary creation/movement)
 ```
 
-### 5.7 Case 6: Compound Components (해결 가능)
+### 5.7 Case 6: Compound Components (Resolvable)
 
 ```tsx
-// Tabs 내부 상태를 Context로 공유하는 패턴
+// Tabs pattern that shares internal state via Context
 <Tabs>
   <Tabs.List>
-    <Tabs.Tab>One</Tabs.Tab>  // 내부적으로 Tabs Context 사용
+    <Tabs.Tab>One</Tabs.Tab>  // Internally uses Tabs Context
   </Tabs.List>
   <Tabs.Panel>Content</Tabs.Panel>
 </Tabs>
 
-// Tabs.Tab을 Tabs 밖으로 이동하면 Context 연결 끊김
+// Context connection breaks if Tabs.Tab moves outside Tabs
 ```
 
-**해결 전략: Context 의존성과 동일**
+**Resolution Strategy: Same as Context Dependencies**
 ```
-- Tabs를 함께 이동 (원자적 단위)
-- 또는 Context 의존성 해결 패턴 적용
+- Move Tabs together (atomic unit)
+- Or apply Context dependency resolution pattern
 
-regraft.canMove = true (Compound Component 전체를 단위로)
+regraft.canMove = true (treat entire Compound Component as a unit)
 ```
 
-### 5.8 Case 7: Ref 전달 (해결 가능)
+### 5.8 Case 7: Ref Forwarding (Resolvable)
 
 ```tsx
-// Before: Parent가 Child의 ref를 보유
+// Before: Parent holds Child's ref
 function Parent() {
   const childRef = useRef(null);
   return (
@@ -421,118 +421,118 @@ function Parent() {
   );
 }
 
-// Child를 밖으로 이동하면 childRef 접근 필요
+// Need childRef access when Child moves out
 ```
 
-**해결 전략: 스코프 탈출과 동일**
+**Resolution Strategy: Same as Scope Escape**
 ```tsx
-// ref를 상위로 호이스팅 + props로 주입
+// Hoist ref to parent + inject as props
 function GrandParent() {
   const childRef = useRef(null);
   return (
     <div>
       <Child ref={childRef} />
-      <Parent childRef={childRef} />  // ref를 props로 전달
+      <Parent childRef={childRef} />  // Pass ref as props
     </div>
   );
 }
 ```
 
 ```
-regraft.canMove = true (ref 호이스팅 + props 주입)
+regraft.canMove = true (ref hoisting + props injection)
 ```
 
-### 5.9 Case 8: 스코프 탈출 (해결 가능)
+### 5.9 Case 8: Scope Escape (Resolvable)
 
 ```tsx
-// Before: E가 Parent 안에서 localFn 사용
+// Before: E uses localFn inside Parent
 function Parent() {
   const localFn = () => { console.log('click'); };
   return (
     <div>
       <E onClick={localFn} />
-      <Other onClick={localFn} />  // 기존 코드도 localFn 사용
+      <Other onClick={localFn} />  // Existing code also uses localFn
     </div>
   );
 }
 
-// After: E를 GrandParent로 이동
-// 1. localFn을 상위로 호이스팅
-// 2. Parent에는 props로 주입
+// After: E moves to GrandParent
+// 1. Hoist localFn to parent
+// 2. Inject into Parent as props
 function GrandParent() {
-  const localFn = () => { console.log('click'); };  // ← 호이스팅
+  const localFn = () => { console.log('click'); };  // ← Hoisted
   return (
     <div>
       <E onClick={localFn} />
-      <Parent localFn={localFn} />  // ← props로 주입
+      <Parent localFn={localFn} />  // ← Injected as props
     </div>
   );
 }
 
-function Parent({ localFn }) {  // ← props로 받음
+function Parent({ localFn }) {  // ← Received as props
   return (
     <div>
-      <Other onClick={localFn} />  // 기존 코드 정상 동작
+      <Other onClick={localFn} />  // Existing code works normally
     </div>
   );
 }
 ```
 
 ```
-해결 전략:
-1. 의존성(localFn)을 공통 조상으로 호이스팅
-2. 기존 위치(Parent)에서 여전히 사용 중이면 props로 주입
-3. 모든 참조가 유효하게 유지됨
+Resolution strategy:
+1. Hoist dependency (localFn) to common ancestor
+2. If still used in original location (Parent), inject as props
+3. All references remain valid
 
-regraft.canMove = true (호이스팅 + props 주입으로 해결)
+regraft.canMove = true (resolved by hoisting + props injection)
 ```
 
-### 5.10 Case 9: 파일 간 이동 (해결 가능)
+### 5.10 Case 9: Cross-File Movement (Resolvable)
 
 ```tsx
 // Before: file-a.tsx
 const secret = "local";
-const other = secret + "!";  // secret을 다른 곳에서도 사용
+const other = secret + "!";  // secret used elsewhere
 
 export function ComponentA() {
-  return <E text={secret} />;  // E를 file-b.tsx로 이동하고 싶음
+  return <E text={secret} />;  // Want to move E to file-b.tsx
 }
 
 // After:
-// shared.ts (또는 file-b.tsx)
-export const secret = "local";  // ← 공유 모듈로 이동
+// shared.ts (or file-b.tsx)
+export const secret = "local";  // ← Moved to shared module
 
 // file-a.tsx
-import { secret } from './shared';  // ← import 추가
-const other = secret + "!";  // 기존 코드 정상 동작
+import { secret } from './shared';  // ← Added import
+const other = secret + "!";  // Existing code works normally
 
 export function ComponentA() {
-  // E는 제거됨
+  // E is removed
 }
 
 // file-b.tsx
-import { secret } from './shared';  // ← import 추가
+import { secret } from './shared';  // ← Added import
 
 export function ComponentB() {
-  return <E text={secret} />;  // ← E가 여기로 이동
+  return <E text={secret} />;  // ← E moved here
 }
 ```
 
 ```
-해결 전략:
-1. 의존성(secret)을 공유 모듈로 이동 + export
-2. 기존 파일(file-a)에 import 추가
-3. 대상 파일(file-b)에 import 추가
-4. 스코프 탈출과 동일한 패턴 (파일 레벨)
+Resolution strategy:
+1. Move dependency (secret) to shared module + export
+2. Add import to original file (file-a)
+3. Add import to target file (file-b)
+4. Same pattern as scope escape (file level)
 
-regraft.canMove = true (공유 모듈 + import로 해결)
+regraft.canMove = true (resolved by shared module + imports)
 ```
 
 ---
 
-## 6. 알고리즘
+## 6. Algorithm
 
-### 6.1 전체 흐름
+### 6.1 Overall Flow
 
 ```
 Algorithm: Regraft(files, from, to, mode)
@@ -549,7 +549,7 @@ Algorithm: Regraft(files, from, to, mode)
 10. RETURN code[]
 ```
 
-### 6.2 의존성 분석
+### 6.2 Dependency Analysis
 
 ```
 Algorithm: AnalyzeDependencies(element)
@@ -566,15 +566,15 @@ FOR EACH identifier IN element.references:
 RETURN deps
 ```
 
-### 6.3 이동 가능성 검증
+### 6.3 Move Feasibility Validation
 
 ```
 Algorithm: CanMove(source, target, deps)
 
-// 원자적 단위 전략: 조건문/반복문 전체를 단위로 취급
-// → 대부분의 케이스에서 이동 가능
+// Atomic unit strategy: Treat conditionals/loops as whole units
+// → Most cases are movable
 
-// 유일한 제약: eval 등 정적 분석 불가능한 코드
+// Only constraint: Code not statically analyzable like eval
 FOR EACH d IN deps:
   IF is_eval_or_dynamic_code(d): RETURN false
 
@@ -583,21 +583,21 @@ RETURN true
 
 ---
 
-## 7. 복잡도 분석
+## 7. Complexity Analysis
 
-### 7.1 시간 복잡도
+### 7.1 Time Complexity
 
 ```
-Parse:           O(n)      n = 총 코드 길이
-Dependency:      O(v + e)  v = 심볼 수, e = 참조 수
-Validation:      O(d)      d = 의존성 수
+Parse:           O(n)      n = Total code length
+Dependency:      O(v + e)  v = Number of symbols, e = Number of references
+Validation:      O(d)      d = Number of dependencies
 Transformation:  O(n)
 Generation:      O(n)
 ─────────────────────────
 Total:           O(n + v + e)
 ```
 
-### 7.2 공간 복잡도
+### 7.2 Space Complexity
 
 ```
 AST:             O(n)
@@ -609,19 +609,19 @@ Total:           O(n + v + e)
 
 ---
 
-## 8. 수학적 정리
+## 8. Mathematical Theorems
 
-### 정리 1: 의존성 보존 필요충분조건
+### Theorem 1: Necessary and Sufficient Condition for Dependency Preservation
 
-> **"이동이 가능하려면, 모든 의존성이 새 스코프에서 접근 가능해야 한다."**
+> **"For a move to be possible, all dependencies must be accessible in the new scope."**
 
 ```
 canRegraft(E, T) ⟺ ∀d ∈ deps(E): resolvable(d, scope(T))
 ```
 
-### 정리 2: Hook 호이스팅의 안전성
+### Theorem 2: Safety of Hook Hoisting
 
-> **"Hook은 조건부/반복문 밖의 공통 조상으로만 호이스팅 가능하다."**
+> **"Hooks can only be hoisted to common ancestors outside conditionals/loops."**
 
 ```
 safe_hoist(hook, target) ⟺
@@ -630,17 +630,17 @@ safe_hoist(hook, target) ⟺
   ¬is_loop(path(hook, target))
 ```
 
-### 정리 3: 이동 연산의 결정성
+### Theorem 3: Determinism of Move Operation
 
-> **"동일한 입력에 대해 regraft는 항상 동일한 출력을 생성한다."**
+> **"For the same input, regraft always generates the same output."**
 
 ```
-regraft(F, from, to, mode) = regraft(F, from, to, mode)  (참조 투명성)
+regraft(F, from, to, mode) = regraft(F, from, to, mode)  (referential transparency)
 ```
 
 ---
 
-## 9. API 설계
+## 9. API Design
 
 ### 9.1 Core API
 
@@ -650,7 +650,7 @@ import type { Result } from 'regrafter/result';
 import type { FileInput, TransformedCode, RegraffError } from 'regrafter';
 
 // ═══════════════════════════════════════════════
-// 통합 API (권장)
+// Unified API (Recommended)
 // ═══════════════════════════════════════════════
 regraft(
   files: FileInput[],
@@ -661,29 +661,29 @@ regraft(
 ): Result<TransformedCode, RegraffError>;
 
 interface Options {
-  optimize?: boolean;        // 싱킹 최적화 (default: true)
-  dryRun?: boolean;          // 분석만 수행 (default: false)
-  preserveComments?: boolean; // 주석 보존 (default: true)
-  formatOutput?: boolean;    // Prettier 포맷팅 (default: true)
+  optimize?: boolean;        // Sinking optimization (default: true)
+  dryRun?: boolean;          // Analysis only (default: false)
+  preserveComments?: boolean; // Preserve comments (default: true)
+  formatOutput?: boolean;    // Prettier formatting (default: true)
 }
 
-// Result 패턴 (함수형 에러 처리)
+// Result pattern (functional error handling)
 type Result<T, E> = Ok<T> | Err<E>
 
 interface TransformedCode {
-  codes: Code[];           // 변환된 코드
-  analysis: MoveAnalysis;  // 분석 결과
+  codes: Code[];           // Transformed code
+  analysis: MoveAnalysis;  // Analysis results
 }
 
 // ═══════════════════════════════════════════════
-// 개별 API (독립 함수)
+// Individual APIs (Independent functions)
 // ═══════════════════════════════════════════════
 canMove(files: FileInput[], from: Selector, to: Selector, mode: Move): boolean;
 analyze(files: FileInput[], from: Selector, to: Selector, mode: Move): MoveAnalysis;
 optimize(files: FileInput[], options?: OptimizeOptions): Code[];
 ```
 
-### 9.2 타입 정의
+### 9.2 Type Definitions
 
 ```typescript
 enum Move {
@@ -692,7 +692,7 @@ enum Move {
   After = "after"
 }
 
-// Selector 타입 (위치 기반 또는 경로 기반)
+// Selector types (position-based or path-based)
 type PositionSelector = {
   file: string;
   line: number;    // 1-based
@@ -706,40 +706,40 @@ type PathSelector = {
 
 type Selector = PositionSelector | PathSelector;
 
-// 파일 입력
+// File input
 interface FileInput {
   path: string;
   content: string;
 }
 
-// 코드 결과
+// Code result
 interface Code {
   file: string;
   content: string;
   changed: boolean;
-  isNew?: boolean;     // 새로 생성된 파일 (공유 모듈 등)
-  original?: string;   // 변경 전 원본 (changed: true일 때)
+  isNew?: boolean;     // Newly created file (shared modules, etc.)
+  original?: string;   // Original before change (when changed: true)
 }
 
-// 분석 결과
+// Analysis result
 interface MoveAnalysis {
   canMove: boolean;
   reason?: string;
   dependencies: Dependency[];
-  hoistedDeps: Dependency[];        // 호이스팅될 의존성
-  sunkDeps?: Dependency[];          // 싱킹된 의존성 (optimize: true)
+  hoistedDeps: Dependency[];        // Dependencies to be hoisted
+  sunkDeps?: Dependency[];          // Sunk dependencies (optimize: true)
   suggestedFixes?: SuggestedFix[];
   stats?: AnalysisStats;
 }
 ```
 
-### 9.3 사용 예시
+### 9.3 Usage Examples
 
 ```typescript
 import { regraft, canMove, analyze, Move } from 'regrafter';
 import fs from 'fs';
 
-// 파일 입력 준비
+// Prepare file inputs
 const files = [
   { path: './src/App.tsx', content: fs.readFileSync('./src/App.tsx', 'utf-8') },
   { path: './src/components/Layout.tsx', content: fs.readFileSync('./src/components/Layout.tsx', 'utf-8') }
@@ -749,116 +749,116 @@ const from = { file: './src/App.tsx', line: 15, column: 4 };
 const to = { file: './src/components/Layout.tsx', line: 8, column: 6 };
 
 // ═══════════════════════════════════════════════
-// 통합 API 사용 (권장) - Result 패턴
+// Unified API Usage (Recommended) - Result Pattern
 // ═══════════════════════════════════════════════
 const result = regraft(files, from, to, Move.Inside);
-// → canMove + move + analyze + optimize 모두 수행
+// → Performs canMove + move + analyze + optimize all at once
 
 if (result.ok) {
-  // 성공: result.value에 TransformedCode
+  // Success: result.value contains TransformedCode
   result.value.codes.forEach(code => {
     if (code.changed) {
       fs.writeFileSync(code.file, code.content);
     }
   });
-  console.log('호이스팅된 의존성:', result.value.analysis.hoistedDeps);
+  console.log('Hoisted dependencies:', result.value.analysis.hoistedDeps);
 } else {
-  // 실패: result.error에 RegraffError
+  // Failure: result.error contains RegraffError
   console.error('Error:', result.error.message);
   console.error('Code:', result.error.code);
   console.error('File:', result.error.file);
 
-  // 제안된 수정사항
+  // Suggested fixes
   result.error.suggestions.forEach(fix => {
     console.log('Suggestion:', fix.description);
   });
 }
 
-// 분석만 수행 (코드 변환 없음)
+// Analysis only (no code transformation)
 const preview = regraft(files, from, to, Move.Inside, { dryRun: true });
 
-// 최적화 비활성화
+// Disable optimization
 const noOptimize = regraft(files, from, to, Move.Inside, { optimize: false });
 
 // ═══════════════════════════════════════════════
-// 개별 API 사용 (세부 제어)
+// Individual API Usage (Fine-grained control)
 // ═══════════════════════════════════════════════
-// 1. 이동 가능 여부만 확인
+// 1. Check move feasibility only
 if (canMove(files, from, to, Move.Inside)) {
   console.log('Move is possible');
 }
 
-// 2. 상세 분석
+// 2. Detailed analysis
 const analysis = analyze(files, from, to, Move.Inside);
 if (analysis.canMove) {
   console.log('Dependencies:', analysis.dependencies);
   console.log('Will hoist:', analysis.hoistedDeps);
 }
 
-// 3. 실제 변환 + 최적화
+// 3. Actual transformation + optimization
 const transformed = regraft(files, from, to, Move.Inside);
 
-// AST path로도 선택 가능
+// Can also select by AST path
 const fromPath = { file: './src/App.tsx', path: 'Program.body[0].declaration.body.body[0]' };
 const pathResult = regraft(files, fromPath, to, Move.After);
 ```
 
 ---
 
-## 10. 제약 조건
+## 10. Constraints
 
-### 10.1 해결 가능한 케이스
+### 10.1 Resolvable Cases
 
-| 케이스 | 해결 방법 |
-|--------|----------|
-| Hook 의존성 | 공통 조상으로 호이스팅 |
-| 순수 변수 | 호이스팅 또는 prop 전달 |
-| Import | 대상 파일에 import 추가 |
-| 단순 Prop | 경로 따라 전달 |
-| 스코프 탈출 | 호이스팅 + 기존 위치에 props 주입 |
-| 파일 간 이동 | 공유 모듈로 이동 + import 추가 |
-| 구조적 역전 | 중첩 구조 변경 (AST 조작) |
-| 조건부 렌더링 | 조건 표현식 전체를 원자적 단위로 |
-| 동적 리스트 | map 표현식 전체를 원자적 단위로 |
-| Context 의존성 | Provider 호이스팅 또는 props 변환 |
-| Suspense/Lazy | Suspense 경계 자동 생성/이동 |
-| Compound Components | 전체를 원자적 단위로 이동 |
-| Ref 전달 | ref 호이스팅 + props 주입 |
+| Case | Resolution Method |
+|------|-------------------|
+| Hook dependency | Hoist to common ancestor |
+| Pure variable | Hoisting or prop passing |
+| Import | Add import to target file |
+| Simple Prop | Thread through path |
+| Scope escape | Hoisting + inject props at original location |
+| Cross-file move | Move to shared module + add imports |
+| Structural inversion | Change nesting structure (AST manipulation) |
+| Conditional rendering | Treat entire conditional expression as atomic unit |
+| Dynamic list | Treat entire map expression as atomic unit |
+| Context dependency | Provider hoisting or props conversion |
+| Suspense/Lazy | Automatic Suspense boundary creation/movement |
+| Compound Components | Move entire as atomic unit |
+| Ref forwarding | ref hoisting + props injection |
 
-### 10.2 해결 불가능한 케이스
+### 10.2 Irresolvable Cases
 
-| 케이스 | 이유 |
-|--------|------|
-| eval() | 임의 코드 실행 - 정적 분석 원천 불가 |
+| Case | Reason |
+|------|--------|
+| eval() | Arbitrary code execution - static analysis fundamentally impossible |
 
-※ eval() 외 모든 케이스는 의존성 분석 + 호이스팅으로 해결 가능
+※ All cases except eval() are resolvable through dependency analysis + hoisting
 
-**동적 import / 런타임 선택도 해결 가능:**
+**Dynamic import / runtime selection are also resolvable:**
 ```tsx
-// import(variable) → 변수 의존성으로 처리
+// import(variable) → Treat as variable dependency
 const path = getPath();
 const Component = lazy(() => import(path));
-// → path와 lazy() 전체를 함께 호이스팅
+// → Hoist path and entire lazy() together
 
-// components[type] → 동일하게 처리
+// components[type] → Same approach
 const type = getType();
 const Component = components[type];
-// → type과 선택 로직 전체를 함께 호이스팅
+// → Hoist type and entire selection logic together
 ```
 
 ---
 
-## 11. 최적화: 의존성 싱킹 (Dependency Sinking)
+## 11. Optimization: Dependency Sinking
 
-### 11.1 문제: 호이스팅 누적
+### 11.1 Problem: Hoisting Accumulation
 
 ```tsx
-// 여러 번 이동 후 - 모든 의존성이 최상위로 몰림
+// After multiple moves - all dependencies accumulate at top
 function App() {
-  const [a, setA] = useState(0);   // 원래 ComponentA 것
-  const [b, setB] = useState('');  // 원래 ComponentB 것
-  const [c, setC] = useState([]);  // 원래 ComponentC 것
-  const helper = () => { ... };    // 원래 ComponentD 것
+  const [a, setA] = useState(0);   // Originally from ComponentA
+  const [b, setB] = useState('');  // Originally from ComponentB
+  const [c, setC] = useState([]);  // Originally from ComponentC
+  const helper = () => { ... };    // Originally from ComponentD
 
   return (
     <ComponentA a={a} setA={setA}>
@@ -872,9 +872,9 @@ function App() {
 }
 ```
 
-### 11.2 해결: 의존성 싱킹 (Sinking)
+### 11.2 Solution: Dependency Sinking
 
-**호이스팅의 역연산** - 의존성을 실제로 필요한 최하위 스코프로 내림
+**Inverse of hoisting** - Move dependencies down to the lowest scope where they're actually needed
 
 ```
 Algorithm: SinkDependencies(ast)
@@ -888,12 +888,12 @@ FOR EACH dependency d IN root_scope:
     update_references(d)
 ```
 
-### 11.3 싱킹 예시
+### 11.3 Sinking Example
 
 ```tsx
-// Before: 불필요하게 상위에 있는 의존성
+// Before: Dependency unnecessarily at top level
 function App() {
-  const [count, setCount] = useState(0);  // Child에서만 사용
+  const [count, setCount] = useState(0);  // Only used in Child
 
   return (
     <Parent>
@@ -902,101 +902,101 @@ function App() {
   );
 }
 
-// After: 싱킹 최적화 적용
+// After: Sinking optimization applied
 function App() {
   return (
     <Parent>
-      <Child />  // props 제거
+      <Child />  // Props removed
     </Parent>
   );
 }
 
 function Child() {
-  const [count, setCount] = useState(0);  // 원래 위치로 복원
+  const [count, setCount] = useState(0);  // Restored to original location
   return <div>{count}</div>;
 }
 ```
 
-### 11.4 싱킹 규칙
+### 11.4 Sinking Rules
 
 ```
-싱킹 가능 조건:
-├── 의존성이 단일 서브트리에서만 사용됨
-├── Hook 규칙을 위반하지 않음 (조건부 X)
-└── 새 위치가 유효한 스코프임
+Sinking feasibility conditions:
+├── Dependency used only in a single subtree
+├── Doesn't violate Hook rules (no conditionals)
+└── New location is a valid scope
 
-싱킹 우선순위:
-1. 단일 컴포넌트만 사용 → 해당 컴포넌트로 이동
-2. 형제들이 공유 → 부모에 유지
-3. 부모-자식이 공유 → 부모에 유지
+Sinking priority:
+1. Used by single component → Move to that component
+2. Shared by siblings → Keep in parent
+3. Shared by parent-child → Keep in parent
 ```
 
-### 11.5 최적화 파이프라인
+### 11.5 Optimization Pipeline
 
 ```
-regraft() 내부 흐름:
-1. canMove() → 이동 가능 여부 확인
-2. move() → 이동 + 필요시 호이스팅
-3. analyze() → 의존성 사용처 분석
-4. optimize() → 싱킹 (optimize: true일 때)
-5. generate() → 최적화된 코드 생성
+regraft() internal flow:
+1. canMove() → Check move feasibility
+2. move() → Move + hoist if needed
+3. analyze() → Analyze dependency usage
+4. optimize() → Sink (when optimize: true)
+5. generate() → Generate optimized code
 
-사용:
-// 기본 (optimize: true)
+Usage:
+// Default (optimize: true)
 regraft(files, from, to, mode)
 
-// 최적화 없이
+// Without optimization
 regraft(files, from, to, mode, { optimize: false })
 
-// 분석만 (코드 변환 없음)
+// Analysis only (no code transformation)
 regraft(files, from, to, mode, { dryRun: true })
 ```
 
 ---
 
-## 12. 결론
+## 12. Conclusion
 
-### 12.1 구현 가능성
+### 12.1 Implementation Feasibility
 
-| 항목 | 평가 | 비고 |
-|------|------|------|
-| 기본 이동 | ✅ 가능 | AST 조작 |
-| 의존성 분석 | ✅ 가능 | 스코프 분석 |
-| 조건부/동적 | ✅ 가능 | 원자적 단위 전략 |
-| 파일 간 이동 | ✅ 가능 | 공유 모듈 + import |
-| 검증 API | ✅ 가능 | 사전 분석 |
+| Item | Assessment | Notes |
+|------|-----------|-------|
+| Basic move | ✅ Feasible | AST manipulation |
+| Dependency analysis | ✅ Feasible | Scope analysis |
+| Conditional/Dynamic | ✅ Feasible | Atomic unit strategy |
+| Cross-file move | ✅ Feasible | Shared module + imports |
+| Validation API | ✅ Feasible | Pre-analysis |
 
-### 12.2 핵심 인사이트
+### 12.2 Core Insights
 
 ```
-Regrafter의 본질:
-├── AST 변환 + 의존성 그래프 분석
-├── 스코프 기반 이동 가능성 판단
-├── Hook 규칙 준수 자동화
-└── 실패 케이스 사전 검증
+Essence of Regrafter:
+├── AST transformation + dependency graph analysis
+├── Scope-based move feasibility determination
+├── Automated Hook rules compliance
+└── Pre-validation of failure cases
 
-난이도:
-├── 단순 이동: 쉬움
-├── 의존성 호이스팅: 중간
-├── 조건부/동적: 쉬움 (원자적 단위)
-└── 파일 간 이동: 중간 (공유 모듈 생성)
+Difficulty:
+├── Simple move: Easy
+├── Dependency hoisting: Medium
+├── Conditional/Dynamic: Easy (atomic unit)
+└── Cross-file move: Medium (shared module creation)
 ```
 
-### 12.3 권장 구현 순서
+### 12.3 Recommended Implementation Order
 
-1. **Phase 1**: 단일 파일 내 형제 이동 (Before/After)
-2. **Phase 2**: 단일 파일 내 부모-자식 이동 (Inside)
-3. **Phase 3**: 의존성 자동 호이스팅
-4. **Phase 4**: 파일 간 이동
-5. **Phase 5**: 의존성 싱킹 최적화
-6. **Phase 6**: canRegraft 상세 분석 API
+1. **Phase 1**: Sibling moves within single file (Before/After)
+2. **Phase 2**: Parent-child moves within single file (Inside)
+3. **Phase 3**: Automatic dependency hoisting
+4. **Phase 4**: Cross-file moves
+5. **Phase 5**: Dependency sinking optimization
+6. **Phase 6**: Detailed canRegraft analysis API
 
 ---
 
-*문서 버전: 3.1*
-*분석 일자: 2025-12-18 (Updated)*
-*변경 이력:*
-- *v1.x - 런타임 이동 분석 (deprecated)*
-- *v2.0 - Slot 기반 정적 변환 (deprecated)*
-- *v3.0 - 프로그래매틱 AST 이동 + 의존성 분석 (2025-12-15)*
-- *v3.1 - API 업데이트: Result 패턴, 독립 함수, TransformedCode 타입 (2025-12-18)*
+*Document Version: 3.1*
+*Analysis Date: 2025-12-18 (Updated)*
+*Change History:*
+- *v1.x - Runtime move analysis (deprecated)*
+- *v2.0 - Slot-based static transformation (deprecated)*
+- *v3.0 - Programmatic AST move + dependency analysis (2025-12-15)*
+- *v3.1 - API update: Result pattern, independent functions, TransformedCode type (2025-12-18)*

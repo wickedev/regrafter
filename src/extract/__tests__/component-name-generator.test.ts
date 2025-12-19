@@ -2,7 +2,7 @@
  * ComponentNameGenerator Test
  *
  * Tests for component name generation and uniqueness
- * Task 5.1: ComponentNameGenerator 테스트 작성
+ * Task 5.1: ComponentNameGenerator test implementation
  */
 
 import { describe, it, expect } from 'vitest';

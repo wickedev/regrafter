@@ -1,575 +1,575 @@
-# 구현 계획 - JSX Extract
+# Implementation Plan - JSX Extract
 
-## Phase 1: MVP - 기본 추출 기능
+## Phase 1: MVP - Basic Extraction Features
 
-### 1. 프로젝트 구조 및 타입 정의 설정
+### 1. Project Structure and Type Definition Setup
 
-- [x] 1.1 Extract 기능 디렉토리 구조 생성
-  - `src/extract/` 디렉토리 생성
-  - 핵심 타입 정의 파일 생성 (`types.ts`, `errors.ts`)
-  - 테스트 디렉토리 구조 생성 (`__tests__/`)
+- [x] 1.1 Create Extract feature directory structure
+  - Create `src/extract/` directory
+  - Create core type definition files (`types.ts`, `errors.ts`)
+  - Create test directory structure (`__tests__/`)
   - _Requirements: 10.1, 10.2_
 
-- [x] 1.2 핵심 데이터 모델 타입 정의
-  - ExtractOptions 인터페이스 작성
-  - RangeSelector 인터페이스 작성
-  - ExtractResult, ComponentInfo, PropInfo 인터페이스 작성
-  - ExtractPlan, ExtractDependencies 인터페이스 작성
+- [x] 1.2 Define core data model types
+  - Write ExtractOptions interface
+  - Write RangeSelector interface
+  - Write ExtractResult, ComponentInfo, PropInfo interfaces
+  - Write ExtractPlan, ExtractDependencies interfaces
   - _Requirements: 10.1, 10.3, 10.6_
 
-- [x] 1.3 에러 타입 정의
-  - ExtractErrorCode enum 작성
-  - 에러 메시지 매핑 객체 작성
-  - RegraffError 확장 타입 정의
+- [x] 1.3 Define error types
+  - Write ExtractErrorCode enum
+  - Write error message mapping object
+  - Define RegraffError extension types
   - _Requirements: 9.1, 9.5_
 
-### 2. InputValidator 구현
+### 2. InputValidator Implementation
 
-- [x] 2.1 InputValidator 테스트 작성 - 기본 검증
-  - 빈 파일 목록 검증 실패 테스트
-  - 유효하지 않은 selector 검증 실패 테스트
-  - 유효한 입력 검증 성공 테스트
+- [x] 2.1 Write InputValidator tests - Basic validation
+  - Test validation failure for empty file list
+  - Test validation failure for invalid selector
+  - Test validation success for valid input
   - _Requirements: 9.1_
 
-- [x] 2.2 InputValidator 기본 구현
-  - validate 메서드 구현
-  - 파일 존재 여부 확인
-  - Selector 타입 검증
-  - Result 모나드로 에러 반환
+- [x] 2.2 Implement basic InputValidator
+  - Implement validate method
+  - Check file existence
+  - Validate Selector type
+  - Return errors using Result monad
   - _Requirements: 9.1, 10.1_
 
-### 3. NodeSelector 구현 - 단일 노드 선택
+### 3. NodeSelector Implementation - Single Node Selection
 
-- [x] 3.1 NodeSelector 테스트 작성 - PositionSelector
-  - PositionSelector로 단일 JSX 엘리먼트 선택 성공 테스트
-  - 유효하지 않은 위치 선택 실패 테스트
-  - JSX가 아닌 노드 선택 실패 테스트
+- [x] 3.1 Write NodeSelector tests - PositionSelector
+  - Test successful selection of single JSX element with PositionSelector
+  - Test failure for invalid position selection
+  - Test failure for non-JSX node selection
   - _Requirements: 1.1, 1.2, 1.4_
 
-- [x] 3.2 NodeSelector 기본 구현
-  - selectNodes 메서드 구현 (PositionSelector만 지원)
-  - SelectorResolver 재사용하여 노드 탐색
-  - JSX 노드 타입 검증 (JSXElement, JSXText, JSXExpressionContainer)
+- [x] 3.2 Implement basic NodeSelector
+  - Implement selectNodes method (support PositionSelector only)
+  - Reuse SelectorResolver for node traversal
+  - Validate JSX node types (JSXElement, JSXText, JSXExpressionContainer)
   - _Requirements: 1.1, 1.2, 1.4_
 
-- [x] 3.3 NodeSelector 검증 로직 테스트
-  - validateExtractable 메서드 테스트
-  - 추출 가능한 JSX 노드 검증 성공 테스트
-  - 추출 불가능한 노드 타입 검증 실패 테스트
+- [x] 3.3 Write NodeSelector validation logic tests
+  - Test validateExtractable method
+  - Test successful validation for extractable JSX nodes
+  - Test validation failure for non-extractable node types
   - _Requirements: 1.4, 1.5_
 
-- [x] 3.4 NodeSelector 검증 로직 구현
-  - validateExtractable 메서드 구현
-  - JSX 노드 타입 확인
-  - 적절한 에러 메시지 반환
+- [x] 3.4 Implement NodeSelector validation logic
+  - Implement validateExtractable method
+  - Check JSX node type
+  - Return appropriate error messages
   - _Requirements: 1.4, 1.5_
 
-### 4. 기본 DependencyAnalyzer 구현
+### 4. Basic DependencyAnalyzer Implementation
 
-- [x] 4.1 ExtractDependencyAnalyzer 테스트 작성 - 변수 의존성
-  - 외부 변수 참조 식별 테스트
-  - 로컬 변수는 의존성에서 제외 테스트
-  - 여러 변수 의존성 식별 테스트
+- [x] 4.1 Write ExtractDependencyAnalyzer tests - Variable dependencies
+  - Test identification of external variable references
+  - Test exclusion of local variables from dependencies
+  - Test identification of multiple variable dependencies
   - _Requirements: 2.1_
 
-- [x] 4.2 ExtractDependencyAnalyzer 변수 의존성 구현
-  - analyze 메서드 골격 작성
-  - AST 순회하여 Identifier 수집
-  - ScopeManager로 외부 스코프 확인
-  - variables 배열 생성
+- [x] 4.2 Implement ExtractDependencyAnalyzer variable dependencies
+  - Write analyze method skeleton
+  - Traverse AST to collect Identifiers
+  - Check external scope with ScopeManager
+  - Create variables array
   - _Requirements: 2.1, 2.5_
 
-- [x] 4.3 ExtractDependencyAnalyzer 테스트 작성 - 함수 의존성
-  - 외부 함수 호출 식별 테스트
-  - 여러 함수 의존성 식별 테스트
+- [x] 4.3 Write ExtractDependencyAnalyzer tests - Function dependencies
+  - Test identification of external function calls
+  - Test identification of multiple function dependencies
   - _Requirements: 2.2_
 
-- [x] 4.4 ExtractDependencyAnalyzer 함수 의존성 구현
-  - 함수 호출 식별 로직 추가
-  - functions 배열 생성
+- [x] 4.4 Implement ExtractDependencyAnalyzer function dependencies
+  - Add function call identification logic
+  - Create functions array
   - _Requirements: 2.2, 2.5_
 
-### 5. ComponentNameGenerator 구현
+### 5. ComponentNameGenerator Implementation
 
-- [x] 5.1 ComponentNameGenerator 테스트 작성
-  - 제안된 이름 그대로 사용 테스트
-  - 이름이 없을 때 기본 이름 생성 테스트
-  - PascalCase 변환 테스트
-  - 이름 충돌 시 숫자 접미사 추가 테스트
+- [x] 5.1 Write ComponentNameGenerator tests
+  - Test using suggested name as-is
+  - Test generating default name when none provided
+  - Test PascalCase conversion
+  - Test adding numeric suffix on name conflict
   - _Requirements: 7.1, 7.2, 7.3, 7.4_
 
-- [x] 5.2 ComponentNameGenerator 구현
-  - generate 메서드 구현
-  - ensureUnique 메서드 구현
-  - PascalCase 변환 로직
-  - 이름 검증 로직
+- [x] 5.2 Implement ComponentNameGenerator
+  - Implement generate method
+  - Implement ensureUnique method
+  - Implement PascalCase conversion logic
+  - Implement name validation logic
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-### 6. ComponentBuilder 구현 - 간단한 컴포넌트
+### 6. ComponentBuilder Implementation - Simple Components
 
-- [x] 6.1 ComponentBuilder 테스트 작성 - Props 없는 컴포넌트
-  - Props 없는 간단한 함수 컴포넌트 생성 테스트
-  - JSX 본문 올바르게 복사 테스트
+- [x] 6.1 Write ComponentBuilder tests - Components without Props
+  - Test creation of simple function component without Props
+  - Test correct copying of JSX body
   - _Requirements: 3.1, 3.2, 3.3_
 
-- [x] 6.2 ComponentBuilder 기본 구현
-  - buildComponent 메서드 구현
-  - 함수 선언 AST 생성
-  - JSX return 문 생성
+- [x] 6.2 Implement basic ComponentBuilder
+  - Implement buildComponent method
+  - Generate function declaration AST
+  - Generate JSX return statement
   - _Requirements: 3.1, 3.2, 3.3_
 
-- [x] 6.3 ComponentBuilder 테스트 작성 - Props 있는 컴포넌트
-  - Props 파라미터 포함 컴포넌트 생성 테스트
-  - Props destructuring 테스트
+- [x] 6.3 Write ComponentBuilder tests - Components with Props
+  - Test creation of component with Props parameter
+  - Test Props destructuring
   - _Requirements: 3.4, 3.6_
 
-- [x] 6.4 ComponentBuilder Props 처리 구현
-  - Props 파라미터 추가
-  - Props destructuring 로직
+- [x] 6.4 Implement ComponentBuilder Props handling
+  - Add Props parameter
+  - Implement Props destructuring logic
   - _Requirements: 3.4, 3.6_
 
-### 7. CodeReplacer 구현
+### 7. CodeReplacer Implementation
 
-- [x] 7.1 CodeReplacer 테스트 작성
-  - 원본 JSX를 컴포넌트 호출로 교체 테스트
-  - Props 전달 표현식 생성 테스트
-  - 여러 props 전달 테스트
+- [x] 7.1 Write CodeReplacer tests
+  - Test replacement of original JSX with component call
+  - Test generation of Props passing expression
+  - Test passing multiple props
   - _Requirements: 3.3, 3.6_
 
-- [x] 7.2 CodeReplacer 구현
-  - replace 메서드 구현
-  - JSXElement로 교체
-  - JSXAttribute로 props 전달
+- [x] 7.2 Implement CodeReplacer
+  - Implement replace method
+  - Replace with JSXElement
+  - Pass props with JSXAttribute
   - _Requirements: 3.3, 3.6_
 
-### 8. ExtractPlanner 구현 - 기본 계획 수립
+### 8. ExtractPlanner Implementation - Basic Planning
 
-- [x] 8.1 ExtractPlanner 테스트 작성 - 간단한 추출 계획
-  - 단일 노드 선택 및 계획 생성 테스트
-  - 변수 의존성만 있는 계획 테스트
-  - 컴포넌트 이름 생성 포함 테스트
+- [x] 8.1 Write ExtractPlanner tests - Simple extraction plan
+  - Test single node selection and plan generation
+  - Test plan with variable dependencies only
+  - Test including component name generation
   - _Requirements: 1.1, 2.1, 7.1_
 
-- [x] 8.2 ExtractPlanner 기본 구현
-  - plan 메서드 구현
-  - NodeSelector 호출
-  - DependencyAnalyzer 호출
-  - ComponentNameGenerator 호출
-  - ExtractPlan 객체 생성
+- [x] 8.2 Implement basic ExtractPlanner
+  - Implement plan method
+  - Call NodeSelector
+  - Call DependencyAnalyzer
+  - Call ComponentNameGenerator
+  - Create ExtractPlan object
   - _Requirements: 1.1, 2.1, 2.5, 7.1_
 
-### 9. ExtractExecutor 구현 - 같은 파일 내 추출
+### 9. ExtractExecutor Implementation - Extract Within Same File
 
-- [x] 9.1 ExtractExecutor 테스트 작성 - 간단한 추출
-  - Props 없는 컴포넌트 같은 파일 내 추출 테스트
-  - 원본 코드 올바르게 교체 확인
-  - 새 컴포넌트가 원본 앞에 위치 확인
+- [x] 9.1 Write ExtractExecutor tests - Simple extraction
+  - Test extraction of component without Props within same file
+  - Verify correct replacement of original code
+  - Verify new component is placed before original
   - _Requirements: 3.1, 3.2, 3.3_
 
-- [x] 9.2 ExtractExecutor 기본 구현
-  - execute 메서드 구현
-  - ComponentBuilder 호출
-  - 같은 파일 내 컴포넌트 삽입
-  - CodeReplacer 호출
+- [x] 9.2 Implement basic ExtractExecutor
+  - Implement execute method
+  - Call ComponentBuilder
+  - Insert component within same file
+  - Call CodeReplacer
   - _Requirements: 3.1, 3.2, 3.3_
 
-- [x] 9.3 ExtractExecutor 테스트 작성 - Props 전달
-  - 변수 의존성이 있는 추출 테스트
-  - Props 올바르게 전달 확인
+- [x] 9.3 Write ExtractExecutor tests - Props passing
+  - Test extraction with variable dependencies
+  - Verify correct Props passing
   - _Requirements: 2.1, 3.6_
 
-- [x] 9.4 ExtractExecutor Props 전달 구현
-  - 의존성을 props로 변환
-  - Props 전달 코드 생성
+- [x] 9.4 Implement ExtractExecutor Props passing
+  - Convert dependencies to props
+  - Generate Props passing code
   - _Requirements: 2.1, 3.6_
 
-### 10. ExtractOrchestrator 구현 - MVP 통합
+### 10. ExtractOrchestrator Implementation - MVP Integration
 
-- [x] 10.1 ExtractOrchestrator 테스트 작성 - E2E MVP
-  - 입력 검증부터 추출까지 전체 흐름 테스트
-  - 간단한 JSX 추출 성공 시나리오
+- [x] 10.1 Write ExtractOrchestrator tests - E2E MVP
+  - Test entire flow from input validation to extraction
+  - Test simple JSX extraction success scenario
   - _Requirements: 1.1, 2.1, 3.1_
 
-- [x] 10.2 ExtractOrchestrator 기본 구현
-  - orchestrate 메서드 구현
-  - InputValidator 호출
-  - 파일 파싱
-  - ExtractPlanner 호출
-  - ExtractExecutor 호출
-  - ExtractResult 생성
+- [x] 10.2 Implement basic ExtractOrchestrator
+  - Implement orchestrate method
+  - Call InputValidator
+  - Parse files
+  - Call ExtractPlanner
+  - Call ExtractExecutor
+  - Create ExtractResult
   - _Requirements: 1.1, 2.1, 3.1, 10.7_
 
-- [x] 10.3 extract() API 함수 구현
-  - extract() public API 작성
-  - ExtractOrchestrator 호출
-  - Result 모나드 반환
+- [x] 10.3 Implement extract() API function
+  - Write extract() public API
+  - Call ExtractOrchestrator
+  - Return Result monad
   - _Requirements: 10.1, 10.2, 10.7_
 
-### 11. CodeFormatter 구현 - 기본 포맷팅
+### 11. CodeFormatter Implementation - Basic Formatting
 
-- [x] 11.1 CodeFormatter 테스트 작성
-  - AST를 코드로 변환 테스트
-  - 들여쓰기 유지 테스트
+- [x] 11.1 Write CodeFormatter tests
+  - Test conversion of AST to code
+  - Test maintaining indentation
   - _Requirements: 8.1, 8.3_
 
-- [x] 11.2 CodeFormatter 구현
-  - format 메서드 구현
-  - CodeGenerator 재사용
-  - 원본 포맷팅 스타일 추출
+- [x] 11.2 Implement CodeFormatter
+  - Implement format method
+  - Reuse CodeGenerator
+  - Extract original formatting style
   - _Requirements: 8.1, 8.3, 8.6_
 
-### 12. MVP 통합 테스트
+### 12. MVP Integration Testing
 
-- [x] 12.1 MVP E2E 통합 테스트 작성
-  - 실제 React 컴포넌트 파일로 테스트
-  - 간단한 div 추출 시나리오
-  - 변수 의존성이 있는 추출 시나리오
+- [x] 12.1 Write MVP E2E integration tests
+  - Test with actual React component files
+  - Test simple div extraction scenario
+  - Test extraction scenario with variable dependencies
   - _Requirements: 1.1, 2.1, 3.1, 3.6_
 
-- [x] 12.2 MVP 버그 수정 및 리팩토링
-  - 통합 테스트 실패 원인 파악 및 수정
-  - 코드 구조 개선
+- [x] 12.2 Fix MVP bugs and refactor
+  - Identify and fix integration test failures
+  - Improve code structure
   - _Requirements: 12.5_
 
-## Phase 2: 고급 기능
+## Phase 2: Advanced Features
 
-### 13. RangeSelector 지원
+### 13. RangeSelector Support
 
-- [x] 13.1 RangeSelector 테스트 작성
-  - 연속된 여러 JSX 노드 선택 테스트
-  - 비연속 노드 선택 실패 테스트
-  - 다른 부모의 노드 선택 실패 테스트
+- [x] 13.1 Write RangeSelector tests
+  - Test selection of multiple consecutive JSX nodes
+  - Test failure for non-contiguous node selection
+  - Test failure for nodes with different parents
   - _Requirements: 1.3, 9.1_
 
-- [x] 13.2 NodeSelector에 RangeSelector 지원 추가
-  - 범위 내 모든 노드 선택 로직
-  - 연속성 검증
-  - 동일 부모 검증
+- [x] 13.2 Add RangeSelector support to NodeSelector
+  - Implement logic to select all nodes within range
+  - Implement contiguity validation
+  - Implement same parent validation
   - _Requirements: 1.3, 9.2_
 
-### 14. TypeScript 타입 추론 및 생성
+### 14. TypeScript Type Inference and Generation
 
-- [x] 14.1 TypeInferrer 테스트 작성 - 기본 타입
-  - string, number, boolean 타입 추론 테스트
-  - Props 인터페이스 생성 테스트
+- [x] 14.1 Write TypeInferrer tests - Basic types
+  - Test inference of string, number, boolean types
+  - Test Props interface generation
   - _Requirements: 5.1, 5.2, 5.3_
 
-- [x] 14.2 TypeInferrer 기본 타입 구현
-  - inferPropTypes 메서드 구현
-  - 변수 선언에서 타입 추출
-  - 기본 타입 AST 생성
+- [x] 14.2 Implement TypeInferrer basic types
+  - Implement inferPropTypes method
+  - Extract types from variable declarations
+  - Generate basic type AST
   - _Requirements: 5.1, 5.2, 5.3_
 
-- [x] 14.3 TypeInferrer 테스트 작성 - 복잡한 타입
-  - 객체 타입 추론 테스트
-  - 배열 타입 추론 테스트
-  - Union 타입 처리 테스트
+- [x] 14.3 Write TypeInferrer tests - Complex types
+  - Test inference of object types
+  - Test inference of array types
+  - Test handling of Union types
   - _Requirements: 5.4_
 
-- [x] 14.4 TypeInferrer 복잡한 타입 구현
-  - 객체 타입 AST 생성
-  - 배열 타입 AST 생성
-  - Union 타입 처리 (undefined 제거 및 optional 변환)
+- [x] 14.4 Implement TypeInferrer complex types
+  - Generate object type AST
+  - Generate array type AST
+  - Handle Union types (remove undefined and convert to optional)
   - _Requirements: 5.4_
 
-- [x] 14.5 ComponentBuilder에 Props 인터페이스 추가
-  - buildPropsInterface 메서드 구현 (ExtractExecutor에 구현됨)
-  - Props 인터페이스를 컴포넌트 앞에 배치
-  - 타입 파라미터 추가
+- [x] 14.5 Add Props interface to ComponentBuilder
+  - Implement buildPropsInterface method (implemented in ExtractExecutor)
+  - Place Props interface before component
+  - Add type parameter
   - _Requirements: 3.4, 5.1_
 
-- [x] 14.6 TypeScript 통합 테스트
-  - TypeScript 파일에서 추출 테스트
-  - Props 타입 올바르게 생성 확인
+- [x] 14.6 TypeScript integration tests
+  - Test extraction from TypeScript files
+  - Verify correct Props type generation
   - _Requirements: 5.1, 5.2_
 
-### 15. Hook 의존성 처리
+### 15. Hook Dependency Handling
 
-**Note**: Hook 특수 처리는 불필요함. 일반 의존성 분석으로 자동 처리됨.
-- useState 결과값(count, setCount)은 변수 의존성으로 감지 → props 전달
-- useEffect/useCallback/useMemo는 코드 블록으로 감지 → 선택 영역에 포함 시 이동
+**Note**: Special Hook handling is unnecessary. Automatically handled by general dependency analysis.
+- useState results (count, setCount) detected as variable dependencies → pass as props
+- useEffect/useCallback/useMemo detected as code blocks → moved when included in selection area
 
-- [x] 15.1 DependencyAnalyzer 테스트 작성 - useState
-  - useState 호출 식별 테스트
-  - 상태 변수와 setter 모두 식별 테스트
+- [x] 15.1 Write DependencyAnalyzer tests - useState
+  - Test identification of useState calls
+  - Test identification of both state variable and setter
   - _Requirements: 2.3, 6.1_
 
-- [x] 15.2 DependencyAnalyzer useState 구현
-  - useState 호출 패턴 감지
-  - 상태 변수와 setter 이름 추출
-  - states 배열 생성
+- [x] 15.2 Implement DependencyAnalyzer useState
+  - Detect useState call patterns
+  - Extract state variable and setter names
+  - Create states array
   - _Requirements: 2.3, 2.4, 6.1_
 
-- [x] 15.3 DependencyAnalyzer 테스트 작성 - useEffect
-  - (스킵) 일반 의존성 분석으로 충분
+- [x] 15.3 Write DependencyAnalyzer tests - useEffect
+  - (Skipped) General dependency analysis is sufficient
   - _Requirements: 2.3, 6.2, 6.4_
 
-- [x] 15.4 DependencyAnalyzer useEffect 구현
-  - (스킵) 일반 의존성 분석으로 충분
+- [x] 15.4 Implement DependencyAnalyzer useEffect
+  - (Skipped) General dependency analysis is sufficient
   - _Requirements: 2.3, 6.2, 6.4_
 
-- [x] 15.5 DependencyAnalyzer 테스트 작성 - useCallback/useMemo
-  - (스킵) 일반 의존성 분석으로 충분
+- [x] 15.5 Write DependencyAnalyzer tests - useCallback/useMemo
+  - (Skipped) General dependency analysis is sufficient
   - _Requirements: 6.3, 6.4_
 
-- [x] 15.6 DependencyAnalyzer useCallback/useMemo 구현
-  - (스킵) 일반 의존성 분석으로 충분
+- [x] 15.6 Implement DependencyAnalyzer useCallback/useMemo
+  - (Skipped) General dependency analysis is sufficient
   - _Requirements: 6.3, 6.4_
 
-- [x] 15.7 ComponentBuilder Hook 이동 구현
-  - (스킵) 일반 코드 이동으로 충분
+- [x] 15.7 Implement ComponentBuilder Hook movement
+  - (Skipped) General code movement is sufficient
   - _Requirements: 6.2, 6.3, 6.4, 6.6_
 
-- [x] 15.8 Hook 처리 통합 테스트
-  - (스킵) 기존 E2E 테스트로 충분
+- [x] 15.8 Hook handling integration tests
+  - (Skipped) Existing E2E tests are sufficient
   - _Requirements: 6.1, 6.2_
 
-### 16. 다른 파일로 추출
+### 16. Extract to Different File
 
-- [x] 16.1 ImportManager 테스트 작성
-  - Import 문 추가 테스트
-  - 상대 경로 해석 테스트
-  - 중복 import 방지 테스트
+- [x] 16.1 Write ImportManager tests
+  - Test adding import statements
+  - Test relative path resolution
+  - Test preventing duplicate imports
   - _Requirements: 4.3, 4.5_
 
-- [x] 16.2 ImportManager 구현
-  - addImport 메서드 구현
-  - removeImport 메서드 구현
-  - resolveRelativePath 메서드 구현
+- [x] 16.2 Implement ImportManager
+  - Implement addImport method
+  - Implement removeImport method
+  - Implement resolveRelativePath method
   - _Requirements: 4.3, 4.5, 4.7_
 
-- [x] 16.3 ExtractExecutor 테스트 작성 - 새 파일 생성
-  - 대상 파일이 없을 때 새 파일 생성 테스트
-  - 컴포넌트 export 확인
-  - Props 인터페이스 export 확인
+- [x] 16.3 Write ExtractExecutor tests - Create new file
+  - Test new file creation when target file doesn't exist
+  - Verify component export
+  - Verify Props interface export
   - _Requirements: 4.1, 4.4_
 
-- [x] 16.4 ExtractExecutor 새 파일 생성 구현
-  - 새 파일 AST 생성
-  - React import 추가
-  - 컴포넌트 export 추가
+- [x] 16.4 Implement ExtractExecutor new file creation
+  - Generate new file AST
+  - Add React import
+  - Add component export
   - _Requirements: 4.1, 4.3, 4.4_
 
-- [x] 16.5 ExtractExecutor 테스트 작성 - 기존 파일에 추가
-  - 대상 파일이 존재할 때 컴포넌트 추가 테스트
-  - 기존 import 유지 확인
+- [x] 16.5 Write ExtractExecutor tests - Add to existing file
+  - Test adding component when target file exists
+  - Verify existing imports are maintained
   - _Requirements: 4.2_
 
-- [x] 16.6 ExtractExecutor 기존 파일 업데이트 구현
-  - 기존 파일 파싱
-  - 새 컴포넌트 추가
-  - Import 문 병합
+- [x] 16.6 Implement ExtractExecutor existing file update
+  - Parse existing file
+  - Add new component
+  - Merge import statements
   - _Requirements: 4.2, 4.3_
 
-- [x] 16.7 ExtractExecutor 원본 파일 import 추가
-  - 원본 파일에 새 컴포넌트 import 추가
-  - 상대 경로 계산
+- [x] 16.7 Add import to original file in ExtractExecutor
+  - Add import for new component to original file
+  - Calculate relative path
   - _Requirements: 4.5, 4.7_
 
-- [x] 16.8 다른 파일로 추출 통합 테스트
-  - 새 파일로 추출 E2E 테스트
-  - 기존 파일에 추가 E2E 테스트
-  - Import 문 올바르게 생성 확인
+- [x] 16.8 Integration tests for extracting to different file
+  - E2E test for extracting to new file
+  - E2E test for adding to existing file
+  - Verify correct import statement generation
   - _Requirements: 4.1, 4.2, 4.3, 4.5_
 
-### 17. 의존성 Import 처리
+### 17. Dependency Import Handling
 
-- [x] 17.1 DependencyAnalyzer Import 의존성 테스트
-  - 외부 라이브러리 import 식별 테스트
-  - 로컬 모듈 import 식별 테스트
+- [x] 17.1 Test DependencyAnalyzer Import dependencies
+  - Test identification of external library imports
+  - Test identification of local module imports
   - _Requirements: 4.6_
 
-- [x] 17.2 DependencyAnalyzer Import 의존성 구현
-  - 사용된 의존성의 import 소스 추적
-  - imports 배열 생성
+- [x] 17.2 Implement DependencyAnalyzer Import dependencies
+  - Track import source for used dependencies
+  - Create imports array
   - _Requirements: 4.6_
 
-- [x] 17.3 ImportManager 의존성 import 추가
-  - 필요한 의존성 import 자동 추가
-  - React import 자동 추가
+- [x] 17.3 Add dependency imports in ImportManager
+  - Auto-add required dependency imports
+  - Auto-add React import
   - _Requirements: 4.3, 4.6_
 
-## Phase 3: 최적화 및 완성도
+## Phase 3: Optimization and Completion
 
-### 18. 코드 포맷팅 개선
+### 18. Code Formatting Improvements
 
-- [x] 18.1 CodeFormatter 테스트 작성 - 스타일 유지
-  - 원본 따옴표 스타일 유지 테스트
-  - 세미콜론 사용 여부 유지 테스트
-  - import 정렬 스타일 유지 테스트
+- [x] 18.1 Write CodeFormatter tests - Style preservation
+  - Test preserving original quote style
+  - Test preserving semicolon usage
+  - Test preserving import sorting style
   - _Requirements: 8.2, 8.5_
 
-- [ ] 18.2 CodeFormatter 스타일 분석 구현
-  - 원본 코드 스타일 분석
-  - FormattingOptions 추출
+- [ ] 18.2 Implement CodeFormatter style analysis
+  - Analyze original code style
+  - Extract FormattingOptions
   - _Requirements: 8.1, 8.2_
 
-- [ ] 18.3 CodeFormatter 주석 보존 테스트
-  - JSX 내 주석 보존 테스트
-  - 컴포넌트 위 주석 보존 테스트
+- [ ] 18.3 Write CodeFormatter comment preservation tests
+  - Test preserving comments within JSX
+  - Test preserving comments above components
   - _Requirements: 8.4_
 
-- [ ] 18.4 CodeFormatter 주석 보존 구현
-  - AST에서 주석 추출
-  - 새 컴포넌트에 주석 첨부
+- [ ] 18.4 Implement CodeFormatter comment preservation
+  - Extract comments from AST
+  - Attach comments to new component
   - _Requirements: 8.4_
 
-### 19. 에러 처리 개선
+### 19. Error Handling Improvements
 
-- [x] 19.1 순환 의존성 감지 테스트
-  - 순환 참조 감지 테스트
-  - 적절한 에러 메시지 반환 확인
+- [x] 19.1 Write circular dependency detection tests
+  - Test detection of circular references
+  - Verify appropriate error message return
   - _Requirements: 2.6_
 
-- [x] 19.2 순환 의존성 감지 구현
-  - 의존성 그래프 구축
-  - 순환 감지 알고리즘
+- [x] 19.2 Implement circular dependency detection
+  - Build dependency graph
+  - Implement cycle detection algorithm
   - _Requirements: 2.6_
 
-- [ ] 19.3 JSX 구조 검증 테스트
-  - 추출 후 유효한 JSX 생성 확인
-  - 손상된 JSX 감지 테스트
+- [ ] 19.3 Write JSX structure validation tests
+  - Verify valid JSX generation after extraction
+  - Test detection of corrupted JSX
   - _Requirements: 9.2, 9.4_
 
-- [ ] 19.4 JSX 구조 검증 구현
-  - 추출 전후 구조 검증
-  - 유효성 검사 실패 시 롤백
+- [ ] 19.4 Implement JSX structure validation
+  - Validate structure before and after extraction
+  - Rollback on validation failure
   - _Requirements: 9.2, 9.4_
 
-- [ ] 19.5 파일 작업 에러 처리
-  - 파일 쓰기 실패 처리 테스트
-  - 파일 읽기 실패 처리 테스트
-  - 원본 파일 보존 확인
+- [ ] 19.5 Handle file operation errors
+  - Test handling of file write failures
+  - Test handling of file read failures
+  - Verify original file preservation
   - _Requirements: 9.3, 9.7_
 
-### 20. 성능 최적화
+### 20. Performance Optimization
 
-- [x] 20.1 AST 캐싱 구현
-  - 동일 파일 중복 파싱 방지
-  - 캐시 히트/미스 측정
+- [x] 20.1 Implement AST caching
+  - Prevent duplicate parsing of same file
+  - Measure cache hit/miss
   - _Requirements: 11.5_
 
-- [ ] 20.2 의존성 분석 메모이제이션
-  - 동일 노드 중복 분석 방지
-  - 성능 향상 측정
+- [ ] 20.2 Implement dependency analysis memoization
+  - Prevent duplicate analysis of same node
+  - Measure performance improvement
   - _Requirements: 11.2_
 
-- [ ] 20.3 성능 벤치마크 테스트
-  - 1000줄 파일 5초 이내 완료 확인
-  - 메모리 사용량 측정
+- [ ] 20.3 Write performance benchmark tests
+  - Verify completion within 5 seconds for 1000-line file
+  - Measure memory usage
   - _Requirements: 11.1, 11.4_
 
-### 21. 보조 API 구현
+### 21. Helper API Implementation
 
-- [x] 21.1 canExtract() 함수 테스트
-  - 추출 가능 여부 빠른 확인 테스트
-  - dry-run 모드 테스트
+- [x] 21.1 Write canExtract() function tests
+  - Test quick check for extraction possibility
+  - Test dry-run mode
   - _Requirements: 10.7_
 
-- [x] 21.2 canExtract() 함수 구현
-  - 검증만 수행하고 변환 생략
-  - boolean 반환
+- [x] 21.2 Implement canExtract() function
+  - Perform validation only, skip transformation
+  - Return boolean
   - _Requirements: 10.7_
 
-- [x] 21.3 analyzeExtract() 함수 테스트
-  - 의존성 분석만 수행 테스트
-  - ExtractAnalysis 반환 테스트
+- [x] 21.3 Write analyzeExtract() function tests
+  - Test performing dependency analysis only
+  - Test returning ExtractAnalysis
   - _Requirements: 2.5_
 
-- [x] 21.4 analyzeExtract() 함수 구현
-  - 분석까지만 수행
-  - 코드 변환 생략
+- [x] 21.4 Implement analyzeExtract() function
+  - Perform analysis only
+  - Skip code transformation
   - _Requirements: 2.5_
 
-### 22. 타입 가드 및 유틸리티
+### 22. Type Guards and Utilities
 
-- [x] 22.1 타입 가드 테스트
-  - isRangeSelector 타입 가드 테스트
-  - isExtractSuccess 타입 가드 테스트
+- [x] 22.1 Write type guard tests
+  - Test isRangeSelector type guard
+  - Test isExtractSuccess type guard
   - _Requirements: 10.6_
 
-- [x] 22.2 타입 가드 구현
-  - 타입 가드 함수 작성
-  - TypeScript 타입 narrowing 지원
+- [x] 22.2 Implement type guards
+  - Write type guard functions
+  - Support TypeScript type narrowing
   - _Requirements: 10.6_
 
-### 23. 통합 테스트 및 문서화
+### 23. Integration Testing and Documentation
 
-- [x] 23.1 E2E 시나리오 테스트 작성
-  - 실제 프로젝트 시나리오 재현
-  - 복잡한 의존성 그래프 테스트
-  - 다중 파일 의존성 테스트
+- [x] 23.1 Write E2E scenario tests
+  - Reproduce real project scenarios
+  - Test complex dependency graphs
+  - Test multi-file dependencies
   - _Requirements: 12.2, 12.3_
 
-- [ ] 23.2 스냅샷 테스트 추가
-  - 생성된 코드 스냅샷 비교
-  - 리그레션 감지
+- [ ] 23.2 Add snapshot tests
+  - Compare generated code snapshots
+  - Detect regressions
   - _Requirements: 12.4_
 
-- [ ] 23.3 에지 케이스 테스트
-  - Custom Hook 처리
-  - 중첩된 컴포넌트
-  - 조건부 렌더링
+- [ ] 23.3 Write edge case tests
+  - Handle Custom Hooks
+  - Handle nested components
+  - Handle conditional rendering
   - _Requirements: 12.3_
 
-- [ ] 23.4 API 문서 작성
-  - JSDoc 주석 추가
-  - 사용 예시 작성
-  - 에러 처리 가이드
+- [ ] 23.4 Write API documentation
+  - Add JSDoc comments
+  - Write usage examples
+  - Write error handling guide
   - _Requirements: 10.1, 10.2_
 
-### 24. 최종 검증 및 릴리스 준비
+### 24. Final Validation and Release Preparation
 
-- [x] 24.1 전체 테스트 스위트 실행
-  - 모든 단위 테스트 통과 확인 (완료: 1,671개 통과)
-  - Migration validation 문제 해결 (완료: Result 기반 에러 처리 적용)
-  - E2E 통합 테스트 8개 실패 (미완료: 의존성 분석 로직 수정 필요)
-  - 테스트 커버리지 확인 (미완료)
+- [x] 24.1 Run complete test suite
+  - Verify all unit tests pass (Complete: 1,671 passed)
+  - Resolve migration validation issues (Complete: Applied Result-based error handling)
+  - 8 E2E integration tests failing (Incomplete: Need to fix dependency analysis logic)
+  - Verify test coverage (Incomplete)
   - _Requirements: 12.1_
-  - 참고: 99.5% 테스트 통과, E2E 실패는 extract 기능 구현 미완성으로 인한 것
+  - Note: 99.5% tests passing, E2E failures due to incomplete extract feature implementation
 
-- [ ] 24.2 코드 리뷰 및 리팩토링
-  - 코드 중복 제거
-  - 네이밍 개선
-  - 주석 보완
+- [ ] 24.2 Code review and refactoring
+  - Remove code duplication
+  - Improve naming
+  - Enhance comments
   - _Requirements: 12.1_
 
-- [ ] 24.3 마이그레이션 가이드 작성
-  - inline()과의 차이점 설명
-  - 사용 패턴 가이드
-  - 예제 코드
+- [ ] 24.3 Write migration guide
+  - Explain differences from inline()
+  - Write usage pattern guide
+  - Write example code
   - _Requirements: 10.1_
 
 ## Tasks Dependency Diagram
 
 ```mermaid
 flowchart TD
-    T1[Task 1: 프로젝트 구조 및 타입 정의]
-    T2[Task 2: InputValidator 구현]
-    T3[Task 3: NodeSelector 구현]
-    T4[Task 4: DependencyAnalyzer 구현]
-    T5[Task 5: ComponentNameGenerator 구현]
-    T6[Task 6: ComponentBuilder 구현]
-    T7[Task 7: CodeReplacer 구현]
-    T8[Task 8: ExtractPlanner 구현]
-    T9[Task 9: ExtractExecutor 구현]
-    T10[Task 10: ExtractOrchestrator 구현]
-    T11[Task 11: CodeFormatter 구현]
-    T12[Task 12: MVP 통합 테스트]
+    T1[Task 1: Project structure and type definitions]
+    T2[Task 2: InputValidator implementation]
+    T3[Task 3: NodeSelector implementation]
+    T4[Task 4: DependencyAnalyzer implementation]
+    T5[Task 5: ComponentNameGenerator implementation]
+    T6[Task 6: ComponentBuilder implementation]
+    T7[Task 7: CodeReplacer implementation]
+    T8[Task 8: ExtractPlanner implementation]
+    T9[Task 9: ExtractExecutor implementation]
+    T10[Task 10: ExtractOrchestrator implementation]
+    T11[Task 11: CodeFormatter implementation]
+    T12[Task 12: MVP integration testing]
 
-    T13[Task 13: RangeSelector 지원]
-    T14[Task 14: TypeScript 타입 추론]
-    T15[Task 15: Hook 의존성 처리]
-    T16[Task 16: 다른 파일로 추출]
-    T17[Task 17: 의존성 Import 처리]
+    T13[Task 13: RangeSelector support]
+    T14[Task 14: TypeScript type inference]
+    T15[Task 15: Hook dependency handling]
+    T16[Task 16: Extract to different file]
+    T17[Task 17: Dependency Import handling]
 
-    T18[Task 18: 코드 포맷팅 개선]
-    T19[Task 19: 에러 처리 개선]
-    T20[Task 20: 성능 최적화]
-    T21[Task 21: 보조 API 구현]
-    T22[Task 22: 타입 가드 및 유틸리티]
-    T23[Task 23: 통합 테스트 및 문서화]
-    T24[Task 24: 최종 검증]
+    T18[Task 18: Code formatting improvements]
+    T19[Task 19: Error handling improvements]
+    T20[Task 20: Performance optimization]
+    T21[Task 21: Helper API implementation]
+    T22[Task 22: Type guards and utilities]
+    T23[Task 23: Integration testing and documentation]
+    T24[Task 24: Final validation]
 
     T1 --> T2
     T1 --> T3
@@ -643,7 +643,7 @@ flowchart TD
     style T24 fill:#c8e6c9
 ```
 
-### 범례
-- **파란색 (Phase 1)**: MVP 기본 기능 - 단일 노드 선택, 변수 의존성, 같은 파일 내 추출
-- **노란색 (Phase 2)**: 고급 기능 - RangeSelector, TypeScript, Hook 처리, 다른 파일로 추출
-- **초록색 (Phase 3)**: 최적화 및 완성도 - 성능, 에러 처리, 문서화, 최종 검증
+### Legend
+- **Blue (Phase 1)**: MVP basic features - single node selection, variable dependencies, extract within same file
+- **Yellow (Phase 2)**: Advanced features - RangeSelector, TypeScript, Hook handling, extract to different file
+- **Green (Phase 3)**: Optimization and completion - performance, error handling, documentation, final validation

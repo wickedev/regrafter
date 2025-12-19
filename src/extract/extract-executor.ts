@@ -1,14 +1,14 @@
 /**
  * ExtractExecutor
  *
- * Task 9.2, 9.4: ExtractExecutor 구현
+ * Task 9.2, 9.4: ExtractExecutor implementation
  *
  * Requirements:
- * - 3.1: 같은 파일 내 컴포넌트 생성
- * - 3.2: 원본 컴포넌트 정의 앞에 새 컴포넌트 배치
- * - 3.3: 원본 위치의 JSX 코드를 새 컴포넌트 호출로 교체
- * - 2.1: 변수 의존성을 props로 전달
- * - 3.6: Props 전달 코드 생성
+ * - 3.1: Create component within same file
+ * - 3.2: Place new component before original component definition
+ * - 3.3: Replace JSX code at original location with new component call
+ * - 2.1: Pass variable dependencies as props
+ * - 3.6: Generate props passing code
  */
 
 import type { NodePath } from '@babel/traverse';
@@ -23,7 +23,7 @@ import type { ExtractPlan, PropType, VariableDependency, FunctionDependency } fr
 /**
  * ExtractExecutor
  *
- * 추출 계획을 실행하여 실제 코드 변환을 수행하는 클래스
+ * Class that executes extraction plan to perform actual code transformation
  */
 export class ExtractExecutor {
   private componentBuilder: ComponentBuilder;
@@ -37,17 +37,17 @@ export class ExtractExecutor {
   }
 
   /**
-   * 추출 계획 실행
+   * Execute extraction plan
    *
-   * @param plan - 추출 계획
-   * @param asts - 파일별 AST 맵
-   * @returns 업데이트된 AST 맵
+   * @param plan - Extraction plan
+   * @param asts - AST map by file
+   * @returns Updated AST map
    */
   execute(
     plan: ExtractPlan,
     asts: Map<string, t.File>
   ): Result<Map<string, t.File>, RegraffError> {
-    // 소스 파일 AST 가져오기
+    // Get source file AST
     const sourceAst = asts.get(plan.sourceFile);
     if (!sourceAst) {
       return err({
@@ -56,13 +56,13 @@ export class ExtractExecutor {
       });
     }
 
-    // Props 인터페이스 생성 (props가 있는 경우만)
+    // Generate Props interface (only if props exist)
     const propsInterface = this.buildPropsInterface(plan);
 
-    // JSX 본문 추출
+    // Extract JSX body
     const jsxBody = this.extractJsxBody(plan.selectedNodes);
 
-    // 새 컴포넌트 생성
+    // Create new component
     const newComponent = this.componentBuilder.buildComponent(
       plan.componentName,
       propsInterface,
@@ -70,32 +70,32 @@ export class ExtractExecutor {
       plan.hooksToMove
     );
 
-    // 같은 파일 내 추출
+    // Extract within same file
     if (plan.isSameFile) {
       this.insertComponentInSameFile(sourceAst, newComponent, propsInterface);
     } else {
-      // Task 16.4, 16.6: 다른 파일로 추출
+      // Task 16.4, 16.6: Extract to different file
       const targetAst = asts.get(plan.targetFile);
 
       if (targetAst) {
-        // Task 16.6: 기존 파일에 추가
+        // Task 16.6: Add to existing file
         this.addComponentToExistingFile(targetAst, newComponent, propsInterface);
       } else {
-        // Task 16.4: 새 파일 생성
+        // Task 16.4: Create new file
         const newFileAst = this.createNewFile(newComponent, propsInterface, plan);
         asts.set(plan.targetFile, newFileAst);
       }
 
-      // 원본 파일에 import 추가 (Task 16.7)
+      // Add import to source file (Task 16.7)
       this.addImportToSourceFile(sourceAst, plan);
     }
 
-    // 원본 코드를 컴포넌트 호출로 교체 (컴포넌트 삽입 후!)
-    // 중요: AST 조작 후에 NodePath를 사용하므로, 컴포넌트 삽입 후에 교체
+    // Replace original code with component call (after component insertion!)
+    // Important: Use NodePath after AST manipulation, so replace after component insertion
     const props = this.buildPropsMap(plan);
     this.replaceOriginalCode(plan.selectedNodes, plan.componentName, props);
 
-    // 업데이트된 AST 맵 반환
+    // Return updated AST map
     const updatedAsts = new Map(asts);
     updatedAsts.set(plan.sourceFile, sourceAst);
 
@@ -103,17 +103,17 @@ export class ExtractExecutor {
   }
 
   /**
-   * Props 인터페이스 생성
+   * Generate Props interface
    *
-   * @param plan - 추출 계획
-   * @returns Props 인터페이스 AST (props가 없으면 null)
+   * @param plan - Extraction plan
+   * @returns Props interface AST (null if no props)
    */
   private buildPropsInterface(plan: ExtractPlan): t.TSInterfaceDeclaration | null {
     if (plan.propTypes.length === 0) {
       return null;
     }
 
-    // Props 인터페이스 프로퍼티 생성
+    // Generate Props interface properties
     const properties = plan.propTypes.map((propType) => {
       const property = t.tsPropertySignature(
         t.identifier(propType.name),
@@ -123,7 +123,7 @@ export class ExtractExecutor {
       return property;
     });
 
-    // Props 인터페이스 생성
+    // Generate Props interface
     const propsInterface = t.tsInterfaceDeclaration(
       t.identifier(plan.propsInterfaceName),
       null,
@@ -135,33 +135,33 @@ export class ExtractExecutor {
   }
 
   /**
-   * JSX 본문 추출
+   * Extract JSX body
    *
-   * @param selectedNodes - 선택된 노드들
-   * @returns JSX 본문 노드 배열
+   * @param selectedNodes - Selected nodes
+   * @returns JSX body node array
    */
   private extractJsxBody(selectedNodes: NodePath[]): t.Node[] {
     return selectedNodes.map((nodePath) => {
-      // 노드를 깊은 복사하여 반환
-      // cloneNode(deep=true)로 모든 하위 노드까지 복사
+      // Return deep copy of node
+      // cloneNode(deep=true) copies all child nodes
       return t.cloneNode(nodePath.node, true, true);
     });
   }
 
   /**
-   * 같은 파일 내에 컴포넌트 삽입
+   * Insert component within same file
    *
-   * @param ast - 소스 파일 AST
-   * @param component - 새 컴포넌트 AST
-   * @param propsInterface - Props 인터페이스 AST
+   * @param ast - Source file AST
+   * @param component - New component AST
+   * @param propsInterface - Props interface AST
    */
   private insertComponentInSameFile(
     ast: t.File,
     component: t.FunctionDeclaration,
     propsInterface: t.TSInterfaceDeclaration | null
   ): void {
-    // 원본 컴포넌트를 찾아서 그 앞에 삽입
-    // 첫 번째 함수 선언 또는 변수 선언을 찾음
+    // Find original component and insert before it
+    // Find first function declaration or variable declaration
     const programBody = ast.program.body;
     let insertIndex = 0;
 
@@ -173,42 +173,42 @@ export class ExtractExecutor {
       }
     }
 
-    // Props 인터페이스가 있으면 먼저 삽입
+    // Insert Props interface first if it exists
     if (propsInterface) {
       programBody.splice(insertIndex, 0, propsInterface);
       insertIndex++;
     }
 
-    // 컴포넌트 삽입
+    // Insert component
     programBody.splice(insertIndex, 0, component);
   }
 
   /**
-   * Props 맵 생성
+   * Generate Props map
    *
-   * @param plan - 추출 계획
-   * @returns Props 이름 -> 표현식 맵
+   * @param plan - Extraction plan
+   * @returns Props name -> expression map
    */
   private buildPropsMap(plan: ExtractPlan): Map<string, t.Expression> {
     const props = new Map<string, t.Expression>();
 
-    // 변수 의존성을 props로 추가
+    // Add variable dependencies as props
     for (const variable of plan.dependencies.variables) {
       props.set(variable.name, t.identifier(variable.name));
     }
 
-    // 함수 의존성을 props로 추가
+    // Add function dependencies as props
     for (const func of plan.dependencies.functions) {
       props.set(func.name, t.identifier(func.name));
     }
 
-    // 상태 의존성을 props로 추가 (Task 16.8)
+    // Add state dependencies as props (Task 16.8)
     for (const state of plan.dependencies.states) {
       props.set(state.stateName, t.identifier(state.stateName));
       props.set(state.setterName, t.identifier(state.setterName));
     }
 
-    // Import 의존성을 props로 추가
+    // Add Import dependencies as props
     for (const importDep of plan.dependencies.imports) {
       props.set(importDep.name, t.identifier(importDep.name));
     }
@@ -217,24 +217,24 @@ export class ExtractExecutor {
   }
 
   /**
-   * 원본 코드를 컴포넌트 호출로 교체
+   * Replace original code with component call
    *
-   * @param selectedNodes - 선택된 노드들
-   * @param componentName - 컴포넌트 이름
-   * @param props - Props 맵
+   * @param selectedNodes - Selected nodes
+   * @param componentName - Component name
+   * @param props - Props map
    */
   private replaceOriginalCode(
     selectedNodes: NodePath[],
     componentName: string,
     props: Map<string, t.Expression>
   ): void {
-    // 첫 번째 노드만 컴포넌트 호출로 교체
-    // (여러 노드인 경우 나중에 처리)
+    // Replace only first node with component call
+    // (Handle multiple nodes later)
     if (selectedNodes.length > 0) {
       const firstNode = selectedNodes[0];
       this.codeReplacer.replace(firstNode, componentName, props);
 
-      // 나머지 노드들은 제거
+      // Remove remaining nodes
       for (let i = 1; i < selectedNodes.length; i++) {
         selectedNodes[i].remove();
       }
@@ -242,33 +242,33 @@ export class ExtractExecutor {
   }
 
   /**
-   * Task 16.4: 새 파일 생성
+   * Task 16.4: Create new file
    *
-   * @param component - 컴포넌트 AST
-   * @param propsInterface - Props 인터페이스 AST
-   * @param plan - 추출 계획
-   * @returns 새 파일 AST
+   * @param component - Component AST
+   * @param propsInterface - Props interface AST
+   * @param plan - Extraction plan
+   * @returns New file AST
    */
   private createNewFile(
     component: t.FunctionDeclaration,
     propsInterface: t.TSInterfaceDeclaration | null,
     plan: ExtractPlan
   ): t.File {
-    // 새 파일 AST 생성
+    // Generate new file AST
     const program = t.program([]);
     const newFileAst = t.file(program, [], []);
 
-    // React import 추가
+    // Add React import
     this.importManager.ensureReactImport(newFileAst);
 
-    // Props 인터페이스가 있으면 export
+    // Export Props interface if it exists
     if (propsInterface) {
-      // export 키워드 추가
+      // Add export keyword
       const exportedInterface = t.exportNamedDeclaration(propsInterface, []);
       program.body.push(exportedInterface);
     }
 
-    // 컴포넌트 export
+    // Export component
     const exportedComponent = t.exportNamedDeclaration(component, []);
     program.body.push(exportedComponent);
 
@@ -276,11 +276,11 @@ export class ExtractExecutor {
   }
 
   /**
-   * Task 16.6: 기존 파일에 컴포넌트 추가
+   * Task 16.6: Add component to existing file
    *
-   * @param targetAst - 대상 파일 AST
-   * @param component - 컴포넌트 AST
-   * @param propsInterface - Props 인터페이스 AST
+   * @param targetAst - Target file AST
+   * @param component - Component AST
+   * @param propsInterface - Props interface AST
    */
   private addComponentToExistingFile(
     targetAst: t.File,
@@ -289,34 +289,34 @@ export class ExtractExecutor {
   ): void {
     const program = targetAst.program;
 
-    // React import 확인 (중복 방지)
+    // Check React import (prevent duplication)
     this.importManager.ensureReactImport(targetAst);
 
-    // Props 인터페이스가 있으면 export
+    // Export Props interface if it exists
     if (propsInterface) {
       const exportedInterface = t.exportNamedDeclaration(propsInterface, []);
       program.body.push(exportedInterface);
     }
 
-    // 컴포넌트 export
+    // Export component
     const exportedComponent = t.exportNamedDeclaration(component, []);
     program.body.push(exportedComponent);
   }
 
   /**
-   * Task 16.7: 원본 파일에 import 추가
+   * Task 16.7: Add import to source file
    *
-   * @param sourceAst - 원본 파일 AST
-   * @param plan - 추출 계획
+   * @param sourceAst - Source file AST
+   * @param plan - Extraction plan
    */
   private addImportToSourceFile(sourceAst: t.File, plan: ExtractPlan): void {
-    // 상대 경로 계산
+    // Calculate relative path
     const relativePath = this.importManager.resolveRelativePath(
       plan.sourceFile,
       plan.targetFile
     );
 
-    // 컴포넌트 import 추가
+    // Add component import
     this.importManager.addImport(
       sourceAst,
       plan.componentName,

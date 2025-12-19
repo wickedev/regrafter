@@ -1,7 +1,7 @@
 /**
  * CodeReplacer Tests
  *
- * Task 7.1: CodeReplacer 테스트 작성
+ * Task 7.1: CodeReplacer test implementation
  * Tests the replacement of original JSX with component calls
  */
 
@@ -13,9 +13,9 @@ import generate from '@babel/generator';
 import { CodeReplacer } from '../code-replacer.js';
 
 describe('CodeReplacer', () => {
-  describe('replace - 원본 JSX를 컴포넌트 호출로 교체', () => {
+  describe('replace - Replace original JSX with component call', () => {
     it('should replace JSX element with component call without props', () => {
-      // Given: 원본 JSX 코드
+      // Given: original JSX code
       const code = `
         function App() {
           return (
@@ -33,7 +33,7 @@ describe('CodeReplacer', () => {
 
       let targetPath: NodePath | null = null;
 
-      // h1 엘리먼트를 찾기
+      // Find h1 element
       traverse(ast, {
         JSXElement(path) {
           const openingElement = path.node.openingElement;
@@ -49,19 +49,19 @@ describe('CodeReplacer', () => {
 
       expect(targetPath).not.toBeNull();
 
-      // When: CodeReplacer로 교체
+      // When: Replace with CodeReplacer
       const replacer = new CodeReplacer();
       const props = new Map<string, t.Expression>();
       replacer.replace(targetPath!, 'Greeting', props);
 
-      // Then: 컴포넌트 호출로 교체되어야 함
+      // Then: should be replaced with component call
       const output = generate(ast).code;
       expect(output).toContain('<Greeting />');
       expect(output).not.toContain('<h1>');
     });
 
     it('should replace JSX element with component call with single prop', () => {
-      // Given: 원본 JSX 코드
+      // Given: original JSX code
       const code = `
         function App() {
           const name = "World";
@@ -80,7 +80,7 @@ describe('CodeReplacer', () => {
 
       let targetPath: NodePath | null = null;
 
-      // h1 엘리먼트를 찾기
+      // Find h1 element
       traverse(ast, {
         JSXElement(path) {
           const openingElement = path.node.openingElement;
@@ -96,20 +96,20 @@ describe('CodeReplacer', () => {
 
       expect(targetPath).not.toBeNull();
 
-      // When: CodeReplacer로 교체 (name prop 전달)
+      // When: replace with CodeReplacer (pass name prop)
       const replacer = new CodeReplacer();
       const props = new Map<string, t.Expression>();
       props.set('name', t.identifier('name'));
       replacer.replace(targetPath!, 'Greeting', props);
 
-      // Then: 컴포넌트 호출에 prop이 전달되어야 함
+      // Then: prop should be passed to component call
       const output = generate(ast).code;
       expect(output).toContain('<Greeting name={name} />');
       expect(output).not.toContain('<h1>');
     });
 
     it('should replace JSX element with component call with multiple props', () => {
-      // Given: 원본 JSX 코드
+      // Given: original JSX code
       const code = `
         function App() {
           const name = "World";
@@ -130,7 +130,7 @@ describe('CodeReplacer', () => {
 
       let targetPath: NodePath | null = null;
 
-      // h1 엘리먼트를 찾기
+      // Find h1 element
       traverse(ast, {
         JSXElement(path) {
           const openingElement = path.node.openingElement;
@@ -146,7 +146,7 @@ describe('CodeReplacer', () => {
 
       expect(targetPath).not.toBeNull();
 
-      // When: CodeReplacer로 교체 (여러 props 전달)
+      // When: replace with CodeReplacer (pass multiple props)
       const replacer = new CodeReplacer();
       const props = new Map<string, t.Expression>();
       props.set('name', t.identifier('name'));
@@ -154,7 +154,7 @@ describe('CodeReplacer', () => {
       props.set('isActive', t.identifier('isActive'));
       replacer.replace(targetPath!, 'Greeting', props);
 
-      // Then: 컴포넌트 호출에 모든 props가 전달되어야 함
+      // Then: all props should be passed to component call
       const output = generate(ast).code;
       expect(output).toContain('<Greeting');
       expect(output).toContain('name={name}');
@@ -164,7 +164,7 @@ describe('CodeReplacer', () => {
     });
 
     it('should preserve other JSX elements when replacing', () => {
-      // Given: 여러 JSX 엘리먼트가 있는 코드
+      // Given: code with multiple JSX elements
       const code = `
         function App() {
           return (
@@ -183,7 +183,7 @@ describe('CodeReplacer', () => {
 
       let targetPath: NodePath | null = null;
 
-      // h1 엘리먼트만 찾기
+      // Find only h1 element
       traverse(ast, {
         JSXElement(path) {
           const openingElement = path.node.openingElement;
@@ -199,12 +199,12 @@ describe('CodeReplacer', () => {
 
       expect(targetPath).not.toBeNull();
 
-      // When: h1만 교체
+      // When: replace only h1
       const replacer = new CodeReplacer();
       const props = new Map<string, t.Expression>();
       replacer.replace(targetPath!, 'Title', props);
 
-      // Then: h1은 교체되고 p는 유지되어야 함
+      // Then: h1 should be replaced and p should remain
       const output = generate(ast).code;
       expect(output).toContain('<Title />');
       expect(output).toContain('<p>Content</p>');

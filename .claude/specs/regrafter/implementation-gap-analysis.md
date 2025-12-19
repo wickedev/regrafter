@@ -18,7 +18,7 @@ This document analyzes the gap between the specified requirements (requirements.
 
 ---
 
-## 1. Integrated API (통합 API)
+## 1. Integrated API
 
 **Status**: ✅ **FULLY IMPLEMENTED**
 
@@ -43,7 +43,7 @@ This document analyzes the gap between the specified requirements (requirements.
 
 ---
 
-## 2. Move Modes (이동 모드)
+## 2. Move Modes
 
 **Status**: ✅ **FULLY IMPLEMENTED**
 
@@ -67,7 +67,7 @@ This document analyzes the gap between the specified requirements (requirements.
 
 ---
 
-## 3. Selectors (선택자)
+## 3. Selectors
 
 **Status**: ✅ **FULLY IMPLEMENTED**
 
@@ -93,7 +93,7 @@ This document analyzes the gap between the specified requirements (requirements.
 
 ---
 
-## 4. Dependency Analysis (의존성 분석)
+## 4. Dependency Analysis
 
 **Status**: 🟡 **PARTIALLY IMPLEMENTED**
 
@@ -131,7 +131,7 @@ This document analyzes the gap between the specified requirements (requirements.
 
 ---
 
-## 5. Automatic Dependency Hoisting (의존성 자동 호이스팅)
+## 5. Automatic Dependency Hoisting
 
 **Status**: 🟡 **PARTIALLY IMPLEMENTED**
 
@@ -171,7 +171,7 @@ This document analyzes the gap between the specified requirements (requirements.
 
 ---
 
-## 6. Move Validation (canMove API / 이동 불가능 조건 검증)
+## 6. Move Validation (canMove API)
 
 **Status**: 🟡 **PARTIALLY IMPLEMENTED**
 
@@ -220,7 +220,7 @@ This document analyzes the gap between the specified requirements (requirements.
 
 ---
 
-## 7. Cross-File Movement (파일 간 이동)
+## 7. Cross-File Movement
 
 **Status**: 🟡 **PARTIALLY IMPLEMENTED**
 
@@ -266,7 +266,7 @@ This document analyzes the gap between the specified requirements (requirements.
 
 ---
 
-## 8. Dependency Sinking Optimization (의존성 싱킹 최적화)
+## 8. Dependency Sinking Optimization
 
 **Status**: 🟡 **PARTIALLY IMPLEMENTED**
 
@@ -306,7 +306,7 @@ This document analyzes the gap between the specified requirements (requirements.
 
 ---
 
-## 9. Individual APIs (개별 API)
+## 9. Individual APIs
 
 **Status**: ✅ **FULLY IMPLEMENTED**
 
@@ -330,7 +330,7 @@ This document analyzes the gap between the specified requirements (requirements.
 
 ---
 
-## 10. Code Generation (코드 생성)
+## 10. Code Generation
 
 **Status**: 🟡 **PARTIALLY IMPLEMENTED**
 
@@ -369,7 +369,7 @@ This document analyzes the gap between the specified requirements (requirements.
 
 ---
 
-## 11. Error Handling (오류 처리)
+## 11. Error Handling
 
 **Status**: 🟡 **PARTIALLY IMPLEMENTED**
 
@@ -410,7 +410,7 @@ This document analyzes the gap between the specified requirements (requirements.
 
 ---
 
-## 12. Performance Requirements (성능 요구사항)
+## 12. Performance Requirements
 
 **Status**: ❌ **NOT IMPLEMENTED**
 
@@ -447,7 +447,7 @@ This document analyzes the gap between the specified requirements (requirements.
 
 ---
 
-## 13. Type Safety (타입 안전성)
+## 13. Type Safety
 
 **Status**: ✅ **FULLY IMPLEMENTED**
 

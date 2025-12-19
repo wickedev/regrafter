@@ -1,26 +1,26 @@
-# 설계 문서 - JSX Extract
+# Design Document - JSX Extract
 
-## 개요
+## Overview
 
-Extract 기능은 선택된 JSX 노드들을 새로운 React 컴포넌트로 추출하는 리팩토링 도구입니다. inline() 함수의 역연산으로, 코드의 일부를 독립적인 컴포넌트로 분리하여 재사용성을 높이고 컴포넌트 구조를 개선합니다.
+The Extract feature is a refactoring tool that extracts selected JSX nodes into a new React component. As the inverse operation of the inline() function, it separates a portion of code into an independent component to improve reusability and enhance component structure.
 
-**핵심 목표:**
-- JSX 노드 선택 및 새 컴포넌트로 추출
-- 의존성 자동 분석 및 Props 인터페이스 생성
-- 같은 파일 내 추출 및 다른 파일로 추출 지원
-- TypeScript 타입 자동 생성
-- React Hook 규칙 준수
+**Core Goals:**
+- Select JSX nodes and extract them into a new component
+- Automatic dependency analysis and Props interface generation
+- Support extraction within the same file and to different files
+- Automatic TypeScript type generation
+- Compliance with React Hook rules
 
-**범위:**
-- 단일 또는 연속된 JSX 노드 추출
-- 변수, 함수, Hook 의존성 자동 분석
-- Props 타입 자동 추론 및 생성
-- Import 문 자동 생성 및 관리
-- 코드 스타일 유지
+**Scope:**
+- Extract single or consecutive JSX nodes
+- Automatic analysis of variable, function, and Hook dependencies
+- Automatic Props type inference and generation
+- Automatic import statement generation and management
+- Maintain code style
 
-## 아키텍처 설계
+## Architecture Design
 
-### 시스템 아키텍처 다이어그램
+### System Architecture Diagram
 
 ```mermaid
 graph TB
@@ -46,32 +46,32 @@ graph TB
     M --> P
 ```
 
-### 데이터 흐름 다이어그램
+### Data Flow Diagram
 
 ```mermaid
 graph LR
-    A[입력: files, selector, options] --> B[검증 및 파싱]
-    B --> C[JSX 노드 선택]
-    C --> D[의존성 분석]
-    D --> E[타입 추론]
-    E --> F[추출 계획 생성]
-    F --> G[새 컴포넌트 생성]
-    G --> H[Import 문 업데이트]
-    H --> I[원본 코드 교체]
-    I --> J[코드 생성 및 포맷팅]
-    J --> K[출력: ExtractResult]
+    A[Input: files, selector, options] --> B[Validation and Parsing]
+    B --> C[JSX Node Selection]
+    C --> D[Dependency Analysis]
+    D --> E[Type Inference]
+    E --> F[Extraction Plan Creation]
+    F --> G[New Component Creation]
+    G --> H[Import Statement Update]
+    H --> I[Original Code Replacement]
+    I --> J[Code Generation and Formatting]
+    J --> K[Output: ExtractResult]
 ```
 
-## 컴포넌트 설계
+## Component Design
 
 ### ExtractOrchestrator
 
-**책임:**
-- Extract 작업 전체 흐름 조율
-- 각 단계의 실행 순서 관리
-- 에러 처리 및 롤백
+**Responsibilities:**
+- Coordinate entire Extract workflow
+- Manage execution order of each stage
+- Error handling and rollback
 
-**인터페이스:**
+**Interface:**
 ```typescript
 interface ExtractOrchestrator {
   orchestrate(
@@ -82,7 +82,7 @@ interface ExtractOrchestrator {
 }
 ```
 
-**의존성:**
+**Dependencies:**
 - InputValidator
 - ExtractPlanner
 - ExtractExecutor
@@ -90,12 +90,12 @@ interface ExtractOrchestrator {
 
 ### InputValidator
 
-**책임:**
-- 입력 파라미터 검증
-- Selector 유효성 확인
-- 파일 존재 여부 확인
+**Responsibilities:**
+- Validate input parameters
+- Verify Selector validity
+- Check file existence
 
-**인터페이스:**
+**Interface:**
 ```typescript
 interface InputValidator {
   validate(
@@ -106,20 +106,20 @@ interface InputValidator {
 }
 ```
 
-**의존성:**
+**Dependencies:**
 - SelectorResolver
-- parseFile (파서)
+- parseFile (parser)
 
 ### ExtractPlanner
 
-**책임:**
-- JSX 노드 선택 및 검증
-- 의존성 분석 실행
-- Props 타입 추론
-- 컴포넌트 이름 생성
-- 추출 계획 수립
+**Responsibilities:**
+- Select and validate JSX nodes
+- Execute dependency analysis
+- Infer Props types
+- Generate component name
+- Establish extraction plan
 
-**인터페이스:**
+**Interface:**
 ```typescript
 interface ExtractPlanner {
   plan(
@@ -130,7 +130,7 @@ interface ExtractPlanner {
 }
 ```
 
-**의존성:**
+**Dependencies:**
 - NodeSelector
 - DependencyAnalyzer
 - TypeInferrer
@@ -138,12 +138,12 @@ interface ExtractPlanner {
 
 ### NodeSelector
 
-**책임:**
-- PositionSelector 또는 PathSelector로 JSX 노드 선택
-- RangeSelector로 여러 연속된 노드 선택
-- 선택된 노드의 유효성 검증
+**Responsibilities:**
+- Select JSX nodes using PositionSelector or PathSelector
+- Select multiple consecutive nodes using RangeSelector
+- Validate selected nodes
 
-**인터페이스:**
+**Interface:**
 ```typescript
 interface NodeSelector {
   selectNodes(
@@ -157,18 +157,18 @@ interface NodeSelector {
 }
 ```
 
-**의존성:**
-- SelectorResolver (기존)
+**Dependencies:**
+- SelectorResolver (existing)
 
 ### DependencyAnalyzer
 
-**책임:**
-- 선택된 JSX 노드의 의존성 식별
-- 변수, 함수, Hook 참조 분석
-- 상태 변수 및 setter 식별
-- Props로 전달할 의존성 목록 생성
+**Responsibilities:**
+- Identify dependencies of selected JSX nodes
+- Analyze variable, function, and Hook references
+- Identify state variables and setters
+- Generate list of dependencies to pass as Props
 
-**인터페이스:**
+**Interface:**
 ```typescript
 interface ExtractDependencyAnalyzer {
   analyze(
@@ -178,18 +178,18 @@ interface ExtractDependencyAnalyzer {
 }
 ```
 
-**의존성:**
-- ScopeManager (기존)
-- DependencyAnalyzer (기존 - 재사용)
+**Dependencies:**
+- ScopeManager (existing)
+- DependencyAnalyzer (existing - reused)
 
 ### TypeInferrer
 
-**책임:**
-- 의존성의 TypeScript 타입 추론
-- Props 인터페이스 생성
-- 제네릭 타입 처리
+**Responsibilities:**
+- Infer TypeScript types of dependencies
+- Generate Props interface
+- Handle generic types
 
-**인터페이스:**
+**Interface:**
 ```typescript
 interface TypeInferrer {
   inferPropTypes(
@@ -203,17 +203,17 @@ interface TypeInferrer {
 }
 ```
 
-**의존성:**
+**Dependencies:**
 - @babel/types
 
 ### ComponentNameGenerator
 
-**책임:**
-- 기본 컴포넌트 이름 생성
-- 이름 충돌 검사
-- PascalCase 변환 및 검증
+**Responsibilities:**
+- Generate default component name
+- Check for name conflicts
+- Convert to PascalCase and validate
 
-**인터페이스:**
+**Interface:**
 ```typescript
 interface ComponentNameGenerator {
   generate(
@@ -228,18 +228,18 @@ interface ComponentNameGenerator {
 }
 ```
 
-**의존성:**
-- 없음 (순수 함수)
+**Dependencies:**
+- None (pure functions)
 
 ### ExtractExecutor
 
-**책임:**
-- 추출 계획 실행
-- 새 컴포넌트 생성
-- Import 문 업데이트
-- 원본 JSX 코드를 컴포넌트 호출로 교체
+**Responsibilities:**
+- Execute extraction plan
+- Create new component
+- Update import statements
+- Replace original JSX code with component call
 
-**인터페이스:**
+**Interface:**
 ```typescript
 interface ExtractExecutor {
   execute(
@@ -249,20 +249,20 @@ interface ExtractExecutor {
 }
 ```
 
-**의존성:**
+**Dependencies:**
 - ComponentBuilder
 - ImportManager
 - CodeReplacer
 
 ### ComponentBuilder
 
-**책임:**
-- 새 컴포넌트의 AST 생성
-- Props 인터페이스 추가
-- 함수 컴포넌트 선언 생성
-- JSX 본문 이동
+**Responsibilities:**
+- Generate AST for new component
+- Add Props interface
+- Create function component declaration
+- Move JSX body
 
-**인터페이스:**
+**Interface:**
 ```typescript
 interface ComponentBuilder {
   buildComponent(
@@ -274,17 +274,17 @@ interface ComponentBuilder {
 }
 ```
 
-**의존성:**
+**Dependencies:**
 - @babel/types
 
 ### ImportManager
 
-**책임:**
-- Import 문 추가/제거
-- Import 경로 해석
-- 중복 Import 방지
+**Responsibilities:**
+- Add/remove import statements
+- Resolve import paths
+- Prevent duplicate imports
 
-**인터페이스:**
+**Interface:**
 ```typescript
 interface ImportManager {
   addImport(
@@ -306,17 +306,17 @@ interface ImportManager {
 }
 ```
 
-**의존성:**
+**Dependencies:**
 - @babel/types
 - path (Node.js)
 
 ### CodeReplacer
 
-**책임:**
-- 원본 위치의 JSX 코드를 새 컴포넌트 호출로 교체
-- Props 전달 코드 생성
+**Responsibilities:**
+- Replace JSX code at original location with new component call
+- Generate Props passing code
 
-**인터페이스:**
+**Interface:**
 ```typescript
 interface CodeReplacer {
   replace(
@@ -327,17 +327,17 @@ interface CodeReplacer {
 }
 ```
 
-**의존성:**
+**Dependencies:**
 - @babel/types
 
 ### CodeFormatter
 
-**책임:**
-- 코드 스타일 유지
-- 들여쓰기 적용
-- 주석 보존
+**Responsibilities:**
+- Maintain code style
+- Apply indentation
+- Preserve comments
 
-**인터페이스:**
+**Interface:**
 ```typescript
 interface CodeFormatter {
   format(
@@ -347,48 +347,48 @@ interface CodeFormatter {
 }
 ```
 
-**의존성:**
-- CodeGenerator (기존)
+**Dependencies:**
+- CodeGenerator (existing)
 
-## 데이터 모델
+## Data Model
 
-### 핵심 데이터 구조
+### Core Data Structures
 
 ```typescript
 /**
- * Extract 함수 옵션
+ * Extract function options
  */
 interface ExtractOptions {
-  /** 추출할 컴포넌트 이름 (미제공 시 자동 생성) */
+  /** Name of component to extract (auto-generated if not provided) */
   componentName?: string;
 
-  /** 대상 파일 경로 (미제공 시 같은 파일 내 추출) */
+  /** Target file path (extracts within same file if not provided) */
   targetFile?: string;
 
-  /** TypeScript 타입 생성 활성화 (기본: true) */
+  /** Enable TypeScript type generation (default: true) */
   generateTypes?: boolean;
 
-  /** 주석 보존 여부 (기본: true) */
+  /** Preserve comments (default: true) */
   preserveComments?: boolean;
 
-  /** 코드 포맷팅 옵션 */
+  /** Code formatting options */
   formatting?: FormattingOptions;
 }
 
 /**
- * 범위 선택자 (여러 노드 선택)
+ * Range selector (select multiple nodes)
  */
 interface RangeSelector {
-  /** 파일 경로 */
+  /** File path */
   file: string;
 
-  /** 시작 위치 */
+  /** Start position */
   start: {
     line: number;
     column: number;
   };
 
-  /** 종료 위치 */
+  /** End position */
   end: {
     line: number;
     column: number;
@@ -396,236 +396,236 @@ interface RangeSelector {
 }
 
 /**
- * Extract 결과
+ * Extract result
  */
 interface ExtractResult {
-  /** 변환된 파일들 */
+  /** Transformed files */
   codes: Code[];
 
-  /** 생성된 컴포넌트 정보 */
+  /** Generated component information */
   component: ComponentInfo;
 
-  /** 추출 통계 */
+  /** Extraction statistics */
   stats: ExtractStats;
 }
 
 /**
- * 생성된 컴포넌트 정보
+ * Generated component information
  */
 interface ComponentInfo {
-  /** 컴포넌트 이름 */
+  /** Component name */
   name: string;
 
-  /** 컴포넌트가 위치한 파일 */
+  /** File where component is located */
   file: string;
 
-  /** Props 인터페이스 이름 */
+  /** Props interface name */
   propsInterface?: string;
 
-  /** Props 목록 */
+  /** Props list */
   props: PropInfo[];
 }
 
 /**
- * Prop 정보
+ * Prop information
  */
 interface PropInfo {
-  /** Prop 이름 */
+  /** Prop name */
   name: string;
 
-  /** Prop 타입 */
+  /** Prop type */
   type: string;
 
-  /** 선택적 여부 */
+  /** Whether optional */
   optional: boolean;
 }
 
 /**
- * Extract 통계
+ * Extract statistics
  */
 interface ExtractStats {
-  /** 추출된 JSX 노드 수 */
+  /** Number of JSX nodes extracted */
   nodesExtracted: number;
 
-  /** 식별된 의존성 수 */
+  /** Number of dependencies identified */
   dependenciesFound: number;
 
-  /** 생성된 Props 수 */
+  /** Number of Props generated */
   propsGenerated: number;
 }
 
 /**
- * Extract 계획
+ * Extract plan
  */
 interface ExtractPlan {
-  /** 선택된 JSX 노드들 */
+  /** Selected JSX nodes */
   selectedNodes: NodePath[];
 
-  /** 소스 파일 */
+  /** Source file */
   sourceFile: string;
 
-  /** 대상 파일 */
+  /** Target file */
   targetFile: string;
 
-  /** 생성할 컴포넌트 이름 */
+  /** Component name to generate */
   componentName: string;
 
-  /** Props 인터페이스 이름 */
+  /** Props interface name */
   propsInterfaceName: string;
 
-  /** 의존성 정보 */
+  /** Dependency information */
   dependencies: ExtractDependencies;
 
-  /** Props 타입 정보 */
+  /** Props type information */
   propTypes: PropType[];
 
-  /** 이동할 Hook 선언들 */
+  /** Hook declarations to move */
   hooksToMove: HookDeclaration[];
 
-  /** 같은 파일 내 추출 여부 */
+  /** Whether extracting within same file */
   isSameFile: boolean;
 }
 
 /**
- * Extract 의존성 정보
+ * Extract dependencies information
  */
 interface ExtractDependencies {
-  /** Props로 전달할 변수 */
+  /** Variables to pass as Props */
   variables: VariableDependency[];
 
-  /** Props로 전달할 함수 */
+  /** Functions to pass as Props */
   functions: FunctionDependency[];
 
-  /** Props로 전달할 상태 */
+  /** State to pass as Props */
   states: StateDependency[];
 
-  /** 새 컴포넌트로 이동할 Hook */
+  /** Hooks to move to new component */
   hooks: HookDependency[];
 
-  /** 필요한 Import */
+  /** Required imports */
   imports: ImportDependency[];
 }
 
 /**
- * 변수 의존성
+ * Variable dependency
  */
 interface VariableDependency {
-  /** 변수 이름 */
+  /** Variable name */
   name: string;
 
-  /** 변수 타입 (TypeScript) */
+  /** Variable type (TypeScript) */
   type?: t.TSType;
 
-  /** 변수 선언 노드 */
+  /** Variable declaration node */
   declaration: NodePath;
 }
 
 /**
- * 함수 의존성
+ * Function dependency
  */
 interface FunctionDependency {
-  /** 함수 이름 */
+  /** Function name */
   name: string;
 
-  /** 함수 타입 (TypeScript) */
+  /** Function type (TypeScript) */
   type?: t.TSType;
 
-  /** 함수 선언 노드 */
+  /** Function declaration node */
   declaration: NodePath;
 }
 
 /**
- * 상태 의존성
+ * State dependency
  */
 interface StateDependency {
-  /** 상태 변수 이름 */
+  /** State variable name */
   stateName: string;
 
-  /** Setter 함수 이름 */
+  /** Setter function name */
   setterName: string;
 
-  /** 상태 타입 (TypeScript) */
+  /** State type (TypeScript) */
   type?: t.TSType;
 
-  /** useState 호출 노드 */
+  /** useState call node */
   declaration: NodePath;
 }
 
 /**
- * Hook 의존성
+ * Hook dependency
  */
 interface HookDependency {
-  /** Hook 이름 */
+  /** Hook name */
   name: string;
 
-  /** Hook 호출 노드 */
+  /** Hook call node */
   callNode: NodePath;
 
-  /** 외부 의존성 목록 */
+  /** External dependency list */
   externalDeps: string[];
 }
 
 /**
- * Import 의존성
+ * Import dependency
  */
 interface ImportDependency {
-  /** Import 이름 */
+  /** Import name */
   name: string;
 
-  /** Import 소스 경로 */
+  /** Import source path */
   source: string;
 
-  /** Default import 여부 */
+  /** Whether default import */
   isDefault: boolean;
 }
 
 /**
- * Prop 타입 정보
+ * Prop type information
  */
 interface PropType {
-  /** Prop 이름 */
+  /** Prop name */
   name: string;
 
-  /** TypeScript 타입 AST */
+  /** TypeScript type AST */
   typeAnnotation: t.TSType;
 
-  /** 선택적 여부 */
+  /** Whether optional */
   optional: boolean;
 }
 
 /**
- * Hook 선언 정보
+ * Hook declaration information
  */
 interface HookDeclaration {
-  /** Hook 이름 */
+  /** Hook name */
   hookName: string;
 
-  /** Hook 호출 표현식 */
+  /** Hook call expression */
   callExpression: t.CallExpression;
 
-  /** 변수 선언자 (const [x, setX] = ...) */
+  /** Variable declarator (const [x, setX] = ...) */
   declarator?: t.VariableDeclarator;
 }
 
 /**
- * 포맷팅 옵션
+ * Formatting options
  */
 interface FormattingOptions {
-  /** 들여쓰기 크기 */
+  /** Indentation size */
   indentSize?: number;
 
-  /** Tab 사용 여부 */
+  /** Use tabs */
   useTabs?: boolean;
 
-  /** 따옴표 스타일 */
+  /** Quote style */
   quotes?: 'single' | 'double';
 
-  /** 세미콜론 사용 여부 */
+  /** Use semicolons */
   semi?: boolean;
 }
 ```
 
-### 데이터 모델 다이어그램
+### Data Model Diagram
 
 ```mermaid
 classDiagram
@@ -689,16 +689,16 @@ classDiagram
     ExtractDependencies --> ImportDependency
 ```
 
-## 비즈니스 프로세스
+## Business Processes
 
-### 프로세스 1: Extract 전체 흐름
+### Process 1: Complete Extract Flow
 
 ```mermaid
 flowchart TD
-    A[extract API 호출] --> B[inputValidator.validate]
-    B --> C{검증 성공?}
-    C -->|No| D[Error 반환]
-    C -->|Yes| E[파일 파싱]
+    A[extract API call] --> B[inputValidator.validate]
+    B --> C{Validation success?}
+    C -->|No| D[Return Error]
+    C -->|Yes| E[Parse files]
     E --> F[extractPlanner.plan]
 
     F --> G[nodeSelector.selectNodes]
@@ -706,243 +706,243 @@ flowchart TD
     H --> I[dependencyAnalyzer.analyze]
     I --> J[typeInferrer.inferPropTypes]
     J --> K[componentNameGenerator.generate]
-    K --> L[ExtractPlan 생성]
+    K --> L[Create ExtractPlan]
 
     L --> M[extractExecutor.execute]
     M --> N[componentBuilder.buildComponent]
-    N --> O{같은 파일?}
+    N --> O{Same file?}
 
-    O -->|Yes| P[같은 파일 내 컴포넌트 삽입]
-    O -->|No| Q[새 파일 생성/업데이트]
+    O -->|Yes| P[Insert component in same file]
+    O -->|No| Q[Create/update new file]
     Q --> R[importManager.addImport]
 
     P --> S[codeReplacer.replace]
     R --> S
     S --> T[codeFormatter.format]
-    T --> U[ExtractResult 반환]
+    T --> U[Return ExtractResult]
 ```
 
-### 프로세스 2: JSX 노드 선택 및 검증
+### Process 2: JSX Node Selection and Validation
 
 ```mermaid
 flowchart TD
-    A[nodeSelector.selectNodes] --> B{Selector 타입?}
+    A[nodeSelector.selectNodes] --> B{Selector type?}
 
     B -->|PositionSelector| C[selectorResolver.resolve]
     B -->|PathSelector| D[selectorResolver.resolve]
-    B -->|RangeSelector| E[범위 내 모든 노드 선택]
+    B -->|RangeSelector| E[Select all nodes in range]
 
-    C --> F[단일 노드 반환]
+    C --> F[Return single node]
     D --> F
-    E --> G[노드 배열 반환]
+    E --> G[Return node array]
 
     F --> H[nodeSelector.validateExtractable]
     G --> H
 
-    H --> I{모든 노드가 JSX?}
+    H --> I{All nodes JSX?}
     I -->|No| J[Error: INVALID_SELECTION]
-    I -->|Yes| K{연속된 노드?}
+    I -->|Yes| K{Contiguous nodes?}
     K -->|No| L[Error: NON_CONTIGUOUS_NODES]
-    K -->|Yes| M{부모가 동일?}
+    K -->|Yes| M{Same parent?}
     M -->|No| N[Error: DIFFERENT_PARENTS]
-    M -->|Yes| O[검증 성공]
+    M -->|Yes| O[Validation success]
 ```
 
-### 프로세스 3: 의존성 분석 및 타입 추론
+### Process 3: Dependency Analysis and Type Inference
 
 ```mermaid
 flowchart TD
-    A[dependencyAnalyzer.analyze] --> B[AST 순회 시작]
-    B --> C{Identifier 발견?}
-    C -->|Yes| D[scopeManager로 스코프 확인]
-    C -->|No| E[다음 노드]
+    A[dependencyAnalyzer.analyze] --> B[Start AST traversal]
+    B --> C{Identifier found?}
+    C -->|Yes| D[Check scope with scopeManager]
+    C -->|No| E[Next node]
 
-    D --> F{외부 스코프 참조?}
+    D --> F{External scope reference?}
     F -->|No| E
-    F -->|Yes| G{타입 분류}
+    F -->|Yes| G{Type classification}
 
-    G -->|변수| H[variables 배열에 추가]
-    G -->|함수| I[functions 배열에 추가]
-    G -->|useState| J[states 배열에 추가]
-    G -->|Hook| K[hooks 배열에 추가]
+    G -->|Variable| H[Add to variables array]
+    G -->|Function| I[Add to functions array]
+    G -->|useState| J[Add to states array]
+    G -->|Hook| K[Add to hooks array]
 
-    H --> L[ExtractDependencies 생성]
+    H --> L[Create ExtractDependencies]
     I --> L
     J --> L
     K --> L
 
     L --> M[typeInferrer.inferPropTypes]
-    M --> N{TypeScript 파일?}
-    N -->|No| O[타입 생략]
-    N -->|Yes| P[타입 AST 추출]
+    M --> N{TypeScript file?}
+    N -->|No| O[Omit types]
+    N -->|Yes| P[Extract type AST]
 
-    P --> Q{타입 추출 가능?}
-    Q -->|No| R[any 타입 사용]
-    Q -->|Yes| S[PropType 생성]
+    P --> Q{Type extraction possible?}
+    Q -->|No| R[Use any type]
+    Q -->|Yes| S[Create PropType]
 
-    O --> T[PropType[] 반환]
+    O --> T[Return PropType[]]
     R --> T
     S --> T
 ```
 
-### 프로세스 4: 컴포넌트 생성 및 코드 교체
+### Process 4: Component Creation and Code Replacement
 
 ```mermaid
 flowchart TD
-    A[componentBuilder.buildComponent] --> B[Props 인터페이스 생성]
-    B --> C[함수 컴포넌트 선언 생성]
-    C --> D{Hook 이동 필요?}
+    A[componentBuilder.buildComponent] --> B[Create Props interface]
+    B --> C[Create function component declaration]
+    C --> D{Need to move Hooks?}
 
-    D -->|Yes| E[Hook 선언 복사 및 이동]
-    D -->|No| F[JSX 본문 복사]
+    D -->|Yes| E[Copy and move Hook declarations]
+    D -->|No| F[Copy JSX body]
     E --> F
 
-    F --> G{같은 파일?}
-    G -->|Yes| H[원본 컴포넌트 앞에 삽입]
-    G -->|No| I[대상 파일에 추가]
+    F --> G{Same file?}
+    G -->|Yes| H[Insert before original component]
+    G -->|No| I[Add to target file]
 
     I --> J[importManager.addImport]
-    J --> K[React import 추가]
-    K --> L[필요한 의존성 import 추가]
+    J --> K[Add React import]
+    K --> L[Add required dependency imports]
 
     H --> M[codeReplacer.replace]
     L --> M
 
-    M --> N[Props 객체 생성]
-    N --> O[새 컴포넌트 호출로 교체]
-    O --> P[원본 JSX 제거]
-    P --> Q[완료]
+    M --> N[Create Props object]
+    N --> O[Replace with new component call]
+    O --> P[Remove original JSX]
+    P --> Q[Complete]
 ```
 
-### 프로세스 5: Hook 처리
+### Process 5: Hook Handling
 
 ```mermaid
 flowchart TD
-    A[Hook 의존성 분석] --> B{Hook 타입?}
+    A[Hook dependency analysis] --> B{Hook type?}
 
-    B -->|useState| C[상태와 setter를 Props로 전달]
-    B -->|useEffect| D[Hook을 새 컴포넌트로 이동]
-    B -->|useCallback| E[Hook을 새 컴포넌트로 이동]
-    B -->|useMemo| F[Hook을 새 컴포넌트로 이동]
-    B -->|Custom Hook| G[Hook을 새 컴포넌트로 이동]
+    B -->|useState| C[Pass state and setter as Props]
+    B -->|useEffect| D[Move Hook to new component]
+    B -->|useCallback| E[Move Hook to new component]
+    B -->|useMemo| F[Move Hook to new component]
+    B -->|Custom Hook| G[Move Hook to new component]
 
-    C --> H[Props 인터페이스에 추가]
-    D --> I{외부 의존성 있음?}
+    C --> H[Add to Props interface]
+    D --> I{External dependencies exist?}
     E --> I
     F --> I
     G --> I
 
-    I -->|Yes| J[외부 의존성을 Props로 전달]
-    I -->|No| K[Hook 그대로 이동]
+    I -->|Yes| J[Pass external dependencies as Props]
+    I -->|No| K[Move Hook as is]
 
-    J --> L[의존성 배열 업데이트]
-    L --> M[완료]
+    J --> L[Update dependency array]
+    L --> M[Complete]
     K --> M
     H --> M
 ```
 
-## 에러 처리 전략
+## Error Handling Strategy
 
-### 에러 카테고리
+### Error Categories
 
 ```typescript
 enum ExtractErrorCode {
-  // 검증 에러
+  // Validation errors
   EMPTY_INPUT = 'EMPTY_INPUT',
   INVALID_SELECTOR = 'INVALID_SELECTOR',
   FILE_NOT_FOUND = 'FILE_NOT_FOUND',
 
-  // 선택 에러
+  // Selection errors
   NODE_NOT_FOUND = 'NODE_NOT_FOUND',
   INVALID_SELECTION = 'INVALID_SELECTION',
   NON_CONTIGUOUS_NODES = 'NON_CONTIGUOUS_NODES',
   DIFFERENT_PARENTS = 'DIFFERENT_PARENTS',
   NOT_JSX_NODE = 'NOT_JSX_NODE',
 
-  // 의존성 분석 에러
+  // Dependency analysis errors
   CIRCULAR_DEPENDENCY = 'CIRCULAR_DEPENDENCY',
   UNRESOLVABLE_DEPENDENCY = 'UNRESOLVABLE_DEPENDENCY',
   HOOK_RULE_VIOLATION = 'HOOK_RULE_VIOLATION',
 
-  // 타입 추론 에러
+  // Type inference errors
   TYPE_INFERENCE_FAILED = 'TYPE_INFERENCE_FAILED',
   COMPLEX_TYPE_UNSUPPORTED = 'COMPLEX_TYPE_UNSUPPORTED',
 
-  // 이름 생성 에러
+  // Name generation errors
   INVALID_COMPONENT_NAME = 'INVALID_COMPONENT_NAME',
   NAME_CONFLICT = 'NAME_CONFLICT',
 
-  // 코드 생성 에러
+  // Code generation errors
   COMPONENT_BUILD_FAILED = 'COMPONENT_BUILD_FAILED',
   CODE_GENERATION_FAILED = 'CODE_GENERATION_FAILED',
   INVALID_JSX_STRUCTURE = 'INVALID_JSX_STRUCTURE',
 
-  // 파일 작업 에러
+  // File operation errors
   FILE_WRITE_FAILED = 'FILE_WRITE_FAILED',
   FILE_READ_FAILED = 'FILE_READ_FAILED',
 }
 ```
 
-### 에러 복구 전략
+### Error Recovery Strategy
 
 ```mermaid
 flowchart TD
-    A[에러 발생] --> B{에러 타입?}
+    A[Error occurs] --> B{Error type?}
 
-    B -->|INVALID_SELECTION| C[제안: 유효한 JSX 노드 선택]
-    B -->|NON_CONTIGUOUS_NODES| D[제안: 연속된 노드 선택]
-    B -->|CIRCULAR_DEPENDENCY| E[제안: 의존성 구조 재구성]
-    B -->|TYPE_INFERENCE_FAILED| F[제안: 수동 타입 지정]
-    B -->|NAME_CONFLICT| G[자동: 숫자 접미사 추가]
-    B -->|HOOK_RULE_VIOLATION| H[제안: Hook 사용 위치 조정]
+    B -->|INVALID_SELECTION| C[Suggest: Select valid JSX nodes]
+    B -->|NON_CONTIGUOUS_NODES| D[Suggest: Select contiguous nodes]
+    B -->|CIRCULAR_DEPENDENCY| E[Suggest: Restructure dependencies]
+    B -->|TYPE_INFERENCE_FAILED| F[Suggest: Specify types manually]
+    B -->|NAME_CONFLICT| G[Auto: Add numeric suffix]
+    B -->|HOOK_RULE_VIOLATION| H[Suggest: Adjust Hook usage location]
 
-    G --> I[자동 복구 시도]
-    C --> J[SuggestedFix 반환]
+    G --> I[Attempt automatic recovery]
+    C --> J[Return SuggestedFix]
     D --> J
     E --> J
     F --> J
     H --> J
 
-    I --> K{복구 성공?}
-    K -->|Yes| L[작업 계속]
+    I --> K{Recovery successful?}
+    K -->|Yes| L[Continue]
     K -->|No| J
 
-    J --> M[Error Result 반환]
+    J --> M[Return Error Result]
 ```
 
-### 에러 메시지 예시
+### Error Message Examples
 
 ```typescript
 const errorMessages: Record<ExtractErrorCode, string> = {
-  EMPTY_INPUT: '파일 목록이 비어있습니다',
-  INVALID_SELECTOR: '유효하지 않은 selector입니다',
-  NODE_NOT_FOUND: '지정된 위치에서 노드를 찾을 수 없습니다',
-  INVALID_SELECTION: '선택된 노드가 추출 가능한 JSX 노드가 아닙니다',
-  NON_CONTIGUOUS_NODES: '선택된 노드들이 연속되어 있지 않습니다',
-  DIFFERENT_PARENTS: '선택된 노드들의 부모가 서로 다릅니다',
-  NOT_JSX_NODE: 'JSX 노드만 추출 가능합니다',
-  CIRCULAR_DEPENDENCY: '순환 의존성이 감지되었습니다',
-  UNRESOLVABLE_DEPENDENCY: '해결할 수 없는 의존성이 있습니다',
-  HOOK_RULE_VIOLATION: 'React Hook 규칙 위반이 감지되었습니다',
-  TYPE_INFERENCE_FAILED: '타입 추론에 실패했습니다',
-  COMPLEX_TYPE_UNSUPPORTED: '지원하지 않는 복잡한 타입입니다',
-  INVALID_COMPONENT_NAME: '유효하지 않은 컴포넌트 이름입니다',
-  NAME_CONFLICT: '동일한 이름의 컴포넌트가 이미 존재합니다',
-  COMPONENT_BUILD_FAILED: '컴포넌트 생성에 실패했습니다',
-  CODE_GENERATION_FAILED: '코드 생성에 실패했습니다',
-  INVALID_JSX_STRUCTURE: '유효하지 않은 JSX 구조입니다',
-  FILE_WRITE_FAILED: '파일 쓰기에 실패했습니다',
-  FILE_READ_FAILED: '파일 읽기에 실패했습니다',
+  EMPTY_INPUT: 'File list is empty',
+  INVALID_SELECTOR: 'Invalid selector',
+  NODE_NOT_FOUND: 'Node not found at specified location',
+  INVALID_SELECTION: 'Selected node is not an extractable JSX node',
+  NON_CONTIGUOUS_NODES: 'Selected nodes are not contiguous',
+  DIFFERENT_PARENTS: 'Selected nodes have different parents',
+  NOT_JSX_NODE: 'Only JSX nodes can be extracted',
+  CIRCULAR_DEPENDENCY: 'Circular dependency detected',
+  UNRESOLVABLE_DEPENDENCY: 'Unresolvable dependency exists',
+  HOOK_RULE_VIOLATION: 'React Hook rule violation detected',
+  TYPE_INFERENCE_FAILED: 'Type inference failed',
+  COMPLEX_TYPE_UNSUPPORTED: 'Unsupported complex type',
+  INVALID_COMPONENT_NAME: 'Invalid component name',
+  NAME_CONFLICT: 'Component with the same name already exists',
+  COMPONENT_BUILD_FAILED: 'Component creation failed',
+  CODE_GENERATION_FAILED: 'Code generation failed',
+  INVALID_JSX_STRUCTURE: 'Invalid JSX structure',
+  FILE_WRITE_FAILED: 'File write failed',
+  FILE_READ_FAILED: 'File read failed',
 };
 ```
 
-## 테스트 전략
+## Testing Strategy
 
-### 테스트 레이어
+### Test Layers
 
 ```mermaid
 graph TB
-    A[단위 테스트] --> B[NodeSelector]
+    A[Unit Tests] --> B[NodeSelector]
     A --> C[DependencyAnalyzer]
     A --> D[TypeInferrer]
     A --> E[ComponentNameGenerator]
@@ -950,108 +950,108 @@ graph TB
     A --> G[ImportManager]
     A --> H[CodeReplacer]
 
-    I[통합 테스트] --> J[같은 파일 내 추출]
-    I --> K[다른 파일로 추출]
-    I --> L[Hook 처리]
-    I --> M[TypeScript 타입 생성]
-    I --> N[에러 처리]
+    I[Integration Tests] --> J[Extract within same file]
+    I --> K[Extract to different file]
+    I --> L[Hook handling]
+    I --> M[TypeScript type generation]
+    I --> N[Error handling]
 
-    O[E2E 테스트] --> P[실제 프로젝트 시나리오]
-    O --> Q[복잡한 의존성 그래프]
-    O --> R[대규모 컴포넌트]
+    O[E2E Tests] --> P[Real project scenarios]
+    O --> Q[Complex dependency graphs]
+    O --> R[Large-scale components]
 ```
 
-### 테스트 케이스
+### Test Cases
 
-**1. NodeSelector 단위 테스트**
-- PositionSelector로 단일 노드 선택
-- PathSelector로 단일 노드 선택
-- RangeSelector로 여러 노드 선택
-- 비연속 노드 선택 시 에러
-- 다른 부모의 노드 선택 시 에러
+**1. NodeSelector Unit Tests**
+- Select single node with PositionSelector
+- Select single node with PathSelector
+- Select multiple nodes with RangeSelector
+- Error on non-contiguous node selection
+- Error on nodes with different parents
 
-**2. DependencyAnalyzer 단위 테스트**
-- 변수 의존성 식별
-- 함수 의존성 식별
-- useState 의존성 식별
-- useEffect 의존성 식별
-- Custom Hook 의존성 식별
-- 외부 의존성 필터링
+**2. DependencyAnalyzer Unit Tests**
+- Identify variable dependencies
+- Identify function dependencies
+- Identify useState dependencies
+- Identify useEffect dependencies
+- Identify Custom Hook dependencies
+- Filter external dependencies
 
-**3. TypeInferrer 단위 테스트**
-- 기본 타입 추론 (string, number, boolean)
-- 복잡한 타입 추론 (객체, 배열)
-- 제네릭 타입 처리
-- Union 타입 처리
-- Optional 타입 처리
+**3. TypeInferrer Unit Tests**
+- Infer basic types (string, number, boolean)
+- Infer complex types (objects, arrays)
+- Handle generic types
+- Handle Union types
+- Handle Optional types
 
-**4. ComponentBuilder 단위 테스트**
-- 간단한 컴포넌트 생성
-- Props 인터페이스 포함 컴포넌트 생성
-- Hook 포함 컴포넌트 생성
-- 주석 보존
+**4. ComponentBuilder Unit Tests**
+- Create simple component
+- Create component with Props interface
+- Create component with Hooks
+- Preserve comments
 
-**5. 통합 테스트**
-- 같은 파일 내 간단한 추출
-- 다른 파일로 간단한 추출
-- useState가 있는 컴포넌트 추출
-- useEffect가 있는 컴포넌트 추출
-- 중첩된 의존성 처리
-- Import 자동 생성
+**5. Integration Tests**
+- Simple extraction within same file
+- Simple extraction to different file
+- Extract component with useState
+- Extract component with useEffect
+- Handle nested dependencies
+- Auto-generate imports
 
-**6. E2E 테스트**
-- 실제 React 프로젝트에서 추출
-- 복잡한 컴포넌트 구조 추출
-- 다중 파일 의존성 처리
-- 성능 벤치마크
+**6. E2E Tests**
+- Extract from real React projects
+- Extract complex component structures
+- Handle multi-file dependencies
+- Performance benchmarks
 
-### TDD 워크플로우
+### TDD Workflow
 
 ```mermaid
 flowchart LR
-    A[실패하는 테스트 작성] --> B[최소 코드로 테스트 통과]
-    B --> C[리팩토링]
-    C --> D{더 많은 기능?}
+    A[Write failing test] --> B[Pass with minimal code]
+    B --> C[Refactor]
+    C --> D{More features?}
     D -->|Yes| A
-    D -->|No| E[완료]
+    D -->|No| E[Complete]
 ```
 
-## 성능 고려사항
+## Performance Considerations
 
-### 성능 목표
+### Performance Goals
 
-- 단일 파일 추출 (<1000줄): **< 200ms**
-- 복잡한 의존성 분석: **< 100ms**
-- 타입 추론: **< 50ms**
-- 코드 생성: **< 50ms**
-- 메모리 사용: **< 파일 크기의 15배**
+- Single file extraction (<1000 lines): **< 200ms**
+- Complex dependency analysis: **< 100ms**
+- Type inference: **< 50ms**
+- Code generation: **< 50ms**
+- Memory usage: **< 15x file size**
 
-### 최적화 전략
+### Optimization Strategies
 
 ```mermaid
 graph TB
-    A[성능 최적화] --> B[AST 캐싱]
-    A --> C[의존성 분석 메모이제이션]
-    A --> D[스코프 정보 재사용]
-    A --> E[Lazy 평가]
+    A[Performance optimization] --> B[AST caching]
+    A --> C[Dependency analysis memoization]
+    A --> D[Scope information reuse]
+    A --> E[Lazy evaluation]
 
-    B --> F[같은 파일 여러 번 파싱 방지]
-    C --> G[동일 노드 중복 분석 방지]
-    D --> H[ScopeManager 재사용]
-    E --> I[필요할 때만 타입 추론]
+    B --> F[Prevent reparsing same file]
+    C --> G[Prevent duplicate node analysis]
+    D --> H[Reuse ScopeManager]
+    E --> I[Infer types only when needed]
 ```
 
-## 확장성 고려사항
+## Extensibility Considerations
 
-### 향후 확장 가능성
+### Future Extensibility
 
-1. **다중 컴포넌트 추출**: 한 번에 여러 컴포넌트 추출
-2. **자동 최적화**: 추출 후 자동으로 sinking 적용
-3. **스마트 이름 생성**: 컨텍스트 기반 의미 있는 이름 생성
-4. **리팩토링 제안**: 추출 가능한 영역 자동 감지
-5. **IDE 통합**: LSP를 통한 에디터 통합
+1. **Multiple component extraction**: Extract multiple components at once
+2. **Automatic optimization**: Apply sinking automatically after extraction
+3. **Smart name generation**: Generate meaningful names based on context
+4. **Refactoring suggestions**: Auto-detect extractable regions
+5. **IDE integration**: Editor integration via LSP
 
-### 플러그인 아키텍처
+### Plugin Architecture
 
 ```mermaid
 graph TB
@@ -1068,21 +1068,21 @@ graph TB
     D --> J[AdvancedTypeInference]
 ```
 
-## API 설계
+## API Design
 
 ### Public API
 
 ```typescript
 /**
- * JSX 노드를 새로운 컴포넌트로 추출
+ * Extract JSX nodes into a new component
  *
- * @param files - 파일 입력 배열
- * @param selector - JSX 노드를 선택하는 Selector 또는 RangeSelector
- * @param options - 추출 옵션
+ * @param files - Array of file inputs
+ * @param selector - Selector or RangeSelector to select JSX nodes
+ * @param options - Extraction options
  * @returns Result<ExtractResult, RegraffError>
  *
  * @example
- * // 같은 파일 내 추출
+ * // Extract within same file
  * const result = extract(
  *   [{ path: 'App.tsx', content: sourceCode }],
  *   { file: 'App.tsx', line: 10, column: 5 },
@@ -1090,7 +1090,7 @@ graph TB
  * );
  *
  * @example
- * // 다른 파일로 추출
+ * // Extract to different file
  * const result = extract(
  *   files,
  *   { file: 'App.tsx', line: 10, column: 5 },
@@ -1101,7 +1101,7 @@ graph TB
  * );
  *
  * @example
- * // 범위 선택으로 여러 노드 추출
+ * // Extract multiple nodes with range selection
  * const result = extract(
  *   files,
  *   {
@@ -1119,11 +1119,11 @@ export function extract(
 ): Result<ExtractResult, RegraffError>;
 
 /**
- * 추출 가능 여부를 빠르게 확인 (dry-run)
+ * Quickly check if extraction is possible (dry-run)
  *
- * @param files - 파일 입력 배열
- * @param selector - JSX 노드를 선택하는 Selector 또는 RangeSelector
- * @returns boolean - 추출 가능 여부
+ * @param files - Array of file inputs
+ * @param selector - Selector or RangeSelector to select JSX nodes
+ * @returns boolean - Whether extraction is possible
  */
 export function canExtract(
   files: FileInput[],
@@ -1131,10 +1131,10 @@ export function canExtract(
 ): boolean;
 
 /**
- * 추출 분석만 수행 (변환 없이)
+ * Perform extraction analysis only (no transformation)
  *
- * @param files - 파일 입력 배열
- * @param selector - JSX 노드를 선택하는 Selector 또는 RangeSelector
+ * @param files - Array of file inputs
+ * @param selector - Selector or RangeSelector to select JSX nodes
  * @returns Result<ExtractAnalysis, RegraffError>
  */
 export function analyzeExtract(
@@ -1143,73 +1143,73 @@ export function analyzeExtract(
 ): Result<ExtractAnalysis, RegraffError>;
 ```
 
-### 타입 가드
+### Type Guards
 
 ```typescript
 /**
- * RangeSelector 타입 가드
+ * RangeSelector type guard
  */
 export function isRangeSelector(
   selector: Selector | RangeSelector
 ): selector is RangeSelector;
 
 /**
- * ExtractResult 성공 여부 확인
+ * Check if ExtractResult is successful
  */
 export function isExtractSuccess(
   result: Result<ExtractResult, RegraffError>
 ): result is Ok<ExtractResult>;
 ```
 
-## 구현 우선순위
+## Implementation Priority
 
-### Phase 1: 기본 기능 (MVP)
-1. 단일 JSX 노드 선택 (PositionSelector)
-2. 변수 의존성 분석
-3. 같은 파일 내 추출
-4. 간단한 Props 전달
+### Phase 1: Basic Features (MVP)
+1. Single JSX node selection (PositionSelector)
+2. Variable dependency analysis
+3. Extract within same file
+4. Simple Props passing
 
-### Phase 2: 고급 기능
-1. 범위 선택 (RangeSelector)
-2. Hook 의존성 처리
-3. TypeScript 타입 생성
-4. 다른 파일로 추출
+### Phase 2: Advanced Features
+1. Range selection (RangeSelector)
+2. Hook dependency handling
+3. TypeScript type generation
+4. Extract to different file
 
-### Phase 3: 최적화 및 확장
-1. 성능 최적화
-2. 에러 복구 전략
-3. 코드 포맷팅 개선
-4. 테스트 커버리지 100%
+### Phase 3: Optimization and Extension
+1. Performance optimization
+2. Error recovery strategies
+3. Code formatting improvements
+4. 100% test coverage
 
-## 의존성 관리
+## Dependency Management
 
-### 기존 컴포넌트 재사용
+### Reuse Existing Components
 
-- **SelectorResolver**: 노드 선택
-- **DependencyAnalyzer**: 의존성 분석
-- **ScopeManager**: 스코프 관리
-- **CodeGenerator**: 코드 생성
-- **parseFile**: AST 파싱
-- **Result 모나드**: 에러 처리
+- **SelectorResolver**: Node selection
+- **DependencyAnalyzer**: Dependency analysis
+- **ScopeManager**: Scope management
+- **CodeGenerator**: Code generation
+- **parseFile**: AST parsing
+- **Result monad**: Error handling
 
-### 새로운 컴포넌트
+### New Components
 
-- **ExtractOrchestrator**: 전체 흐름 조율
-- **ExtractPlanner**: 추출 계획 수립
-- **NodeSelector**: JSX 노드 선택 및 검증
-- **TypeInferrer**: 타입 추론
-- **ComponentNameGenerator**: 컴포넌트 이름 생성
-- **ComponentBuilder**: 컴포넌트 AST 생성
-- **CodeReplacer**: 코드 교체
+- **ExtractOrchestrator**: Coordinate overall flow
+- **ExtractPlanner**: Establish extraction plan
+- **NodeSelector**: JSX node selection and validation
+- **TypeInferrer**: Type inference
+- **ComponentNameGenerator**: Component name generation
+- **ComponentBuilder**: Component AST generation
+- **CodeReplacer**: Code replacement
 
-## 참고 자료
+## References
 
-### 관련 문서
+### Related Documents
 - [Requirements Document](./requirements.md)
 - [Tech Steering](../../steering/tech.md)
 - [Structure Steering](../../steering/structure.md)
 
-### 외부 참고
+### External References
 - [Babel AST Explorer](https://astexplorer.net/)
 - [TypeScript AST Viewer](https://ts-ast-viewer.com/)
 - [React Hooks Rules](https://react.dev/reference/rules/rules-of-hooks)

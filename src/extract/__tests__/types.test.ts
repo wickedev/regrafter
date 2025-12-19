@@ -2,7 +2,7 @@
  * Extract Types Test
  *
  * Tests for extract feature type definitions
- * Task 1.2: 핵심 데이터 모델 타입 정의
+ * Task 1.2: Core data model type definitions
  */
 
 import { describe, it, expect } from 'vitest';

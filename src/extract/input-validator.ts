@@ -1,8 +1,8 @@
 /**
  * InputValidator
  *
- * Task 2.2: InputValidator 기본 구현
- * 입력 파라미터 검증 담당
+ * Task 2.2: Basic InputValidator implementation
+ * Responsible for input parameter validation
  */
 
 import type { FileInput, Selector } from '../types/public.js';
@@ -13,7 +13,7 @@ import { ok, err } from '../result/types.js';
 import { ExtractErrorCode, createExtractError } from './errors.js';
 
 /**
- * InputValidator 인터페이스
+ * InputValidator interface
  */
 export interface IInputValidator {
   validate(
@@ -24,15 +24,15 @@ export interface IInputValidator {
 }
 
 /**
- * InputValidator 구현
+ * InputValidator implementation
  */
 export class InputValidator implements IInputValidator {
   /**
-   * 입력 파라미터 검증
+   * Validate input parameters
    *
-   * @param files - 파일 입력 배열
-   * @param selector - Selector 또는 RangeSelector
-   * @param options - Extract 옵션
+   * @param files - Array of file inputs
+   * @param selector - Selector or RangeSelector
+   * @param options - Extract options
    * @returns Result<void, RegraffError>
    */
   validate(
@@ -40,58 +40,58 @@ export class InputValidator implements IInputValidator {
     selector: Selector | RangeSelector,
     options: ExtractOptions
   ): Result<void, RegraffError> {
-    // 1. 빈 파일 목록 검증
+    // 1. Validate empty file list
     if (files.length === 0) {
       return err(
         createExtractError(ExtractErrorCode.EMPTY_INPUT, {
-          details: '파일 목록이 비어있습니다',
+          details: 'File list is empty',
         })
       );
     }
 
-    // 2. Selector 유효성 검증
+    // 2. Validate selector validity
     if (!this.isValidSelector(selector)) {
       return err(
         createExtractError(ExtractErrorCode.INVALID_SELECTOR, {
           selector: selector as Selector,
-          details: '유효하지 않은 selector입니다',
+          details: 'Invalid selector',
         })
       );
     }
 
-    // 3. 모든 검증 통과
+    // 3. All validations passed
     return ok(undefined);
   }
 
   /**
-   * Selector 유효성 검사
+   * Validate selector validity
    *
-   * @param selector - 검증할 selector
-   * @returns boolean - 유효성 여부
+   * @param selector - selector to validate
+   * @returns boolean - Whether valid
    */
   private isValidSelector(selector: Selector | RangeSelector): boolean {
     if (!selector || typeof selector !== 'object') {
       return false;
     }
 
-    // file 속성은 필수
+    // file property is required
     if (!('file' in selector) || typeof selector.file !== 'string') {
       return false;
     }
 
-    // PositionSelector 체크
+    // Check PositionSelector
     if ('line' in selector && 'column' in selector) {
       return (
         typeof selector.line === 'number' && typeof selector.column === 'number'
       );
     }
 
-    // PathSelector 체크
+    // Check PathSelector
     if ('path' in selector) {
       return typeof selector.path === 'string';
     }
 
-    // RangeSelector 체크
+    // Check RangeSelector
     if ('start' in selector && 'end' in selector) {
       const rangeSelector = selector as RangeSelector;
       return (

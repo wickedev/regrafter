@@ -1,7 +1,7 @@
 /**
  * InputValidator Tests
  *
- * Task 2.1: InputValidator 테스트 작성 - 기본 검증
+ * Task 2.1: InputValidator test implementation - Basic validation
  */
 
 import { describe, it, expect } from 'vitest';
@@ -12,7 +12,7 @@ import { ExtractErrorCode } from '../errors.js';
 
 describe('InputValidator', () => {
   describe('validate', () => {
-    it('빈 파일 목록을 검증하면 실패한다', () => {
+    it('should fail when validating an empty file list', () => {
       // Arrange
       const validator = new InputValidator();
       const emptyFiles: FileInput[] = [];
@@ -33,7 +33,7 @@ describe('InputValidator', () => {
       }
     });
 
-    it('유효하지 않은 selector를 검증하면 실패한다', () => {
+    it('should fail when validating an invalid selector', () => {
       // Arrange
       const validator = new InputValidator();
       const files: FileInput[] = [
@@ -44,8 +44,8 @@ describe('InputValidator', () => {
       ];
       const invalidSelector = {
         file: 'test.tsx',
-        // line과 column이 없음 (PositionSelector가 아님)
-        // path도 없음 (PathSelector가 아님)
+        // missing line and column (not a PositionSelector)
+        // also missing path (not a PathSelector)
       } as unknown as PositionSelector;
       const options: ExtractOptions = {};
 
@@ -59,7 +59,7 @@ describe('InputValidator', () => {
       }
     });
 
-    it('유효한 입력을 검증하면 성공한다', () => {
+    it('should succeed when validating valid input', () => {
       // Arrange
       const validator = new InputValidator();
       const files: FileInput[] = [
@@ -82,7 +82,7 @@ describe('InputValidator', () => {
       expect(result.ok).toBe(true);
     });
 
-    it('RangeSelector로 유효한 입력을 검증하면 성공한다', () => {
+    it('should succeed when validating valid input with RangeSelector', () => {
       // Arrange
       const validator = new InputValidator();
       const files: FileInput[] = [

@@ -1,7 +1,7 @@
 /**
  * CodeReplacer
  *
- * Task 7.2: CodeReplacer 구현
+ * Task 7.2: CodeReplacer implementation
  * Replaces original JSX code with component calls
  */
 
@@ -11,29 +11,29 @@ import * as t from '@babel/types';
 /**
  * CodeReplacer
  *
- * 원본 JSX 코드를 새 컴포넌트 호출로 교체하는 클래스
+ * Class that replaces original JSX code with new component calls
  *
  * Requirements:
- * - 3.3: 원본 위치의 JSX 코드를 새 컴포넌트 호출로 교체
- * - 3.6: Props 전달 코드 생성
+ * - 3.3: Replace JSX code at original location with new component call
+ * - 3.6: Generate props passing code
  */
 export class CodeReplacer {
   /**
-   * JSX 노드를 컴포넌트 호출로 교체
+   * Replace JSX node with component call
    *
-   * @param sourcePath - 교체할 원본 JSX 노드 경로
-   * @param componentName - 새 컴포넌트 이름
-   * @param props - 전달할 props (이름 -> 표현식 맵)
+   * @param sourcePath - Path to original JSX node to replace
+   * @param componentName - New component name
+   * @param props - Props to pass (name -> expression map)
    */
   replace(
     sourcePath: NodePath,
     componentName: string,
     props: Map<string, t.Expression>
   ): void {
-    // JSX 엘리먼트 이름 생성
+    // Generate JSX element name
     const jsxIdentifier = t.jsxIdentifier(componentName);
 
-    // Props를 JSX attributes로 변환
+    // Convert Props to JSX attributes
     const attributes: t.JSXAttribute[] = [];
     for (const [propName, propExpression] of props.entries()) {
       const attributeName = t.jsxIdentifier(propName);
@@ -41,19 +41,19 @@ export class CodeReplacer {
       attributes.push(t.jsxAttribute(attributeName, attributeValue));
     }
 
-    // 새 JSX 엘리먼트 생성
+    // Create new JSX element
     let newElement: t.JSXElement | t.JSXFragment;
 
     if (attributes.length === 0) {
-      // Props가 없으면 self-closing element
+      // Self-closing element if no props
       newElement = t.jsxElement(
         t.jsxOpeningElement(jsxIdentifier, attributes, true),
-        null, // selfClosing이므로 closingElement는 null
+        null, // closingElement is null for selfClosing
         [],
         true // selfClosing
       );
     } else {
-      // Props가 있으면 self-closing element
+      // Self-closing element with props
       newElement = t.jsxElement(
         t.jsxOpeningElement(jsxIdentifier, attributes, true),
         null,
@@ -62,7 +62,7 @@ export class CodeReplacer {
       );
     }
 
-    // 원본 노드를 새 엘리먼트로 교체
+    // Replace original node with new element
     sourcePath.replaceWith(newElement);
   }
 }

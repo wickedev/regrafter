@@ -2,170 +2,170 @@
 
 ## Introduction
 
-Extract 기능은 inline 함수의 반대 기능으로, 선택된 JSX 엘리먼트들을 그룹화하여 새로운 React 컴포넌트로 추출하는 리팩토링 도구입니다. 이 기능은 코드 재사용성을 높이고 컴포넌트 구조를 개선하기 위해 기존 JSX 코드의 일부를 독립적인 컴포넌트로 분리합니다.
+The Extract feature is the inverse function of inline, a refactoring tool that groups selected JSX elements and extracts them into a new React component. This feature separates parts of existing JSX code into independent components to improve code reusability and enhance component structure.
 
-핵심 기능:
-- JSX 노드 선택 및 그룹화 (Element, Text, Expression)
-- 의존성 자동 분석 및 처리
-- 같은 파일 내 추출 및 다른 파일로의 추출 지원
-- TypeScript 타입 자동 생성
-- Hook 및 상태 관리 자동 처리
+Core features:
+- JSX node selection and grouping (Element, Text, Expression)
+- Automatic dependency analysis and handling
+- Support for same-file extraction and extraction to different files
+- Automatic TypeScript type generation
+- Automatic Hook and state management handling
 
 ## Requirements
 
-### Requirement 1: JSX 노드 선택 및 추출
+### Requirement 1: JSX Node Selection and Extraction
 
-**User Story:** 개발자로서, PositionSelector 또는 PathSelector를 사용하여 단일 또는 여러 JSX 노드를 선택하고 새로운 컴포넌트로 추출하고 싶습니다. 이를 통해 복잡한 컴포넌트를 더 작고 관리 가능한 단위로 분리할 수 있습니다.
-
-#### Acceptance Criteria
-
-1. WHEN 개발자가 PositionSelector로 JSX 노드의 시작과 끝 위치를 지정하면 THEN 시스템은 SHALL 해당 범위의 모든 JSX 노드를 선택한다
-2. WHEN 개발자가 PathSelector로 JSX 노드의 경로를 지정하면 THEN 시스템은 SHALL 해당 경로에 위치한 JSX 노드를 선택한다
-3. WHEN 개발자가 여러 개의 연속된 JSX 노드를 선택하면 THEN 시스템은 SHALL 모든 선택된 노드를 단일 그룹으로 처리한다
-4. WHEN 선택된 JSX 노드가 JSXElement, JSXText, JSXExpressionContainer 타입 중 하나라면 THEN 시스템은 SHALL 해당 노드를 추출 가능한 노드로 인식한다
-5. IF 선택된 범위가 유효하지 않거나 추출 불가능한 노드를 포함하면 THEN 시스템은 SHALL 명확한 에러 메시지를 반환한다
-
-### Requirement 2: 의존성 자동 분석
-
-**User Story:** 개발자로서, 추출할 JSX 코드가 의존하는 변수, 함수, Hook 등을 자동으로 분석하고 처리하고 싶습니다. 이를 통해 수동으로 의존성을 파악하고 props로 전달하는 번거로움을 줄일 수 있습니다.
+**User Story:** As a developer, I want to select single or multiple JSX nodes using PositionSelector or PathSelector and extract them into a new component. This allows me to separate complex components into smaller, manageable units.
 
 #### Acceptance Criteria
 
-1. WHEN 선택된 JSX 노드가 외부 변수를 참조하면 THEN 시스템은 SHALL 해당 변수를 식별하고 props로 전달할 목록에 추가한다
-2. WHEN 선택된 JSX 노드가 외부 함수를 호출하면 THEN 시스ystem은 SHALL 해당 함수를 식별하고 props로 전달할 목록에 추가한다
-3. WHEN 선택된 JSX 노드가 React Hook을 사용하면 THEN 시스템은 SHALL 해당 Hook을 새 컴포넌트로 이동할지 또는 props로 전달할지 결정한다
-4. IF 의존성이 상태 변수(state)이면 THEN 시스템은 SHALL 상태와 상태 설정 함수를 모두 props로 전달한다
-5. WHEN 의존성 분석이 완료되면 THEN 시스템은 SHALL props 인터페이스를 생성한다
-6. IF 순환 의존성이 감지되면 THEN 시스템은 SHALL 추출을 중단하고 경고 메시지를 반환한다
+1. WHEN developer specifies start and end positions of JSX nodes with PositionSelector THEN system SHALL select all JSX nodes in that range
+2. WHEN developer specifies JSX node path with PathSelector THEN system SHALL select the JSX node located at that path
+3. WHEN developer selects multiple consecutive JSX nodes THEN system SHALL treat all selected nodes as a single group
+4. WHEN selected JSX node is one of JSXElement, JSXText, JSXExpressionContainer types THEN system SHALL recognize that node as extractable
+5. IF selected range is invalid or contains unextractable nodes THEN system SHALL return clear error message
 
-### Requirement 3: 같은 파일 내 컴포넌트 추출
+### Requirement 2: Automatic Dependency Analysis
 
-**User Story:** 개발자로서, 선택된 JSX 코드를 같은 파일 내에서 새로운 컴포넌트로 추출하고 싶습니다. 이를 통해 파일 구조를 유지하면서 컴포넌트를 분리할 수 있습니다.
-
-#### Acceptance Criteria
-
-1. WHEN 개발자가 같은 파일 내 추출을 요청하면 THEN 시스템은 SHALL 원본 컴포넌트와 동일한 파일에 새 컴포넌트를 생성한다
-2. WHEN 새 컴포넌트가 생성되면 THEN 시스템은 SHALL 원본 컴포넌트 정의 앞에 새 컴포넌트를 배치한다
-3. WHEN 새 컴포넌트가 생성되면 THEN 시스템은 SHALL 원본 위치의 JSX 코드를 새 컴포넌트 호출로 교체한다
-4. IF 원본 파일에 TypeScript가 사용 중이면 THEN 시스템은 SHALL 새 컴포넌트의 Props 타입을 생성하고 타입을 지정한다
-5. WHEN 컴포넌트 이름이 지정되지 않으면 THEN 시스템은 SHALL 의미 있는 기본 이름을 생성한다 (예: ExtractedComponent)
-6. WHEN 추출이 완료되면 THEN 시스템은 SHALL 모든 필요한 props를 새 컴포넌트 호출에 전달한다
-
-### Requirement 4: 다른 파일로 컴포넌트 추출
-
-**User Story:** 개발자로서, 선택된 JSX 코드를 새로운 파일로 추출하고 싶습니다. 이를 통해 컴포넌트를 물리적으로 분리하고 재사용성을 높일 수 있습니다.
+**User Story:** As a developer, I want variables, functions, Hooks, etc. that the JSX code to extract depends on to be automatically analyzed and handled. This reduces the hassle of manually identifying dependencies and passing them as props.
 
 #### Acceptance Criteria
 
-1. WHEN 개발자가 다른 파일로 추출을 요청하고 대상 파일 경로를 제공하면 THEN 시스템은 SHALL 지정된 경로에 새 파일을 생성한다
-2. IF 대상 파일이 이미 존재하면 THEN 시스템은 SHALL 기존 파일에 새 컴포넌트를 추가한다
-3. WHEN 새 파일이 생성되면 THEN 시스템은 SHALL 필요한 모든 import 문을 추가한다
-4. WHEN 새 파일이 생성되면 THEN 시스템은 SHALL 컴포넌트와 Props 타입을 export한다
-5. WHEN 원본 파일이 업데이트되면 THEN 시스템은 SHALL 새 컴포넌트에 대한 import 문을 추가한다
-6. IF 추출된 컴포넌트가 React나 다른 라이브러리에 의존하면 THEN 시스템은 SHALL 해당 import 문을 새 파일에 추가한다
-7. WHEN 파일 경로가 상대 경로로 제공되면 THEN 시스템은 SHALL 원본 파일을 기준으로 경로를 해석한다
+1. WHEN selected JSX node references external variables THEN system SHALL identify those variables and add them to the list to pass as props
+2. WHEN selected JSX node calls external functions THEN system SHALL identify those functions and add them to the list to pass as props
+3. WHEN selected JSX node uses React Hooks THEN system SHALL decide whether to move those Hooks to the new component or pass them as props
+4. IF dependency is a state variable THEN system SHALL pass both the state and state setter function as props
+5. WHEN dependency analysis is complete THEN system SHALL generate props interface
+6. IF circular dependency is detected THEN system SHALL abort extraction and return warning message
 
-### Requirement 5: TypeScript 타입 처리
+### Requirement 3: Same-File Component Extraction
 
-**User Story:** 개발자로서, 추출된 컴포넌트의 TypeScript 타입이 자동으로 생성되고 올바르게 적용되기를 원합니다. 이를 통해 타입 안정성을 유지하면서 리팩토링할 수 있습니다.
-
-#### Acceptance Criteria
-
-1. WHEN 원본 파일이 TypeScript를 사용하면 THEN 시스템은 SHALL Props 인터페이스를 생성한다
-2. WHEN Props 인터페이스가 생성되면 THEN 시스템은 SHALL 모든 prop의 타입을 정확하게 추론한다
-3. IF prop이 기본 타입(string, number, boolean 등)이면 THEN 시스템은 SHALL 해당 타입을 직접 사용한다
-4. IF prop이 복잡한 타입이나 커스텀 타입이면 THEN 시스템은 SHALL 해당 타입을 import하거나 인라인으로 정의한다
-5. WHEN 컴포넌트가 제네릭 타입을 사용하면 THEN 시스템은 SHALL 제네릭 파라미터를 올바르게 전달한다
-6. IF 타입 추론이 불가능하면 THEN 시스템은 SHALL 'any' 타입 대신 명시적인 타입 주석 요청 메시지를 반환한다
-
-### Requirement 6: React Hook 처리
-
-**User Story:** 개발자로서, 추출된 JSX 코드가 사용하는 Hook들이 올바르게 처리되기를 원합니다. 이를 통해 Hook의 규칙을 준수하면서 컴포넌트를 추출할 수 있습니다.
+**User Story:** As a developer, I want to extract selected JSX code into a new component within the same file. This allows me to separate components while maintaining the file structure.
 
 #### Acceptance Criteria
 
-1. WHEN 선택된 JSX 코드가 useState를 사용하면 THEN 시스템은 SHALL 상태와 setter를 props로 전달한다
-2. WHEN 선택된 JSX 코드가 useEffect를 사용하면 THEN 시스템은 SHALL useEffect를 새 컴포넌트로 이동한다
-3. WHEN 선택된 JSX 코드가 useCallback 또는 useMemo를 사용하면 THEN 시스템은 SHALL 해당 Hook을 새 컴포넌트로 이동한다
-4. IF Hook이 외부 의존성을 참조하면 THEN 시스템은 SHALL 해당 의존성을 props로 전달한다
-5. WHEN Custom Hook이 사용되면 THEN 시스템은 SHALL Custom Hook을 새 컴포넌트에서 호출하도록 이동한다
-6. IF Hook의 의존성 배열에 외부 변수가 포함되면 THEN 시스템은 SHALL 해당 변수를 props로 전달하고 의존성 배열을 업데이트한다
+1. WHEN developer requests same-file extraction THEN system SHALL create new component in the same file as original component
+2. WHEN new component is created THEN system SHALL place it before original component definition
+3. WHEN new component is created THEN system SHALL replace JSX code at original location with new component call
+4. IF TypeScript is in use in original file THEN system SHALL generate Props type for new component and specify type
+5. WHEN component name is not specified THEN system SHALL generate meaningful default name (e.g., ExtractedComponent)
+6. WHEN extraction is complete THEN system SHALL pass all necessary props to new component call
 
-### Requirement 7: 컴포넌트 이름 지정 및 충돌 방지
+### Requirement 4: Extract Component to Different File
 
-**User Story:** 개발자로서, 추출된 컴포넌트의 이름을 지정하고 이름 충돌을 방지하고 싶습니다. 이를 통해 명확하고 유지보수 가능한 코드를 작성할 수 있습니다.
-
-#### Acceptance Criteria
-
-1. WHEN 개발자가 컴포넌트 이름을 제공하면 THEN 시스템은 SHALL 해당 이름을 사용한다
-2. IF 컴포넌트 이름이 제공되지 않으면 THEN 시스템은 SHALL 의미 있는 기본 이름을 생성한다
-3. WHEN 컴포넌트 이름이 결정되면 THEN 시스템은 SHALL PascalCase 형식을 따르는지 확인한다
-4. IF 동일한 이름의 컴포넌트가 이미 존재하면 THEN 시스템은 SHALL 숫자 접미사를 추가하여 고유한 이름을 생성한다 (예: MyComponent2)
-5. IF 컴포넌트 이름이 React 규칙에 위배되면 THEN 시스템은 SHALL 에러 메시지를 반환한다
-6. WHEN 다른 파일로 추출 시 이름 충돌이 발생하면 THEN 시스템은 SHALL import 이름을 변경하여 충돌을 해결한다
-
-### Requirement 8: 코드 포맷팅 및 스타일 유지
-
-**User Story:** 개발자로서, 추출된 컴포넌트가 기존 코드 스타일을 따르고 올바르게 포맷팅되기를 원합니다. 이를 통해 일관된 코드베이스를 유지할 수 있습니다.
+**User Story:** As a developer, I want to extract selected JSX code to a new file. This allows me to physically separate components and increase reusability.
 
 #### Acceptance Criteria
 
-1. WHEN 새 컴포넌트가 생성되면 THEN 시스템은 SHALL 원본 파일의 들여쓰기 스타일을 유지한다
-2. WHEN 새 컴포넌트가 생성되면 THEN 시스템은 SHALL 원본 파일의 따옴표 스타일(single/double)을 유지한다
-3. WHEN JSX 코드가 추출되면 THEN 시스템은 SHALL 적절한 들여쓰기를 적용한다
-4. IF 원본 코드에 주석이 포함되면 THEN 시스템은 SHALL 주석을 새 컴포넌트로 함께 이동한다
-5. WHEN import 문이 추가되면 THEN 시스템은 SHALL 기존 import 문의 정렬 방식을 따른다
-6. WHEN 코드 생성이 완료되면 THEN 시스템은 SHALL Prettier나 ESLint 같은 포맷터와 호환되는 코드를 생성한다
+1. WHEN developer requests extraction to different file and provides target file path THEN system SHALL create new file at specified path
+2. IF target file already exists THEN system SHALL add new component to existing file
+3. WHEN new file is created THEN system SHALL add all necessary import statements
+4. WHEN new file is created THEN system SHALL export component and Props type
+5. WHEN original file is updated THEN system SHALL add import statement for new component
+6. IF extracted component depends on React or other libraries THEN system SHALL add those import statements to new file
+7. WHEN file path is provided as relative path THEN system SHALL resolve path based on original file
 
-### Requirement 9: 에러 처리 및 검증
+### Requirement 5: TypeScript Type Handling
 
-**User Story:** 개발자로서, 추출 작업이 안전하게 수행되고 문제 발생 시 명확한 피드백을 받고 싶습니다. 이를 통해 코드 손상을 방지하고 문제를 빠르게 해결할 수 있습니다.
-
-#### Acceptance Criteria
-
-1. WHEN 선택 범위가 유효하지 않으면 THEN 시스템은 SHALL 구체적인 에러 메시지를 반환한다
-2. IF JSX 구조가 손상될 가능성이 있으면 THEN 시스템은 SHALL 추출을 중단하고 경고한다
-3. WHEN 파일 쓰기에 실패하면 THEN 시스템은 SHALL 에러를 반환하고 원본 파일을 수정하지 않는다
-4. IF 추출 후 원본 컴포넌트가 유효하지 않은 JSX를 생성하면 THEN 시스템은 SHALL 변경사항을 롤백한다
-5. WHEN 의존성 분석에 실패하면 THEN 시스템은 SHALL 실패 원인을 설명하는 에러 메시지를 반환한다
-6. IF 타입 체크 에러가 발생하면 THEN 시스템은 SHALL 타입 에러 위치와 원인을 보고한다
-7. WHEN 추출 작업이 완료되면 THEN 시스템은 SHALL 생성된 파일 경로와 변경 사항 요약을 반환한다
-
-### Requirement 10: API 인터페이스 설계
-
-**User Story:** 개발자로서, 직관적이고 유연한 API를 통해 extract 기능을 사용하고 싶습니다. 이를 통해 다양한 사용 사례에 맞게 기능을 활용할 수 있습니다.
+**User Story:** As a developer, I want TypeScript types of extracted component to be automatically generated and correctly applied. This allows me to maintain type safety while refactoring.
 
 #### Acceptance Criteria
 
-1. WHEN extract 함수가 호출되면 THEN 시스템은 SHALL 소스 파일 경로를 필수 파라미터로 요구한다
-2. WHEN extract 함수가 호출되면 THEN 시스템은 SHALL selector(PositionSelector 또는 PathSelector)를 필수 파라미터로 요구한다
-3. IF 새 컴포넌트 이름이 제공되면 THEN 시스템은 SHALL 해당 이름을 사용한다
-4. IF 대상 파일 경로가 제공되면 THEN 시스템은 SHALL 다른 파일로 추출을 수행한다
-5. IF 대상 파일 경로가 제공되지 않으면 THEN 시스템은 SHALL 같은 파일 내 추출을 수행한다
-6. WHEN 옵션 파라미터가 제공되면 THEN 시스템은 SHALL 타입 생성 활성화/비활성화, 포맷팅 옵션 등을 지원한다
-7. WHEN 함수가 성공하면 THEN 시스템은 SHALL 생성된 컴포넌트 정보와 수정된 파일 목록을 반환한다
-8. IF 함수가 실패하면 THEN 시스템은 SHALL 구체적인 에러 객체를 throw한다
+1. WHEN original file uses TypeScript THEN system SHALL generate Props interface
+2. WHEN Props interface is generated THEN system SHALL accurately infer types of all props
+3. IF prop is basic type (string, number, boolean, etc.) THEN system SHALL use that type directly
+4. IF prop is complex or custom type THEN system SHALL import that type or define it inline
+5. WHEN component uses generic types THEN system SHALL correctly pass generic parameters
+6. IF type inference is impossible THEN system SHALL return message requesting explicit type annotation instead of 'any' type
 
-### Requirement 11: 성능 및 확장성
+### Requirement 6: React Hook Handling
 
-**User Story:** 개발자로서, 대규모 컴포넌트와 파일에서도 extract 기능이 효율적으로 작동하기를 원합니다. 이를 통해 프로젝트 규모에 관계없이 기능을 사용할 수 있습니다.
+**User Story:** As a developer, I want Hooks used by extracted JSX code to be handled correctly. This allows me to extract components while adhering to Hook rules.
 
 #### Acceptance Criteria
 
-1. WHEN 큰 컴포넌트(1000줄 이상)에서 추출이 수행되면 THEN 시스템은 SHALL 5초 이내에 완료한다
-2. WHEN 복잡한 의존성 그래프를 분석하면 THEN 시스템은 SHALL 메모이제이션을 사용하여 중복 분석을 방지한다
-3. IF 프로젝트에 많은 파일이 있으면 THEN 시스템은 SHALL 필요한 파일만 파싱한다
-4. WHEN AST 변환이 수행되면 THEN 시스템은 SHALL 메모리 효율적인 방식으로 작업한다
-5. IF 동일한 소스 파일에서 여러 번 추출이 수행되면 THEN 시스템은 SHALL AST를 재사용한다
+1. WHEN selected JSX code uses useState THEN system SHALL pass state and setter as props
+2. WHEN selected JSX code uses useEffect THEN system SHALL move useEffect to new component
+3. WHEN selected JSX code uses useCallback or useMemo THEN system SHALL move those Hooks to new component
+4. IF Hook references external dependencies THEN system SHALL pass those dependencies as props
+5. WHEN Custom Hook is used THEN system SHALL move Custom Hook call to new component
+6. IF Hook's dependency array includes external variables THEN system SHALL pass those variables as props and update dependency array
 
-### Requirement 12: 테스트 가능성
+### Requirement 7: Component Naming and Conflict Prevention
 
-**User Story:** 개발자로서, extract 기능이 철저하게 테스트되고 신뢰할 수 있기를 원합니다. 이를 통해 안정적인 리팩토링 도구를 사용할 수 있습니다.
+**User Story:** As a developer, I want to specify extracted component name and prevent name collisions. This allows me to write clear and maintainable code.
 
 #### Acceptance Criteria
 
-1. WHEN 단위 테스트가 작성되면 THEN 시스템은 SHALL 각 주요 기능(노드 선택, 의존성 분석, 코드 생성)을 독립적으로 테스트할 수 있도록 한다
-2. WHEN 통합 테스트가 작성되면 THEN 시스템은 SHALL 실제 파일 시스템과의 상호작용을 테스트할 수 있도록 한다
-3. IF 에지 케이스가 발견되면 THEN 시스템은 SHALL 해당 케이스에 대한 테스트를 추가할 수 있도록 한다
-4. WHEN 테스트가 실행되면 THEN 시스템은 SHALL 예상 출력과 실제 출력을 비교할 수 있는 스냅샷 테스트를 지원한다
-5. IF 리그레션이 발생하면 THEN 시스템은 SHALL 해당 버그를 재현하는 테스트를 작성할 수 있도록 한다
+1. WHEN developer provides component name THEN system SHALL use that name
+2. IF component name is not provided THEN system SHALL generate meaningful default name
+3. WHEN component name is determined THEN system SHALL verify it follows PascalCase format
+4. IF component with same name already exists THEN system SHALL add numeric suffix to generate unique name (e.g., MyComponent2)
+5. IF component name violates React rules THEN system SHALL return error message
+6. WHEN name collision occurs during extraction to different file THEN system SHALL change import name to resolve collision
+
+### Requirement 8: Code Formatting and Style Preservation
+
+**User Story:** As a developer, I want extracted component to follow existing code style and be formatted correctly. This allows me to maintain a consistent codebase.
+
+#### Acceptance Criteria
+
+1. WHEN new component is created THEN system SHALL preserve indentation style of original file
+2. WHEN new component is created THEN system SHALL preserve quote style (single/double) of original file
+3. WHEN JSX code is extracted THEN system SHALL apply appropriate indentation
+4. IF original code contains comments THEN system SHALL move comments to new component together
+5. WHEN import statements are added THEN system SHALL follow existing import statement sorting method
+6. WHEN code generation is complete THEN system SHALL generate code compatible with formatters like Prettier or ESLint
+
+### Requirement 9: Error Handling and Validation
+
+**User Story:** As a developer, I want extraction to be performed safely and receive clear feedback when problems occur. This prevents code damage and allows me to quickly resolve issues.
+
+#### Acceptance Criteria
+
+1. WHEN selection range is invalid THEN system SHALL return specific error message
+2. IF JSX structure may be damaged THEN system SHALL abort extraction and warn
+3. WHEN file write fails THEN system SHALL return error and not modify original file
+4. IF original component generates invalid JSX after extraction THEN system SHALL rollback changes
+5. WHEN dependency analysis fails THEN system SHALL return error message explaining failure reason
+6. IF type check error occurs THEN system SHALL report type error location and cause
+7. WHEN extraction task is complete THEN system SHALL return generated file path and summary of changes
+
+### Requirement 10: API Interface Design
+
+**User Story:** As a developer, I want to use extract feature through intuitive and flexible API. This allows me to utilize feature for various use cases.
+
+#### Acceptance Criteria
+
+1. WHEN extract function is called THEN system SHALL require source file path as mandatory parameter
+2. WHEN extract function is called THEN system SHALL require selector (PositionSelector or PathSelector) as mandatory parameter
+3. IF new component name is provided THEN system SHALL use that name
+4. IF target file path is provided THEN system SHALL perform extraction to different file
+5. IF target file path is not provided THEN system SHALL perform same-file extraction
+6. WHEN option parameter is provided THEN system SHALL support type generation enable/disable, formatting options, etc.
+7. WHEN function succeeds THEN system SHALL return generated component information and list of modified files
+8. IF function fails THEN system SHALL throw specific error object
+
+### Requirement 11: Performance and Scalability
+
+**User Story:** As a developer, I want extract feature to work efficiently even with large-scale components and files. This allows me to use feature regardless of project scale.
+
+#### Acceptance Criteria
+
+1. WHEN extraction is performed on large component (1000+ lines) THEN system SHALL complete within 5 seconds
+2. WHEN analyzing complex dependency graph THEN system SHALL use memoization to prevent duplicate analysis
+3. IF project has many files THEN system SHALL parse only necessary files
+4. WHEN AST transformation is performed THEN system SHALL work in memory-efficient manner
+5. IF extraction is performed multiple times on same source file THEN system SHALL reuse AST
+
+### Requirement 12: Testability
+
+**User Story:** As a developer, I want extract feature to be thoroughly tested and reliable. This allows me to use a stable refactoring tool.
+
+#### Acceptance Criteria
+
+1. WHEN unit tests are written THEN system SHALL allow independent testing of each major function (node selection, dependency analysis, code generation)
+2. WHEN integration tests are written THEN system SHALL allow testing of interactions with actual file system
+3. IF edge cases are discovered THEN system SHALL allow adding tests for those cases
+4. WHEN tests are executed THEN system SHALL support snapshot tests that can compare expected and actual output
+5. IF regression occurs THEN system SHALL allow writing tests that reproduce the bug

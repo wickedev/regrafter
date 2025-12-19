@@ -1,7 +1,7 @@
 /**
  * TypeInferrer Test
  *
- * Task 14.1: TypeInferrer 테스트 작성 - 기본 타입
+ * Task 14.1: TypeInferrer test implementation - Basic types
  * Tests type inference for basic TypeScript types
  */
 
@@ -16,7 +16,7 @@ import type { VariableDependency, FunctionDependency } from '../types.js';
 const traverse = loadTraverseFunction(traverseModule);
 
 /**
- * 테스트용 헬퍼: TypeScript 코드를 파싱하여 변수 의존성 생성
+ * Test helper: Parse TypeScript code to create variable dependency
  */
 function createVariableDependency(
   code: string,
@@ -52,7 +52,7 @@ function createVariableDependency(
 }
 
 /**
- * 테스트용 헬퍼: TypeScript 코드를 파싱하여 함수 의존성 생성
+ * Test helper: Parse TypeScript code to create function dependency
  */
 function createFunctionDependency(
   code: string,
@@ -100,7 +100,7 @@ function createFunctionDependency(
 }
 
 describe('TypeInferrer', () => {
-  describe('inferPropTypes - 기본 타입', () => {
+  describe('inferPropTypes - Basic types', () => {
     it('should infer string type from variable dependency', () => {
       // Arrange
       const inferrer = new TypeInferrer();
@@ -235,7 +235,7 @@ describe('TypeInferrer', () => {
     });
   });
 
-  describe('buildPropsInterface - Props 인터페이스 생성', () => {
+  describe('buildPropsInterface - Props interface generation', () => {
     it('should build Props interface with basic types', () => {
       // Arrange
       const inferrer = new TypeInferrer();
@@ -359,7 +359,7 @@ describe('TypeInferrer', () => {
     });
   });
 
-  describe('inferPropTypes - 복잡한 타입', () => {
+  describe('inferPropTypes - Complex types', () => {
     it('should infer object type from variable dependency', () => {
       // Arrange
       const inferrer = new TypeInferrer();

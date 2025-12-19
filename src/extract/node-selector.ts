@@ -1,7 +1,7 @@
 /**
  * NodeSelector Component
  *
- * Task 3.2: NodeSelector 기본 구현
+ * Task 3.2: Basic NodeSelector implementation
  * Selects and validates JSX nodes for extraction
  */
 

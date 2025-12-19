@@ -1,7 +1,7 @@
 /**
  * Extract Feature Type Definitions
  *
- * Task 1.2: 핵심 데이터 모델 타입 정의
+ * Task 1.2: Core data model type definition
  * Defines all core data models for the extract feature
  */
 
@@ -14,22 +14,22 @@ import type { Code } from '../types/public.js';
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Extract 함수 옵션
+ * Extract function options
  */
 export interface ExtractOptions {
-  /** 추출할 컴포넌트 이름 (미제공 시 자동 생성) */
+  /** Component name to extract (auto-generated if not provided) */
   componentName?: string;
 
-  /** 대상 파일 경로 (미제공 시 같은 파일 내 추출) */
+  /** Target file path (extract to same file if not provided) */
   targetFile?: string;
 
-  /** TypeScript 타입 생성 활성화 (기본: true) */
+  /** Enable TypeScript type generation (default: true) */
   generateTypes?: boolean;
 
-  /** 주석 보존 여부 (기본: true) */
+  /** Preserve comments (default: true) */
   preserveComments?: boolean;
 
-  /** 코드 포맷팅 옵션 */
+  /** Code formatting options */
   formatting?: FormattingOptions;
 }
 
@@ -38,19 +38,19 @@ export interface ExtractOptions {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * 범위 선택자 (여러 노드 선택)
+ * Range selector (select multiple nodes)
  */
 export interface RangeSelector {
-  /** 파일 경로 */
+  /** File path */
   file: string;
 
-  /** 시작 위치 */
+  /** Start position */
   start: {
     line: number;
     column: number;
   };
 
-  /** 종료 위치 */
+  /** End position */
   end: {
     line: number;
     column: number;
@@ -62,105 +62,105 @@ export interface RangeSelector {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Extract 결과
+ * Extract result
  */
 export interface ExtractResult {
-  /** 변환된 파일들 */
+  /** Transformed files */
   codes: Code[];
 
-  /** 생성된 컴포넌트 정보 */
+  /** Generated component information */
   component: ComponentInfo;
 
-  /** 추출 통계 */
+  /** Extract statistics */
   stats: ExtractStats;
 }
 
 /**
- * Extract 분석 결과 (변환 없이 분석만 수행)
+ * Extract analysis result (analysis only without transformation)
  *
- * Task 21.3: analyzeExtract() 함수 테스트
+ * Task 21.3: analyzeExtract() function test
  */
 export interface ExtractAnalysis {
-  /** 선택된 JSX 노드 수 */
+  /** Number of selected JSX nodes */
   selectedNodesCount: number;
 
-  /** 식별된 의존성 정보 */
+  /** Identified dependency information */
   dependencies: {
-    /** 변수 의존성 목록 */
+    /** List of variable dependencies */
     variables: string[];
 
-    /** 함수 의존성 목록 */
+    /** List of function dependencies */
     functions: string[];
 
-    /** 상태 의존성 목록 */
+    /** List of state dependencies */
     states: Array<{ stateName: string; setterName: string }>;
 
-    /** Hook 의존성 목록 */
+    /** List of Hook dependencies */
     hooks: string[];
 
-    /** Import 의존성 목록 */
+    /** List of Import dependencies */
     imports: Array<{ name: string; source: string }>;
   };
 
-  /** Props 타입 정보 */
+  /** Props type information */
   propTypes: Array<{
     name: string;
     type: string;
     optional: boolean;
   }>;
 
-  /** 생성될 컴포넌트 이름 */
+  /** Component name to be generated */
   componentName: string;
 
-  /** 대상 파일 경로 */
+  /** Target file path */
   targetFile: string;
 
-  /** 같은 파일 내 추출 여부 */
+  /** Whether extracting within same file */
   isSameFile: boolean;
 }
 
 /**
- * 생성된 컴포넌트 정보
+ * Generated component information
  */
 export interface ComponentInfo {
-  /** 컴포넌트 이름 */
+  /** Component name */
   name: string;
 
-  /** 컴포넌트가 위치한 파일 */
+  /** File where component is located */
   file: string;
 
-  /** Props 인터페이스 이름 */
+  /** Props interface name */
   propsInterface?: string;
 
-  /** Props 목록 */
+  /** List of Props */
   props: PropInfo[];
 }
 
 /**
- * Prop 정보
+ * Prop information
  */
 export interface PropInfo {
-  /** Prop 이름 */
+  /** Prop name */
   name: string;
 
-  /** Prop 타입 */
+  /** Prop type */
   type: string;
 
-  /** 선택적 여부 */
+  /** Whether optional */
   optional: boolean;
 }
 
 /**
- * Extract 통계
+ * Extract statistics
  */
 export interface ExtractStats {
-  /** 추출된 JSX 노드 수 */
+  /** Number of extracted JSX nodes */
   nodesExtracted: number;
 
-  /** 식별된 의존성 수 */
+  /** Number of identified dependencies */
   dependenciesFound: number;
 
-  /** 생성된 Props 수 */
+  /** Number of generated Props */
   propsGenerated: number;
 }
 
@@ -169,34 +169,34 @@ export interface ExtractStats {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Extract 계획
+ * Extract plan
  */
 export interface ExtractPlan {
-  /** 선택된 JSX 노드들 */
+  /** Selected JSX nodes */
   selectedNodes: NodePath[];
 
-  /** 소스 파일 */
+  /** Source file */
   sourceFile: string;
 
-  /** 대상 파일 */
+  /** Target file */
   targetFile: string;
 
-  /** 생성할 컴포넌트 이름 */
+  /** Component name to create */
   componentName: string;
 
-  /** Props 인터페이스 이름 */
+  /** Props interface name */
   propsInterfaceName: string;
 
-  /** 의존성 정보 */
+  /** Dependency information */
   dependencies: ExtractDependencies;
 
-  /** Props 타입 정보 */
+  /** Props type information */
   propTypes: PropType[];
 
-  /** 이동할 Hook 선언들 */
+  /** Hook declarations to move */
   hooksToMove: HookDeclaration[];
 
-  /** 같은 파일 내 추출 여부 */
+  /** Whether extracting within same file */
   isSameFile: boolean;
 }
 
@@ -205,123 +205,123 @@ export interface ExtractPlan {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Extract 의존성 정보
+ * Extract dependency information
  */
 export interface ExtractDependencies {
-  /** Props로 전달할 변수 */
+  /** Variables to pass as Props */
   variables: VariableDependency[];
 
-  /** Props로 전달할 함수 */
+  /** Functions to pass as Props */
   functions: FunctionDependency[];
 
-  /** Props로 전달할 상태 */
+  /** States to pass as Props */
   states: StateDependency[];
 
-  /** 새 컴포넌트로 이동할 Hook */
+  /** Hooks to move to new component */
   hooks: HookDependency[];
 
-  /** 필요한 Import */
+  /** Required Imports */
   imports: ImportDependency[];
 }
 
 /**
- * 변수 의존성
+ * Variable dependency
  */
 export interface VariableDependency {
-  /** 변수 이름 */
+  /** Variable name */
   name: string;
 
-  /** 변수 타입 (TypeScript) */
+  /** Variable type (TypeScript) */
   type?: t.TSType;
 
-  /** 변수 선언 노드 */
+  /** Variable declaration node */
   declaration: NodePath;
 }
 
 /**
- * 함수 의존성
+ * Function dependency
  */
 export interface FunctionDependency {
-  /** 함수 이름 */
+  /** Function name */
   name: string;
 
-  /** 함수 타입 (TypeScript) */
+  /** Function type (TypeScript) */
   type?: t.TSType;
 
-  /** 함수 선언 노드 */
+  /** Function declaration node */
   declaration: NodePath;
 }
 
 /**
- * 상태 의존성
+ * State dependency
  */
 export interface StateDependency {
-  /** 상태 변수 이름 */
+  /** State variable name */
   stateName: string;
 
-  /** Setter 함수 이름 */
+  /** Setter function name */
   setterName: string;
 
-  /** 상태 타입 (TypeScript) */
+  /** State type (TypeScript) */
   type?: t.TSType;
 
-  /** useState 호출 노드 */
+  /** useState call node */
   declaration: NodePath;
 }
 
 /**
- * Hook 의존성
+ * Hook dependency
  */
 export interface HookDependency {
-  /** Hook 이름 */
+  /** Hook name */
   name: string;
 
-  /** Hook 호출 노드 */
+  /** Hook call node */
   callNode: NodePath;
 
-  /** 외부 의존성 목록 */
+  /** List of external dependencies */
   externalDeps: string[];
 }
 
 /**
- * Import 의존성
+ * Import dependency
  */
 export interface ImportDependency {
-  /** Import 이름 */
+  /** Import name */
   name: string;
 
-  /** Import 소스 경로 */
+  /** Import source path */
   source: string;
 
-  /** Default import 여부 */
+  /** Whether default import */
   isDefault: boolean;
 }
 
 /**
- * Prop 타입 정보
+ * Prop type information
  */
 export interface PropType {
-  /** Prop 이름 */
+  /** Prop name */
   name: string;
 
-  /** TypeScript 타입 AST */
+  /** TypeScript type AST */
   typeAnnotation: t.TSType;
 
-  /** 선택적 여부 */
+  /** Whether optional */
   optional: boolean;
 }
 
 /**
- * Hook 선언 정보
+ * Hook declaration information
  */
 export interface HookDeclaration {
-  /** Hook 이름 */
+  /** Hook name */
   hookName: string;
 
-  /** Hook 호출 표현식 */
+  /** Hook call expression */
   callExpression: t.CallExpression;
 
-  /** 변수 선언자 (const [x, setX] = ...) */
+  /** Variable declarator (const [x, setX] = ...) */
   declarator?: t.VariableDeclarator;
 }
 
@@ -330,18 +330,18 @@ export interface HookDeclaration {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * 포맷팅 옵션
+ * Formatting options
  */
 export interface FormattingOptions {
-  /** 들여쓰기 크기 */
+  /** Indentation size */
   indentSize?: number;
 
-  /** Tab 사용 여부 */
+  /** Whether to use tabs */
   useTabs?: boolean;
 
-  /** 따옴표 스타일 */
+  /** Quote style */
   quotes?: 'single' | 'double';
 
-  /** 세미콜론 사용 여부 */
+  /** Whether to use semicolons */
   semi?: boolean;
 }

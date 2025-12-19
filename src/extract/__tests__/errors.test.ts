@@ -2,7 +2,7 @@
  * Extract Errors Test
  *
  * Tests for extract feature error definitions
- * Task 1.3: 에러 타입 정의
+ * Task 1.3: Error type definitions
  */
 
 import { describe, it, expect } from 'vitest';
@@ -76,7 +76,7 @@ describe('Extract Errors', () => {
 
       expect(error).toBeDefined();
       expect(error.code).toBe(ExtractErrorCode.EMPTY_INPUT);
-      expect(error.message).toContain('파일 목록이 비어있습니다');
+      expect(error.message).toContain('File list is empty'); // Korean error message
       expect(error.category).toBe(ErrorCategory.Validation);
     });
 

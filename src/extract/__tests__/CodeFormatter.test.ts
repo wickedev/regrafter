@@ -1,9 +1,9 @@
 /**
  * CodeFormatter Tests
  *
- * Task 11.1: CodeFormatter 테스트 작성
- * - AST를 코드로 변환 테스트
- * - 들여쓰기 유지 테스트
+ * Task 11.1: CodeFormatter test implementation
+ * - Test AST to code conversion
+ * - Test indentation preservation
  * Requirements: 8.1, 8.3
  */
 
@@ -14,9 +14,9 @@ import { CodeFormatter } from '../CodeFormatter.js';
 import { isOk, isErr } from '../../result/index.js';
 
 describe('CodeFormatter', () => {
-  describe('format - AST를 코드로 변환', () => {
-    it('간단한 AST를 코드로 변환해야 한다', () => {
-      // Given: 간단한 함수 컴포넌트 AST
+  describe('format - Convert AST to code', () => {
+    it('should convert a simple AST to code', () => {
+      // Given: simple function component AST
       const sourceCode = `function MyComponent() {
   return <div>Hello</div>;
 }`;
@@ -28,10 +28,10 @@ describe('CodeFormatter', () => {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(ast, sourceCode);
 
-      // Then: 성공적으로 코드가 생성되어야 한다
+      // Then: code should be generated successfully
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
         expect(result.value).toContain('function MyComponent');
@@ -40,8 +40,8 @@ describe('CodeFormatter', () => {
       }
     });
 
-    it('JSX를 포함한 코드를 변환해야 한다', () => {
-      // Given: JSX 엘리먼트를 포함한 AST
+    it('should convert code containing JSX', () => {
+      // Given: AST containing JSX elements
       const sourceCode = `const element = <div className="container">Content</div>;`;
 
       const ast = parse(sourceCode, {
@@ -51,10 +51,10 @@ describe('CodeFormatter', () => {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(ast, sourceCode);
 
-      // Then: JSX가 올바르게 변환되어야 한다
+      // Then: JSX should be converted correctly
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
         expect(result.value).toContain('const element');
@@ -64,8 +64,8 @@ describe('CodeFormatter', () => {
       }
     });
 
-    it('빈 AST도 처리해야 한다', () => {
-      // Given: 빈 파일 AST
+    it('should handle empty AST', () => {
+      // Given: empty file AST
       const sourceCode = '';
 
       const ast = parse(sourceCode, {
@@ -75,10 +75,10 @@ describe('CodeFormatter', () => {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(ast, sourceCode);
 
-      // Then: 빈 문자열이 반환되어야 한다
+      // Then: should return an empty string
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
         expect(result.value.trim()).toBe('');
@@ -86,9 +86,9 @@ describe('CodeFormatter', () => {
     });
   });
 
-  describe('format - 들여쓰기 유지', () => {
-    it('원본 코드의 들여쓰기 스타일(2 spaces)을 유지해야 한다', () => {
-      // Given: 2칸 들여쓰기를 사용하는 코드
+  describe('format - Preserve indentation', () => {
+    it('should preserve the original code indentation style (2 spaces)', () => {
+      // Given: code using 2-space indentation
       const sourceCode = `function MyComponent() {
   const name = "World";
   return (
@@ -105,14 +105,14 @@ describe('CodeFormatter', () => {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(ast, sourceCode);
 
-      // Then: 2칸 들여쓰기가 유지되어야 한다
+      // Then: 2-space indentation should be preserved
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
         const lines = result.value.split('\n');
-        // function 내부 첫 줄이 2칸 들여쓰기인지 확인
+        // Check if first line inside function has 2-space indentation
         const constLine = lines.find(line => line.includes('const name'));
         expect(constLine).toBeDefined();
         if (constLine) {
@@ -122,8 +122,8 @@ describe('CodeFormatter', () => {
       }
     });
 
-    it('원본 코드의 들여쓰기 스타일(4 spaces)을 유지해야 한다', () => {
-      // Given: 4칸 들여쓰기를 사용하는 코드
+    it('should preserve original code indentation style (4 spaces)', () => {
+      // Given: code using 4-space indentation
       const sourceCode = `function MyComponent() {
     const name = "World";
     return <div>Hello</div>;
@@ -136,10 +136,10 @@ describe('CodeFormatter', () => {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(ast, sourceCode);
 
-      // Then: 4칸 들여쓰기가 유지되어야 한다
+      // Then: 4-space indentation should be preserved
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
         const lines = result.value.split('\n');
@@ -152,8 +152,8 @@ describe('CodeFormatter', () => {
       }
     });
 
-    it('원본 코드의 탭 들여쓰기를 유지해야 한다', () => {
-      // Given: 탭 들여쓰기를 사용하는 코드
+    it('should preserve original code tab indentation', () => {
+      // Given: code using tab indentation
       const sourceCode = `function MyComponent() {\n\tconst name = "World";\n\treturn <div>Hello</div>;\n}`;
 
       const ast = parse(sourceCode, {
@@ -163,10 +163,10 @@ describe('CodeFormatter', () => {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(ast, sourceCode);
 
-      // Then: 탭 들여쓰기가 유지되어야 한다
+      // Then: tab indentation should be preserved
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
         const lines = result.value.split('\n');
@@ -178,8 +178,8 @@ describe('CodeFormatter', () => {
       }
     });
 
-    it('중첩된 구조의 들여쓰기를 올바르게 유지해야 한다', () => {
-      // Given: 중첩된 JSX 구조
+    it('should correctly preserve nested structure indentation', () => {
+      // Given: nested JSX structure
       const sourceCode = `function MyComponent() {
   return (
     <div>
@@ -197,21 +197,21 @@ describe('CodeFormatter', () => {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(ast, sourceCode);
 
-      // Then: 중첩된 들여쓰기가 올바르게 유지되어야 한다
+      // Then: nested indentation should be preserved correctly
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
         const lines = result.value.split('\n');
 
-        // <section>은 4칸 들여쓰기
+        // <section> should have 4-space indentation
         const sectionLine = lines.find(line => line.trim().startsWith('<section>'));
         if (sectionLine) {
           expect(sectionLine.match(/^\s*/)?.[0].length).toBeGreaterThan(2);
         }
 
-        // <h1>은 6칸 들여쓰기
+        // <h1> should have 6-space indentation
         const h1Line = lines.find(line => line.trim().startsWith('<h1>'));
         if (h1Line) {
           expect(h1Line.match(/^\s*/)?.[0].length).toBeGreaterThan(4);
@@ -220,9 +220,9 @@ describe('CodeFormatter', () => {
     });
   });
 
-  describe('format - 따옴표 스타일 유지', () => {
-    it('원본 코드가 single quotes를 사용하면 생성된 코드도 single quotes를 사용해야 한다', () => {
-      // Given: single quotes를 주로 사용하는 코드
+  describe('format - Preserve quote style', () => {
+    it('should use single quotes in generated code when original code uses single quotes', () => {
+      // Given: code primarily using single quotes
       const sourceCode = `const greeting = 'Hello';
 const name = 'World';
 function MyComponent() {
@@ -236,18 +236,18 @@ function MyComponent() {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(ast, sourceCode);
 
-      // Then: 생성된 코드도 single quotes를 사용해야 한다
+      // Then: generated code should also use single quotes
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
-        // 문자열 리터럴이 single quotes로 감싸져 있어야 함
+        // String literals should be wrapped in single quotes
         expect(result.value).toContain("'Hello'");
         expect(result.value).toContain("'World'");
         expect(result.value).toContain("'container'");
 
-        // double quotes는 사용하지 않아야 함 (JSX 속성 제외)
+        // Should not use double quotes (except JSX attributes)
         const stringLiterals = result.value.match(/(['"])(?:(?=(\\?))\2.)*?\1/g) || [];
         const singleQuoteCount = stringLiterals.filter(s => s.startsWith("'")).length;
         const doubleQuoteCount = stringLiterals.filter(s => s.startsWith('"')).length;
@@ -255,8 +255,8 @@ function MyComponent() {
       }
     });
 
-    it('원본 코드가 double quotes를 사용하면 생성된 코드도 double quotes를 사용해야 한다', () => {
-      // Given: double quotes를 주로 사용하는 코드
+    it('should use double quotes in generated code when original code uses double quotes', () => {
+      // Given: code primarily using double quotes
       const sourceCode = `const greeting = "Hello";
 const name = "World";
 function MyComponent() {
@@ -270,18 +270,18 @@ function MyComponent() {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(ast, sourceCode);
 
-      // Then: 생성된 코드도 double quotes를 사용해야 한다
+      // Then: generated code should also use double quotes
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
-        // 문자열 리터럴이 double quotes로 감싸져 있어야 함
+        // String literals should be wrapped in double quotes
         expect(result.value).toContain('"Hello"');
         expect(result.value).toContain('"World"');
         expect(result.value).toContain('"container"');
 
-        // single quotes보다 double quotes가 더 많아야 함
+        // Should have more double quotes than single quotes
         const stringLiterals = result.value.match(/(['"])(?:(?=(\\?))\2.)*?\1/g) || [];
         const singleQuoteCount = stringLiterals.filter(s => s.startsWith("'")).length;
         const doubleQuoteCount = stringLiterals.filter(s => s.startsWith('"')).length;
@@ -290,9 +290,9 @@ function MyComponent() {
     });
   });
 
-  describe('format - 세미콜론 사용 여부 유지', () => {
-    it('원본 코드가 세미콜론을 사용하면 생성된 코드도 세미콜론을 사용해야 한다', () => {
-      // Given: 세미콜론을 사용하는 코드
+  describe('format - Preserve semicolon usage', () => {
+    it('should use semicolons in generated code when original code uses semicolons', () => {
+      // Given: Code using semicolons
       const sourceCode = `const greeting = 'Hello';
 const name = 'World';
 function MyComponent() {
@@ -306,24 +306,24 @@ function MyComponent() {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(ast, sourceCode);
 
-      // Then: 생성된 코드도 세미콜론을 사용해야 한다
+      // Then: Generated code should also use semicolons
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
-        // 변수 선언과 return 문에 세미콜론이 있어야 함
+        // Variable declarations and return statements should have semicolons
         expect(result.value).toMatch(/const greeting = ['"]Hello['"];/);
         expect(result.value).toMatch(/const name = ['"]World['"];/);
 
-        // 세미콜론이 여러 개 있어야 함
+        // Should have multiple semicolons
         const semicolonCount = (result.value.match(/;/g) || []).length;
         expect(semicolonCount).toBeGreaterThan(0);
       }
     });
 
-    it('원본 코드가 세미콜론을 사용하지 않으면 생성된 코드도 세미콜론을 생략해야 한다', () => {
-      // Given: 세미콜론을 사용하지 않는 코드
+    it('should omit semicolons in generated code when original code does not use semicolons', () => {
+      // Given: Code not using semicolons
       const sourceCode = `const greeting = 'Hello'
 const name = 'World'
 function MyComponent() {
@@ -337,13 +337,13 @@ function MyComponent() {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(ast, sourceCode);
 
-      // Then: 생성된 코드도 세미콜론을 사용하지 않아야 한다
+      // Then: Generated code should also not use semicolons
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
-        // 변수 선언 라인에 세미콜론이 없어야 함
+        // Variable declaration lines should not have semicolons
         const lines = result.value.split('\n');
         const greetingLine = lines.find(line => line.includes('greeting'));
         const nameLine = lines.find(line => line.includes('const name'));
@@ -358,9 +358,9 @@ function MyComponent() {
     });
   });
 
-  describe('format - import 정렬 스타일 유지', () => {
-    it('원본 코드의 import 정렬 방식을 유지해야 한다', () => {
-      // Given: 특정 순서로 정렬된 import 문
+  describe('format - Preserve import sorting style', () => {
+    it('should preserve original code import sorting method', () => {
+      // Given: Import statements sorted in specific order
       const sourceCode = `import React from 'react';
 import { useState } from 'react';
 import type { FC } from 'react';
@@ -378,19 +378,19 @@ function MyComponent() {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(ast, sourceCode);
 
-      // Then: import 문의 순서가 유지되어야 한다
+      // Then: Order of import statements should be preserved
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
         const lines = result.value.split('\n');
         const importLines = lines.filter(line => line.trim().startsWith('import'));
 
-        // import 문이 존재해야 함
+        // Import statements should exist
         expect(importLines.length).toBeGreaterThan(0);
 
-        // React import가 먼저 나와야 함
+        // React import should come first
         const reactImportIndex = importLines.findIndex(line => line.includes("from 'react'"));
         const componentImportIndex = importLines.findIndex(line => line.includes('./components/Button'));
 
@@ -400,8 +400,8 @@ function MyComponent() {
       }
     });
 
-    it('원본 코드의 import 그룹화를 유지해야 한다', () => {
-      // Given: 빈 줄로 그룹화된 import 문
+    it('should preserve original code import grouping', () => {
+      // Given: Import statements grouped by blank lines
       const sourceCode = `import React from 'react';
 import { useState } from 'react';
 
@@ -419,13 +419,13 @@ function MyComponent() {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(ast, sourceCode);
 
-      // Then: import 그룹 사이의 빈 줄이 유지되어야 한다
+      // Then: Blank lines between import groups should be preserved
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
-        // import 문이 포함되어 있어야 함
+        // Should contain import statements
         expect(result.value).toContain('import');
         expect(result.value).toContain('react');
         expect(result.value).toContain('./components/Button');
@@ -433,9 +433,9 @@ function MyComponent() {
     });
   });
 
-  describe('format - 에러 처리', () => {
-    it('유효하지 않은 AST에 대해 에러를 반환해야 한다', () => {
-      // Given: 완전히 잘못된 구조의 AST
+  describe('format - Error handling', () => {
+    it('should return error for invalid AST', () => {
+      // Given: Completely incorrectly structured AST
       const invalidAst = {
         type: 'InvalidType', // Invalid type
         program: {
@@ -450,10 +450,10 @@ function MyComponent() {
 
       const formatter = new CodeFormatter();
 
-      // When: format 호출
+      // When: call format
       const result = formatter.format(invalidAst, '');
 
-      // Then: 에러가 반환되어야 한다
+      // Then: Error should be returned
       expect(isErr(result)).toBe(true);
       if (isErr(result)) {
         expect(result.error.code).toBe('CODE_GENERATION_FAILED');

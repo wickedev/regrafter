@@ -1,7 +1,7 @@
 /**
  * Type Guards for Extract Feature
  *
- * Task 22.2: 타입 가드 구현
+ * Task 22.2: Type guard implementation
  * Provides type guards for RangeSelector and ExtractResult
  */
 

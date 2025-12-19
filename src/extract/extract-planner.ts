@@ -1,7 +1,7 @@
 /**
  * ExtractPlanner
  *
- * Task 8.2: ExtractPlanner 기본 구현
+ * Task 8.2: Basic ExtractPlanner implementation
  * Plans the extraction of JSX nodes into a new component
  */
 

@@ -1,7 +1,7 @@
 /**
  * Extract Feature Module
  *
- * Task 1: 프로젝트 구조 및 타입 정의 설정
+ * Task 1: Project structure and type definition setup
  * Exports all extract feature types and utilities
  */
 

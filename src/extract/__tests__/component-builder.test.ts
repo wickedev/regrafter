@@ -1,8 +1,8 @@
 /**
  * ComponentBuilder Test
  *
- * Task 6.1: ComponentBuilder 테스트 작성 - Props 없는 컴포넌트
- * Task 6.3: ComponentBuilder 테스트 작성 - Props 있는 컴포넌트
+ * Task 6.1: ComponentBuilder test implementation - Component without Props
+ * Task 6.3: ComponentBuilder test implementation - Component with Props
  */
 
 import { describe, it, expect } from 'vitest';
@@ -10,7 +10,7 @@ import * as t from '@babel/types';
 import { ComponentBuilder } from '../component-builder.js';
 
 describe('ComponentBuilder', () => {
-  describe('buildComponent - Props 없는 컴포넌트', () => {
+  describe('buildComponent - Component without Props', () => {
     it('should build simple function component without props', () => {
       // Arrange
       const builder = new ComponentBuilder();
@@ -66,7 +66,7 @@ describe('ComponentBuilder', () => {
 
       if (t.isReturnStatement(returnStatement)) {
         expect(returnStatement.argument).toBeDefined();
-        // JSX body가 단일 노드면 그대로, 여러 노드면 Fragment로 감싸짐
+        // If JSX body is a single node, use as-is; if multiple nodes, wrap in Fragment
         if (jsxBody.length === 1) {
           expect(t.isJSXElement(returnStatement.argument)).toBe(true);
         }
@@ -100,7 +100,7 @@ describe('ComponentBuilder', () => {
       const returnStatement = body[0];
 
       if (t.isReturnStatement(returnStatement) && returnStatement.argument) {
-        // 여러 JSX 노드는 Fragment로 감싸져야 함
+        // Multiple JSX nodes should be wrapped in Fragment
         expect(
           t.isJSXFragment(returnStatement.argument) ||
           t.isJSXElement(returnStatement.argument)
@@ -139,7 +139,7 @@ describe('ComponentBuilder', () => {
     });
   });
 
-  describe('buildComponent - Props 있는 컴포넌트', () => {
+  describe('buildComponent - Component with Props', () => {
     it('should build component with Props parameter', () => {
       // Arrange
       const builder = new ComponentBuilder();
@@ -177,13 +177,13 @@ describe('ComponentBuilder', () => {
       expect(t.isFunctionDeclaration(result)).toBe(true);
       expect(result.params).toHaveLength(1);
 
-      // Props 파라미터 확인 (destructuring 또는 props 파라미터)
+      // Verify Props parameter (destructuring or props parameter)
       const propsParam = result.params[0];
       expect(
         t.isIdentifier(propsParam) || t.isObjectPattern(propsParam)
       ).toBe(true);
 
-      // Destructuring된 경우 message 프로퍼티 확인
+      // If destructured, verify message property
       if (t.isObjectPattern(propsParam)) {
         expect(propsParam.properties.length).toBeGreaterThan(0);
       }
@@ -265,13 +265,13 @@ describe('ComponentBuilder', () => {
 
       // Assert
       const propsParam = result.params[0];
-      // Props destructuring이 ObjectPattern으로 표현됨
+      // Props destructuring is represented as ObjectPattern
       expect(
         t.isObjectPattern(propsParam) || t.isIdentifier(propsParam)
       ).toBe(true);
 
       if (t.isObjectPattern(propsParam)) {
-        // destructuring된 props 확인
+        // Verify destructured props
         expect(propsParam.properties.length).toBeGreaterThan(0);
       }
     });

@@ -1,13 +1,13 @@
 /**
  * ExtractOrchestrator
  *
- * Task 10.2: ExtractOrchestrator 기본 구현
+ * Task 10.2: Basic ExtractOrchestrator implementation
  *
  * Requirements:
- * - 1.1: JSX 노드 선택 및 추출
- * - 2.1: 의존성 자동 분석
- * - 3.1: 같은 파일 내 컴포넌트 추출
- * - 10.7: 생성된 파일 경로와 변경 사항 요약 반환
+ * - 1.1: Select and extract JSX nodes
+ * - 2.1: Automatic dependency analysis
+ * - 3.1: Extract component within same file
+ * - 10.7: Return generated file paths and change summary
  */
 
 import type { FileInput, Selector } from '../types/public.js';
@@ -31,15 +31,15 @@ import { createExtractError, ExtractErrorCode } from './errors.js';
 /**
  * ExtractOrchestrator
  *
- * Extract 작업 전체 흐름을 조율하는 클래스
+ * Class that orchestrates entire Extract operation workflow
  *
  * Responsibilities:
- * - 입력 검증 (InputValidator)
- * - 파일 파싱
- * - 추출 계획 수립 (ExtractPlanner)
- * - 계획 실행 (ExtractExecutor)
- * - 코드 포맷팅 (CodeFormatter)
- * - 결과 생성 (ExtractResult)
+ * - Input validation (InputValidator)
+ * - File parsing
+ * - Extract planning (ExtractPlanner)
+ * - Plan execution (ExtractExecutor)
+ * - Code formatting (CodeFormatter)
+ * - Result generation (ExtractResult)
  *
  * Based on design.md section ExtractOrchestrator
  */
@@ -57,27 +57,27 @@ export class ExtractOrchestrator {
   }
 
   /**
-   * Extract 작업 전체 흐름 조율
+   * Orchestrate entire Extract operation workflow
    *
-   * @param files - 파일 입력 배열
-   * @param selector - JSX 노드를 선택하는 Selector 또는 RangeSelector
-   * @param options - 추출 옵션
-   * @returns ExtractResult 또는 에러
+   * @param files - Array of file inputs
+   * @param selector - Selector or RangeSelector to select JSX nodes
+   * @param options - Extract options
+   * @returns ExtractResult or error
    *
    * Workflow:
-   * 1. 입력 검증
-   * 2. 파일 파싱
-   * 3. 추출 계획 수립
-   * 4. 계획 실행
-   * 5. 코드 포맷팅
-   * 6. 결과 생성
+   * 1. Input validation
+   * 2. File parsing
+   * 3. Extract planning
+   * 4. Plan execution
+   * 5. Code formatting
+   * 6. Result generation
    */
   orchestrate(
     files: FileInput[],
     selector: Selector | RangeSelector,
     options: ExtractOptions
   ): Result<ExtractResult, RegraffError> {
-    // Step 1: 입력 검증
+    // Step 1: Input validation
     const validationResult = this.inputValidator.validate(
       files,
       selector,
@@ -88,7 +88,7 @@ export class ExtractOrchestrator {
       return validationResult;
     }
 
-    // Step 2: 파일 파싱
+    // Step 2: File parsing
     const astMap = new Map<string, t.File>();
     for (const file of files) {
       const parseResult = parseFile(file.path, file.content);
@@ -103,7 +103,7 @@ export class ExtractOrchestrator {
       astMap.set(file.path, parseResult.value);
     }
 
-    // Step 3: 추출 계획 수립
+    // Step 3: Extract planning
     const planResult = this.extractPlanner.plan(files, astMap, selector, options);
     if (!planResult.ok) {
       return planResult;
@@ -111,7 +111,7 @@ export class ExtractOrchestrator {
 
     const plan = planResult.value;
 
-    // Step 4: 계획 실행
+    // Step 4: Plan execution
     const executeResult = this.extractExecutor.execute(plan, astMap);
     if (!executeResult.ok) {
       return executeResult;
@@ -119,7 +119,7 @@ export class ExtractOrchestrator {
 
     const updatedAsts = executeResult.value;
 
-    // Step 5: 코드 포맷팅
+    // Step 5: Code formatting
     const codes: Array<{ path: string; content: string }> = [];
 
     for (const [filePath, ast] of updatedAsts) {
@@ -137,7 +137,7 @@ export class ExtractOrchestrator {
       });
     }
 
-    // Step 6: 결과 생성
+    // Step 6: Result generation
     const result: ExtractResult = {
       codes,
       component: {
@@ -165,22 +165,22 @@ export class ExtractOrchestrator {
   }
 
   /**
-   * 추출 가능 여부만 검증 (dry-run)
+   * Validate extraction possibility only (dry-run)
    *
-   * Task 21.2: canExtract() 함수 구현
+   * Task 21.2: canExtract() function implementation
    *
-   * @param files - 파일 입력 배열
-   * @param selector - JSX 노드를 선택하는 Selector 또는 RangeSelector
-   * @returns 추출 가능 여부
+   * @param files - Array of file inputs
+   * @param selector - Selector or RangeSelector to select JSX nodes
+   * @returns Whether extraction is possible
    *
-   * 실제 변환을 수행하지 않고 검증만 수행합니다.
-   * 검증 실패 시 false를 반환합니다.
+   * Performs validation only without actual transformation.
+   * Returns false on validation failure.
    */
   validate(
     files: FileInput[],
     selector: Selector | RangeSelector
   ): boolean {
-    // Step 1: 입력 검증
+    // Step 1: Input validation
     const validationResult = this.inputValidator.validate(
       files,
       selector,
@@ -191,7 +191,7 @@ export class ExtractOrchestrator {
       return false;
     }
 
-    // Step 2: 파일 파싱
+    // Step 2: File parsing
     const astMap = new Map<string, t.File>();
     for (const file of files) {
       const parseResult = parseFile(file.path, file.content);
@@ -201,35 +201,35 @@ export class ExtractOrchestrator {
       astMap.set(file.path, parseResult.value);
     }
 
-    // Step 3: 추출 계획 수립
+    // Step 3: Extract planning
     const planResult = this.extractPlanner.plan(files, astMap, selector, {});
     if (!planResult.ok) {
       return false;
     }
 
-    // 계획 수립까지 성공하면 추출 가능
+    // If planning succeeds, extraction is possible
     return true;
   }
 
   /**
-   * 추출 분석만 수행 (변환 없이)
+   * Perform extraction analysis only (without transformation)
    *
-   * Task 21.4: analyzeExtract() 함수 구현
+   * Task 21.4: analyzeExtract() function implementation
    *
-   * @param files - 파일 입력 배열
-   * @param selector - JSX 노드를 선택하는 Selector 또는 RangeSelector
-   * @returns ExtractAnalysis 또는 에러
+   * @param files - Array of file inputs
+   * @param selector - Selector or RangeSelector to select JSX nodes
+   * @returns ExtractAnalysis or error
    *
-   * 의존성 분석과 계획 수립까지만 수행하고 실제 변환은 수행하지 않습니다.
+   * Performs only dependency analysis and planning, not actual transformation.
    *
    * Requirements:
-   * - 2.5: 의존성 분석만 수행하고 코드 변환 생략
+   * - 2.5: Perform dependency analysis only and skip code transformation
    */
   analyze(
     files: FileInput[],
     selector: Selector | RangeSelector
   ): Result<ExtractAnalysis, RegraffError> {
-    // Step 1: 입력 검증
+    // Step 1: Input validation
     const validationResult = this.inputValidator.validate(
       files,
       selector,
@@ -240,7 +240,7 @@ export class ExtractOrchestrator {
       return validationResult;
     }
 
-    // Step 2: 파일 파싱
+    // Step 2: File parsing
     const astMap = new Map<string, t.File>();
     for (const file of files) {
       const parseResult = parseFile(file.path, file.content);
@@ -255,7 +255,7 @@ export class ExtractOrchestrator {
       astMap.set(file.path, parseResult.value);
     }
 
-    // Step 3: 추출 계획 수립
+    // Step 3: Extract planning
     const planResult = this.extractPlanner.plan(files, astMap, selector, {});
     if (!planResult.ok) {
       return planResult;
@@ -263,7 +263,7 @@ export class ExtractOrchestrator {
 
     const plan = planResult.value;
 
-    // Step 4: 계획을 ExtractAnalysis로 변환
+    // Step 4: Convert plan to ExtractAnalysis
     const analysis: ExtractAnalysis = {
       selectedNodesCount: plan.selectedNodes.length,
       dependencies: {
@@ -293,10 +293,10 @@ export class ExtractOrchestrator {
   }
 
   /**
-   * TypeScript 타입 AST를 문자열로 변환
+   * Convert TypeScript type AST to string
    *
-   * @param typeAnnotation - 타입 AST
-   * @returns 타입 문자열
+   * @param typeAnnotation - Type AST
+   * @returns Type string
    */
   private typeToString(typeAnnotation: t.TSType): string {
     // Primitive types
