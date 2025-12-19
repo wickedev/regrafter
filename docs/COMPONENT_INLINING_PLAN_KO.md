@@ -250,10 +250,17 @@ function Card({ title = "기본값", children, ...rest }) {
    ```typescript
    export function inline(
      files: FileInput[],
-     componentFile: string,
-     componentName: string,
-     options?: InlineOptions
-   ): Result<Code[], RegraffError>;
+     component: Component
+   ): Result<InlineResult, RegraffError>;
+
+   // Component 타입 정의
+   interface Component {
+     file: string;   // 컴포넌트 정의가 포함된 파일 경로
+     name: string;   // 인라인할 컴포넌트 이름
+   }
+
+   // 사용 예시
+   const result = inline(files, { file: 'App.tsx', name: 'Greeting' });
    ```
 
 6. **통합 테스트** (2일)
@@ -424,7 +431,7 @@ src/
 │       ├── import-resolver.ts
 │       └── component-remover.ts
 └── types/
-    └── public.ts                   # 수정: InlineOptions 추가
+    └── public.ts                   # 수정: Component, InlineResult 타입 추가
 ```
 
 ### 데이터 흐름

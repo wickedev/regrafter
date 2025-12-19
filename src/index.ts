@@ -1212,13 +1212,16 @@ export interface Component {
 /**
  * Inline a React component by replacing its usage with its implementation.
  *
- * This function finds a component definition by name and replaces all usages
+ * This function finds a component definition in a specified file and replaces all usages
  * with the component's implementation, performing prop substitution inline.
  * The original component definition is removed.
  *
- * Phase 1 supports:
+ * Supported features:
  * - Simple presentational components
  * - Components with props (destructured parameters)
+ * - Components with React hooks (useState, useEffect, useRef, etc.)
+ * - Cross-file inlining with automatic import management
+ * - Transitive import resolution
  * - Prop substitution as inline expressions
  *
  * @param files - Array of file inputs with path and content
@@ -1226,6 +1229,7 @@ export interface Component {
  * @returns Result containing transformed codes and inline count, or error
  *
  * @example
+ * **Same-file inlining**
  * ```typescript
  * const files = [{
  *   path: 'App.tsx',
@@ -1247,6 +1251,24 @@ export interface Component {
  * } else {
  *   console.error('Error:', result.error.message);
  * }
+ * ```
+ *
+ * @example
+ * **Cross-file inlining**
+ * ```typescript
+ * const files = [
+ *   {
+ *     path: 'Button.tsx',
+ *     content: `export function Button({ label }) { return <button>{label}</button>; }`
+ *   },
+ *   {
+ *     path: 'App.tsx',
+ *     content: `import { Button } from './Button'; function App() { return <Button label="Click" />; }`
+ *   }
+ * ];
+ *
+ * // Specify the file containing the component definition
+ * const result = inline(files, { file: 'Button.tsx', name: 'Button' });
  * ```
  */
 export function inline(

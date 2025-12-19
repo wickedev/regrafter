@@ -250,10 +250,17 @@ The following existing components significantly reduce implementation complexity
    ```typescript
    export function inline(
      files: FileInput[],
-     componentFile: string,
-     componentName: string,
-     options?: InlineOptions
-   ): Result<Code[], RegraffError>;
+     component: Component
+   ): Result<InlineResult, RegraffError>;
+
+   // Component type definition
+   interface Component {
+     file: string;   // File path containing the component definition
+     name: string;   // Name of the component to inline
+   }
+
+   // Usage example
+   const result = inline(files, { file: 'App.tsx', name: 'Greeting' });
    ```
 
 6. **Integration Tests** (2 days)
@@ -424,7 +431,7 @@ src/
 │       ├── import-resolver.ts
 │       └── component-remover.ts
 └── types/
-    └── public.ts                   # MODIFIED: Add InlineOptions
+    └── public.ts                   # MODIFIED: Add Component, InlineResult types
 ```
 
 ### Data Flow
