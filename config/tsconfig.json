@@ -22,5 +22,11 @@
     "isolatedModules": true
   },
   "include": ["../src/**/*"],
-  "exclude": ["../node_modules", "../dist", "**/*.test.ts", "../test/fixtures/**"]
+  "exclude": [
+    "../node_modules",
+    "../dist",
+    "../src/**/*.test.ts",
+    "../src/**/__tests__/**",
+    "../test/**"
+  ]
 }

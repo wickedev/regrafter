@@ -7,12 +7,16 @@
     "emitDeclarationOnly": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "strict": false,
     "skipLibCheck": true,
     "module": "ESNext",
-    "moduleResolution": "bundler",
-    "noImplicitAny": false
+    "moduleResolution": "bundler"
   },
   "include": ["../src/**/*"],
-  "exclude": ["../node_modules", "../dist", "**/*.test.ts", "../src/__tests__/**/*"]
+  "exclude": [
+    "../node_modules",
+    "../dist",
+    "../src/**/*.test.ts",
+    "../src/**/__tests__/**",
+    "../test/**"
+  ]
 }

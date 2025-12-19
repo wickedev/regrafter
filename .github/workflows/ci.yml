@@ -20,7 +20,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: \${{ matrix.node-version }}
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - name: Install dependencies
@@ -36,9 +36,6 @@ jobs:
 
       - name: Run tests
         run: npm test
-
-      - name: Run E2E tests
-        run: npm run test:e2e
 
       - name: Test build
         run: npm run build

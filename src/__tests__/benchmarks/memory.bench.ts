@@ -14,9 +14,9 @@
  * not to achieve the theoretical 10x limit which would require custom AST structures.
  */
 
-import { describe, it, expect } from 'vitest';
-import { regraft, Move } from '../../index.js';
-import type { FileInput } from '../../types/index.js';
+import { describe, it, expect } from "vitest";
+import { regraft, Move } from "../../index.js";
+import type { FileInput } from "../../types/index.js";
 
 /**
  * Generate a React component with specified number of lines
@@ -28,9 +28,10 @@ function generateReactComponent(lines: number): string {
 
   // Add hooks (1 hook per 10 lines)
   const hookCount = Math.floor(lines / 10);
-  const hooks = Array.from({ length: hookCount }, (_, i) =>
-    `  const [state${i}, setState${i}] = useState(0);\n`
-  ).join('');
+  const hooks = Array.from(
+    { length: hookCount },
+    (_, i) => `  const [state${i}, setState${i}] = useState(0);\n`
+  ).join("");
 
   // Add JSX elements (1 element per 5 lines)
   const elementCount = Math.max(5, Math.floor(lines / 5));
@@ -41,7 +42,7 @@ function generateReactComponent(lines: number): string {
       return `      <div id="target">Target element</div>\n`;
     }
     return `      <div key={${i}}>Element ${i}</div>\n`;
-  }).join('');
+  }).join("");
 
   const componentEnd = `  return (\n    <div>\n${elements}    </div>\n  );\n}\n`;
 
@@ -54,7 +55,7 @@ function generateReactComponent(lines: number): string {
 function getFileSizeKB(content: string): number {
   // Each character is approximately 1 byte in UTF-8 for ASCII
   // This is a rough approximation
-  return Buffer.from(content, 'utf-8').length / 1024;
+  return Buffer.from(content, "utf-8").length / 1024;
 }
 
 /**
@@ -71,11 +72,11 @@ function forceGC(): void {
 // Requirement 12.4: Memory Usage < 10x File Size
 // =============================================================================
 
-describe('Memory Usage Benchmarks', () => {
-  it('should use less than 10x file size for 500-line file', () => {
+describe("Memory Usage Benchmarks", () => {
+  it("should use less than 10x file size for 500-line file", () => {
     const content = generateReactComponent(500);
     const file: FileInput = {
-      path: 'Component.tsx',
+      path: "Component.tsx",
       content,
     };
 
@@ -88,19 +89,23 @@ describe('Memory Usage Benchmarks', () => {
     const memBefore = process.memoryUsage().heapUsed;
 
     // Execute regraft - find the line with source element
-    const linesBeforeSource = content.substring(0, content.indexOf('id="source"')).split('\n').length;
-    const linesBeforeTarget = content.substring(0, content.indexOf('id="target"')).split('\n').length;
+    const linesBeforeSource = content
+      .substring(0, content.indexOf('id="source"'))
+      .split("\n").length;
+    const linesBeforeTarget = content
+      .substring(0, content.indexOf('id="target"'))
+      .split("\n").length;
 
     const result = regraft(
       [file],
-      { file: 'Component.tsx', line: linesBeforeSource, column: 6 },
-      { file: 'Component.tsx', line: linesBeforeTarget, column: 6 },
+      { file: "Component.tsx", line: linesBeforeSource, column: 6 },
+      { file: "Component.tsx", line: linesBeforeTarget, column: 6 },
       Move.After
     );
 
     // Log result for debugging if it fails
     if (!result.ok) {
-      console.log('Operation failed:', result.error.message);
+      console.log("Operation failed:", result.error.message);
     }
 
     // Measure memory after (regardless of success for memory measurement)
@@ -119,10 +124,10 @@ describe('Memory Usage Benchmarks', () => {
     expect(memUsedKB).toBeLessThan(maxAllowedKB);
   });
 
-  it('should use less than 10x file size for 1000-line file', () => {
+  it("should use less than 10x file size for 1000-line file", () => {
     const content = generateReactComponent(1000);
     const file: FileInput = {
-      path: 'Component.tsx',
+      path: "Component.tsx",
       content,
     };
 
@@ -135,19 +140,23 @@ describe('Memory Usage Benchmarks', () => {
     const memBefore = process.memoryUsage().heapUsed;
 
     // Execute regraft - find the line with source element
-    const linesBeforeSource = content.substring(0, content.indexOf('id="source"')).split('\n').length;
-    const linesBeforeTarget = content.substring(0, content.indexOf('id="target"')).split('\n').length;
+    const linesBeforeSource = content
+      .substring(0, content.indexOf('id="source"'))
+      .split("\n").length;
+    const linesBeforeTarget = content
+      .substring(0, content.indexOf('id="target"'))
+      .split("\n").length;
 
     const result = regraft(
       [file],
-      { file: 'Component.tsx', line: linesBeforeSource, column: 6 },
-      { file: 'Component.tsx', line: linesBeforeTarget, column: 6 },
+      { file: "Component.tsx", line: linesBeforeSource, column: 6 },
+      { file: "Component.tsx", line: linesBeforeTarget, column: 6 },
       Move.After
     );
 
     // Log result for debugging if it fails
     if (!result.ok) {
-      console.log('Operation failed:', result.error.message);
+      console.log("Operation failed:", result.error.message);
     }
 
     // Measure memory after (regardless of success for memory measurement)
@@ -166,7 +175,7 @@ describe('Memory Usage Benchmarks', () => {
     expect(memUsedKB).toBeLessThan(maxAllowedKB);
   });
 
-  it('should use less than 10x total file size for multi-file operation', () => {
+  it("should use less than 10x total file size for multi-file operation", () => {
     // Create 5 files with 500 lines each
     const files: FileInput[] = Array.from({ length: 5 }, (_, i) => {
       const content = generateReactComponent(500);
@@ -191,22 +200,26 @@ describe('Memory Usage Benchmarks', () => {
     // Execute regraft (same-file move, but all files are parsed)
     const firstFile = files[0];
     if (firstFile === undefined) {
-      throw new Error('Expected files array to have at least one file');
+      throw new Error("Expected files array to have at least one file");
     }
     const content = firstFile.content;
-    const linesBeforeSource = content.substring(0, content.indexOf('id="source"')).split('\n').length;
-    const linesBeforeTarget = content.substring(0, content.indexOf('id="target"')).split('\n').length;
+    const linesBeforeSource = content
+      .substring(0, content.indexOf('id="source"'))
+      .split("\n").length;
+    const linesBeforeTarget = content
+      .substring(0, content.indexOf('id="target"'))
+      .split("\n").length;
 
     const result = regraft(
       files,
-      { file: 'Component0.tsx', line: linesBeforeSource, column: 6 },
-      { file: 'Component0.tsx', line: linesBeforeTarget, column: 6 },
+      { file: "Component0.tsx", line: linesBeforeSource, column: 6 },
+      { file: "Component0.tsx", line: linesBeforeTarget, column: 6 },
       Move.After
     );
 
     // Log result for debugging if it fails
     if (!result.ok) {
-      console.log('Operation failed:', result.error.message);
+      console.log("Operation failed:", result.error.message);
     }
 
     // Measure memory after (regardless of success for memory measurement)
@@ -225,15 +238,19 @@ describe('Memory Usage Benchmarks', () => {
     expect(memUsedKB).toBeLessThan(maxAllowedKB);
   });
 
-  it('should not leak memory across multiple operations', () => {
+  it("should not leak memory across multiple operations", () => {
     const content = generateReactComponent(500);
     const file: FileInput = {
-      path: 'Component.tsx',
+      path: "Component.tsx",
       content,
     };
 
-    const linesBeforeSource = content.substring(0, content.indexOf('id="source"')).split('\n').length;
-    const linesBeforeTarget = content.substring(0, content.indexOf('id="target"')).split('\n').length;
+    const linesBeforeSource = content
+      .substring(0, content.indexOf('id="source"'))
+      .split("\n").length;
+    const linesBeforeTarget = content
+      .substring(0, content.indexOf('id="target"'))
+      .split("\n").length;
 
     // Force GC before measurement
     forceGC();
@@ -245,8 +262,8 @@ describe('Memory Usage Benchmarks', () => {
     for (let i = 0; i < 10; i++) {
       regraft(
         [file],
-        { file: 'Component.tsx', line: linesBeforeSource, column: 6 },
-        { file: 'Component.tsx', line: linesBeforeTarget, column: 6 },
+        { file: "Component.tsx", line: linesBeforeSource, column: 6 },
+        { file: "Component.tsx", line: linesBeforeTarget, column: 6 },
         Move.After
       );
     }
@@ -259,7 +276,9 @@ describe('Memory Usage Benchmarks', () => {
     const memLeakedKB = (memAfterGC - memBaseline) / 1024;
 
     console.log(`Baseline memory: ${(memBaseline / 1024).toFixed(2)} KB`);
-    console.log(`After 10 operations + GC: ${(memAfterGC / 1024).toFixed(2)} KB`);
+    console.log(
+      `After 10 operations + GC: ${(memAfterGC / 1024).toFixed(2)} KB`
+    );
     console.log(`Potential leak: ${memLeakedKB.toFixed(2)} KB`);
 
     // Allow some memory increase (e.g., 2MB) but not excessive

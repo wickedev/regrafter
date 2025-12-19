@@ -9,6 +9,7 @@ import type * as t from '@babel/types';
 
 import type { Parser } from '../parser/index.js';
 import { createParser } from '../parser/index.js';
+import { isErr } from '../result/index.js';
 import type { ResolveResult, AnalyzabilityResult } from '../types/internal.js';
 import type { FileInput, Selector, Move } from '../types/public.js';
 
@@ -297,7 +298,7 @@ export function validateMove(
 
   // Parse source file
   const sourceParseResult = parser.parse(sourceContent, sourceFile);
-  if (!sourceParseResult.ok) {
+  if (isErr(sourceParseResult)) {
     return {
       valid: false,
       reason: `Failed to parse source file: ${sourceParseResult.error.message}`,
@@ -310,7 +311,7 @@ export function validateMove(
   let targetAST: t.File;
   if (targetFile !== sourceFile) {
     const targetParseResult = parser.parse(targetContent, targetFile);
-    if (!targetParseResult.ok) {
+    if (isErr(targetParseResult)) {
       return {
         valid: false,
         reason: `Failed to parse target file: ${targetParseResult.error.message}`,
