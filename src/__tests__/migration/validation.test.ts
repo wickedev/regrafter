@@ -142,9 +142,10 @@ describe('Migration Validation - Task 20.1: No try-catch blocks', () => {
     const knownFilesNeedingMigration = new Set([
       'analyzer/dependency-analyzer.ts',
       'analyzer/move-validator.ts',
+      'api/inline.ts', // Integration boundary: catches exceptions from ComponentInliner
+      'api/regraft.ts', // Integration boundary: catches exceptions from transformation pipeline
       'errors/error-recovery.ts',
       'generator/code-generator.ts',
-      'index.ts',
       'optimizer/fast-can-move.ts',
       'optimizer/optimizer.ts',
       'optimizer/performance-optimizer.ts',
@@ -210,7 +211,6 @@ describe('Migration Validation - Task 20.2: No throw statements', () => {
       'analyzer/dependency-analyzer.ts',
       'errors/error-codes.ts',
       'generator/code-generator.ts',
-      'index.ts',
       'optimizer/fast-can-move.ts',
       'optimizer/optimizer.ts',
       'optimizer/sink-analyzer.ts',

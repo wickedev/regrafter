@@ -11,6 +11,7 @@ import {
   createDependencyError,
   type DependencyErrorType,
 } from "../errors/error-category.js";
+import type { IDependencyAnalyzer } from "../interfaces/index.js";
 import { ok, err, tryCatch, isErr, type Result } from "../result/index.js";
 import { ScopeType } from "../scope/index.js";
 import type {
@@ -86,7 +87,7 @@ function getDependencyName(dep: SpecificDependency): string {
 /**
  * DependencyAnalyzer class for analyzing JSX element dependencies
  */
-export class DependencyAnalyzer {
+export class DependencyAnalyzer implements IDependencyAnalyzer {
   private readonly scopeManager: ScopeManager;
   private readonly options: Required<AnalyzerOptions>;
   private currentFile = "";

@@ -1,29 +1,33 @@
 /**
- * Move Validator
+ * Move Validator Coordinator
  *
- * Validates whether a proposed move operation is valid and safe.
- * Implements the canMove API and provides detailed validation reporting.
+ * Coordinates validation of move operations by delegating to specialized validators.
+ * Acts as the main entry point for move validation.
  */
 
-import type { NodePath } from '@babel/traverse';
-import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
 import type { Parser} from '../parser/index.js';
 import { createParser } from '../parser/index.js';
-import { createResolveResult, createSelectorError } from '../types/factories.js';
-import { AtomicUnitType } from '../types/internal.js';
-import type { ResolveResult, AnalyzabilityResult, UnanalyzableCode } from '../types/internal.js';
+import type { ResolveResult, AnalyzabilityResult } from '../types/internal.js';
 import type { FileInput, Selector } from '../types/public.js';
-import { Move, isPositionSelector, isPathSelector } from '../types/public.js';
-import { loadTraverseFunction, type TraverseFunction } from '../utils/index.js';
+import { Move } from '../types/public.js';
 
+import { checkAnalyzability } from './validators/analyzability-validator.js';
+import { validateAtomicUnit } from './validators/atomic-unit-validator.js';
+import { validateBoundary } from './validators/boundary-validator.js';
+import { validateConditional } from './validators/conditional-validator.js';
+import { validateHookRules } from './validators/hook-rules-validator.js';
 import {
-  detectAtomicUnit,
-  isJSXNode,
-} from './atomic-unit-detector.js';
-
-const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
+  validateSelfMove,
+  validateSourceNotDescendant,
+  validateTargetNotDescendant,
+  validateTargetSupportsChildren,
+} from './validators/move-rules-validator.js';
+import {
+  resolveSelector,
+  normalizeToJSXElement,
+} from './validators/selector-validator.js';
 
 // ============================================================================
 // Types
@@ -116,694 +120,42 @@ export enum MoveValidationError {
 }
 
 // ============================================================================
-// Selector Resolution
-// ============================================================================
-
-/**
- * Resolve a selector to a NodePath in the AST
- */
-function resolveSelector(
-  selector: Selector,
-  ast: t.File,
-  _filename: string
-): ResolveResult {
-  if (isPositionSelector(selector)) {
-    return resolvePositionSelector(selector, ast);
-  } else if (isPathSelector(selector)) {
-    return resolvePathSelector(selector, ast);
-  }
-
-  return createResolveResult({
-    node: null,
-    path: null,
-    atomicUnit: null,
-    error: createSelectorError({
-      message: 'Invalid selector format',
-      code: MoveValidationError.INVALID_SELECTOR,
-    }),
-  });
-}
-
-/**
- * Resolve a position-based selector (line/column)
- */
-function resolvePositionSelector(
-  selector: { line: number; column: number },
-  ast: t.File
-): ResolveResult {
-  // Use object wrapper to avoid ESLint unnecessary-condition warning
-  const found: { path: NodePath | null } = { path: null };
-
-  traverse(ast, {
-    enter(path: NodePath): void {
-      const loc = path.node.loc;
-      if (!loc) return;
-
-      // Check if selector position is within this node's range
-      const startLine = loc.start.line;
-      const startCol = loc.start.column + 1; // Convert to 1-based
-      const endLine = loc.end.line;
-      const endCol = loc.end.column + 1;
-
-      // Check if position is within bounds
-      const afterStart =
-        selector.line > startLine ||
-        (selector.line === startLine && selector.column >= startCol);
-      const beforeEnd =
-        selector.line < endLine ||
-        (selector.line === endLine && selector.column <= endCol);
-
-      if (afterStart && beforeEnd) {
-        // Prefer the most specific (deepest) node
-        if (found.path === null || isMoreSpecific(path, found.path)) {
-          found.path = path;
-        }
-      }
-    },
-  });
-
-  // Extract found path from wrapper
-  const foundPath = found.path;
-  if (foundPath === null) {
-    return createResolveResult({
-      node: null,
-      path: null,
-      atomicUnit: null,
-      error: createSelectorError({
-        message: `No element found at position ${selector.line}:${selector.column}`,
-        code: MoveValidationError.SOURCE_NOT_FOUND,
-        location: {
-          start: { line: selector.line, column: selector.column },
-          end: { line: selector.line, column: selector.column },
-        },
-      }),
-    });
-  }
-
-  // Detect atomic unit
-  const atomicUnit = detectAtomicUnit(foundPath);
-
-  // Extract node from path - foundPath.node may be typed as any by Babel
-  // We verify it's a valid Node using t.isNode
-  let node: t.Node | null = null;
-  const pathNodeValue: unknown = foundPath.node;
-  if (pathNodeValue !== null && pathNodeValue !== undefined && t.isNode(pathNodeValue)) {
-    node = pathNodeValue;
-  }
-
-  if (node === null) {
-    return createResolveResult({
-      node: null,
-      path: null,
-      atomicUnit: null,
-      error: createSelectorError({
-        message: `Found path does not contain a valid node`,
-        code: MoveValidationError.SOURCE_NOT_FOUND,
-      }),
-    });
-  }
-
-  return createResolveResult({
-    node,
-    path: foundPath,
-    atomicUnit,
-  });
-}
-
-/**
- * Resolve a path-based selector (AST path)
- */
-function resolvePathSelector(
-  selector: { path: string },
-  ast: t.File
-): ResolveResult {
-  try {
-    const pathParts = parseASTPath(selector.path);
-    let current: unknown = ast;
-
-    // Use traverse to get the NodePath for the root
-    const programPathWrapper: { path: NodePath | null } = { path: null };
-    traverse(ast, {
-      Program(path: NodePath<t.Program>): void {
-        programPathWrapper.path = path;
-      },
-    });
-
-    // Program visitor always executes, extract the path
-    const currentPath = programPathWrapper.path;
-    if (currentPath === null) {
-      return createResolveResult({
-        node: null,
-        path: null,
-        atomicUnit: null,
-        error: createSelectorError({
-          message: 'Failed to find Program node in AST',
-          code: MoveValidationError.SOURCE_NOT_FOUND,
-        }),
-      });
-    }
-
-    for (const part of pathParts) {
-      if (current === null || current === undefined) {
-        return createResolveResult({
-          node: null,
-          path: null,
-          atomicUnit: null,
-          error: createSelectorError({
-            message: `Path segment '${part.key}' not found`,
-            code: MoveValidationError.SOURCE_NOT_FOUND,
-          }),
-        });
-      }
-
-      if (typeof current !== 'object') {
-        return createResolveResult({
-          node: null,
-          path: null,
-          atomicUnit: null,
-          error: createSelectorError({
-            message: `Path segment '${part.key}' does not refer to an object`,
-            code: MoveValidationError.SOURCE_NOT_FOUND,
-          }),
-        });
-      }
-
-      // At this point, current is an object (and not null due to previous check)
-      // Use Reflect.get to access properties dynamically without type assertions
-      if (part.index !== undefined) {
-        // Array access
-        if (!(part.key in current)) {
-          return createResolveResult({
-            node: null,
-            path: null,
-            atomicUnit: null,
-            error: createSelectorError({
-              message: `Property '${part.key}' not found`,
-              code: MoveValidationError.SOURCE_NOT_FOUND,
-            }),
-          });
-        }
-        const property: unknown = Reflect.get(current, part.key);
-        if (!Array.isArray(property)) {
-          return createResolveResult({
-            node: null,
-            path: null,
-            atomicUnit: null,
-            error: createSelectorError({
-              message: `'${part.key}' is not an array`,
-              code: MoveValidationError.SOURCE_NOT_FOUND,
-            }),
-          });
-        }
-        current = property[part.index];
-      } else {
-        // Property access
-        if (!(part.key in current)) {
-          return createResolveResult({
-            node: null,
-            path: null,
-            atomicUnit: null,
-            error: createSelectorError({
-              message: `Property '${part.key}' not found`,
-              code: MoveValidationError.SOURCE_NOT_FOUND,
-            }),
-          });
-        }
-        current = Reflect.get(current, part.key);
-      }
-    }
-
-    if (current === null || current === undefined || typeof current !== 'object' || !('type' in current)) {
-      return createResolveResult({
-        node: null,
-        path: null,
-        atomicUnit: null,
-        error: createSelectorError({
-          message: 'Path does not resolve to an AST node',
-          code: MoveValidationError.SOURCE_NOT_FOUND,
-        }),
-      });
-    }
-
-    if (!t.isNode(current)) {
-      return createResolveResult({
-        node: null,
-        path: null,
-        atomicUnit: null,
-        error: createSelectorError({
-          message: 'Path does not resolve to a valid AST node',
-          code: MoveValidationError.SOURCE_NOT_FOUND,
-        }),
-      });
-    }
-
-    const node = current;
-
-    // Find the NodePath for this node
-    // currentPath is guaranteed to be non-null at this point
-    let resolvedPath: NodePath = currentPath;
-    traverse(ast, {
-      enter(path: NodePath): void {
-        if (path.node === node) {
-          resolvedPath = path;
-          path.stop();
-        }
-      },
-    });
-
-    // resolvedPath is always non-null (initialized to currentPath)
-    // Detect atomic unit
-    const atomicUnit = detectAtomicUnit(resolvedPath);
-
-    return createResolveResult({
-      node,
-      path: resolvedPath,
-      atomicUnit,
-    });
-  } catch (error) {
-    return createResolveResult({
-      node: null,
-      path: null,
-      atomicUnit: null,
-      error: createSelectorError({
-        message: `Failed to resolve path: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        code: MoveValidationError.SOURCE_NOT_FOUND,
-      }),
-    });
-  }
-}
-
-/**
- * Parse an AST path string into parts
- */
-function parseASTPath(path: string): Array<{ key: string; index?: number }> {
-  const parts: Array<{ key: string; index?: number }> = [];
-  const regex = /(\w+)(?:\[(\d+)\])?/g;
-  let match;
-
-  while ((match = regex.exec(path)) !== null) {
-    const key = match[1];
-    if (key === undefined) {
-      continue;
-    }
-    parts.push({
-      key,
-      index: match[2] !== undefined ? parseInt(match[2], 10) : undefined,
-    });
-  }
-
-  return parts;
-}
-
-/**
- * Check if path1 is more specific (deeper) than path2
- */
-function isMoreSpecific(path1: NodePath, path2: NodePath): boolean {
-  // A JSX element is more specific than a non-JSX element at the same level
-  if (isJSXNode(path1.node) && !isJSXNode(path2.node)) {
-    return true;
-  }
-
-  // Count depth by walking up to root
-  let depth1 = 0;
-  let depth2 = 0;
-
-  let current: NodePath | null = path1;
-  while (current) {
-    depth1++;
-    current = current.parentPath;
-  }
-
-  current = path2;
-  while (current) {
-    depth2++;
-    current = current.parentPath;
-  }
-
-  return depth1 > depth2;
-}
-
-/**
- * Normalize a resolved result to its nearest JSXElement ancestor.
- * This ensures validation rules work with consistent node types.
- */
-function normalizeToJSXElement(result: ResolveResult): ResolveResult {
-  if (!result.path || !result.node) {
-    return result;
-  }
-
-  // If already a JSXElement, return as-is
-  if (result.node.type === 'JSXElement') {
-    return result;
-  }
-
-  // Walk up to find nearest JSXElement
-  let current: NodePath | null = result.path;
-  while (current) {
-    if (current.node.type === 'JSXElement') {
-      // Update the result to point to the JSXElement
-      return createResolveResult({
-        node: current.node,
-        path: current,
-        atomicUnit: result.atomicUnit, // Keep the original atomic unit
-        error: result.error,
-      });
-    }
-    current = current.parentPath;
-  }
-
-  // No JSXElement ancestor found, return original
-  return result;
-}
-
-// ============================================================================
-// Analyzability Check
-// ============================================================================
-
-/**
- * Check if the code is analyzable (no eval, dynamic code, etc.)
- */
-function checkAnalyzability(ast: t.File): AnalyzabilityResult {
-  const blockers: UnanalyzableCode[] = [];
-
-  traverse(ast, {
-    // Check for eval()
-    CallExpression(path: NodePath<t.CallExpression>): void {
-      const callee = path.node.callee;
-      if (callee.type === 'Identifier' && callee.name === 'eval') {
-        blockers.push({
-          type: 'eval',
-          location: path.node.loc
-            ? {
-                start: { line: path.node.loc.start.line, column: path.node.loc.start.column },
-                end: { line: path.node.loc.end.line, column: path.node.loc.end.column },
-              }
-            : { start: { line: 0, column: 0 }, end: { line: 0, column: 0 } },
-          description: 'eval() makes static analysis impossible',
-        });
-      }
-
-      // Check for Function constructor (as a call)
-      if (
-        callee.type === 'Identifier' &&
-        callee.name === 'Function' &&
-        path.node.arguments.length > 0
-      ) {
-        blockers.push({
-          type: 'dynamicCode',
-          location: path.node.loc
-            ? {
-                start: { line: path.node.loc.start.line, column: path.node.loc.start.column },
-                end: { line: path.node.loc.end.line, column: path.node.loc.end.column },
-              }
-            : { start: { line: 0, column: 0 }, end: { line: 0, column: 0 } },
-          description: 'Function constructor creates dynamic code',
-        });
-      }
-    },
-
-    // Check for new Function() constructor
-    NewExpression(path: NodePath<t.NewExpression>): void {
-      const callee = path.node.callee;
-      if (
-        callee.type === 'Identifier' &&
-        callee.name === 'Function' &&
-        path.node.arguments.length > 0
-      ) {
-        blockers.push({
-          type: 'dynamicCode',
-          location: path.node.loc
-            ? {
-                start: { line: path.node.loc.start.line, column: path.node.loc.start.column },
-                end: { line: path.node.loc.end.line, column: path.node.loc.end.column },
-              }
-            : { start: { line: 0, column: 0 }, end: { line: 0, column: 0 } },
-          description: 'Function constructor creates dynamic code',
-        });
-      }
-    },
-
-    // Check for with statements
-    WithStatement(path: NodePath<t.WithStatement>): void {
-      blockers.push({
-        type: 'dynamicCode',
-        location: path.node.loc
-          ? {
-              start: { line: path.node.loc.start.line, column: path.node.loc.start.column },
-              end: { line: path.node.loc.end.line, column: path.node.loc.end.column },
-            }
-          : { start: { line: 0, column: 0 }, end: { line: 0, column: 0 } },
-        description: 'with statement makes scope analysis impossible',
-      });
-    },
-  });
-
-  return {
-    analyzable: blockers.length === 0,
-    blockers: blockers.length > 0 ? blockers : undefined,
-  };
-}
-
-// ============================================================================
 // Validation Rules
 // ============================================================================
 
 /**
- * Rule: Moving element to itself is allowed (will be handled as no-op)
+ * Adapt validators to ValidationRule interface
  */
 const selfMoveRule: ValidationRule = (source, target, _mode, _context) => {
-  if (source.node === target.node) {
-    // Allow self-moves as no-ops
-    return {
-      valid: true,
-      warning: 'Moving element to itself (will be no-op)',
-    };
-  }
-  return { valid: true };
+  return validateSelfMove(source, target);
 };
 
-/**
- * Rule: Target cannot be a descendant of source (only for Move.Inside)
- */
 const targetNotDescendantRule: ValidationRule = (source, target, mode, _context) => {
-  // This rule only applies to Move.Inside
-  // For Move.Before/After, it's valid to move an element before/after its own descendant
-  if (mode !== Move.Inside) {
-    return { valid: true };
-  }
-
-  if (!source.path || !target.path) {
-    return { valid: true };
-  }
-
-  // Skip check if source and target are the same (will be handled as no-op)
-  if (source.node === target.node) {
-    return { valid: true };
-  }
-
-  // Check if target is a descendant of source
-  let current: NodePath | null = target.path.parentPath; // Start from parent to exclude target itself
-  while (current) {
-    // If we find the source node while walking up from target, target is a descendant
-    if (current.node === source.node) {
-      return {
-        valid: false,
-        reason: 'Cannot move element into its own descendant',
-        errorCode: MoveValidationError.TARGET_IS_DESCENDANT,
-      };
-    }
-    current = current.parentPath;
-  }
-
-  return { valid: true };
+  return validateTargetNotDescendant(source, target, mode);
 };
 
-/**
- * Rule: Source cannot already be a descendant of target (for Inside mode)
- */
 const sourceNotDescendantRule: ValidationRule = (source, target, mode, _context) => {
-  if (mode !== Move.Inside) {
-    return { valid: true };
-  }
-
-  if (!source.path || !target.path) {
-    return { valid: true };
-  }
-
-  // Skip check if source and target are the same (will be handled as no-op)
-  if (source.node === target.node) {
-    return { valid: true };
-  }
-
-  // Check if source is a descendant of target
-  let current: NodePath | null = source.path;
-  while (current) {
-    if (current.node === target.node) {
-      return {
-        valid: false,
-        reason: 'Source is already a descendant of target',
-        errorCode: MoveValidationError.SOURCE_IS_DESCENDANT,
-      };
-    }
-    current = current.parentPath;
-  }
-
-  return { valid: true };
+  return validateSourceNotDescendant(source, target, mode);
 };
 
-/**
- * Rule: Target must support children for Inside mode
- */
 const targetSupportsChildrenRule: ValidationRule = (_source, target, mode, _context) => {
-  if (mode !== Move.Inside) {
-    return { valid: true };
-  }
-
-  if (!target.node || !target.path) {
-    return { valid: true };
-  }
-
-  // Target should already be normalized to JSXElement by validateMove
-  if (target.node.type !== 'JSXElement') {
-    return { valid: true };
-  }
-
-  // Check for self-closing elements that don't support children
-  const element = target.node;
-  const openingElement = element.openingElement;
-
-  // Get element name
-  let elementName = '';
-  if (openingElement.name.type === 'JSXIdentifier') {
-    elementName = openingElement.name.name;
-  }
-
-  // Known void elements that don't support children
-  const voidElements = [
-    'input', 'img', 'br', 'hr', 'meta', 'link',
-    'area', 'base', 'col', 'embed', 'param', 'source', 'track', 'wbr',
-  ];
-
-  if (voidElements.includes(elementName.toLowerCase())) {
-    return {
-      valid: false,
-      reason: `<${elementName}> is a void element and cannot have children`,
-      errorCode: MoveValidationError.TARGET_NO_CHILDREN,
-    };
-  }
-
-  // Also check if the element is self-closing (has no children and is self-closed)
-  if (openingElement.selfClosing && element.children.length === 0) {
-    // This is a self-closing element, check if it's a known void element or custom component
-    // For lowercase (HTML) elements that are self-closing, they shouldn't accept children
-    if (elementName && /^[a-z]/.test(elementName)) {
-      return {
-        valid: false,
-        reason: `<${elementName} /> is self-closing and cannot have children`,
-        errorCode: MoveValidationError.TARGET_NO_CHILDREN,
-      };
-    }
-  }
-
-  return { valid: true };
+  return validateTargetSupportsChildren(target, mode);
 };
 
-/**
- * Rule: Validate hook rules (hooks cannot be called conditionally)
- */
 const hookRulesRule: ValidationRule = (source, target, _mode, _context) => {
-  if (!source.path || !target.path) {
-    return { valid: true };
-  }
-
-  // Check if source contains hooks by traversing from the source path
-  // (source.path is guaranteed to be non-null due to check at function entry)
-  // Use object wrapper to avoid ESLint unnecessary-condition warning
-  const hooksCheck: { hasHooks: boolean } = { hasHooks: false };
-
-  // Traverse from the source path to find hook calls
-  source.path.traverse({
-    CallExpression(path: NodePath<t.CallExpression>): void {
-      const callee = path.node.callee;
-      if (callee.type === 'Identifier' && callee.name.startsWith('use')) {
-        hooksCheck.hasHooks = true;
-        path.stop();
-      }
-    },
-  });
-
-  // Extract hasHooks from wrapper
-  const hasHooks = hooksCheck.hasHooks;
-  if (!hasHooks) {
-    return { valid: true };
-  }
-
-  // Check if target is inside a conditional context
-  let current: NodePath | null = target.path;
-  while (current) {
-    const node = current.node;
-
-    // Check for conditional contexts
-    if (
-      node.type === 'IfStatement' ||
-      node.type === 'ConditionalExpression' ||
-      node.type === 'LogicalExpression'
-    ) {
-      return {
-        valid: false,
-        reason: 'Moving this element would place hooks inside a conditional context, violating React hook rules',
-        errorCode: MoveValidationError.HOOK_RULES_VIOLATION,
-      };
-    }
-
-    // Check for loop contexts
-    if (
-      node.type === 'ForStatement' ||
-      node.type === 'ForInStatement' ||
-      node.type === 'ForOfStatement' ||
-      node.type === 'WhileStatement' ||
-      node.type === 'DoWhileStatement'
-    ) {
-      return {
-        valid: false,
-        reason: 'Moving this element would place hooks inside a loop, violating React hook rules',
-        errorCode: MoveValidationError.HOOK_RULES_VIOLATION,
-      };
-    }
-
-    current = current.parentPath;
-  }
-
-  return { valid: true };
+  return validateHookRules(source, target);
 };
 
-/**
- * Rule: Validate atomic unit integrity
- */
 const atomicUnitRule: ValidationRule = (source, _target, _mode, _context) => {
-  if (!source.atomicUnit) {
-    return { valid: true };
-  }
+  return validateAtomicUnit(source);
+};
 
-  const atomicUnit = source.atomicUnit;
+const conditionalRule: ValidationRule = (source, target, _mode, _context) => {
+  return validateConditional(source, target);
+};
 
-  // Compound components should ideally be moved with their parent
-  if (atomicUnit.type === AtomicUnitType.CompoundComponent) {
-    return {
-      valid: true,
-      warning: 'Moving a compound component sub-element. Consider moving the entire compound component group.',
-    };
-  }
-
-  // Map expressions contain closures that might reference outer scope
-  if (atomicUnit.type === AtomicUnitType.MapExpression) {
-    return {
-      valid: true,
-      warning: 'Moving a map expression. Ensure iterator variables remain in scope.',
-    };
-  }
-
-  return { valid: true };
+const boundaryRule: ValidationRule = (source, target, _mode, _context) => {
+  return validateBoundary(source, target);
 };
 
 /**
@@ -816,6 +168,8 @@ const validationRules: ValidationRule[] = [
   targetSupportsChildrenRule,
   hookRulesRule,
   atomicUnitRule,
+  conditionalRule,
+  boundaryRule,
 ];
 
 // ============================================================================

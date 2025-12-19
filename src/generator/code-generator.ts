@@ -39,6 +39,7 @@ function getGenerateFunction(): GenerateFunction {
 const generateCode = getGenerateFunction();
 
 import { createTransformError, type TransformErrorType } from '../errors/index.js';
+import type { ICodeGenerator } from '../interfaces/index.js';
 import { ok, err, isErr, type Result } from '../result/index.js';
 
 import type {
@@ -62,7 +63,7 @@ import {
  * - Adjust indentation for moved elements
  * - Handle import statement formatting and deduplication
  */
-export class CodeGenerator {
+export class CodeGenerator implements ICodeGenerator {
   private options: Required<GeneratorOptions>;
 
   constructor(options: GeneratorOptions = {}) {
