@@ -77,39 +77,13 @@ export class ExtractOrchestrator {
     selector: Selector | RangeSelector,
     options: ExtractOptions
   ): Result<ExtractResult, RegraffError> {
-    // Step 1: Input validation
-    const validationResult = this.inputValidator.validate(
-      files,
-      selector,
-      options
-    );
-
-    if (!validationResult.ok) {
-      return validationResult;
+    // Steps 1-3: Initialize (validate, parse, plan)
+    const initResult = this.initialize(files, selector, options);
+    if (!initResult.ok) {
+      return initResult;
     }
 
-    // Step 2: File parsing
-    const astMap = new Map<string, t.File>();
-    for (const file of files) {
-      const parseResult = parseFile(file.path, file.content);
-      if (!parseResult.ok) {
-        return err(
-          createExtractError(ExtractErrorCode.FILE_READ_FAILED, {
-            file: file.path,
-            details: `Failed to parse file: ${parseResult.error.message}`,
-          })
-        );
-      }
-      astMap.set(file.path, parseResult.value);
-    }
-
-    // Step 3: Extract planning
-    const planResult = this.extractPlanner.plan(files, astMap, selector, options);
-    if (!planResult.ok) {
-      return planResult;
-    }
-
-    const plan = planResult.value;
+    const { astMap, plan } = initResult.value;
 
     // Step 4: Plan execution
     const executeResult = this.extractExecutor.execute(plan, astMap);
@@ -180,35 +154,11 @@ export class ExtractOrchestrator {
     files: FileInput[],
     selector: Selector | RangeSelector
   ): boolean {
-    // Step 1: Input validation
-    const validationResult = this.inputValidator.validate(
-      files,
-      selector,
-      {}
-    );
-
-    if (!validationResult.ok) {
-      return false;
-    }
-
-    // Step 2: File parsing
-    const astMap = new Map<string, t.File>();
-    for (const file of files) {
-      const parseResult = parseFile(file.path, file.content);
-      if (!parseResult.ok) {
-        return false;
-      }
-      astMap.set(file.path, parseResult.value);
-    }
-
-    // Step 3: Extract planning
-    const planResult = this.extractPlanner.plan(files, astMap, selector, {});
-    if (!planResult.ok) {
-      return false;
-    }
+    // Steps 1-3: Initialize (validate, parse, plan)
+    const initResult = this.initialize(files, selector, {});
 
     // If planning succeeds, extraction is possible
-    return true;
+    return initResult.ok;
   }
 
   /**
@@ -229,39 +179,13 @@ export class ExtractOrchestrator {
     files: FileInput[],
     selector: Selector | RangeSelector
   ): Result<ExtractAnalysis, RegraffError> {
-    // Step 1: Input validation
-    const validationResult = this.inputValidator.validate(
-      files,
-      selector,
-      {}
-    );
-
-    if (!validationResult.ok) {
-      return validationResult;
+    // Steps 1-3: Initialize (validate, parse, plan)
+    const initResult = this.initialize(files, selector, {});
+    if (!initResult.ok) {
+      return initResult;
     }
 
-    // Step 2: File parsing
-    const astMap = new Map<string, t.File>();
-    for (const file of files) {
-      const parseResult = parseFile(file.path, file.content);
-      if (!parseResult.ok) {
-        return err(
-          createExtractError(ExtractErrorCode.FILE_READ_FAILED, {
-            file: file.path,
-            details: `Failed to parse file: ${parseResult.error.message}`,
-          })
-        );
-      }
-      astMap.set(file.path, parseResult.value);
-    }
-
-    // Step 3: Extract planning
-    const planResult = this.extractPlanner.plan(files, astMap, selector, {});
-    if (!planResult.ok) {
-      return planResult;
-    }
-
-    const plan = planResult.value;
+    const { plan } = initResult.value;
 
     // Step 4: Convert plan to ExtractAnalysis
     const analysis: ExtractAnalysis = {
@@ -290,6 +214,70 @@ export class ExtractOrchestrator {
     };
 
     return ok(analysis);
+  }
+
+  /**
+   * Initialize extraction process: validate inputs, parse files, and create plan
+   *
+   * @param files - Array of file inputs
+   * @param selector - Selector or RangeSelector to select JSX nodes
+   * @param options - Extract options
+   * @returns Result with initialization data or error
+   */
+  private initialize(
+    files: FileInput[],
+    selector: Selector | RangeSelector,
+    options: ExtractOptions
+  ): Result<{ astMap: Map<string, t.File>; plan: ExtractPlan }, RegraffError> {
+    // Step 1: Input validation
+    const validationResult = this.inputValidator.validate(files, selector, options);
+    if (!validationResult.ok) {
+      return validationResult;
+    }
+
+    // Step 2: File parsing
+    const astMapResult = this.parseFiles(files);
+    if (!astMapResult.ok) {
+      return astMapResult;
+    }
+
+    // Step 3: Extract planning
+    const planResult = this.extractPlanner.plan(
+      files,
+      astMapResult.value,
+      selector,
+      options
+    );
+    if (!planResult.ok) {
+      return planResult;
+    }
+
+    return ok({ astMap: astMapResult.value, plan: planResult.value });
+  }
+
+  /**
+   * Parse all files into AST map
+   *
+   * @param files - Array of file inputs
+   * @returns Map of file paths to ASTs or error
+   */
+  private parseFiles(files: FileInput[]): Result<Map<string, t.File>, RegraffError> {
+    const astMap = new Map<string, t.File>();
+
+    for (const file of files) {
+      const parseResult = parseFile(file.path, file.content);
+      if (!parseResult.ok) {
+        return err(
+          createExtractError(ExtractErrorCode.FILE_READ_FAILED, {
+            file: file.path,
+            details: `Failed to parse file: ${parseResult.error.message}`,
+          })
+        );
+      }
+      astMap.set(file.path, parseResult.value);
+    }
+
+    return ok(astMap);
   }
 
   /**

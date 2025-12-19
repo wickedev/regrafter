@@ -12,6 +12,25 @@ import type { ImportDependency } from './types.js';
 
 export class ImportManager {
   /**
+   * Find an existing import declaration by source path
+   *
+   * @param program - AST program node
+   * @param source - Import source path
+   * @returns Import declaration or null if not found
+   */
+  private findImportDeclaration(
+    program: t.Program,
+    source: string
+  ): t.ImportDeclaration | null {
+    for (const statement of program.body) {
+      if (t.isImportDeclaration(statement) && statement.source.value === source) {
+        return statement;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Add an import statement to the AST
    */
   addImport(
@@ -23,13 +42,7 @@ export class ImportManager {
     const program = ast.program;
 
     // Find existing import statement with same source
-    let existingImport: t.ImportDeclaration | null = null;
-    for (const statement of program.body) {
-      if (t.isImportDeclaration(statement) && statement.source.value === sourcePath) {
-        existingImport = statement;
-        break;
-      }
-    }
+    const existingImport = this.findImportDeclaration(program, sourcePath);
 
     // Check if identical import already exists
     if (existingImport) {
@@ -149,15 +162,12 @@ export class ImportManager {
   ensureReactImport(ast: t.File): void {
     // Check if React import already exists
     const program = ast.program;
-    const hasReactImport = program.body.some(
-      statement =>
-        t.isImportDeclaration(statement) &&
-        statement.source.value === 'react' &&
-        statement.specifiers.some(
-          spec =>
-            t.isImportDefaultSpecifier(spec) && spec.local.name === 'React'
-        )
-    );
+    const reactImport = this.findImportDeclaration(program, 'react');
+    const hasReactImport =
+      reactImport &&
+      reactImport.specifiers.some(
+        spec => t.isImportDefaultSpecifier(spec) && spec.local.name === 'React'
+      );
 
     // Add React import if not exists
     if (!hasReactImport) {
