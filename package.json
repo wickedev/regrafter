@@ -53,6 +53,7 @@
     "test:watch": "vitest --config config/vitest.config.ts",
     "test:coverage": "vitest run --coverage --config config/vitest.config.ts",
     "bench": "vitest bench --run --config config/vitest.config.ts",
+    "bench:json": "vitest bench --run --config config/vitest.config.ts --outputJson bench-output.json && node scripts/vitest-to-benchmarkjs.js bench-output.json benchmark-results.json",
     "bench:memory": "node --expose-gc ./node_modules/.bin/vitest bench --run src/__tests__/benchmarks/memory.bench.ts --config config/vitest.config.ts",
     "bench:profile": "node --prof ./node_modules/.bin/vitest bench --run --config config/vitest.config.ts && node --prof-process isolate-*.log > profile.txt",
     "bench:inspect": "node --inspect-brk ./node_modules/.bin/vitest bench --run --config config/vitest.config.ts",
