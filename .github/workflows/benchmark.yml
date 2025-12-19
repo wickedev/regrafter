@@ -38,26 +38,22 @@ jobs:
 
       - name: Debug - Verify benchmark files exist
         run: |
-          echo "=== Checking if benchmark files exist ==="
+          echo "=== Benchmark files ==="
           ls -lh bench-output.json benchmark-results.txt benchmark-results.json
           echo ""
-          echo "=== Working directory ==="
-          pwd
+          echo "=== First 5 lines of benchmark-results.txt ==="
+          head -n 5 benchmark-results.txt
+
+      - name: Clean git working directory
+        run: |
+          echo "=== Git status before cleanup ==="
+          git status --short
           echo ""
-          echo "=== Full path to benchmark-results.txt ==="
-          realpath benchmark-results.txt
+          echo "=== Stashing any local changes ==="
+          git stash --include-untracked || true
           echo ""
-          echo "=== File type and encoding ==="
-          file benchmark-results.txt
-          echo ""
-          echo "=== First 10 lines of benchmark-results.txt ==="
-          head -n 10 benchmark-results.txt
-          echo ""
-          echo "=== Hexdump of first line (check for BOM or hidden chars) ==="
-          head -n 1 benchmark-results.txt | od -c
-          echo ""
-          echo "=== Total line count ==="
-          wc -l benchmark-results.txt
+          echo "=== Git status after cleanup ==="
+          git status --short
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
