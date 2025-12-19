@@ -181,55 +181,6 @@ export class JSXTransformer {
     return strategy.execute(context);
   }
 
-      // Adjust target index if source was before target
-      const adjustedTargetIndex =
-        sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
-
-      // Insert before adjusted target
-      siblings.splice(adjustedTargetIndex, 0, wrappedSource);
-
-      // Update parent's children
-      this.setSiblings(targetPath, siblings);
-
-      // Remove from AST
-      this.removeSource(sourcePath);
-    } else {
-      // Different parents: insert first, then remove
-      siblings.splice(targetIndex, 0, wrappedSource);
-      this.setSiblings(targetPath, siblings);
-      this.removeSource(sourcePath);
-    }
-
-    return ok({
-      ast,
-      movedNode: sourceNode,
-    });
-  }
-
-      // Adjust target index if source was before target
-      const adjustedTargetIndex =
-        sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
-
-      // Insert after adjusted target
-      siblings.splice(adjustedTargetIndex + 1, 0, wrappedSource);
-
-      // Update parent's children
-      this.setSiblings(targetPath, siblings);
-
-      // Remove from AST (already removed from siblings)
-      this.removeSource(sourcePath);
-    } else {
-      // Different parents: insert first, then remove
-      siblings.splice(targetIndex + 1, 0, wrappedSource);
-      this.setSiblings(targetPath, siblings);
-      this.removeSource(sourcePath);
-    }
-
-    return ok({
-      ast,
-      movedNode: sourceNode,
-    });
-  }
 
   /**
    * Check if a node is a valid JSX source for moving
