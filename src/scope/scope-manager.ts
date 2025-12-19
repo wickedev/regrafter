@@ -1,22 +1,21 @@
 /**
- * Scope Manager
+ * Scope Manager (Coordinator)
  *
- * Provides scope tracking infrastructure for dependency analysis.
+ * Coordinates scope tracking operations by delegating to specialized components.
+ * Acts as the main entry point for scope analysis while distributing work to:
+ * - ScopeTreeBuilder: AST traversal and scope tree construction
+ * - BindingTracker: Variable binding tracking and accessibility
+ * - HookTracker: React hooks detection and analysis
+ * - ScopeQuery: Scope lookup and component queries
+ * - LCAComputer: Lowest common ancestor computation
  */
 
-import type { NodePath, Binding } from '@babel/traverse';
-import traverseModule from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 
-import { createValidationError, createInternalError, type ValidationErrorType, type InternalErrorType } from '../errors/index.js';
+import { type ValidationErrorType, type InternalErrorType } from '../errors/index.js';
 import type { IScopeManager } from '../interfaces/index.js';
-import { ok, err, type Result } from '../result/index.js';
-import {
-  createScopeInfo,
-  createComponentScope,
-  generateId,
-} from '../types/factories.js';
-import { loadTraverseFunction, type TraverseFunction } from '../utils/index.js';
+import { type Result } from '../result/index.js';
 
 import {
   ScopeType,
@@ -32,30 +31,8 @@ import {
 import { createScopeTreeBuilder, type ScopeTreeBuilder } from './components/scope-tree-builder.js';
 import { createBindingTracker, type BindingTracker } from './components/binding-tracker.js';
 import { createHookTracker, type HookTracker } from './components/hook-tracker.js';
-
-const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
-
-
-/**
- * List of React hooks that we track
- */
-const REACT_HOOKS = new Set([
-  'useState',
-  'useEffect',
-  'useContext',
-  'useReducer',
-  'useCallback',
-  'useMemo',
-  'useRef',
-  'useImperativeHandle',
-  'useLayoutEffect',
-  'useDebugValue',
-  'useDeferredValue',
-  'useTransition',
-  'useId',
-  'useSyncExternalStore',
-  'useInsertionEffect',
-]);
+import { createScopeQuery, type ScopeQuery } from './components/scope-query.js';
+import { createLCAComputer, type LCAComputer } from './components/lca-computer.js';
 
 /**
  * Type guard to check if a ScopeInfo is a ComponentScope
@@ -65,7 +42,17 @@ function isComponentScope(scope: ScopeInfo): scope is ComponentScope {
 }
 
 /**
- * ScopeManager handles scope tracking and analysis
+ * ScopeManager coordinates scope tracking and analysis operations
+ *
+ * This class acts as a coordinator that delegates work to specialized components:
+ * - Maintains the scope tree and component information
+ * - Delegates tree building to ScopeTreeBuilder
+ * - Delegates binding operations to BindingTracker
+ * - Delegates hook detection to HookTracker
+ * - Delegates queries to ScopeQuery
+ * - Delegates LCA computation to LCAComputer
+ *
+ * Implements the IScopeManager interface for external consumers.
  */
 export class ScopeManager implements IScopeManager {
   private scopeTree: ScopeTree | null = null;
@@ -73,11 +60,15 @@ export class ScopeManager implements IScopeManager {
   private readonly treeBuilder: ScopeTreeBuilder;
   private readonly bindingTracker: BindingTracker;
   private readonly hookTracker: HookTracker;
+  private readonly scopeQuery: ScopeQuery;
+  private readonly lcaComputer: LCAComputer;
 
   constructor() {
     this.treeBuilder = createScopeTreeBuilder();
     this.bindingTracker = createBindingTracker();
     this.hookTracker = createHookTracker();
+    this.scopeQuery = createScopeQuery();
+    this.lcaComputer = createLCAComputer();
   }
 
   /**
@@ -232,7 +223,7 @@ export class ScopeManager implements IScopeManager {
     }
 
     // Compute LCA
-    const lcaResult = this.computeLCA(sourceScope, targetScope);
+    const lcaResult = this.lcaComputer.computeLCA(sourceScope, targetScope);
 
     if (!lcaResult.lca) {
       return {
@@ -252,7 +243,7 @@ export class ScopeManager implements IScopeManager {
     // 2. Both are in the same scope chain to LCA
 
     // Check if source is ancestor of target (closure access allowed)
-    if (this.isAncestor(sourceScope, targetScope)) {
+    if (this.lcaComputer.isAncestor(sourceScope, targetScope)) {
       return {
         accessible: true,
         scopePath,
@@ -261,7 +252,7 @@ export class ScopeManager implements IScopeManager {
     }
 
     // Check if target is ancestor of source (reverse not allowed for new bindings)
-    if (this.isAncestor(targetScope, sourceScope)) {
+    if (this.lcaComputer.isAncestor(targetScope, sourceScope)) {
       return {
         accessible: false,
         scopePath,
@@ -293,90 +284,28 @@ export class ScopeManager implements IScopeManager {
    * Uses path-to-root comparison for efficient LCA computation.
    */
   computeLCA(scopeA: ScopeInfo, scopeB: ScopeInfo): LCAResult {
-    // Get paths to root for both scopes
-    const pathA = this.getPathToRoot(scopeA);
-    const pathB = this.getPathToRoot(scopeB);
-
-    // Create set of scope IDs in path A for O(1) lookup
-    const pathASet = new Set(pathA.map(s => s.id));
-
-    // Find first scope in path B that's also in path A
-    let lca: ScopeInfo | null = null;
-    let lcaIndexB = -1;
-
-    for (let i = 0; i < pathB.length; i++) {
-      const scopeB_i = pathB[i];
-      if (scopeB_i !== undefined && pathASet.has(scopeB_i.id)) {
-        lca = scopeB_i;
-        lcaIndexB = i;
-        break;
-      }
-    }
-
-    if (lca === null) {
-      return {
-        lca: null,
-        distanceA: -1,
-        distanceB: -1,
-        pathA: [],
-        pathB: [],
-      };
-    }
-
-    // Find LCA index in path A
-    const lcaIndexA = pathA.findIndex(s => s.id === lca.id);
-
-    return {
-      lca,
-      distanceA: lcaIndexA,
-      distanceB: lcaIndexB,
-      pathA: pathA.slice(0, lcaIndexA + 1),
-      pathB: pathB.slice(0, lcaIndexB + 1),
-    };
+    return this.lcaComputer.computeLCA(scopeA, scopeB);
   }
 
   /**
    * Get the scope containing a specific AST node
    */
   getScopeForNode(node: t.Node): ScopeInfo | null {
-    if (!this.scopeTree) return null;
-    return this.scopeTree.nodeToScope.get(node) ?? null;
+    return this.scopeQuery.getScopeForNode(node, this.scopeTree);
   }
 
   /**
    * Get the scope containing a specific path
    */
   getScopeForPath(path: NodePath): ScopeInfo | null {
-    return this.getScopeForNode(path.node);
+    return this.scopeQuery.getScopeForPath(path, this.scopeTree);
   }
 
   /**
    * Find the enclosing component scope for a path
    */
   findEnclosingComponent(path: NodePath): Result<ComponentScope | null, InternalErrorType> {
-    let current: NodePath | null = path;
-    const MAX_DEPTH = 1000;
-    let depth = 0;
-
-    while (current !== null && depth < MAX_DEPTH) {
-      depth++;
-      const scope = this.getScopeForNode(current.node);
-      if (scope !== null && isComponentScope(scope)) {
-        return ok(scope);
-      }
-      current = current.parentPath;
-    }
-
-    if (depth >= MAX_DEPTH) {
-      return err(
-        createInternalError({
-          code: 'E001',
-          message: `ScopeManager.findEnclosingComponent: Maximum tree depth (${MAX_DEPTH}) exceeded for path node type ${path.node.type}`,
-        })
-      );
-    }
-
-    return ok(null);
+    return this.scopeQuery.findEnclosingComponent(path, this.scopeTree);
   }
 
   /**
@@ -407,14 +336,14 @@ export class ScopeManager implements IScopeManager {
    * Get all components in the scope tree
    */
   getAllComponents(): ComponentInfo[] {
-    return Array.from(this.components.values());
+    return this.scopeQuery.getAllComponents(this.components);
   }
 
   /**
    * Get component info by scope ID
    */
   getComponentInfo(scopeId: string): ComponentInfo | null {
-    return this.components.get(scopeId) ?? null;
+    return this.scopeQuery.getComponentInfo(scopeId, this.components);
   }
 
   // ===================================================================
@@ -442,36 +371,6 @@ export class ScopeManager implements IScopeManager {
 
 
 
-  /**
-   * Get the path from a scope to the root
-   */
-  private getPathToRoot(scope: ScopeInfo): ScopeInfo[] {
-    const path: ScopeInfo[] = [];
-    let current: ScopeInfo | null = scope;
-
-    while (current) {
-      path.push(current);
-      current = current.parent;
-    }
-
-    return path;
-  }
-
-  /**
-   * Check if scopeA is an ancestor of scopeB
-   */
-  private isAncestor(scopeA: ScopeInfo, scopeB: ScopeInfo): boolean {
-    let current: ScopeInfo | null = scopeB.parent;
-
-    while (current) {
-      if (current.id === scopeA.id) {
-        return true;
-      }
-      current = current.parent;
-    }
-
-    return false;
-  }
 }
 
 
