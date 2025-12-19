@@ -405,10 +405,14 @@ describe('API Utility Functions', () => {
         expect(isOk(result)).toBe(true);
         if (isOk(result)) {
           expect(result.value).toHaveLength(1);
-          expect(result.value[0].file).toBe('test.tsx');
-          expect(result.value[0].content).toBeDefined();
-          expect(result.value[0].changed).toBe(true);
-          expect(result.value[0].original).toBe('const x = 1;');
+          const firstCode = result.value[0];
+          expect(firstCode).toBeDefined();
+          if (firstCode) {
+            expect(firstCode.file).toBe('test.tsx');
+            expect(firstCode.content).toBeDefined();
+            expect(firstCode.changed).toBe(true);
+            expect(firstCode.original).toBe('const x = 1;');
+          }
         }
       });
 
@@ -496,9 +500,13 @@ describe('API Utility Functions', () => {
 
         expect(isOk(result)).toBe(true);
         if (isOk(result)) {
-          expect(result.value[0].content).toContain('div');
-          expect(result.value[0].content).toContain('span');
-          expect(result.value[0].content).toContain('Hello');
+          const firstCode = result.value[0];
+          expect(firstCode).toBeDefined();
+          if (firstCode) {
+            expect(firstCode.content).toContain('div');
+            expect(firstCode.content).toContain('span');
+            expect(firstCode.content).toContain('Hello');
+          }
         }
       });
 
@@ -516,8 +524,12 @@ describe('API Utility Functions', () => {
 
         expect(isOk(result)).toBe(true);
         if (isOk(result)) {
-          expect(result.value[0].content).toContain('import');
-          expect(result.value[0].content).toContain('export');
+          const firstCode = result.value[0];
+          expect(firstCode).toBeDefined();
+          if (firstCode) {
+            expect(firstCode.content).toContain('import');
+            expect(firstCode.content).toContain('export');
+          }
         }
       });
     });
@@ -544,9 +556,12 @@ describe('API Utility Functions', () => {
         const parsedFiles = new Map<string, t.File>();
 
         // Only parse one file
-        const oneFileResult = parseAllFiles([files[0]]);
-        if (isOk(oneFileResult)) {
-          parsedFiles.set('exists.tsx', oneFileResult.value.get('exists.tsx')!);
+        const firstFile = files[0];
+        if (firstFile) {
+          const oneFileResult = parseAllFiles([firstFile]);
+          if (isOk(oneFileResult)) {
+            parsedFiles.set('exists.tsx', oneFileResult.value.get('exists.tsx')!);
+          }
         }
 
         const generator = new CodeGenerator();
@@ -556,7 +571,11 @@ describe('API Utility Functions', () => {
         if (isOk(result)) {
           // Should only generate code for the file that exists in parsedFiles
           expect(result.value).toHaveLength(1);
-          expect(result.value[0].file).toBe('exists.tsx');
+          const firstCode = result.value[0];
+          expect(firstCode).toBeDefined();
+          if (firstCode) {
+            expect(firstCode.file).toBe('exists.tsx');
+          }
         }
       });
     });
@@ -573,7 +592,11 @@ describe('API Utility Functions', () => {
 
         expect(isOk(result)).toBe(true);
         if (isOk(result)) {
-          expect(result.value[0].file).toBe('folder/sub-folder/Component.tsx');
+          const firstCode = result.value[0];
+          expect(firstCode).toBeDefined();
+          if (firstCode) {
+            expect(firstCode.file).toBe('folder/sub-folder/Component.tsx');
+          }
         }
       });
 
@@ -589,7 +612,11 @@ describe('API Utility Functions', () => {
         expect(isOk(result)).toBe(true);
         if (isOk(result)) {
           // All files should be marked as not changed
-          expect(result.value[0].changed).toBe(false);
+          const firstCode = result.value[0];
+          expect(firstCode).toBeDefined();
+          if (firstCode) {
+            expect(firstCode.changed).toBe(false);
+          }
         }
       });
 
@@ -608,7 +635,13 @@ describe('API Utility Functions', () => {
 
         if (isOk(result1) && isOk(result2)) {
           // Generated code should be identical for the same input
-          expect(result1.value[0].content).toBe(result2.value[0].content);
+          const firstCode1 = result1.value[0];
+          const firstCode2 = result2.value[0];
+          expect(firstCode1).toBeDefined();
+          expect(firstCode2).toBeDefined();
+          if (firstCode1 && firstCode2) {
+            expect(firstCode1.content).toBe(firstCode2.content);
+          }
         }
       });
     });
@@ -723,9 +756,13 @@ describe('API Utility Functions', () => {
           expect(isOk(genResult)).toBe(true);
           if (isOk(genResult)) {
             // Verify the generated code is valid
-            expect(genResult.value[0].content).toContain('Component');
-            expect(genResult.value[0].content).toContain('name');
-            expect(genResult.value[0].changed).toBe(true);
+            const firstCode = genResult.value[0];
+            expect(firstCode).toBeDefined();
+            if (firstCode) {
+              expect(firstCode.content).toContain('Component');
+              expect(firstCode.content).toContain('name');
+              expect(firstCode.changed).toBe(true);
+            }
           }
         }
       });

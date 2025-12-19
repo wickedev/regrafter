@@ -9,9 +9,10 @@
  */
 
 import type { File as BabelFile } from '@babel/types';
+
 import type { ParseErrorType } from '../errors/index.js';
-import type { Result } from '../result/index.js';
 import type { FileInput } from '../parser/types.js';
+import type { Result } from '../result/index.js';
 
 /**
  * Interface for parsing operations

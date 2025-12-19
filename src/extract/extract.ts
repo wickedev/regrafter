@@ -10,16 +10,17 @@
  * - 10.8: Throw specific error object on failure
  */
 
-import type { FileInput, Selector } from "../types/public.js";
-import type { Result } from "../result/types.js";
-import type { RegraffError } from "../errors/error-category.js";
+import type { RegraffError } from '../errors/error-category.js';
+import type { Result } from '../result/types.js';
+import type { FileInput, Selector } from '../types/public.js';
+
+import { ExtractOrchestrator } from './extract-orchestrator.js';
 import type {
   ExtractOptions,
   ExtractResult,
   ExtractAnalysis,
   RangeSelector,
-} from "./types.js";
-import { ExtractOrchestrator } from "./extract-orchestrator.js";
+} from './types.js';
 
 /**
  * Extract JSX nodes into a new component

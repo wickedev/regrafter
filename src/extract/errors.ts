@@ -5,16 +5,15 @@
  * Defines all error codes and error creation utilities for extract feature
  */
 
-import type { Selector, SuggestedFix } from '../types/public.js';
-import type { SourceLocation } from '../types/internal.js';
 import {
-  ErrorCategory,
-  ValidationError,
-  SelectorError,
-  DependencyError,
-  TransformError,
+  createDependencyError,
+  createSelectorError,
+  createTransformError,
+  createValidationError,
   type RegraffError,
 } from '../errors/error-category.js';
+import type { SourceLocation } from '../types/internal.js';
+import type { Selector, SuggestedFix } from '../types/public.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Extract Error Codes
@@ -85,6 +84,44 @@ export const ERROR_MESSAGES: Record<ExtractErrorCode, string> = {
   [ExtractErrorCode.FILE_READ_FAILED]: 'File read failed',
 };
 
+const VALIDATION_CODES: ExtractErrorCode[] = [
+  ExtractErrorCode.EMPTY_INPUT,
+  ExtractErrorCode.FILE_NOT_FOUND,
+  ExtractErrorCode.TYPE_INFERENCE_FAILED,
+  ExtractErrorCode.COMPLEX_TYPE_UNSUPPORTED,
+  ExtractErrorCode.INVALID_COMPONENT_NAME,
+  ExtractErrorCode.NAME_CONFLICT,
+];
+
+const SELECTOR_CODES: ExtractErrorCode[] = [
+  ExtractErrorCode.INVALID_SELECTOR,
+  ExtractErrorCode.NODE_NOT_FOUND,
+  ExtractErrorCode.INVALID_SELECTION,
+  ExtractErrorCode.NON_CONTIGUOUS_NODES,
+  ExtractErrorCode.DIFFERENT_PARENTS,
+  ExtractErrorCode.NOT_JSX_NODE,
+];
+
+const DEPENDENCY_CODES: ExtractErrorCode[] = [
+  ExtractErrorCode.CIRCULAR_DEPENDENCY,
+  ExtractErrorCode.UNRESOLVABLE_DEPENDENCY,
+  ExtractErrorCode.HOOK_RULE_VIOLATION,
+];
+
+const TRANSFORM_CODES: ExtractErrorCode[] = [
+  ExtractErrorCode.COMPONENT_BUILD_FAILED,
+  ExtractErrorCode.CODE_GENERATION_FAILED,
+  ExtractErrorCode.INVALID_JSX_STRUCTURE,
+  ExtractErrorCode.FILE_WRITE_FAILED,
+  ExtractErrorCode.FILE_READ_FAILED,
+];
+
+const VALIDATION_CODE_SET = new Set(VALIDATION_CODES);
+const SELECTOR_CODE_SET = new Set(SELECTOR_CODES);
+const DEPENDENCY_CODE_SET = new Set(DEPENDENCY_CODES);
+const TRANSFORM_CODE_SET = new Set(TRANSFORM_CODES);
+const ERROR_CODE_SET = new Set<string>(Object.values(ExtractErrorCode));
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Error Creation Parameters
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -108,101 +145,105 @@ interface ExtractErrorParams {
 /**
  * Extract error creation function
  */
+function createExtractValidationError(
+  code: ExtractErrorCode,
+  params: ExtractErrorParams,
+  message: string
+): RegraffError {
+  return createValidationError({
+    code,
+    message,
+    constraint: code,
+    details: params.details ?? message,
+    file: params.file,
+    location: params.location,
+    suggestions: params.suggestions ?? [],
+    recoverable: code === ExtractErrorCode.NAME_CONFLICT,
+  });
+}
+
+function createExtractSelectorError(
+  code: ExtractErrorCode,
+  params: ExtractErrorParams,
+  message: string
+): RegraffError {
+  const selector = params.selector ?? createFallbackSelector(params.file);
+  const file = params.file ?? selector.file;
+
+  return createSelectorError({
+    code,
+    message,
+    selector,
+    file,
+    location: params.location,
+    suggestions: params.suggestions,
+  });
+}
+
+function createExtractDependencyError(
+  code: ExtractErrorCode,
+  params: ExtractErrorParams,
+  message: string
+): RegraffError {
+  return createDependencyError({
+    code,
+    message,
+    unresolvableReason: params.details ?? message,
+    file: params.file,
+    location: params.location,
+    suggestions: params.suggestions ?? [],
+    recoverable: code !== ExtractErrorCode.HOOK_RULE_VIOLATION,
+  });
+}
+
+function createExtractTransformError(
+  code: ExtractErrorCode,
+  params: ExtractErrorParams,
+  message: string
+): RegraffError {
+  return createTransformError({
+    code,
+    message,
+    operation: code,
+    file: params.file,
+    location: params.location,
+    suggestions: params.suggestions ?? [],
+  });
+}
+
+function createFallbackSelector(file?: string): Selector {
+  return {
+    file: file ?? '',
+    line: 1,
+    column: 1,
+  };
+}
+
 export function createExtractError(
   code: ExtractErrorCode,
   params: ExtractErrorParams
 ): RegraffError {
   const message = ERROR_MESSAGES[code];
 
-  // Create error of appropriate category based on error code
-  switch (code) {
-    // Validation errors
-    case ExtractErrorCode.EMPTY_INPUT:
-    case ExtractErrorCode.FILE_NOT_FOUND:
-      return new ValidationError({
-        code,
-        message,
-        constraint: code,
-        details: params.details ?? message,
-        file: params.file,
-        location: params.location,
-        suggestions: params.suggestions,
-        recoverable: false,
-      });
-
-    // Selection errors
-    case ExtractErrorCode.INVALID_SELECTOR:
-    case ExtractErrorCode.NODE_NOT_FOUND:
-    case ExtractErrorCode.INVALID_SELECTION:
-    case ExtractErrorCode.NON_CONTIGUOUS_NODES:
-    case ExtractErrorCode.DIFFERENT_PARENTS:
-    case ExtractErrorCode.NOT_JSX_NODE:
-      return new SelectorError({
-        code,
-        message,
-        selector: params.selector!,
-        file: params.file ?? params.selector?.file ?? '',
-        location: params.location,
-        suggestions: params.suggestions,
-      });
-
-    // Dependency analysis errors
-    case ExtractErrorCode.CIRCULAR_DEPENDENCY:
-    case ExtractErrorCode.UNRESOLVABLE_DEPENDENCY:
-    case ExtractErrorCode.HOOK_RULE_VIOLATION:
-      return new DependencyError({
-        code,
-        message,
-        unresolvableReason: params.details ?? message,
-        file: params.file,
-        location: params.location,
-        suggestions: params.suggestions,
-        recoverable: code !== ExtractErrorCode.HOOK_RULE_VIOLATION,
-      });
-
-    // Code generation errors
-    case ExtractErrorCode.COMPONENT_BUILD_FAILED:
-    case ExtractErrorCode.CODE_GENERATION_FAILED:
-    case ExtractErrorCode.INVALID_JSX_STRUCTURE:
-    case ExtractErrorCode.FILE_WRITE_FAILED:
-    case ExtractErrorCode.FILE_READ_FAILED:
-      return new TransformError({
-        code,
-        message,
-        operation: code,
-        file: params.file,
-        location: params.location,
-        suggestions: params.suggestions,
-        cause: params.cause,
-      });
-
-    // Type inference and name generation errors
-    case ExtractErrorCode.TYPE_INFERENCE_FAILED:
-    case ExtractErrorCode.COMPLEX_TYPE_UNSUPPORTED:
-    case ExtractErrorCode.INVALID_COMPONENT_NAME:
-    case ExtractErrorCode.NAME_CONFLICT:
-      return new ValidationError({
-        code,
-        message,
-        constraint: code,
-        details: params.details ?? message,
-        file: params.file,
-        location: params.location,
-        suggestions: params.suggestions,
-        recoverable: code === ExtractErrorCode.NAME_CONFLICT,
-      });
-
-    default: {
-      // TypeScript exhaustiveness check
-      const _exhaustive: never = code;
-      return new ValidationError({
-        code: _exhaustive,
-        message: 'Unknown error',
-        constraint: 'UNKNOWN',
-        details: 'Unknown error occurred',
-      });
-    }
+  if (SELECTOR_CODE_SET.has(code)) {
+    return createExtractSelectorError(code, params, message);
   }
+  if (DEPENDENCY_CODE_SET.has(code)) {
+    return createExtractDependencyError(code, params, message);
+  }
+  if (TRANSFORM_CODE_SET.has(code)) {
+    return createExtractTransformError(code, params, message);
+  }
+  if (VALIDATION_CODE_SET.has(code)) {
+    return createExtractValidationError(code, params, message);
+  }
+
+  return createValidationError({
+    code,
+    message: 'Unknown error',
+    constraint: 'UNKNOWN',
+    details: 'Unknown error occurred',
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -213,15 +254,21 @@ export function createExtractError(
  * Extract error type guard
  */
 export function isExtractError(error: unknown): error is RegraffError {
-  if (!error || typeof error !== 'object') {
+  if (!isRecord(error)) {
     return false;
   }
 
-  const err = error as Partial<RegraffError>;
+  const code = error['code'];
+  const message = error['message'];
+  const category = error['category'];
   return (
-    'code' in err &&
-    'message' in err &&
-    'category' in err &&
-    Object.values(ExtractErrorCode).includes(err.code as ExtractErrorCode)
+    typeof code === 'string' &&
+    typeof message === 'string' &&
+    typeof category === 'string' &&
+    ERROR_CODE_SET.has(code)
   );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }

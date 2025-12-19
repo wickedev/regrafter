@@ -10,8 +10,8 @@
 
 import type { InternalErrorType } from '../errors/index.js';
 import type { Result } from '../result/index.js';
-import type { HoistPlan } from '../strategies/types.js';
 import type { HoistExecutionContext } from '../strategies/hoist-executor.js';
+import type { HoistPlan } from '../strategies/types.js';
 
 /**
  * Interface for hoisting plan execution

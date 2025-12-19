@@ -5,13 +5,13 @@
  * Responsible for input parameter validation
  */
 
-import type { FileInput, Selector } from '../types/public.js';
-import type { ExtractOptions, RangeSelector } from './types.js';
-import type { Result } from '../result/types.js';
 import type { RegraffError } from '../errors/error-category.js';
-import type { IInputValidator } from './interfaces/i-input-validator.js';
-import { ok, err } from '../result/types.js';
+import { ok, err, type Result } from '../result/types.js';
+import type { FileInput, Selector } from '../types/public.js';
+
 import { ExtractErrorCode, createExtractError } from './errors.js';
+import type { IInputValidator } from './interfaces/i-input-validator.js';
+import type { ExtractOptions, RangeSelector } from './types.js';
 
 /**
  * InputValidator implementation
@@ -28,7 +28,7 @@ export class InputValidator implements IInputValidator {
   validate(
     files: FileInput[],
     selector: Selector | RangeSelector,
-    options: ExtractOptions
+    _options?: ExtractOptions
   ): Result<void, RegraffError> {
     // 1. Validate empty file list
     if (files.length === 0) {
@@ -40,10 +40,10 @@ export class InputValidator implements IInputValidator {
     }
 
     // 2. Validate selector validity
-    if (!this.isValidSelector(selector)) {
+    if (!this.isValidSelection(selector)) {
       return err(
         createExtractError(ExtractErrorCode.INVALID_SELECTOR, {
-          selector: selector as Selector,
+          selector: this.buildErrorSelector(selector),
           details: 'Invalid selector',
         })
       );
@@ -59,41 +59,64 @@ export class InputValidator implements IInputValidator {
    * @param selector - selector to validate
    * @returns boolean - Whether valid
    */
-  private isValidSelector(selector: Selector | RangeSelector): boolean {
-    if (!selector || typeof selector !== 'object') {
+  private isValidSelection(selector: Selector | RangeSelector): boolean {
+    return (
+      this.isPositionSelector(selector) ||
+      this.isPathSelector(selector) ||
+      this.isRangeSelector(selector)
+    );
+  }
+
+  private isPositionSelector(
+    selector: Selector | RangeSelector
+  ): selector is Selector {
+    return (
+      'line' in selector &&
+      'column' in selector &&
+      typeof selector.file === 'string' &&
+      typeof selector.line === 'number' &&
+      typeof selector.column === 'number'
+    );
+  }
+
+  private isPathSelector(
+    selector: Selector | RangeSelector
+  ): selector is Selector {
+    return (
+      'path' in selector &&
+      typeof selector.file === 'string' &&
+      typeof selector.path === 'string'
+    );
+  }
+
+  private isRangeSelector(
+    selector: Selector | RangeSelector
+  ): selector is RangeSelector {
+    if (!('start' in selector) || !('end' in selector)) {
       return false;
     }
+    const start = selector.start;
+    const end = selector.end;
+    return (
+      typeof selector.file === 'string' &&
+      typeof start.line === 'number' &&
+      typeof start.column === 'number' &&
+      typeof end.line === 'number' &&
+      typeof end.column === 'number'
+    );
+  }
 
-    // file property is required
-    if (!('file' in selector) || typeof selector.file !== 'string') {
-      return false;
+  private buildErrorSelector(selector: Selector | RangeSelector): Selector {
+    if (this.isPositionSelector(selector) || this.isPathSelector(selector)) {
+      return selector;
     }
-
-    // Check PositionSelector
-    if ('line' in selector && 'column' in selector) {
-      return (
-        typeof selector.line === 'number' && typeof selector.column === 'number'
-      );
+    if (this.isRangeSelector(selector)) {
+      return {
+        file: selector.file,
+        line: selector.start.line,
+        column: selector.start.column,
+      };
     }
-
-    // Check PathSelector
-    if ('path' in selector) {
-      return typeof selector.path === 'string';
-    }
-
-    // Check RangeSelector
-    if ('start' in selector && 'end' in selector) {
-      const rangeSelector = selector as RangeSelector;
-      return (
-        rangeSelector.start &&
-        typeof rangeSelector.start.line === 'number' &&
-        typeof rangeSelector.start.column === 'number' &&
-        rangeSelector.end &&
-        typeof rangeSelector.end.line === 'number' &&
-        typeof rangeSelector.end.column === 'number'
-      );
-    }
-
-    return false;
+    return { file: '', line: 1, column: 1 };
   }
 }

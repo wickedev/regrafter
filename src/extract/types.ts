@@ -7,6 +7,7 @@
 
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
+
 import type { Code } from '../types/public.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════

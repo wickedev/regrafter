@@ -5,7 +5,6 @@
  */
 
 import type { ScopeManager, ScopeInfo } from "../../scope/index.js";
-import { ScopeType } from "../../scope/index.js";
 import { DependencyType, type InternalDependency } from "../types.js";
 
 /**

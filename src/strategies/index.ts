@@ -97,7 +97,6 @@ export {
 import { ContextHandler } from './context-handler.js';
 import { HoistPlanner } from './hoist-planner.js';
 import { HookHoister } from './hook-hoister.js';
-import { ImportManager as CoreImportManager } from '../core/index.js';
 import { PropThreader } from './prop-threader.js';
 import { SuspenseHandler } from './suspense-handler.js';
 import type { IHoistStrategy } from './types.js';

@@ -6,11 +6,10 @@
  */
 
 import type { NodePath } from '@babel/traverse';
-import * as t from '@babel/types';
+import type * as t from '@babel/types';
 
 import { createInternalError, type InternalErrorType } from '../../errors/index.js';
 import { ok, err, type Result } from '../../result/index.js';
-
 import {
   ScopeType,
   type ScopeInfo,

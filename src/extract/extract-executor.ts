@@ -13,13 +13,16 @@
 
 import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
-import { ok, err, type Result } from '../result/index.js';
-import type { RegraffError } from '../errors/error-category.js';
-import type { IExtractExecutor } from './interfaces/i-extract-executor.js';
+
 import { ImportManager } from '../core/index.js';
-import { ComponentBuilder } from './component-builder.js';
+import type { RegraffError } from '../errors/error-category.js';
+import { ok, err, type Result } from '../result/index.js';
+
 import { CodeReplacer } from './code-replacer.js';
-import type { ExtractPlan, PropType, VariableDependency, FunctionDependency } from './types.js';
+import { ComponentBuilder } from './component-builder.js';
+import { createExtractError, ExtractErrorCode } from './errors.js';
+import type { IExtractExecutor } from './interfaces/i-extract-executor.js';
+import type { ExtractPlan } from './types.js';
 
 /**
  * ExtractExecutor
@@ -27,9 +30,9 @@ import type { ExtractPlan, PropType, VariableDependency, FunctionDependency } fr
  * Class that executes extraction plan to perform actual code transformation
  */
 export class ExtractExecutor implements IExtractExecutor {
-  private componentBuilder: ComponentBuilder;
-  private codeReplacer: CodeReplacer;
-  private importManager: ImportManager;
+  private readonly componentBuilder: ComponentBuilder;
+  private readonly codeReplacer: CodeReplacer;
+  private readonly importManager: ImportManager;
 
   constructor() {
     this.componentBuilder = new ComponentBuilder();
@@ -51,10 +54,12 @@ export class ExtractExecutor implements IExtractExecutor {
     // Get source file AST
     const sourceAst = asts.get(plan.sourceFile);
     if (!sourceAst) {
-      return err({
-        code: 'FILE_NOT_FOUND',
-        message: `Source file not found: ${plan.sourceFile}`,
-      });
+      return err(
+        createExtractError(ExtractErrorCode.FILE_NOT_FOUND, {
+          file: plan.sourceFile,
+          details: `Source file not found: ${plan.sourceFile}`,
+        })
+      );
     }
 
     // Generate Props interface (only if props exist)
@@ -94,7 +99,7 @@ export class ExtractExecutor implements IExtractExecutor {
     // Replace original code with component call (after component insertion!)
     // Important: Use NodePath after AST manipulation, so replace after component insertion
     const props = this.buildPropsMap(plan);
-    this.replaceOriginalCode(plan.selectedNodes, plan.componentName, props);
+    this.replaceOriginalCode(sourceAst, plan.selectedNodes, plan.componentName, props);
 
     // Return updated AST map
     const updatedAsts = new Map(asts);
@@ -220,24 +225,43 @@ export class ExtractExecutor implements IExtractExecutor {
   /**
    * Replace original code with component call
    *
+   * @param ast - Source file AST
    * @param selectedNodes - Selected nodes
    * @param componentName - Component name
    * @param props - Props map
    */
   private replaceOriginalCode(
+    ast: t.File,
     selectedNodes: NodePath[],
     componentName: string,
     props: Map<string, t.Expression>
   ): void {
-    // Replace only first node with component call
-    // (Handle multiple nodes later)
-    if (selectedNodes.length > 0) {
-      const firstNode = selectedNodes[0];
-      this.codeReplacer.replace(firstNode, componentName, props);
+    // Build replacement JSX element: <ComponentName prop1={value1} prop2={value2} />
+    const jsxAttributes = Array.from(props.entries()).map(([name, value]) =>
+      t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(value))
+    );
 
-      // Remove remaining nodes
-      for (let i = 1; i < selectedNodes.length; i++) {
-        selectedNodes[i].remove();
+    const replacement = t.jsxElement(
+      t.jsxOpeningElement(t.jsxIdentifier(componentName), jsxAttributes, true),
+      null,
+      [],
+      true
+    );
+
+    // Filter to only JSXElement nodes and replace
+    const jsxNodes = selectedNodes.filter(
+      (node): node is NodePath<t.JSXElement> => t.isJSXElement(node.node)
+    );
+
+    if (jsxNodes.length > 0) {
+      this.codeReplacer.replace(ast, jsxNodes, replacement);
+    }
+
+    // Remove remaining nodes (non-JSX nodes after the first JSXElement)
+    const [, ...remainingNodes] = selectedNodes;
+    for (const node of remainingNodes) {
+      if (!t.isJSXElement(node.node)) {
+        node.remove();
       }
     }
   }
@@ -253,7 +277,7 @@ export class ExtractExecutor implements IExtractExecutor {
   private createNewFile(
     component: t.FunctionDeclaration,
     propsInterface: t.TSInterfaceDeclaration | null,
-    plan: ExtractPlan
+    _plan: ExtractPlan
   ): t.File {
     // Generate new file AST
     const program = t.program([]);

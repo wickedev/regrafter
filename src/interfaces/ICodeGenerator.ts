@@ -9,9 +9,10 @@
  */
 
 import type * as t from '@babel/types';
+
 import type { TransformErrorType } from '../errors/index.js';
-import type { Result } from '../result/index.js';
 import type { CommentAttachment, GeneratedCode, GeneratorOptions, IndentationInfo } from '../generator/types.js';
+import type { Result } from '../result/index.js';
 
 /**
  * Interface for code generation operations

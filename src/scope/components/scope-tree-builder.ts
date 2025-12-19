@@ -6,7 +6,7 @@
  * tracking parent-child relationships and scope types.
  */
 
-import type { NodePath, Binding } from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
@@ -17,38 +17,17 @@ import {
   createComponentScope,
   generateId,
 } from '../../types/factories.js';
+import type { HookUsage } from '../../types/internal.js';
 import { loadTraverseFunction, type TraverseFunction } from '../../utils/index.js';
-
 import {
   ScopeType,
   type ScopeInfo,
   type ComponentScope,
-  type BindingInfo,
   type ScopeTree,
+  type ComponentInfo,
 } from '../types.js';
 
 const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
-
-/**
- * List of React hooks that we track
- */
-const REACT_HOOKS = new Set([
-  'useState',
-  'useEffect',
-  'useContext',
-  'useReducer',
-  'useCallback',
-  'useMemo',
-  'useRef',
-  'useImperativeHandle',
-  'useLayoutEffect',
-  'useDebugValue',
-  'useDeferredValue',
-  'useTransition',
-  'useId',
-  'useSyncExternalStore',
-  'useInsertionEffect',
-]);
 
 /**
  * Type guard to check if a ScopeInfo is a ComponentScope
@@ -61,7 +40,7 @@ function isComponentScope(scope: ScopeInfo): scope is ComponentScope {
  * ScopeTreeBuilder builds a hierarchical scope tree from an AST
  */
 export class ScopeTreeBuilder {
-  private readonly components: Map<string, any> = new Map();
+  private readonly components: Map<string, ComponentInfo> = new Map();
 
   /**
    * Analyzes the AST and builds a hierarchical scope tree
@@ -74,7 +53,7 @@ export class ScopeTreeBuilder {
    */
   buildScopeTree(
     ast: t.File,
-    detectHooksFn: (path: NodePath) => any[],
+    detectHooksFn: (path: NodePath) => HookUsage[],
     extractBindingsFn: (path: NodePath, scope: ScopeInfo, scopeTree: ScopeTree) => void
   ): Result<ScopeTree, ValidationErrorType> {
     // Initialize scope tree with module scope
@@ -186,7 +165,7 @@ export class ScopeTreeBuilder {
   private processFunctionScope(
     path: NodePath,
     scopeTree: ScopeTree,
-    detectHooksFn: (path: NodePath) => any[],
+    detectHooksFn: (path: NodePath) => HookUsage[],
     extractBindingsFn: (path: NodePath, scope: ScopeInfo, scopeTree: ScopeTree) => void
   ): void {
     const parentScope = this.findParentScope(path, scopeTree) ?? scopeTree.root;
@@ -326,7 +305,7 @@ export class ScopeTreeBuilder {
     path: NodePath,
     parent: ScopeInfo | null,
     scopeTree: ScopeTree,
-    detectHooksFn: (path: NodePath) => any[]
+    detectHooksFn: (path: NodePath) => HookUsage[]
   ): ComponentScope | null {
     if (!this.isReactComponent(path)) {
       return null;
@@ -345,21 +324,22 @@ export class ScopeTreeBuilder {
       parentComponent,
       isConditionallyRendered: isConditional,
       isInsideLoop: isLoop,
-      hooks: hooks.map(h => ({
-        name: h.name,
-        path: h.path,
-        dependencies: h.dependencies ?? [],
-      })),
+      hooks,
     });
 
     // Store component info
-    const componentInfo: any = {
+    const componentInfo: ComponentInfo = {
       name,
       type: this.getComponentType(path),
       path,
       isReactComponent: true,
       propsParam: this.getPropsParam(path),
-      hooks,
+      hooks: hooks.map(h => ({
+        name: h.name,
+        path: h.path,
+        returnBindings: [],
+        dependencies: h.dependencies,
+      })),
     };
     this.components.set(componentScope.id, componentInfo);
 
@@ -527,7 +507,7 @@ export class ScopeTreeBuilder {
   /**
    * Get components map (for coordinator access)
    */
-  getComponents(): Map<string, any> {
+  getComponents(): Map<string, ComponentInfo> {
     return this.components;
   }
 }

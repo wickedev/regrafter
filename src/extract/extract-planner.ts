@@ -5,20 +5,21 @@
  * Plans the extraction of JSX nodes into a new component
  */
 
-import type { NodePath } from '@babel/traverse';
-import type * as t from '@babel/types';
-import { ok, err, type Result } from '../result/index.js';
+import * as t from '@babel/types';
+
 import type { RegraffError } from '../errors/error-category.js';
-import type { FileInput, Selector } from '../types/public.js';
-import type { ExtractOptions, ExtractPlan, RangeSelector } from './types.js';
-import type { IExtractPlanner } from './interfaces/i-extract-planner.js';
-import { createExtractError, ExtractErrorCode } from './errors.js';
-import { parseFile } from '../parser/index.js';
-import { createNodeSelector, type INodeSelector } from './node-selector.js';
-import { ExtractDependencyAnalyzer } from './extract-dependency-analyzer.js';
-import { ComponentNameGenerator } from './component-name-generator.js';
-import { TypeInferrer } from './type-inferrer.js';
+import { ok, err, type Result } from '../result/index.js';
 import { ScopeManager } from '../scope/index.js';
+import { ScopeType, createScopeInfo } from '../types/index.js';
+import type { FileInput, Selector } from '../types/public.js';
+
+import { ComponentNameGenerator } from './component-name-generator.js';
+import { createExtractError, ExtractErrorCode } from './errors.js';
+import { ExtractDependencyAnalyzer } from './extract-dependency-analyzer.js';
+import type { IExtractPlanner } from './interfaces/i-extract-planner.js';
+import { createNodeSelector, type INodeSelector } from './node-selector.js';
+import { TypeInferrer } from './type-inferrer.js';
+import type { ExtractOptions, ExtractPlan, RangeSelector } from './types.js';
 
 /**
  * ExtractPlanner
@@ -92,13 +93,27 @@ export class ExtractPlanner implements IExtractPlanner {
     }
 
     const selectedNodes = selectResult.value;
+    const [firstSelectedNode] = selectedNodes;
+    if (!firstSelectedNode) {
+      return err(
+        createExtractError(ExtractErrorCode.INVALID_SELECTION, {
+          selector: this.normalizeSelector(selector),
+          file: sourceFile,
+          details: 'No JSX nodes selected',
+        })
+      );
+    }
 
     // Step 4: Analyze dependencies
     const scopeManager = new ScopeManager();
     const dependencyAnalyzer = new ExtractDependencyAnalyzer(scopeManager);
 
-    // For now, pass empty scope info - will be improved later
-    const sourceScope = { id: 'root', type: 'function' as const, path: null as any, parent: null, children: [] };
+    // Create a module-level scope for dependency analysis
+    const sourceScope = createScopeInfo({
+      type: ScopeType.Module,
+      path: firstSelectedNode.scope.getProgramParent().path,
+      parent: null,
+    });
     const dependencyResult = dependencyAnalyzer.analyze(selectedNodes, sourceScope);
 
     if (!dependencyResult.ok) {
@@ -121,18 +136,18 @@ export class ExtractPlanner implements IExtractPlanner {
       return propTypesResult;
     }
 
-    let propTypes = propTypesResult.value;
+    const propTypes = [...propTypesResult.value];
 
     // Add state dependencies as props (both state variable and setter)
     for (const state of dependencies.states) {
       propTypes.push({
         name: state.stateName,
-        typeAnnotation: state.type ?? { type: 'TSAnyKeyword' },
+        typeAnnotation: state.type ?? t.tsUnknownKeyword(),
         optional: false,
       });
       propTypes.push({
         name: state.setterName,
-        typeAnnotation: { type: 'TSAnyKeyword' }, // Setter is always a function
+        typeAnnotation: t.tsUnknownKeyword(), // Setter is always a function
         optional: false,
       });
     }
@@ -141,7 +156,7 @@ export class ExtractPlanner implements IExtractPlanner {
     for (const importDep of dependencies.imports) {
       propTypes.push({
         name: importDep.name,
-        typeAnnotation: { type: 'TSAnyKeyword' }, // Imported items default to any
+        typeAnnotation: t.tsUnknownKeyword(),
         optional: false,
       });
     }
@@ -178,6 +193,23 @@ export class ExtractPlanner implements IExtractPlanner {
     };
 
     return ok(plan);
+  }
+
+  private normalizeSelector(selector: Selector | RangeSelector): Selector {
+    if ('line' in selector && 'column' in selector) {
+      return selector;
+    }
+    if ('path' in selector) {
+      return selector;
+    }
+    if ('start' in selector && 'end' in selector) {
+      return {
+        file: selector.file,
+        line: selector.start.line,
+        column: selector.start.column,
+      };
+    }
+    return { file: '', line: 1, column: 1 };
   }
 
 }

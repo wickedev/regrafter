@@ -17,7 +17,7 @@ export interface ICodeReplacer {
    */
   replace(
     ast: t.File,
-    nodes: NodePath<t.JSXElement>[],
+    nodes: Array<NodePath<t.JSXElement>>,
     replacement: t.JSXElement
   ): void;
 }

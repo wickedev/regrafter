@@ -7,9 +7,9 @@
 import type { NodePath, Binding } from "@babel/traverse";
 import * as t from "@babel/types";
 
-import type { PropDependency, IdentifierReference } from "../types.js";
-import { DependencyType } from "../types.js";
 import type { ComponentScope } from "../../scope/index.js";
+import { DependencyType } from "../types.js";
+import type { PropDependency, IdentifierReference } from "../types.js";
 
 /**
  * Interface for prop dependency analysis

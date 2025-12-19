@@ -9,10 +9,11 @@
  */
 
 import type { NodePath } from '@babel/traverse';
+
+import type { AnalyzabilityResult, DependencyAnalysis } from '../analyzer/types.js';
 import type { DependencyErrorType } from '../errors/error-category.js';
 import type { Result } from '../result/index.js';
 import type { ScopeInfo } from '../scope/index.js';
-import type { AnalyzabilityResult, DependencyAnalysis } from '../analyzer/types.js';
 
 /**
  * Interface for dependency analysis operations

@@ -15,13 +15,6 @@ import type {
   ExtractStats,
   ExtractPlan,
   ExtractDependencies,
-  VariableDependency,
-  FunctionDependency,
-  StateDependency,
-  HookDependency,
-  ImportDependency,
-  PropType,
-  HookDeclaration,
   FormattingOptions,
 } from '../types.js';
 

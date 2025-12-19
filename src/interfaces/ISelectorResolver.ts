@@ -9,15 +9,16 @@
  */
 
 import type * as t from '@babel/types';
+
 import type { SelectorErrorType } from '../errors/index.js';
 import type { Result } from '../result/index.js';
+import type { ElementData } from '../selector/selector-resolver.js';
+import type { ResolveResult } from '../types/internal.js';
 import type {
   Selector,
   PositionSelector,
   PathSelector,
 } from '../types/public.js';
-import type { ResolveResult } from '../types/internal.js';
-import type { ElementData } from '../selector/selector-resolver.js';
 
 /**
  * Interface for selector resolution operations

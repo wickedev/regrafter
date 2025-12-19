@@ -126,7 +126,11 @@ describe('canExtract', () => {
 
       // Verify that file content has not changed
       // (In practice, the file system is not modified, but this test is a conceptual verification)
-      expect(files[0].content).toBe(originalContent);
+      const [file] = files;
+      if (!file) {
+        throw new Error('Expected App.tsx file input');
+      }
+      expect(file.content).toBe(originalContent);
     });
 
     it('should return the same result when called multiple times (idempotency)', () => {

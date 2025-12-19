@@ -4,12 +4,13 @@
 
 import { describe, it, expect } from "vitest";
 import { parse } from "@babel/parser";
-import traverse, { type NodePath, type Binding } from "@babel/traverse";
 import * as t from "@babel/types";
+import traverseFn, { type NodePath, type Binding } from "@babel/traverse";
+
+const traverse = traverseFn as any as typeof traverseFn.default;
 
 import { createImportDependencyAnalyzer } from "../import-dependency-analyzer.js";
-import type { IdentifierReference } from "../../types.js";
-import { DependencyType } from "../../types.js";
+import { DependencyType, type IdentifierReference } from "../../types.js";
 
 /**
  * Helper to parse code and get identifier references
@@ -27,27 +28,32 @@ function parseAndCollectIdentifiers(code: string): {
   let scopeBinding: ((path: NodePath, name: string) => Binding | null) | null = null;
 
   traverse(ast, {
-    JSXElement(path) {
+    JSXElement(path: NodePath) {
       // Collect identifiers in JSX, including JSX element names
       path.traverse({
-        JSXIdentifier(jsxIdPath) {
+        JSXIdentifier(jsxIdPath: NodePath) {
           // Only collect JSX opening element names (component references)
           const parent = jsxIdPath.parent;
           if (
             t.isJSXOpeningElement(parent) &&
             parent.name === jsxIdPath.node &&
-            // Skip lowercase elements (HTML tags)
-            jsxIdPath.node.name[0] === jsxIdPath.node.name[0].toUpperCase()
+            t.isJSXIdentifier(parent.name)
           ) {
-            // Convert JSXIdentifier path to a regular identifier for binding lookup
-            const name = jsxIdPath.node.name;
-            identifiers.push({
-              name,
-              path: jsxIdPath as unknown as NodePath,
-            });
+            const firstChar = parent.name.name[0];
+            // Skip lowercase elements (HTML tags)
+            if (firstChar && firstChar === firstChar.toUpperCase()) {
+              // Convert JSXIdentifier path to a regular identifier for binding lookup
+              const name = parent.name.name;
+              identifiers.push({
+                name,
+                path: jsxIdPath as unknown as NodePath,
+                usage: "jsx-element",
+                scope: null,
+              });
+            }
           }
         },
-        Identifier(idPath) {
+        Identifier(idPath: NodePath) {
           if (!idPath.isIdentifier()) return;
 
           const parent = idPath.parent;
@@ -62,6 +68,8 @@ function parseAndCollectIdentifiers(code: string): {
           identifiers.push({
             name: idPath.node.name,
             path: idPath,
+            usage: "value",
+            scope: null,
           });
         },
       });
@@ -178,7 +186,7 @@ describe("ImportDependencyAnalyzer", () => {
       const deps = analyzer.detectImportDependencies(identifiers);
 
       expect(deps).toHaveLength(1);
-      expect(deps[0].localName).toBe("Button");
+      expect(deps[0]?.localName).toBe("Button");
     });
 
     it("should return empty array when includeImports is false", () => {
@@ -272,7 +280,7 @@ describe("ImportDependencyAnalyzer", () => {
       const ast = parse(code, { sourceType: "module" });
 
       traverse(ast, {
-        ImportSpecifier(path) {
+        ImportSpecifier(path: NodePath) {
           const binding = path.scope.getBinding("Button");
           if (binding) {
             const analyzer = createImportDependencyAnalyzer(true, () => null);
@@ -287,7 +295,7 @@ describe("ImportDependencyAnalyzer", () => {
       const ast = parse(code, { sourceType: "module" });
 
       traverse(ast, {
-        ImportDefaultSpecifier(path) {
+        ImportDefaultSpecifier(path: NodePath) {
           const binding = path.scope.getBinding("React");
           if (binding) {
             const analyzer = createImportDependencyAnalyzer(true, () => null);
@@ -302,7 +310,7 @@ describe("ImportDependencyAnalyzer", () => {
       const ast = parse(code, { sourceType: "module" });
 
       traverse(ast, {
-        ImportNamespaceSpecifier(path) {
+        ImportNamespaceSpecifier(path: NodePath) {
           const binding = path.scope.getBinding("Utils");
           if (binding) {
             const analyzer = createImportDependencyAnalyzer(true, () => null);
@@ -320,12 +328,15 @@ describe("ImportDependencyAnalyzer", () => {
       });
 
       traverse(ast, {
-        VariableDeclarator(path) {
-          if (t.isIdentifier(path.node.id)) {
-            const binding = path.scope.getBinding(path.node.id.name);
-            if (binding) {
-              const analyzer = createImportDependencyAnalyzer(true, () => null);
-              expect(analyzer.isImportBinding(binding)).toBe(false);
+        VariableDeclarator(path: NodePath) {
+          if (t.isVariableDeclarator(path.node)) {
+            const nodeId = path.node.id;
+            if (t.isIdentifier(nodeId)) {
+              const binding = path.scope.getBinding(nodeId.name);
+              if (binding) {
+                const analyzer = createImportDependencyAnalyzer(true, () => null);
+                expect(analyzer.isImportBinding(binding)).toBe(false);
+              }
             }
           }
         },
@@ -339,7 +350,7 @@ describe("ImportDependencyAnalyzer", () => {
       const ast = parse(code, { sourceType: "module" });
 
       traverse(ast, {
-        ImportSpecifier(path) {
+        ImportSpecifier(path: NodePath) {
           const binding = path.scope.getBinding("Button");
           if (binding) {
             const analyzer = createImportDependencyAnalyzer(true, () => null);
@@ -361,7 +372,7 @@ describe("ImportDependencyAnalyzer", () => {
       const ast = parse(code, { sourceType: "module" });
 
       traverse(ast, {
-        ImportDefaultSpecifier(path) {
+        ImportDefaultSpecifier(path: NodePath) {
           const binding = path.scope.getBinding("React");
           if (binding) {
             const analyzer = createImportDependencyAnalyzer(true, () => null);
@@ -383,7 +394,7 @@ describe("ImportDependencyAnalyzer", () => {
       const ast = parse(code, { sourceType: "module" });
 
       traverse(ast, {
-        ImportNamespaceSpecifier(path) {
+        ImportNamespaceSpecifier(path: NodePath) {
           const binding = path.scope.getBinding("Utils");
           if (binding) {
             const analyzer = createImportDependencyAnalyzer(true, () => null);
@@ -405,7 +416,7 @@ describe("ImportDependencyAnalyzer", () => {
       const ast = parse(code, { sourceType: "module" });
 
       traverse(ast, {
-        ImportSpecifier(path) {
+        ImportSpecifier(path: NodePath) {
           const binding = path.scope.getBinding("MyButton");
           if (binding) {
             const analyzer = createImportDependencyAnalyzer(true, () => null);
@@ -430,14 +441,17 @@ describe("ImportDependencyAnalyzer", () => {
       });
 
       traverse(ast, {
-        VariableDeclarator(path) {
-          if (t.isIdentifier(path.node.id)) {
-            const binding = path.scope.getBinding(path.node.id.name);
-            if (binding) {
-              const analyzer = createImportDependencyAnalyzer(true, () => null);
-              const info = analyzer.getImportInfo(binding);
+        VariableDeclarator(path: NodePath) {
+          if (t.isVariableDeclarator(path.node)) {
+            const nodeId = path.node.id;
+            if (t.isIdentifier(nodeId)) {
+              const binding = path.scope.getBinding(nodeId.name);
+              if (binding) {
+                const analyzer = createImportDependencyAnalyzer(true, () => null);
+                const info = analyzer.getImportInfo(binding);
 
-              expect(info).toBeNull();
+                expect(info).toBeNull();
+              }
             }
           }
         },
@@ -449,7 +463,7 @@ describe("ImportDependencyAnalyzer", () => {
       const ast = parse(code, { sourceType: "module" });
 
       traverse(ast, {
-        ImportSpecifier(path) {
+        ImportSpecifier(path: NodePath) {
           const binding = path.scope.getBinding("MyDefault");
           if (binding) {
             const analyzer = createImportDependencyAnalyzer(true, () => null);

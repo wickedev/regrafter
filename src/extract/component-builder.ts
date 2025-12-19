@@ -6,8 +6,9 @@
  */
 
 import * as t from '@babel/types';
+
 import type { IComponentBuilder } from './interfaces/i-component-builder.js';
-import type { HookDeclaration } from './types.js';
+import type { ExtractPlan, HookDeclaration } from './types.js';
 
 /**
  * ComponentBuilder class
@@ -15,6 +16,65 @@ import type { HookDeclaration } from './types.js';
  * Responsible for generating AST for new component
  */
 export class ComponentBuilder implements IComponentBuilder {
+  /**
+   * Build a new component from an extraction plan
+   *
+   * @param plan - Extraction plan
+   * @returns AST for the new component file
+   */
+  build(plan: ExtractPlan): t.File {
+    // Extract JSX nodes from selected node paths
+    const jsxBody: t.Node[] = plan.selectedNodes.map((nodePath) => nodePath.node);
+
+    // Build props interface if there are prop types
+    const propsInterface =
+      plan.propTypes.length > 0
+        ? this.buildPropsInterface(plan.propsInterfaceName, plan.propTypes)
+        : null;
+
+    // Build component function
+    const componentFunction = this.buildComponent(
+      plan.componentName,
+      propsInterface,
+      jsxBody,
+      plan.hooksToMove
+    );
+
+    // Build program body with props interface (if any) and component
+    const programBody: t.Statement[] = [];
+    if (propsInterface) {
+      programBody.push(propsInterface);
+    }
+    programBody.push(componentFunction);
+
+    // Create file AST
+    return t.file(t.program(programBody, [], 'module'), [], []);
+  }
+
+  /**
+   * Build props interface from prop types
+   */
+  private buildPropsInterface(
+    interfaceName: string,
+    propTypes: Array<{ name: string; typeAnnotation: t.TSType; optional: boolean }>
+  ): t.TSInterfaceDeclaration {
+    const properties = propTypes.map((prop) => {
+      const signature = t.tsPropertySignature(
+        t.identifier(prop.name),
+        t.tsTypeAnnotation(prop.typeAnnotation)
+      );
+      signature.optional = prop.optional;
+      return signature;
+    });
+
+    return t.tsInterfaceDeclaration(
+      t.identifier(interfaceName),
+      null,
+      null,
+      t.tsInterfaceBody(properties)
+    );
+  }
+
   /**
    * Generate component function declaration
    *
@@ -28,7 +88,7 @@ export class ComponentBuilder implements IComponentBuilder {
     componentName: string,
     propsInterface: t.TSInterfaceDeclaration | null,
     jsxBody: t.Node[],
-    hooks: HookDeclaration[]
+    _hooks: HookDeclaration[]
   ): t.FunctionDeclaration {
     // Generate JSX return statement
     const returnStatement = this.createReturnStatement(jsxBody);
@@ -57,7 +117,7 @@ export class ComponentBuilder implements IComponentBuilder {
    */
   private createParams(
     propsInterface: t.TSInterfaceDeclaration | null
-  ): (t.Identifier | t.Pattern | t.RestElement)[] {
+  ): Array<t.Identifier | t.Pattern | t.RestElement> {
     if (!propsInterface) {
       return [];
     }
@@ -123,12 +183,25 @@ export class ComponentBuilder implements IComponentBuilder {
     }
 
     // Wrap in Fragment if multiple JSX nodes or single node is JSXText/JSXExpressionContainer
+    const fragmentChildren = this.filterJSXChildren(jsxBody);
     const fragment = t.jsxFragment(
       t.jsxOpeningFragment(),
       t.jsxClosingFragment(),
-      jsxBody as (t.JSXElement | t.JSXText | t.JSXExpressionContainer | t.JSXSpreadChild | t.JSXFragment)[]
+      fragmentChildren
     );
 
     return t.returnStatement(fragment);
+  }
+
+  private filterJSXChildren(
+    nodes: t.Node[]
+  ): Array<t.JSXElement | t.JSXText | t.JSXExpressionContainer | t.JSXSpreadChild | t.JSXFragment> {
+    return nodes.filter((node): node is t.JSXElement | t.JSXText | t.JSXExpressionContainer | t.JSXSpreadChild | t.JSXFragment =>
+      t.isJSXElement(node) ||
+      t.isJSXText(node) ||
+      t.isJSXExpressionContainer(node) ||
+      t.isJSXSpreadChild(node) ||
+      t.isJSXFragment(node)
+    );
   }
 }

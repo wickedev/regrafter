@@ -5,14 +5,11 @@
  * Each strategy implements a specific move operation (Inside, Before, After).
  */
 
-import type { NodePath } from "@babel/traverse";
-import * as t from "@babel/types";
-
-import type { Result } from "../../result/index.js";
 import type {
   TransformErrorType,
   ValidationErrorType,
 } from "../../errors/index.js";
+import type { Result } from "../../result/index.js";
 import type { MoveContext, InsertionPoint } from "../types.js";
 
 /**

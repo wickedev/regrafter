@@ -26,11 +26,6 @@ import {
   createScopeInfo,
 } from "../types/factories.js";
 
-import { createDynamicCodeDetector } from "./dynamic-code-detector.js";
-import {
-  createIdentifierCollector,
-  type IIdentifierCollector,
-} from "./analyzers/identifier-collector.js";
 import {
   createDependencyClassifier,
   type IDependencyClassifier,
@@ -40,9 +35,9 @@ import {
   type IHookDependencyAnalyzer,
 } from "./analyzers/hook-dependency-analyzer.js";
 import {
-  createVariableDependencyAnalyzer,
-  type IVariableDependencyAnalyzer,
-} from "./analyzers/variable-dependency-analyzer.js";
+  createIdentifierCollector,
+  type IIdentifierCollector,
+} from "./analyzers/identifier-collector.js";
 import {
   createImportDependencyAnalyzer,
   type IImportDependencyAnalyzer,
@@ -51,6 +46,11 @@ import {
   createPropDependencyAnalyzer,
   type IPropDependencyAnalyzer,
 } from "./analyzers/prop-dependency-analyzer.js";
+import {
+  createVariableDependencyAnalyzer,
+  type IVariableDependencyAnalyzer,
+} from "./analyzers/variable-dependency-analyzer.js";
+import { createDynamicCodeDetector } from "./dynamic-code-detector.js";
 import {
   DependencyType,
   type IdentifierReference,
@@ -69,27 +69,6 @@ import {
   type AnalyzabilityResult,
   mergeAnalyzerOptions,
 } from "./types.js";
-
-/**
- * Set of React hooks
- */
-const REACT_HOOKS = new Set([
-  "useState",
-  "useEffect",
-  "useContext",
-  "useReducer",
-  "useCallback",
-  "useMemo",
-  "useRef",
-  "useImperativeHandle",
-  "useLayoutEffect",
-  "useDebugValue",
-  "useDeferredValue",
-  "useTransition",
-  "useId",
-  "useSyncExternalStore",
-  "useInsertionEffect",
-]);
 
 /**
  * Helper function to safely get the name from a SpecificDependency

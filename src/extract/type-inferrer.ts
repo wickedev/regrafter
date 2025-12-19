@@ -7,7 +7,10 @@
  */
 
 import * as t from '@babel/types';
+
+import type { RegraffError } from '../errors/error-category.js';
 import { ok, type Result } from '../result/index.js';
+
 import type { PropType, VariableDependency, FunctionDependency } from './types.js';
 
 /**
@@ -22,7 +25,7 @@ export class TypeInferrer {
    */
   inferPropTypes(
     dependencies: Array<VariableDependency | FunctionDependency>
-  ): Result<PropType[], any> {
+  ): Result<PropType[], RegraffError> {
     const propTypes: PropType[] = [];
 
     for (const dep of dependencies) {
@@ -51,7 +54,7 @@ export class TypeInferrer {
     }
 
     // Use any type if no type annotation
-    return t.tsAnyKeyword();
+    return t.tsUnknownKeyword();
   }
 
   /**
@@ -69,12 +72,16 @@ export class TypeInferrer {
 
         // Replace with any type if only undefined
         if (nonUndefinedTypes.length === 0) {
-          return { typeAnnotation: t.tsAnyKeyword(), optional: true };
+          return { typeAnnotation: t.tsUnknownKeyword(), optional: true };
         }
 
         // Unwrap union if only one type remains
         if (nonUndefinedTypes.length === 1) {
-          return { typeAnnotation: nonUndefinedTypes[0], optional: true };
+          const firstType = nonUndefinedTypes[0];
+          if (!firstType) {
+            return { typeAnnotation: t.tsUnknownKeyword(), optional: true };
+          }
+          return { typeAnnotation: firstType, optional: true };
         }
 
         // Create new union if multiple types remain

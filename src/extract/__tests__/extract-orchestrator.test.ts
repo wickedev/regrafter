@@ -11,8 +11,22 @@
 
 import { describe, it, expect } from 'vitest';
 import { ExtractOrchestrator } from '../extract-orchestrator.js';
-import type { FileInput } from '../../types/public.js';
+import type { Code, FileInput } from '../../types/public.js';
+import { err, ok, type Result } from '../../result/index.js';
 import type { ExtractOptions } from '../types.js';
+
+function getFirstCode(codes: Code[]): Result<Code, string> {
+  const [code] = codes;
+  return code ? ok(code) : err('Expected at least one code output');
+}
+
+function unwrapResult<T, E>(result: Result<T, E>): T | null {
+  expect(result.ok).toBe(true);
+  if (!result.ok) {
+    return null;
+  }
+  return result.value;
+}
 
 describe('ExtractOrchestrator', () => {
   describe('orchestrate - E2E MVP', () => {
@@ -52,7 +66,9 @@ function App() {
       if (result.ok) {
         // Transformed code should be returned
         expect(result.value.codes).toHaveLength(1);
-        expect(result.value.codes[0].path).toBe('App.tsx');
+        const code = unwrapResult(getFirstCode(result.value.codes));
+        if (!code) return;
+        expect(code.file).toBe('App.tsx');
 
         // Verify generated component information
         expect(result.value.component.name).toBe('Greeting');
@@ -65,7 +81,7 @@ function App() {
         expect(result.value.stats.propsGenerated).toBe(0);
 
         // Verify generated code
-        const generatedCode = result.value.codes[0].content;
+        const generatedCode = code.content;
         expect(generatedCode).toContain('function Greeting');
         expect(generatedCode).toContain('<h1>Hello World</h1>');
         expect(generatedCode).toContain('<Greeting />');
@@ -109,14 +125,16 @@ function App() {
       if (result.ok) {
         // Props should be generated
         expect(result.value.component.props).toHaveLength(1);
-        expect(result.value.component.props[0].name).toBe('message');
+        expect(result.value.component.props[0]?.name).toBe('message');
 
         // Verify statistics
         expect(result.value.stats.dependenciesFound).toBe(1);
         expect(result.value.stats.propsGenerated).toBe(1);
 
         // Verify generated code
-        const generatedCode = result.value.codes[0].content;
+        const code = unwrapResult(getFirstCode(result.value.codes));
+        if (!code) return;
+        const generatedCode = code.content;
         expect(generatedCode).toContain('function Greeting');
         expect(generatedCode).toContain('<Greeting message={message} />');
       }

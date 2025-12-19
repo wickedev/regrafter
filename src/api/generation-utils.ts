@@ -8,11 +8,11 @@
  */
 
 import type * as t from '@babel/types';
+
 import type { RegraffError } from '../errors/index.js';
 import type { CodeGenerator } from '../generator/code-generator.js';
 import { err, isErr, ok, type Result } from '../result/index.js';
-import { createCode } from '../types/index.js';
-import type { Code, FileInput } from '../types/index.js';
+import { createCode, type Code, type FileInput } from '../types/index.js';
 
 /**
  * Generate code for all files using the provided generator

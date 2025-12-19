@@ -5,15 +5,11 @@
 import { describe, it, expect } from "vitest";
 import { parse } from "@babel/parser";
 import traverseFn, { type NodePath } from "@babel/traverse";
-import * as t from "@babel/types";
 
 const traverse = traverseFn as any as typeof traverseFn.default;
 
 import { createScopeManager } from "../../../scope/index.js";
-import {
-  createIdentifierCollector,
-  type IIdentifierCollector,
-} from "../identifier-collector.js";
+import { createIdentifierCollector } from "../identifier-collector.js";
 
 describe("IdentifierCollector", () => {
   function setup(code: string) {

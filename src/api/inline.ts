@@ -17,10 +17,11 @@ import { createInternalError, createValidationError } from '../errors/index.js';
 import { CodeGenerator } from '../generator/code-generator.js';
 import { parseFile } from '../parser/parse-file.js';
 import { err, isErr, ok, type Result } from '../result/index.js';
-import { parseAllFiles } from './parse-utils.js';
 import { ComponentInliner } from '../transformer/component-inliner.js';
 import type { Code, FileInput } from '../types/index.js';
 import { loadTraverseFunction } from '../utils/index.js';
+
+import { parseAllFiles } from './parse-utils.js';
 
 const traverse = loadTraverseFunction(traverseModule);
 
@@ -161,11 +162,11 @@ export function inline(
       if (isErr(generateResult)) {
         return err(generateResult.error);
       }
-      const parseResult = parseFile(filePath, generateResult.value.code);
-      if (isErr(parseResult)) {
-        return err(parseResult.error);
+      const cloneParseResult = parseFile(filePath, generateResult.value.code);
+      if (isErr(cloneParseResult)) {
+        return err(cloneParseResult.error);
       }
-      return ok(parseResult.value);
+      return ok(cloneParseResult.value);
     };
 
     // Get the AST for the specified file

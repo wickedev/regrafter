@@ -19,6 +19,14 @@ function parseCode(code: string): t.File {
   });
 }
 
+function getFirst<T>(items: T[], label: string): T {
+  const [item] = items;
+  if (!item) {
+    throw new Error(`Expected ${label}`);
+  }
+  return item;
+}
+
 describe('ExtractDependencyAnalyzer', () => {
   describe('Task 4.1: Variable dependency analysis', () => {
     it('should identify external variable references', () => {
@@ -52,7 +60,7 @@ const Component = () => {
 
       const dependencies = result.value;
       expect(dependencies.variables).toHaveLength(1);
-      expect(dependencies.variables[0].name).toBe('externalVar');
+      expect(getFirst(dependencies.variables, 'variable').name).toBe('externalVar');
     });
 
     it('should exclude local variables from dependencies', () => {
@@ -170,7 +178,7 @@ const Component = () => {
 
       const dependencies = result.value;
       expect(dependencies.functions).toHaveLength(1);
-      expect(dependencies.functions[0].name).toBe('handleClick');
+      expect(getFirst(dependencies.functions, 'function').name).toBe('handleClick');
     });
 
     it('should identify multiple function dependencies', () => {
@@ -251,8 +259,9 @@ const Component = () => {
 
       const dependencies = result.value;
       expect(dependencies.states).toHaveLength(1);
-      expect(dependencies.states[0].stateName).toBe('count');
-      expect(dependencies.states[0].setterName).toBe('setCount');
+      const state = getFirst(dependencies.states, 'state');
+      expect(state.stateName).toBe('count');
+      expect(state.setterName).toBe('setCount');
     });
 
     it('should identify both state variable and setter', () => {
@@ -290,7 +299,7 @@ const Component = () => {
       const dependencies = result.value;
       expect(dependencies.states).toHaveLength(1);
 
-      const state = dependencies.states[0];
+      const state = getFirst(dependencies.states, 'state');
       expect(state.stateName).toBe('isOpen');
       expect(state.setterName).toBe('setIsOpen');
 
@@ -484,11 +493,11 @@ const Component = () => {
 
       // formatDate should be classified as import dependency
       expect(dependencies.imports).toHaveLength(1);
-      expect(dependencies.imports[0].name).toBe('formatDate');
+      expect(getFirst(dependencies.imports, 'import').name).toBe('formatDate');
 
       // localVar should be classified as variable dependency
       expect(dependencies.variables).toHaveLength(1);
-      expect(dependencies.variables[0].name).toBe('localVar');
+      expect(getFirst(dependencies.variables, 'variable').name).toBe('localVar');
 
       // formatDate should not be included in functions
       const functionNames = dependencies.functions.map(f => f.name);

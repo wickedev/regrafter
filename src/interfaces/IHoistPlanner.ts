@@ -8,11 +8,11 @@
  * @module interfaces/IHoistPlanner
  */
 
+import type { HoistContext, HoistPlan } from '../strategies/types.js';
 import type {
   DependencyAnalysis,
   ScopeInfo,
 } from '../types/internal.js';
-import type { HoistContext, HoistPlan } from '../strategies/types.js';
 
 /**
  * Interface for hoisting plan generation

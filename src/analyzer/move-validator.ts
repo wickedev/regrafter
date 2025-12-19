@@ -5,13 +5,12 @@
  * Acts as the main entry point for move validation.
  */
 
-import * as t from '@babel/types';
+import type * as t from '@babel/types';
 
-import type { Parser} from '../parser/index.js';
+import type { Parser } from '../parser/index.js';
 import { createParser } from '../parser/index.js';
 import type { ResolveResult, AnalyzabilityResult } from '../types/internal.js';
-import type { FileInput, Selector } from '../types/public.js';
-import { Move } from '../types/public.js';
+import type { FileInput, Selector, Move } from '../types/public.js';
 
 import { checkAnalyzability } from './validators/analyzability-validator.js';
 import { validateAtomicUnit } from './validators/atomic-unit-validator.js';
@@ -124,38 +123,108 @@ export enum MoveValidationError {
 // ============================================================================
 
 /**
+ * Map error codes from validators to MoveValidationError
+ */
+function mapErrorCode(code: unknown): MoveValidationError | undefined {
+  if (typeof code !== 'string') {
+    return undefined;
+  }
+
+  const validCodes: Record<string, MoveValidationError> = {
+    'SELF_MOVE': MoveValidationError.SELF_MOVE,
+    'TARGET_IS_DESCENDANT': MoveValidationError.TARGET_IS_DESCENDANT,
+    'SOURCE_IS_DESCENDANT': MoveValidationError.SOURCE_IS_DESCENDANT,
+    'TARGET_NO_CHILDREN': MoveValidationError.TARGET_NO_CHILDREN,
+    'HOOK_RULES_VIOLATION': MoveValidationError.HOOK_RULES_VIOLATION,
+    'INVALID_ATOMIC_UNIT': MoveValidationError.INVALID_ATOMIC_UNIT,
+    'CONDITIONAL_RENDERING_VIOLATION': MoveValidationError.CONDITIONAL_RENDERING_VIOLATION,
+    'COMPONENT_BOUNDARY_VIOLATION': MoveValidationError.COMPONENT_BOUNDARY_VIOLATION,
+  };
+
+  return validCodes[code];
+}
+
+/**
  * Adapt validators to ValidationRule interface
  */
-const selfMoveRule: ValidationRule = (source, target, _mode, _context) => {
-  return validateSelfMove(source, target);
+const selfMoveRule = (source: ResolveResult, target: ResolveResult, _mode: Move, _context: ValidationContext): ValidationRuleResult => {
+  const validatorResult = validateSelfMove(source, target);
+  return {
+    valid: validatorResult.valid,
+    reason: validatorResult.reason,
+    errorCode: mapErrorCode(validatorResult.errorCode),
+    warning: validatorResult.warning,
+  };
 };
 
-const targetNotDescendantRule: ValidationRule = (source, target, mode, _context) => {
-  return validateTargetNotDescendant(source, target, mode);
+const targetNotDescendantRule = (source: ResolveResult, target: ResolveResult, mode: Move, _context: ValidationContext): ValidationRuleResult => {
+  const validatorResult = validateTargetNotDescendant(source, target, mode);
+  return {
+    valid: validatorResult.valid,
+    reason: validatorResult.reason,
+    errorCode: mapErrorCode(validatorResult.errorCode),
+    warning: validatorResult.warning,
+  };
 };
 
-const sourceNotDescendantRule: ValidationRule = (source, target, mode, _context) => {
-  return validateSourceNotDescendant(source, target, mode);
+const sourceNotDescendantRule = (source: ResolveResult, target: ResolveResult, mode: Move, _context: ValidationContext): ValidationRuleResult => {
+  const validatorResult = validateSourceNotDescendant(source, target, mode);
+  return {
+    valid: validatorResult.valid,
+    reason: validatorResult.reason,
+    errorCode: mapErrorCode(validatorResult.errorCode),
+    warning: validatorResult.warning,
+  };
 };
 
-const targetSupportsChildrenRule: ValidationRule = (_source, target, mode, _context) => {
-  return validateTargetSupportsChildren(target, mode);
+const targetSupportsChildrenRule = (_source: ResolveResult, target: ResolveResult, mode: Move, _context: ValidationContext): ValidationRuleResult => {
+  const validatorResult = validateTargetSupportsChildren(target, mode);
+  return {
+    valid: validatorResult.valid,
+    reason: validatorResult.reason,
+    errorCode: mapErrorCode(validatorResult.errorCode),
+    warning: validatorResult.warning,
+  };
 };
 
-const hookRulesRule: ValidationRule = (source, target, _mode, _context) => {
-  return validateHookRules(source, target);
+const hookRulesRule = (source: ResolveResult, target: ResolveResult, _mode: Move, _context: ValidationContext): ValidationRuleResult => {
+  const validatorResult = validateHookRules(source, target);
+  return {
+    valid: validatorResult.valid,
+    reason: validatorResult.reason,
+    errorCode: mapErrorCode(validatorResult.errorCode),
+    warning: validatorResult.warning,
+  };
 };
 
-const atomicUnitRule: ValidationRule = (source, _target, _mode, _context) => {
-  return validateAtomicUnit(source);
+const atomicUnitRule = (source: ResolveResult, _target: ResolveResult, _mode: Move, _context: ValidationContext): ValidationRuleResult => {
+  const validatorResult = validateAtomicUnit(source);
+  return {
+    valid: validatorResult.valid,
+    reason: validatorResult.reason,
+    errorCode: mapErrorCode(validatorResult.errorCode),
+    warning: validatorResult.warning,
+  };
 };
 
-const conditionalRule: ValidationRule = (source, target, _mode, _context) => {
-  return validateConditional(source, target);
+const conditionalRule = (source: ResolveResult, target: ResolveResult, _mode: Move, _context: ValidationContext): ValidationRuleResult => {
+  const validatorResult = validateConditional(source, target);
+  return {
+    valid: validatorResult.valid,
+    reason: validatorResult.reason,
+    errorCode: mapErrorCode(validatorResult.errorCode),
+    warning: validatorResult.warning,
+  };
 };
 
-const boundaryRule: ValidationRule = (source, target, _mode, _context) => {
-  return validateBoundary(source, target);
+const boundaryRule = (source: ResolveResult, target: ResolveResult, _mode: Move, _context: ValidationContext): ValidationRuleResult => {
+  const validatorResult = validateBoundary(source, target);
+  return {
+    valid: validatorResult.valid,
+    reason: validatorResult.reason,
+    errorCode: mapErrorCode(validatorResult.errorCode),
+    warning: validatorResult.warning,
+  };
 };
 
 /**

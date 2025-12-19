@@ -5,8 +5,9 @@
  */
 
 import type * as t from '@babel/types';
-import type { Result } from '../../result/types.js';
+
 import type { RegraffError } from '../../errors/error-category.js';
+import type { Result } from '../../result/types.js';
 import type { FileInput, Selector } from '../../types/public.js';
 import type { ExtractOptions, ExtractPlan, RangeSelector } from '../types.js';
 

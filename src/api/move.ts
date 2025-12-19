@@ -15,13 +15,10 @@ import type { RegraffError, SelectorErrorType } from '../errors/index.js';
 import { createSelectorError, createTransformError, createValidationError } from '../errors/index.js';
 import { CodeGenerator } from '../generator/code-generator.js';
 import { err, isErr, ok, type Result } from '../result/index.js';
-import { generateCodeForFiles } from './generation-utils.js';
-import { parseAllFiles } from './parse-utils.js';
 import { createScopeManager } from '../scope/index.js';
 import type { ScopeManager } from '../scope/index.js';
 import type { ElementData } from '../selector/index.js';
 import { createSelectorResolver } from '../selector/index.js';
-import { createCrossFileContext, executeCrossFileTransform } from '../strategies/cross-file/index.js';
 import type { HoistExecutionContext } from '../strategies/hoist-executor.js';
 import { createConfiguredHoistPlanner, createHoistExecutor } from '../strategies/index.js';
 import type { HoistContext } from '../strategies/types.js';
@@ -30,8 +27,11 @@ import type { Code, FileInput, Move, Selector, Options, SuggestedFix } from '../
 import { mergeOptions, createCode, createSuggestedFix } from '../types/index.js';
 import type { ScopeInfo } from '../types/internal.js';
 import { loadTraverseFunction } from '../utils/index.js';
+
 import { analyze } from './analyze.js';
+import { generateCodeForFiles } from './generation-utils.js';
 import { optimize } from './optimize.js';
+import { parseAllFiles } from './parse-utils.js';
 import { createSuccessResult, createErrorFromException } from './result-helpers.js';
 import type { TransformedCode } from './types.js';
 
@@ -120,85 +120,6 @@ export function move(
   return executeTransformation(files, from, to, mode, mergedOptions, validation);
 }
 
-/**
- * Internal: Execute element movement without validation or optimization.
- *
- * Lower-level function for custom workflows. Does not check if the move
- * is safe or perform dependency sinking.
- *
- * @internal
- */
-function moveInternal(
-  files: FileInput[],
-  from: Selector,
-  to: Selector,
-  mode: Move
-): Result<Code[], RegraffError> {
-  // Create required instances
-  const generator = new CodeGenerator();
-  const resolver = createSelectorResolver();
-  const transformer = createJSXTransformer();
-
-  // Parse all files
-  const parseResult = parseAllFiles(files);
-  if (isErr(parseResult)) {
-    return err(parseResult.error);
-  }
-  const parsedFiles = parseResult.value;
-
-  // Get the AST for source and target files
-  const sourceAst = parsedFiles.get(from.file);
-  const targetAst = parsedFiles.get(to.file);
-
-  if (!sourceAst) {
-    return err(createValidationError({
-      code: 'FILE_NOT_FOUND',
-      message: `Source file not found: ${from.file}`,
-      constraint: 'file_exists',
-      details: `The source file "${from.file}" could not be found in the parsed files map`,
-    }));
-  }
-  if (!targetAst) {
-    return err(createValidationError({
-      code: 'FILE_NOT_FOUND',
-      message: `Target file not found: ${to.file}`,
-      constraint: 'file_exists',
-      details: `The target file "${to.file}" could not be found in the parsed files map`,
-    }));
-  }
-
-  // Resolve selectors
-  const sourceResult = resolver.resolveResult(from, sourceAst);
-  if (isErr(sourceResult)) {
-    return err(sourceResult.error);
-  }
-
-  const targetResult = resolver.resolveResult(to, targetAst);
-  if (isErr(targetResult)) {
-    return err(targetResult.error);
-  }
-
-  // For same-file moves
-  if (from.file === to.file) {
-    // Perform the transformation
-    const moveResult = transformer.move(
-      sourceAst,
-      sourceResult.value.path,
-      targetResult.value.path,
-      mode
-    );
-
-    if (isErr(moveResult)) {
-      return err(moveResult.error);
-    }
-
-    // Generate code for all files
-    return generateCodeForFiles(files, parsedFiles, from.file, generator);
-  }
-
-  // Cross-file move - delegate to cross-file handler
-  return executeCrossFileMove(files, from, to, mode);
-}
 
 /**
  * Internal function: Move with hoisting integration
@@ -425,102 +346,6 @@ function findNodePath(ast: t.File, targetNode: t.Node): NodePath | null {
   return foundPath;
 }
 
-/**
- * Execute cross-file move operation
- */
-function executeCrossFileMove(
-  files: FileInput[],
-  from: Selector,
-  to: Selector,
-  _mode: Move
-): Result<Code[], RegraffError> {
-  const scopeManager = createScopeManager();
-  const analyzer = new DependencyAnalyzer(scopeManager);
-  const resolver = createSelectorResolver();
-
-  // Parse all files
-  const parseResult = parseAllFiles(files);
-  if (isErr(parseResult)) {
-    return err(parseResult.error);
-  }
-  const parsedFiles = parseResult.value;
-
-  // Build original contents map
-  const originalContents = new Map<string, string>();
-  for (const file of files) {
-    originalContents.set(file.path, file.content);
-  }
-
-  // Get source AST
-  const sourceAst = parsedFiles.get(from.file);
-  if (!sourceAst) {
-    return err(createValidationError({
-      code: 'FILE_NOT_FOUND',
-      message: `Source file not found: ${from.file}`,
-      constraint: 'file_exists',
-      details: `The source file "${from.file}" could not be found in the parsed files map`,
-    }));
-  }
-
-  // Build scope tree and analyze
-  scopeManager.buildScopeTree(sourceAst);
-  analyzer.setCurrentFile(from.file);
-
-  // Resolve source element
-  const sourceResult = resolver.resolveResult(from, sourceAst);
-  if (isErr(sourceResult)) {
-    return err(sourceResult.error);
-  }
-
-  // Get target scope for dependency analysis
-  let targetScope = null;
-  const targetAstMaybe = parsedFiles.get(to.file);
-  if (targetAstMaybe !== undefined) {
-    const targetResult = resolver.resolveResult(to, targetAstMaybe);
-    if (targetResult.ok) {
-      targetScope = scopeManager.getScopeForPath(targetResult.value.path);
-      // If target element doesn't have its own scope, use enclosing component
-      if (!targetScope) {
-        const enclosingComponentResult = scopeManager.findEnclosingComponent(targetResult.value.path);
-        if (!isErr(enclosingComponentResult) && enclosingComponentResult.value) {
-          targetScope = enclosingComponentResult.value;
-        }
-      }
-    }
-  }
-
-  // Analyze dependencies
-  const depAnalysisResult = analyzer.analyzeElement(sourceResult.value.path, targetScope);
-  if (isErr(depAnalysisResult)) {
-    return err(depAnalysisResult.error);
-  }
-  const depAnalysis = depAnalysisResult.value;
-
-  // Create cross-file context
-  const context = createCrossFileContext(
-    parsedFiles,
-    originalContents,
-    from.file,
-    to.file,
-    depAnalysis.dependencies
-  );
-
-  // Execute cross-file transformation
-  const transformResult = executeCrossFileTransform(context, {
-    createSharedModules: true,
-    resolveCircularDeps: true,
-  });
-
-  if (!transformResult.success) {
-    return err(createTransformError({
-      code: 'CROSS_FILE_MOVE_FAILED',
-      message: `Cross-file move failed: ${transformResult.error ?? 'Unknown error'}`,
-      operation: 'cross_file_move',
-    }));
-  }
-
-  return ok(transformResult.codes);
-}
 
 /**
  * Build scope paths map for hoisting

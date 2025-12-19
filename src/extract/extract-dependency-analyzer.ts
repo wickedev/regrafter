@@ -7,16 +7,17 @@
  * Analyzes dependencies of selected JSX nodes for extract operation
  */
 
-import type { NodePath } from '@babel/traverse';
+import type { NodePath, Binding } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
 import { IdentifierCollector } from '../core/index.js';
-import { ScopeManager, type ScopeInfo } from '../scope/index.js';
+import type { RegraffError } from '../errors/index.js';
+import { ok, err, isErr, type Result } from '../result/index.js';
+import type { ScopeManager, ScopeInfo } from '../scope/index.js';
 import { loadTraverseFunction, type TraverseFunction } from '../utils/index.js';
-import { ok, err, type Result } from '../result/index.js';
-import { createExtractError, ExtractErrorCode } from './errors.js';
 
+import { createExtractError, ExtractErrorCode } from './errors.js';
 import type {
   ExtractDependencies,
   VariableDependency,
@@ -40,24 +41,41 @@ export class ExtractDependencyAnalyzer {
   }
 
   /**
+   * Get scope manager (reserved for future scope analysis features)
+   */
+  getScopeManager(): ScopeManager {
+    return this.scopeManager;
+  }
+
+  /**
    * Analyze dependencies of selected nodes
    *
    * @param nodes - Array of selected JSX node paths
-   * @param sourceScope - Source component scope information
+   * @param _sourceScope - Source component scope information
    * @returns Result<ExtractDependencies, RegraffError>
    */
   analyze(
     nodes: NodePath[],
-    sourceScope: ScopeInfo
-  ): Result<ExtractDependencies, any> {
+    _sourceScope: ScopeInfo
+  ): Result<ExtractDependencies, RegraffError> {
     const variables: VariableDependency[] = [];
     const functions: FunctionDependency[] = [];
     const states: StateDependency[] = [];
     const imports: ImportDependency[] = [];
     const identifierNames = new Set<string>();
 
+    // Ensure nodes array is not empty
+    const firstNode = nodes[0];
+    if (!firstNode) {
+      return err(
+        createExtractError(ExtractErrorCode.INVALID_SELECTION, {
+          details: 'No nodes provided for analysis',
+        })
+      );
+    }
+
     // Collect import information from AST root
-    const importMap = this.collectImports(nodes[0]);
+    const importMap = this.collectImports(firstNode);
 
     // Traverse all nodes to collect Identifiers
     for (const nodePath of nodes) {
@@ -66,7 +84,7 @@ export class ExtractDependencyAnalyzer {
 
     // Check scope of each identifier
     for (const name of identifierNames) {
-      const dependency = this.analyzeDependency(name, nodes[0], sourceScope, importMap);
+      const dependency = this.analyzeDependency(name, firstNode, importMap);
       if (dependency) {
         if (dependency.type === 'variable') {
           variables.push(dependency.data);
@@ -80,7 +98,8 @@ export class ExtractDependencyAnalyzer {
           if (!existingState) {
             states.push(dependency.data);
           }
-        } else if (dependency.type === 'import') {
+        } else {
+          // dependency.type === 'import'
           imports.push(dependency.data);
         }
       }
@@ -96,7 +115,7 @@ export class ExtractDependencyAnalyzer {
 
     // Check circular dependency
     const circularDependencyResult = this.detectCircularDependency(dependencies, nodes);
-    if (!circularDependencyResult.ok) {
+    if (isErr(circularDependencyResult)) {
       return circularDependencyResult;
     }
 
@@ -155,9 +174,13 @@ export class ExtractDependencyAnalyzer {
   private analyzeDependency(
     name: string,
     contextPath: NodePath,
-    sourceScope: ScopeInfo,
     importMap: Map<string, { source: string; isDefault: boolean }>
-  ): { type: 'variable' | 'function' | 'state' | 'import'; data: VariableDependency | FunctionDependency | StateDependency | ImportDependency } | null {
+  ):
+    | { type: 'variable'; data: VariableDependency }
+    | { type: 'function'; data: FunctionDependency }
+    | { type: 'state'; data: StateDependency }
+    | { type: 'import'; data: ImportDependency }
+    | null {
     // Check if it's an imported identifier first
     const importInfo = importMap.get(name);
     if (importInfo) {
@@ -272,17 +295,8 @@ export class ExtractDependencyAnalyzer {
     const typeName = typeAnnotation.typeName.name;
 
     // Get the program node to search for type alias declarations
-    // Add safety checks to prevent errors
-    if (!contextPath.scope) {
-      return typeAnnotation;
-    }
-
-    const programParent = contextPath.scope.getProgramParent();
-    if (!programParent || !programParent.path) {
-      return typeAnnotation;
-    }
-
-    const program = programParent.path.node;
+    const programPath = contextPath.scope.getProgramParent().path;
+    const program = programPath.node;
 
     if (!t.isProgram(program)) {
       return typeAnnotation;
@@ -319,7 +333,7 @@ export class ExtractDependencyAnalyzer {
   /**
    * Check if binding is a function
    */
-  private isFunctionBinding(binding: any): boolean {
+  private isFunctionBinding(binding: Binding): boolean {
     const path = binding.path;
     const node = path.node;
 
@@ -407,7 +421,7 @@ export class ExtractDependencyAnalyzer {
   private detectCircularDependency(
     dependencies: ExtractDependencies,
     extractNodes: NodePath[]
-  ): Result<void, any> {
+  ): Result<void, RegraffError> {
     // Collect identifiers declared in extract region
     const declaredInExtractRegion = this.collectDeclaredIdentifiers(extractNodes);
 
@@ -447,18 +461,18 @@ export class ExtractDependencyAnalyzer {
       traverse(
         node,
         {
-          VariableDeclarator(path) {
+          VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
             if (t.isIdentifier(path.node.id)) {
               declared.add(path.node.id.name);
             } else if (t.isArrayPattern(path.node.id)) {
               // const [a, b] = ...
               for (const elem of path.node.id.elements) {
-                if (elem && t.isIdentifier(elem)) {
+                if (elem !== null && t.isIdentifier(elem)) {
                   declared.add(elem.name);
                 }
               }
             } else if (t.isObjectPattern(path.node.id)) {
-              // const { a, b } = ...
+              // const { a, b} = ...
               for (const prop of path.node.id.properties) {
                 if (t.isObjectProperty(prop) && t.isIdentifier(prop.value)) {
                   declared.add(prop.value.name);
@@ -466,13 +480,13 @@ export class ExtractDependencyAnalyzer {
               }
             }
           },
-          FunctionDeclaration(path) {
-            if (path.node.id && t.isIdentifier(path.node.id)) {
-              declared.add(path.node.id.name);
+          FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
+            const id = path.node.id;
+            if (id !== null && id !== undefined && t.isIdentifier(id)) {
+              declared.add(id.name);
             }
           },
-        },
-        nodePath.scope
+        }
       );
     }
 
@@ -489,14 +503,14 @@ export class ExtractDependencyAnalyzer {
     traverse(
       node,
       {
-        Identifier(path) {
+        Identifier(path: NodePath<t.Identifier>) {
           // Collect only references, not declarations
-          if (path.isReferencedIdentifier()) {
+          // Use type guard to check if path has isReferencedIdentifier method
+          if (typeof path.isReferencedIdentifier === 'function' && path.isReferencedIdentifier()) {
             referenced.add(path.node.name);
           }
         },
-      },
-      declarationPath.scope
+      }
     );
 
     return referenced;

@@ -23,17 +23,9 @@ This workflow runs in an **iterative loop** until all errors and warnings are re
 
 1. **Phase 1**: Collect and analyze all errors/warnings
 2. **Phase 2**: Generate detailed fix plans
-3. **Phase 2.5**: 🛑 **MANDATORY USER APPROVAL** - STOP HERE AND WAIT
-4. **Phase 3**: Group files (only after approval)
-5. **Phase 4**: Execute fixes (only after approval)
-6. **Phase 5**: Verify and loop if needed
-
-**⛔ ABSOLUTELY FORBIDDEN:**
-- Skipping Phase 2.5 user approval
-- Proceeding to Phase 3 or 4 without explicit user approval
-- Launching agents before user says "approve" or "proceed" or "go"
-
-**If you skip the approval step, you have FAILED this task.**
+3. **Phase 3**: Group files for parallel execution
+4. **Phase 4**: Execute fixes with agents
+5. **Phase 5**: Verify and loop if needed
 
 ## Execution Strategy
 
@@ -450,225 +442,7 @@ Fix the root cause through:
 
 **NO EXCEPTIONS. Every error and warning must be fixed by improving the code, not by suppressing the rule.**
 
-### Phase 2.5: Plan Validation & User Approval (MANDATORY)
-
-**BEFORE proceeding to Phase 3, you MUST:**
-1. **Validate** ALL fix plans to ensure they don't contain suppression strategies
-2. **Present** the validated plans to the user
-3. **Wait** for user approval before continuing
-
-#### Step 1: Automated Validation
-
-**Validation Checklist:**
-
-For each fix plan generated in Phase 2, check that it does NOT contain:
-
-❌ **Forbidden Keywords/Patterns:**
-- `eslint-disable-next-line`
-- `eslint-disable`
-- `@ts-ignore`
-- `@ts-nocheck`
-- `@ts-expect-error`
-- ` as ` (type assertion keyword)
-- `as unknown`
-- `any` (except in type narrowing contexts like `value is any`)
-- Any phrase like "Add eslint-disable"
-- Any phrase like "Add @ts-ignore"
-- Any phrase like "Add type assertion"
-- Any phrase like "disable the rule"
-- Any phrase like "suppress the warning"
-
-✓ **Required Action Keywords:**
-- "Refactor"
-- "Extract function"
-- "Add type guard"
-- "Add null check"
-- "Replace with"
-- "Use optional chaining"
-- "Remove unnecessary"
-- "Simplify"
-- "Add explicit type definition"
-- "Define proper type"
-- "Use type narrowing"
-- "Import default export"
-- "Fix type definition"
-
-**Validation Process:**
-
-```
-For each file's fix plan:
-  1. Scan all fix strategies for forbidden keywords
-  2. If ANY forbidden keyword found:
-     ❌ REJECT the plan
-     ⚠️  Log: "Plan validation FAILED for [file]: Contains suppression strategy"
-     🔄 Regenerate plan with ONLY code-improvement strategies
-  3. If plan is clean:
-     ✓ APPROVE the plan
-     ✓ Log: "Plan validated for [file]"
-
-If ANY plan fails validation:
-  - STOP execution
-  - Regenerate ALL failed plans
-  - Re-run validation
-  - Only proceed to Step 2 when ALL plans pass validation
-```
-
-**Example - BAD Plan (REJECTED):**
-```
-❌ src/example.ts:
-  - Line 10: Add eslint-disable-next-line for no-explicit-any
-  - Line 20: Add @ts-ignore for type error
-  - Line 30: Add type assertion as TargetType
-  - Line 40: Use (value as unknown) as Type
-```
-
-**Example - GOOD Plan (APPROVED):**
-```
-✓ src/example.ts:
-  - Line 10: Replace `any` with `unknown`, add type guard `if (typeof value === 'object' && value !== null)` to narrow
-  - Line 20: Import traverse as default export: `import traverse from '@babel/traverse'`
-  - Line 30: Define proper interface for the value and refactor to match type
-  - Line 40: Add type guard or refactor to use compatible types
-```
-
-**Validation Report Format:**
-```
-=== Plan Validation Report ===
-Total files: X
-✓ Approved: Y files
-❌ Rejected: Z files
-
-Rejected files (regeneration required):
-- src/file1.ts: Contains "eslint-disable-next-line"
-- src/file2.ts: Contains "@ts-ignore"
-- src/file3.ts: Contains "as unknown" type assertion
-- src/file4.ts: Contains "any" type
-
-Action: Regenerating Z plans with code-improvement strategies...
-```
-
-#### Step 2: Present Plans to User for Approval
-
-**After all plans pass automated validation, you MUST:**
-
-1. **Save the detailed plans to JSON file** for Phase 4 to use:
-```bash
-# Create JSON file with structured plan data
-cat > /tmp/fix-plans-round${ROUND}.json << 'EOF'
-{
-  "round": 1,
-  "totalFiles": 26,
-  "totalErrors": 200,
-  "totalWarnings": 159,
-  "files": {
-    "src/index.ts": {
-      "issueCount": 13,
-      "issues": [
-        {
-          "line": 219,
-          "severity": "error",
-          "code": "import/order",
-          "message": "Empty line within import group",
-          "strategy": "Remove the empty line between imports in the same group"
-        },
-        {
-          "line": 580,
-          "severity": "error",
-          "code": "TS2349",
-          "message": "This expression is not callable",
-          "strategy": "Import traverse as default export: `import traverse from '@babel/traverse'` instead of `import * as traverse`"
-        }
-      ]
-    },
-    "src/analyzer/move-validator.ts": {
-      "issueCount": 25,
-      "issues": [
-        {
-          "line": 15,
-          "severity": "error",
-          "code": "no-explicit-any",
-          "message": "Unexpected any. Specify a different type",
-          "strategy": "Replace `any` with `unknown`, then add type guard function to narrow type properly: `function isValidType(value: unknown): value is ExpectedType { return typeof value === 'object' && value !== null && 'requiredProperty' in value; }`"
-        }
-      ]
-    }
-  }
-}
-EOF
-```
-
-2. **Present the plans to the user in human-readable format:**
-
-```
-=== Fix Plan Summary ===
-
-Round ${ROUND} - Total: X files, Y errors, Z warnings
-
-**Execution Plan:**
-- Agent Groups: N groups
-- Files per group: ~M files
-- Issues per group: ~P issues
-
-**Fix Strategies by Category:**
-
-📁 **Group 1: [Category Name] (X files, Y issues)**
-Files: src/file1.ts, src/file2.ts, ...
-Common fixes:
-  - [Strategy 1]: Affects N files
-  - [Strategy 2]: Affects M files
-
-📁 **Group 2: [Category Name] (X files, Y issues)**
-...
-
-**Detailed Fix Plans:**
-
-✓ **src/file1.ts** (5 issues)
-  - Line 10 (TS2322 error): Fix type definition to match expected type
-    Strategy: Define interface `interface Props { id: number; name: string }` and use it in function signature
-  - Line 20 (@typescript-eslint/no-unsafe-call error): Make operation type-safe
-    Strategy: Add type guard before calling: `if (typeof fn === 'function') { fn(); }`
-  - Line 30 (@typescript-eslint/no-unnecessary-condition warning): Remove unnecessary condition
-    Strategy: The value is already validated non-null on line 28, so remove this redundant check
-  ...
-
-✓ **src/file2.ts** (3 issues)
-  ...
-
-[Continue for all files...]
-
-=== Validation Status ===
-✓ All plans validated - No suppression strategies found
-✓ Plans saved to: /tmp/fix-plans-round${ROUND}.json
-✓ Ready to execute with N agents in parallel
-
-═══════════════════════════════════════
-⏸️  WAITING FOR USER APPROVAL
-═══════════════════════════════════════
-
-Please review the fix plans above and respond:
-- "approve" or "proceed" or "go" → Start execution
-- "skip [files]" → Skip specific files
-- "modify [file]" → Suggest changes to a file's plan
-- "cancel" → Abort the operation
-```
-
-#### Step 3: Wait for User Response
-
-**STOP here and wait for user input. DO NOT proceed to Phase 3 until user approves.**
-
-**Handle user responses:**
-- ✓ "approve" / "proceed" / "go" / "ok" / "yes" → Continue to Phase 3
-- ⏭️  "skip [files]" → Remove specified files from execution, continue with remaining
-- ✏️  "modify [file]" → Regenerate plan for specified file, re-present for approval
-- ❌ "cancel" / "stop" / "abort" → End the workflow
-
-**Only after receiving approval, proceed to Phase 3.**
-
 ### Phase 3: Group Files for Parallel Execution
-
-🛑 **CHECKPOINT**: You should ONLY be here if the user approved in Phase 2.5.
-- If user has NOT approved yet → GO BACK to Phase 2.5 and wait
-- If user approved → Proceed with grouping
 
 Divide ALL files with issues into manageable groups:
 - **Small (< 20 files)**: 3-4 agents
@@ -683,17 +457,9 @@ Divide ALL files with issues into manageable groups:
 
 ### Phase 4: Execute Fixes in Parallel
 
-🛑 **CRITICAL CHECKPOINT**: Before launching ANY agents, verify:
-- ✅ User approved the fix plans in Phase 2.5 (user said "approve" / "proceed" / "go")
+**Before launching agents, verify:**
 - ✅ Phase 3 grouping is complete
 - ✅ **JSON fix plan file exists: `/tmp/fix-plans-round${ROUND}.json`**
-
-**If ANY condition is NOT met:**
-- ❌ DO NOT launch agents
-- ❌ DO NOT use the Task tool
-- 🔙 GO BACK to Phase 2.5 and wait for approval
-
-**Only proceed if ALL THREE conditions are met.**
 
 ---
 
@@ -1055,21 +821,7 @@ Phase 2: Fix Plans
 ✓ Generated specific strategies for all 189 issues
 ✓ Grouped by similarity: traverse imports, type definitions, unnecessary conditions
 ✓ Saved to /tmp/fix-plans-round1.json for agent use
-
-Phase 2.5: Plan Validation & User Approval
-✓ Step 1: Validated all 23 file plans
-  ✓ Approved: 23 files (no suppression strategies found)
-  ✓ Rejected: 0 files
-✓ Step 2a: Created JSON file with detailed strategies
-  ✓ Saved: /tmp/fix-plans-round1.json (23 files, 189 issues with strategies)
-✓ Step 2b: Presented human-readable fix plans to user
-  - Group 1: 5 files (traverse imports: 15 issues)
-  - Group 2: 6 files (type definitions: 25 issues)
-  - Group 3: 7 files (unsafe operations: 30 issues)
-  - Group 4: 5 files (warnings: 119 issues)
-⏸️  Step 3: Waiting for user approval...
-→ User response: "approve"
-→ Proceeding to Phase 3
+✓ Validated all plans - No suppression strategies found
 
 Phase 3: Grouping
 ✓ Group 1: 5 files (traverse imports: 15 issues)
@@ -1099,13 +851,7 @@ Total: 4 files, 20 issues
 
 Phase 2: Fix Plans
 ✓ Generated specific strategies for 20 issues
-
-Phase 2.5: Plan Validation & User Approval
-✓ Step 1: Validated all 4 file plans
-✓ Step 2: Presented plans to user
-⏸️  Step 3: Waiting for user approval...
-→ User response: "go"
-→ Proceeding to Phase 3
+✓ Validated all plans - No suppression strategies found
 
 Phase 3-4: Grouping & Execution
 ✓ Launched 2 error-fixer agents in parallel
@@ -1165,14 +911,15 @@ Success rate: 100%
 
 1. ✅ Begin with **Phase 1** - Collect all errors and warnings
 2. ✅ Then proceed to **Phase 2** - Generate fix plans
-3. 🛑 **STOP at Phase 2.5** - Present plans and WAIT for user approval
-4. ⏸️  **DO NOT proceed** to Phase 3 or 4 until user explicitly approves
+3. ✅ Continue to **Phase 3** - Group files for parallel execution
+4. ✅ Execute **Phase 4** - Launch agents to fix issues
+5. ✅ Complete with **Phase 5** - Verify fixes and loop if needed
 
 **Remember**: The workflow is:
 ```
-Phase 1 → Phase 2 → [STOP & WAIT FOR APPROVAL] → Phase 3 → Phase 4 → Phase 5
-                     ^
-                     YOU MUST STOP HERE
+Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5
+                                          ↓
+                                    [Loop if needed]
 ```
 
 Begin Round 1 by running Phase 1 (issue collection and categorization)!

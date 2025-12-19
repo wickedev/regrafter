@@ -7,10 +7,14 @@
 
 import { describe, it, expect } from 'vitest';
 import { parse } from '@babel/parser';
-import traverse, { type NodePath } from '@babel/traverse';
+import traverseModule, { type NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
-import generate from '@babel/generator';
+import generateCodeModule from '@babel/generator';
+import { loadTraverseFunction, loadGenerateFunction } from '../../utils/index.js';
 import { CodeReplacer } from '../code-replacer.js';
+
+const traverse = loadTraverseFunction(traverseModule);
+const generate = loadGenerateFunction(generateCodeModule);
 
 describe('CodeReplacer', () => {
   describe('replace - Replace original JSX with component call', () => {
@@ -31,11 +35,11 @@ describe('CodeReplacer', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      let targetPath: NodePath | null = null;
+      let targetPath: NodePath<t.JSXElement> | null = null;
 
       // Find h1 element
       traverse(ast, {
-        JSXElement(path) {
+        JSXElement(path: NodePath<t.JSXElement>) {
           const openingElement = path.node.openingElement;
           if (
             t.isJSXIdentifier(openingElement.name) &&
@@ -51,8 +55,13 @@ describe('CodeReplacer', () => {
 
       // When: Replace with CodeReplacer
       const replacer = new CodeReplacer();
-      const props = new Map<string, t.Expression>();
-      replacer.replace(targetPath!, 'Greeting', props);
+      const replacement = t.jsxElement(
+        t.jsxOpeningElement(t.jsxIdentifier('Greeting'), [], true),
+        null,
+        [],
+        true
+      );
+      replacer.replace(ast, [targetPath!], replacement);
 
       // Then: should be replaced with component call
       const output = generate(ast).code;
@@ -78,11 +87,11 @@ describe('CodeReplacer', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      let targetPath: NodePath | null = null;
+      let targetPath: NodePath<t.JSXElement> | null = null;
 
       // Find h1 element
       traverse(ast, {
-        JSXElement(path) {
+        JSXElement(path: NodePath<t.JSXElement>) {
           const openingElement = path.node.openingElement;
           if (
             t.isJSXIdentifier(openingElement.name) &&
@@ -98,9 +107,22 @@ describe('CodeReplacer', () => {
 
       // When: replace with CodeReplacer (pass name prop)
       const replacer = new CodeReplacer();
-      const props = new Map<string, t.Expression>();
-      props.set('name', t.identifier('name'));
-      replacer.replace(targetPath!, 'Greeting', props);
+      const replacement = t.jsxElement(
+        t.jsxOpeningElement(
+          t.jsxIdentifier('Greeting'),
+          [
+            t.jsxAttribute(
+              t.jsxIdentifier('name'),
+              t.jsxExpressionContainer(t.identifier('name'))
+            ),
+          ],
+          true
+        ),
+        null,
+        [],
+        true
+      );
+      replacer.replace(ast, [targetPath!], replacement);
 
       // Then: prop should be passed to component call
       const output = generate(ast).code;
@@ -128,11 +150,11 @@ describe('CodeReplacer', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      let targetPath: NodePath | null = null;
+      let targetPath: NodePath<t.JSXElement> | null = null;
 
       // Find h1 element
       traverse(ast, {
-        JSXElement(path) {
+        JSXElement(path: NodePath<t.JSXElement>) {
           const openingElement = path.node.openingElement;
           if (
             t.isJSXIdentifier(openingElement.name) &&
@@ -148,11 +170,30 @@ describe('CodeReplacer', () => {
 
       // When: replace with CodeReplacer (pass multiple props)
       const replacer = new CodeReplacer();
-      const props = new Map<string, t.Expression>();
-      props.set('name', t.identifier('name'));
-      props.set('count', t.identifier('count'));
-      props.set('isActive', t.identifier('isActive'));
-      replacer.replace(targetPath!, 'Greeting', props);
+      const replacement = t.jsxElement(
+        t.jsxOpeningElement(
+          t.jsxIdentifier('Greeting'),
+          [
+            t.jsxAttribute(
+              t.jsxIdentifier('name'),
+              t.jsxExpressionContainer(t.identifier('name'))
+            ),
+            t.jsxAttribute(
+              t.jsxIdentifier('count'),
+              t.jsxExpressionContainer(t.identifier('count'))
+            ),
+            t.jsxAttribute(
+              t.jsxIdentifier('isActive'),
+              t.jsxExpressionContainer(t.identifier('isActive'))
+            ),
+          ],
+          true
+        ),
+        null,
+        [],
+        true
+      );
+      replacer.replace(ast, [targetPath!], replacement);
 
       // Then: all props should be passed to component call
       const output = generate(ast).code;
@@ -181,11 +222,11 @@ describe('CodeReplacer', () => {
         plugins: ['jsx', 'typescript'],
       });
 
-      let targetPath: NodePath | null = null;
+      let targetPath: NodePath<t.JSXElement> | null = null;
 
       // Find only h1 element
       traverse(ast, {
-        JSXElement(path) {
+        JSXElement(path: NodePath<t.JSXElement>) {
           const openingElement = path.node.openingElement;
           if (
             t.isJSXIdentifier(openingElement.name) &&
@@ -201,8 +242,13 @@ describe('CodeReplacer', () => {
 
       // When: replace only h1
       const replacer = new CodeReplacer();
-      const props = new Map<string, t.Expression>();
-      replacer.replace(targetPath!, 'Title', props);
+      const replacement = t.jsxElement(
+        t.jsxOpeningElement(t.jsxIdentifier('Title'), [], true),
+        null,
+        [],
+        true
+      );
+      replacer.replace(ast, [targetPath!], replacement);
 
       // Then: h1 should be replaced and p should remain
       const output = generate(ast).code;

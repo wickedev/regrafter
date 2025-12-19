@@ -14,7 +14,6 @@ import type { ResolveResult } from '../../types/internal.js';
 import type { Selector } from '../../types/public.js';
 import { isPositionSelector, isPathSelector } from '../../types/public.js';
 import { loadTraverseFunction, type TraverseFunction } from '../../utils/index.js';
-
 import {
   detectAtomicUnit,
   isJSXNode,

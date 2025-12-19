@@ -12,7 +12,7 @@ import {
   createExtractError,
   isExtractError,
 } from '../errors.js';
-import { ErrorCategory } from '../../errors/error-category.js';
+import { isSelectorError, isValidationError } from '../../errors/error-category.js';
 
 describe('Extract Errors', () => {
   describe('ExtractErrorCode', () => {
@@ -77,7 +77,7 @@ describe('Extract Errors', () => {
       expect(error).toBeDefined();
       expect(error.code).toBe(ExtractErrorCode.EMPTY_INPUT);
       expect(error.message).toContain('File list is empty'); // Korean error message
-      expect(error.category).toBe(ErrorCategory.Validation);
+      expect(isValidationError(error)).toBe(true);
     });
 
     it('should create selector error for INVALID_SELECTOR', () => {
@@ -87,7 +87,7 @@ describe('Extract Errors', () => {
 
       expect(error).toBeDefined();
       expect(error.code).toBe(ExtractErrorCode.INVALID_SELECTOR);
-      expect(error.category).toBe(ErrorCategory.Selector);
+      expect(isSelectorError(error)).toBe(true);
     });
 
     it('should create selector error for NODE_NOT_FOUND', () => {
@@ -116,7 +116,7 @@ describe('Extract Errors', () => {
 
       expect(error.suggestions).toBeDefined();
       expect(error.suggestions).toHaveLength(1);
-      expect(error.suggestions![0].description).toBe('Select a valid JSX element');
+      expect(error.suggestions?.[0]?.description).toBe('Select a valid JSX element');
     });
   });
 

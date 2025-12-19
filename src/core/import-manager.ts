@@ -7,10 +7,11 @@
  * Phase 1.2 of functional duplication consolidation.
  */
 
+import path from 'path';
+
 import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
-import path from 'path';
 
 import { loadTraverseFunction } from '../utils/index.js';
 
@@ -61,7 +62,7 @@ export class ImportManager {
     ast: t.File,
     importName: string,
     sourcePath: string,
-    isDefault: boolean = false
+    isDefault = false
   ): void {
     const program = ast.program;
 
@@ -97,7 +98,7 @@ export class ImportManager {
       }
     } else {
       // Create new import statement
-      const specifiers: (t.ImportSpecifier | t.ImportDefaultSpecifier)[] = isDefault
+      const specifiers: Array<t.ImportSpecifier | t.ImportDefaultSpecifier> = isDefault
         ? [t.importDefaultSpecifier(t.identifier(importName))]
         : [t.importSpecifier(t.identifier(importName), t.identifier(importName))];
 
@@ -157,13 +158,13 @@ export class ImportManager {
     let found = false;
 
     traverse(ast, {
-      ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
-        if (path.node.source.value === source) {
-          for (const spec of path.node.specifiers) {
+      ImportDeclaration(nodePath: NodePath<t.ImportDeclaration>) {
+        if (nodePath.node.source.value === source) {
+          for (const spec of nodePath.node.specifiers) {
             if (spec.type === 'ImportDefaultSpecifier') {
               if (spec.local.name === specifier) {
                 found = true;
-                path.stop();
+                nodePath.stop();
               }
             } else if (spec.type === 'ImportSpecifier') {
               const imported =
@@ -172,13 +173,13 @@ export class ImportManager {
                   : spec.imported.value;
               if (imported === specifier || spec.local.name === specifier) {
                 found = true;
-                path.stop();
+                nodePath.stop();
               }
             } else {
               // ImportNamespaceSpecifier
               if (spec.local.name === specifier) {
                 found = true;
-                path.stop();
+                nodePath.stop();
               }
             }
           }
@@ -200,8 +201,8 @@ export class ImportManager {
     const sources = new Set<string>();
 
     traverse(ast, {
-      ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
-        sources.add(path.node.source.value);
+      ImportDeclaration(nodePath: NodePath<t.ImportDeclaration>) {
+        sources.add(nodePath.node.source.value);
       },
     });
 
@@ -257,14 +258,12 @@ export class ImportManager {
     // Check if React import already exists
     const program = ast.program;
     const reactImport = this.findImportDeclaration(program, 'react');
-    const hasReactImport =
-      reactImport &&
-      reactImport.specifiers.some(
-        (spec) => t.isImportDefaultSpecifier(spec) && spec.local.name === 'React'
-      );
+    const hasReactImport = reactImport?.specifiers.some(
+      (spec) => t.isImportDefaultSpecifier(spec) && spec.local.name === 'React'
+    );
 
     // Add React import if not exists
-    if (!hasReactImport) {
+    if (hasReactImport !== true) {
       this.addImport(ast, 'React', 'react', true);
     }
   }

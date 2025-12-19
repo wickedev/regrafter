@@ -32,7 +32,7 @@ export interface IdentifierReference {
   name: string;
   path: NodePath;
   usage: 'value' | 'call' | 'jsx-element' | 'jsx-attribute' | 'spread';
-  scope?: any; // ScopeInfo from ScopeManager if provided
+  scope?: unknown; // ScopeInfo from ScopeManager if provided
 }
 
 /**
@@ -70,22 +70,22 @@ export class IdentifierCollector {
     nodePath.traverse({
       Identifier: (path) => {
         // Exclude JSX element names (unless option set)
-        if (!this.options.includeJSXElements && this.isJSXElementName(path)) {
+        if (this.options.includeJSXElements === false && this.isJSXElementName(path)) {
           return;
         }
 
         // Exclude JSX attribute names (unless option set)
-        if (!this.options.includeJSXAttributeNames && this.isJSXAttributeName(path)) {
+        if (this.options.includeJSXAttributeNames === false && this.isJSXAttributeName(path)) {
           return;
         }
 
         // Exclude property keys (unless option set)
-        if (!this.options.includePropertyKeys && this.isPropertyKey(path)) {
+        if (this.options.includePropertyKeys === false && this.isPropertyKey(path)) {
           return;
         }
 
         // Exclude declarations (unless option set)
-        if (!this.options.includeDeclarations && this.isDeclaration(path)) {
+        if (this.options.includeDeclarations === false && this.isDeclaration(path)) {
           return;
         }
 
@@ -93,7 +93,7 @@ export class IdentifierCollector {
       },
 
       JSXIdentifier: (path) => {
-        if (this.options.includeJSXElements) {
+        if (this.options.includeJSXElements === true) {
           // Collect only JSX element names (exclude attribute names)
           if (t.isJSXOpeningElement(path.parent) || t.isJSXClosingElement(path.parent)) {
             names.add(path.node.name);
@@ -116,7 +116,7 @@ export class IdentifierCollector {
     const errors: string[] = [];
     const seenIdentifiers = new Set<string>();
 
-    const addIdentifier = (ref: IdentifierReference) => {
+    const addIdentifier = (ref: IdentifierReference): void => {
       const uniqueKey = `${ref.name}:${ref.usage}`;
       if (!seenIdentifiers.has(uniqueKey)) {
         seenIdentifiers.add(uniqueKey);
@@ -234,7 +234,6 @@ export class IdentifierCollector {
    */
   private isJSXElementName(path: NodePath): boolean {
     const parent = path.parent;
-    if (!parent) return false;
 
     // <Component />
     if (t.isJSXOpeningElement(parent) || t.isJSXClosingElement(parent)) {
@@ -254,7 +253,6 @@ export class IdentifierCollector {
    */
   private isJSXAttributeName(path: NodePath): boolean {
     const parent = path.parent;
-    if (!parent) return false;
 
     // <div className="..." />
     if (t.isJSXAttribute(parent)) {
@@ -269,7 +267,6 @@ export class IdentifierCollector {
    */
   private isPropertyKey(path: NodePath): boolean {
     const parent = path.parent;
-    if (!parent) return false;
 
     // { key: value } - exclude non-computed keys
     if (t.isObjectProperty(parent)) {
@@ -289,7 +286,6 @@ export class IdentifierCollector {
    */
   private isDeclaration(path: NodePath): boolean {
     const parent = path.parent;
-    if (!parent) return false;
 
     // const foo = ...
     if (t.isVariableDeclarator(parent)) {
@@ -316,7 +312,6 @@ export class IdentifierCollector {
     path: NodePath
   ): 'value' | 'call' | 'jsx-element' | 'jsx-attribute' | 'spread' {
     const parent = path.parent;
-    if (!parent) return 'value';
 
     // myFunction()
     if (t.isCallExpression(parent) && parent.callee === path.node) {

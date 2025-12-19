@@ -4,13 +4,16 @@
 
 import { describe, it, expect } from "vitest";
 import { parse } from "@babel/parser";
-import traverse, { type NodePath, type Binding } from "@babel/traverse";
+import traverseFn, { type NodePath, type Binding } from "@babel/traverse";
 import * as t from "@babel/types";
 
 import { createPropDependencyAnalyzer } from "../prop-dependency-analyzer.js";
 import type { IdentifierReference } from "../../types.js";
 import { DependencyType } from "../../types.js";
 import type { ComponentScope } from "../../../scope/index.js";
+import { createComponentScope } from "../../../types/factories.js";
+
+const traverse = traverseFn as unknown as typeof traverseFn.default;
 
 /**
  * Helper to parse code and collect identifiers with bindings
@@ -30,34 +33,38 @@ function parseAndCollectIdentifiers(code: string): {
   let componentScope: ComponentScope | null = null;
 
   traverse(ast, {
-    FunctionDeclaration(path) {
+    FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
       // Capture component info
       if (t.isIdentifier(path.node.id)) {
-        componentScope = {
-          type: "Component" as const,
+        componentScope = createComponentScope({
           componentName: path.node.id.name,
           path,
           parent: null,
-        } as ComponentScope;
+          parentComponent: null,
+        });
       }
 
       // Collect identifiers in function body
       path.traverse({
-        JSXIdentifier(jsxIdPath) {
+        JSXIdentifier(jsxIdPath: NodePath<t.JSXIdentifier>) {
           const parent = jsxIdPath.parent;
+          const firstChar = jsxIdPath.node.name[0];
           if (
             t.isJSXOpeningElement(parent) &&
             parent.name === jsxIdPath.node &&
-            jsxIdPath.node.name[0] === jsxIdPath.node.name[0].toUpperCase()
+            firstChar !== undefined &&
+            firstChar === firstChar.toUpperCase()
           ) {
             const name = jsxIdPath.node.name;
             identifiers.push({
               name,
-              path: jsxIdPath as unknown as NodePath,
+              path: jsxIdPath as NodePath,
+              usage: 'jsx-element',
+              scope: null,
             });
           }
         },
-        Identifier(idPath) {
+        Identifier(idPath: NodePath<t.Identifier>) {
           if (!idPath.isIdentifier()) return;
 
           const parent = idPath.parent;
@@ -74,6 +81,8 @@ function parseAndCollectIdentifiers(code: string): {
           identifiers.push({
             name: idPath.node.name,
             path: idPath,
+            usage: 'value',
+            scope: null,
           });
         },
       });
@@ -270,15 +279,15 @@ describe("PropDependencyAnalyzer", () => {
       });
 
       traverse(ast, {
-        FunctionDeclaration(path) {
+        FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
           const binding = path.scope.getBinding("name");
           if (binding) {
-            const componentScope: ComponentScope = {
-              type: "Component",
+            const componentScope: ComponentScope = createComponentScope({
               componentName: "Component",
               path,
               parent: null,
-            } as ComponentScope;
+              parentComponent: null,
+            });
 
             const analyzer = createPropDependencyAnalyzer(() => null, isParameterBinding);
             const info = analyzer.getPropInfo(binding, componentScope);
@@ -306,7 +315,7 @@ describe("PropDependencyAnalyzer", () => {
       });
 
       traverse(ast, {
-        VariableDeclarator(path) {
+        VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
           if (t.isIdentifier(path.node.id)) {
             const binding = path.scope.getBinding(path.node.id.name);
             if (binding) {
@@ -328,7 +337,7 @@ describe("PropDependencyAnalyzer", () => {
       });
 
       traverse(ast, {
-        FunctionDeclaration(path) {
+        FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
           const binding = path.scope.getBinding("props");
           if (binding) {
             const analyzer = createPropDependencyAnalyzer(() => null, isParameterBinding);
@@ -348,7 +357,7 @@ describe("PropDependencyAnalyzer", () => {
       });
 
       traverse(ast, {
-        FunctionDeclaration(path) {
+        FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
           const binding = path.scope.getBinding("dataId");
           if (binding) {
             const analyzer = createPropDependencyAnalyzer(() => null, isParameterBinding);
@@ -370,7 +379,7 @@ describe("PropDependencyAnalyzer", () => {
       });
 
       traverse(ast, {
-        FunctionDeclaration(path) {
+        FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
           const binding = path.scope.getBinding("name");
           if (binding) {
             const analyzer = createPropDependencyAnalyzer(() => null, isParameterBinding);
@@ -389,7 +398,7 @@ describe("PropDependencyAnalyzer", () => {
       const ast = parse(code, { sourceType: "module" });
 
       traverse(ast, {
-        VariableDeclarator(path) {
+        VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
           if (t.isIdentifier(path.node.id)) {
             const binding = path.scope.getBinding(path.node.id.name);
             if (binding) {
@@ -441,7 +450,7 @@ describe("PropDependencyAnalyzer", () => {
 
       let found = false;
       traverse(ast, {
-        ArrowFunctionExpression(path) {
+        ArrowFunctionExpression(path: NodePath<t.ArrowFunctionExpression>) {
           const binding = path.scope.getBinding("name");
           if (binding) {
             found = true;

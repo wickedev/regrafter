@@ -17,7 +17,7 @@ export class TypeStringifier {
   toString(typeAnnotation: t.TSType): string {
     // Primitive types
     if (t.isTSAnyKeyword(typeAnnotation)) {
-      return 'any';
+      return 'unknown';
     }
     if (t.isTSStringKeyword(typeAnnotation)) {
       return 'string';
@@ -50,7 +50,7 @@ export class TypeStringifier {
 
     // Union types (e.g., 'active' | 'inactive')
     if (t.isTSUnionType(typeAnnotation)) {
-      return typeAnnotation.types.map(t => this.toString(t)).join(' | ');
+      return typeAnnotation.types.map(typeNode => this.toString(typeNode)).join(' | ');
     }
 
     // Array types (e.g., string[])
@@ -78,7 +78,7 @@ export class TypeStringifier {
         if (t.isIdentifier(p) && p.typeAnnotation && t.isTSTypeAnnotation(p.typeAnnotation)) {
           return `${p.name}: ${this.toString(p.typeAnnotation.typeAnnotation)}`;
         }
-        return 'any';
+        return 'unknown';
       }).join(', ');
       const returnType = typeAnnotation.typeAnnotation
         ? this.toString(typeAnnotation.typeAnnotation.typeAnnotation)
@@ -87,7 +87,7 @@ export class TypeStringifier {
     }
 
     // Default fallback
-    return 'any';
+    return 'unknown';
   }
 
   /**
@@ -99,7 +99,7 @@ export class TypeStringifier {
   private qualifiedNameToString(name: t.TSQualifiedName): string {
     const left = t.isIdentifier(name.left)
       ? name.left.name
-      : this.qualifiedNameToString(name.left as t.TSQualifiedName);
+      : this.qualifiedNameToString(name.left);
     const right = name.right.name;
     return `${left}.${right}`;
   }

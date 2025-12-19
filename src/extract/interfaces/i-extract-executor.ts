@@ -5,8 +5,9 @@
  */
 
 import type * as t from '@babel/types';
-import type { Result } from '../../result/types.js';
+
 import type { RegraffError } from '../../errors/error-category.js';
+import type { Result } from '../../result/types.js';
 import type { ExtractPlan } from '../types.js';
 
 export interface IExtractExecutor {

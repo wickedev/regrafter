@@ -12,12 +12,19 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import generateCodeModule from '@babel/generator';
+import traverseModule, { type NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
 import { parseFile } from '../../parser/parse-file.js';
+import { loadTraverseFunction, loadGenerateFunction } from '../../utils/index.js';
 import { ExtractExecutor } from '../extract-executor.js';
 import type { ExtractPlan } from '../types.js';
-import traverse from '@babel/traverse';
-import * as t from '@babel/types';
-import generate from '@babel/generator';
+
+const traverse = loadTraverseFunction(traverseModule);
+const generate = loadGenerateFunction(generateCodeModule);
+
+type JSXElementPath = NodePath<t.JSXElement>;
+type VariableDeclaratorPath = NodePath<t.VariableDeclarator>;
 
 describe('ExtractExecutor', () => {
   describe('Task 9.1 - Simple extraction', () => {
@@ -41,7 +48,7 @@ function App() {
       // Select h1 node
       let h1NodePath: any = null;
       traverse(ast, {
-        JSXElement(path) {
+        JSXElement(path: JSXElementPath) {
           if (
             t.isJSXIdentifier(path.node.openingElement.name) &&
             path.node.openingElement.name.name === 'h1'
@@ -123,7 +130,7 @@ function App() {
       // Select span node
       let spanNodePath: any = null;
       traverse(ast, {
-        JSXElement(path) {
+        JSXElement(path: JSXElementPath) {
           if (
             t.isJSXIdentifier(path.node.openingElement.name) &&
             path.node.openingElement.name.name === 'span'
@@ -198,7 +205,7 @@ function App() {
       let pNodePath: any = null;
       let messageDeclaration: any = null;
       traverse(ast, {
-        JSXElement(path) {
+        JSXElement(path: JSXElementPath) {
           if (
             t.isJSXIdentifier(path.node.openingElement.name) &&
             path.node.openingElement.name.name === 'p'
@@ -206,7 +213,7 @@ function App() {
             pNodePath = path;
           }
         },
-        VariableDeclarator(path) {
+        VariableDeclarator(path: VariableDeclaratorPath) {
           if (t.isIdentifier(path.node.id) && path.node.id.name === 'message') {
             messageDeclaration = path;
           }
@@ -293,7 +300,7 @@ function App() {
       // Select h1 node
       let h1NodePath: any = null;
       traverse(ast, {
-        JSXElement(path) {
+        JSXElement(path: JSXElementPath) {
           if (
             t.isJSXIdentifier(path.node.openingElement.name) &&
             path.node.openingElement.name.name === 'h1'
@@ -372,7 +379,7 @@ function App() {
       // Select button node
       let buttonNodePath: any = null;
       traverse(ast, {
-        JSXElement(path) {
+        JSXElement(path: JSXElementPath) {
           if (
             t.isJSXIdentifier(path.node.openingElement.name) &&
             path.node.openingElement.name.name === 'button'
@@ -440,7 +447,7 @@ function App() {
       let h2NodePath: any = null;
       let titleDeclaration: any = null;
       traverse(ast, {
-        JSXElement(path) {
+        JSXElement(path: JSXElementPath) {
           if (
             t.isJSXIdentifier(path.node.openingElement.name) &&
             path.node.openingElement.name.name === 'h2'
@@ -448,7 +455,7 @@ function App() {
             h2NodePath = path;
           }
         },
-        VariableDeclarator(path) {
+        VariableDeclarator(path: VariableDeclaratorPath) {
           if (t.isIdentifier(path.node.id) && path.node.id.name === 'title') {
             titleDeclaration = path;
           }
@@ -537,7 +544,7 @@ function App() {
       // Select span node
       let spanNodePath: any = null;
       traverse(sourceAst, {
-        JSXElement(path) {
+        JSXElement(path: JSXElementPath) {
           if (
             t.isJSXIdentifier(path.node.openingElement.name) &&
             path.node.openingElement.name.name === 'span'
@@ -630,7 +637,7 @@ function App() {
       // Select p node
       let pNodePath: any = null;
       traverse(sourceAst, {
-        JSXElement(path) {
+        JSXElement(path: JSXElementPath) {
           if (
             t.isJSXIdentifier(path.node.openingElement.name) &&
             path.node.openingElement.name.name === 'p'
@@ -711,7 +718,7 @@ function App() {
       let userAgeDeclaration: any = null;
 
       traverse(sourceAst, {
-        JSXElement(path) {
+        JSXElement(path: JSXElementPath) {
           if (
             t.isJSXIdentifier(path.node.openingElement.name) &&
             path.node.openingElement.name.name === 'div'
@@ -730,7 +737,7 @@ function App() {
             }
           }
         },
-        VariableDeclarator(path) {
+        VariableDeclarator(path: VariableDeclaratorPath) {
           if (t.isIdentifier(path.node.id)) {
             if (path.node.id.name === 'userName') {
               userNameDeclaration = path;
@@ -867,7 +874,7 @@ export function ExistingWidget() {
       // Select header node
       let headerNodePath: any = null;
       traverse(sourceAst, {
-        JSXElement(path) {
+        JSXElement(path: JSXElementPath) {
           if (
             t.isJSXIdentifier(path.node.openingElement.name) &&
             path.node.openingElement.name.name === 'header'
@@ -956,11 +963,10 @@ function Counter() {
       // Select display div
       let displayNodePath: any = null;
       let countDeclaration: any = null;
-      let setCountDeclaration: any = null;
       let incrementDeclaration: any = null;
 
       traverse(sourceAst, {
-        JSXElement(path) {
+        JSXElement(path: JSXElementPath) {
           if (
             t.isJSXIdentifier(path.node.openingElement.name) &&
             path.node.openingElement.name.name === 'div'
@@ -979,7 +985,7 @@ function Counter() {
             }
           }
         },
-        VariableDeclarator(path) {
+        VariableDeclarator(path: VariableDeclaratorPath) {
           // Find useState result value
           if (
             t.isArrayPattern(path.node.id) &&
@@ -994,7 +1000,6 @@ function Counter() {
               elements[0].name === 'count'
             ) {
               countDeclaration = path;
-              setCountDeclaration = path; // Same declaration
             }
           }
           // Find increment function

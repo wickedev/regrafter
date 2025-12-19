@@ -339,7 +339,11 @@ describe('analyzeExtract', () => {
       expect(result.ok).toBe(true);
 
       // Verify file content has not changed
-      expect(files[0].content).toBe(originalContent);
+      const [file] = files;
+      if (!file) {
+        throw new Error('Expected App.tsx file input');
+      }
+      expect(file.content).toBe(originalContent);
     });
 
     it('should return same results when called multiple times (idempotency)', () => {

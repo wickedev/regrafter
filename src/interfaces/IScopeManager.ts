@@ -10,6 +10,7 @@
 
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
+
 import type { InternalErrorType, ValidationErrorType } from '../errors/index.js';
 import type { Result } from '../result/index.js';
 import type {

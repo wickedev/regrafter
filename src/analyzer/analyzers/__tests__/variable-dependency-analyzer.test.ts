@@ -4,17 +4,15 @@
 
 import { describe, it, expect } from "vitest";
 import { parse } from "@babel/parser";
-import traverseFn, { type NodePath, type Binding } from "@babel/traverse";
 import * as t from "@babel/types";
+import traverseFn, { type NodePath, type Binding } from "@babel/traverse";
 
 const traverse = traverseFn as any as typeof traverseFn.default;
 
 import { createScopeManager } from "../../../scope/index.js";
-import {
-  createVariableDependencyAnalyzer,
-  type IVariableDependencyAnalyzer,
-} from "../variable-dependency-analyzer.js";
+import { createVariableDependencyAnalyzer } from "../variable-dependency-analyzer.js";
 import { DependencyType } from "../../types.js";
+import type { ScopeInfo } from "../../../types/internal.js";
 
 describe("VariableDependencyAnalyzer", () => {
   function setup(code: string) {
@@ -41,17 +39,20 @@ describe("VariableDependencyAnalyzer", () => {
 
   function collectIdentifiers(code: string) {
     const { ast } = setup(code);
-    const identifiers: Array<{ name: string; path: NodePath<t.Identifier> }> = [];
+    const identifiers: Array<{ name: string; path: NodePath<t.Identifier>; usage: 'value' | 'call' | 'jsx-element' | 'jsx-attribute' | 'spread'; scope: ScopeInfo | null }> = [];
 
     // Find JSX element first
-    let jsxPath: NodePath | null = null;
+    let foundPath: NodePath | null = null;
     traverse(ast, {
-      JSXElement(path) {
-        if (!jsxPath) jsxPath = path;
+      JSXElement(path: NodePath) {
+        if (!foundPath) foundPath = path;
       },
     });
 
-    if (!jsxPath) return [];
+    if (!foundPath) return [];
+
+    // Type assertion: foundPath is guaranteed to be non-null here
+    const jsxPath = foundPath as NodePath;
 
     // Only collect identifiers within JSX element
     jsxPath.traverse({
@@ -65,7 +66,7 @@ describe("VariableDependencyAnalyzer", () => {
         ) {
           return;
         }
-        identifiers.push({ name: path.node.name, path });
+        identifiers.push({ name: path.node.name, path, usage: "value", scope: null });
       },
     });
 

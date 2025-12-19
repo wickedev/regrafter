@@ -4,15 +4,18 @@
 
 import { describe, it, expect } from "vitest";
 import { parse } from "@babel/parser";
-import traverseFn, { type NodePath } from "@babel/traverse";
+import traverseModule, { type NodePath } from "@babel/traverse";
 
-const traverse = traverseFn as any as typeof traverseFn.default;
+import { loadTraverseFunction } from "../../../utils/index.js";
+
+const traverse = loadTraverseFunction(traverseModule);
+
+function isNodePath<T>(value: NodePath<T> | null): value is NodePath<T> {
+  return value !== null;
+}
 
 import { createScopeManager, ScopeType } from "../../../scope/index.js";
-import {
-  createDependencyClassifier,
-  type IDependencyClassifier,
-} from "../dependency-classifier.js";
+import { createDependencyClassifier } from "../dependency-classifier.js";
 import {
   DependencyType,
   type InternalDependency,
@@ -23,8 +26,15 @@ import {
   createScopeInfo,
 } from "../../../types/factories.js";
 
+import type * as t from "@babel/types";
+
 describe("DependencyClassifier", () => {
-  function setup(code: string) {
+  function setup(code: string): {
+    classifier: ReturnType<typeof createDependencyClassifier>;
+    elementPath: NodePath<t.JSXElement> | null;
+    ast: t.File;
+    scopeManager: ReturnType<typeof createScopeManager>;
+  } {
     const ast = parse(code, {
       sourceType: "module",
       plugins: ["jsx", "typescript"],
@@ -36,10 +46,10 @@ describe("DependencyClassifier", () => {
     const classifier = createDependencyClassifier(scopeManager);
 
     // Helper to find JSX element
-    let elementPath: NodePath | null = null;
+    let elementPath: NodePath<t.JSXElement> | null = null;
     traverse(ast, {
-      JSXElement(path) {
-        if (!elementPath) elementPath = path;
+      JSXElement(path: NodePath<t.JSXElement>) {
+        if (elementPath === null) elementPath = path;
       },
     });
 
@@ -57,25 +67,26 @@ describe("DependencyClassifier", () => {
           return <div>{state} {value}</div>;
         }
       `;
-      const { classifier, elementPath, scopeManager } = setup(code);
+      const { classifier, elementPath: elementPathMaybe, scopeManager } = setup(code);
 
-      if (!elementPath) throw new Error("No JSX element found");
+      if (!isNodePath(elementPathMaybe)) throw new Error("No JSX element found");
 
-      const elementScope = scopeManager.getScopeForPath(elementPath);
+      const elementScope = scopeManager.getScopeForPath(elementPathMaybe);
       const targetScope = scopeManager.getScopeTree()?.root ?? null;
 
       // Create mock dependencies
+      const elementNode = elementPathMaybe.node;
       const deps: InternalDependency[] = [
         createInternalDependency({
           symbol: "state, setState",
           type: DependencyType.Hook,
           origin: createDependencyOrigin({
-            node: elementPath.node,
+            node: elementNode,
             file: "test.tsx",
           }),
           scope: elementScope ?? createScopeInfo({
             type: ScopeType.Component,
-            path: elementPath,
+            path: elementPathMaybe,
             parent: null,
           }),
         }),
@@ -83,12 +94,12 @@ describe("DependencyClassifier", () => {
           symbol: "value",
           type: DependencyType.Variable,
           origin: createDependencyOrigin({
-            node: elementPath.node,
+            node: elementNode,
             file: "test.tsx",
           }),
           scope: elementScope ?? createScopeInfo({
             type: ScopeType.Component,
-            path: elementPath,
+            path: elementPathMaybe,
             parent: null,
           }),
         }),
@@ -96,12 +107,12 @@ describe("DependencyClassifier", () => {
           symbol: "React",
           type: DependencyType.Import,
           origin: createDependencyOrigin({
-            node: elementPath.node,
+            node: elementNode,
             file: "test.tsx",
           }),
           scope: targetScope ?? createScopeInfo({
             type: ScopeType.Module,
-            path: elementPath,
+            path: elementPathMaybe,
             parent: null,
           }),
         }),
@@ -123,11 +134,11 @@ describe("DependencyClassifier", () => {
           return <div>test</div>;
         }
       `;
-      const { classifier, elementPath, scopeManager } = setup(code);
+      const { classifier, elementPath: elementPathMaybe, scopeManager } = setup(code);
 
-      if (!elementPath) throw new Error("No JSX element found");
+      if (!isNodePath(elementPathMaybe)) throw new Error("No JSX element found");
 
-      const elementScope = scopeManager.getScopeForPath(elementPath);
+      const elementScope = scopeManager.getScopeForPath(elementPathMaybe);
       const targetScope = scopeManager.getScopeTree()?.root ?? null;
 
       const result = classifier.classifyDependencies(
@@ -147,21 +158,22 @@ describe("DependencyClassifier", () => {
           return <div>test</div>;
         }
       `;
-      const { classifier, elementPath } = setup(code);
+      const { classifier, elementPath: elementPathMaybe } = setup(code);
 
-      if (!elementPath) throw new Error("No JSX element found");
+      if (!isNodePath(elementPathMaybe)) throw new Error("No JSX element found");
 
+      const elementNode = elementPathMaybe.node;
       const deps: InternalDependency[] = [
         createInternalDependency({
           symbol: "test",
           type: DependencyType.Variable,
           origin: createDependencyOrigin({
-            node: elementPath.node,
+            node: elementNode,
             file: "test.tsx",
           }),
           scope: createScopeInfo({
             type: ScopeType.Component,
-            path: elementPath,
+            path: elementPathMaybe,
             parent: null,
           }),
         }),
@@ -195,7 +207,7 @@ describe("DependencyClassifier", () => {
       let targetScope: any = null;
 
       traverse(ast, {
-        FunctionDeclaration(path) {
+        FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
           const name = path.node.id?.name;
           if (name === "Component") {
             componentScope = scopeManager.getScopeForPath(path);
@@ -233,23 +245,24 @@ describe("DependencyClassifier", () => {
           return <div>{React.version}</div>;
         }
       `;
-      const { classifier, elementPath, scopeManager } = setup(code);
+      const { classifier, elementPath: elementPathMaybe, scopeManager } = setup(code);
 
-      if (!elementPath) throw new Error("No JSX element found");
+      if (!isNodePath(elementPathMaybe)) throw new Error("No JSX element found");
 
-      const elementScope = scopeManager.getScopeForPath(elementPath);
+      const elementScope = scopeManager.getScopeForPath(elementPathMaybe);
       const targetScope = scopeManager.getScopeTree()?.root ?? null;
 
+      const elementNode = elementPathMaybe.node;
       const dep = createInternalDependency({
         symbol: "React",
         type: DependencyType.Import,
         origin: createDependencyOrigin({
-          node: elementPath.node,
+          node: elementNode,
           file: "test.tsx",
         }),
         scope: targetScope ?? createScopeInfo({
           type: ScopeType.Module,
-          path: elementPath,
+          path: elementPathMaybe,
           parent: null,
         }),
       });
@@ -267,23 +280,24 @@ describe("DependencyClassifier", () => {
           return <div>{value}</div>;
         }
       `;
-      const { classifier, elementPath, scopeManager } = setup(code);
+      const { classifier, elementPath: elementPathMaybe, scopeManager } = setup(code);
 
-      if (!elementPath) throw new Error("No JSX element found");
+      if (!isNodePath(elementPathMaybe)) throw new Error("No JSX element found");
 
-      const elementScope = scopeManager.getScopeForPath(elementPath);
+      const elementScope = scopeManager.getScopeForPath(elementPathMaybe);
       const targetScope = scopeManager.getScopeTree()?.root ?? null;
 
+      const elementNode = elementPathMaybe.node;
       const dep = createInternalDependency({
         symbol: "value",
         type: DependencyType.Variable,
         origin: createDependencyOrigin({
-          node: elementPath.node,
+          node: elementNode,
           file: "test.tsx",
         }),
         scope: targetScope ?? createScopeInfo({
           type: ScopeType.Module,
-          path: elementPath,
+          path: elementPathMaybe,
           parent: null,
         }),
       });
@@ -311,7 +325,7 @@ describe("DependencyClassifier", () => {
       let targetScope: any = null;
 
       traverse(ast, {
-        FunctionDeclaration(path) {
+        FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
           const name = path.node.id?.name;
           if (name === "Component") {
             componentScope = scopeManager.getScopeForPath(path);
@@ -346,20 +360,21 @@ describe("DependencyClassifier", () => {
           return <div>test</div>;
         }
       `;
-      const { classifier, elementPath } = setup(code);
+      const { classifier, elementPath: elementPathMaybe } = setup(code);
 
-      if (!elementPath) throw new Error("No JSX element found");
+      if (!isNodePath(elementPathMaybe)) throw new Error("No JSX element found");
 
+      const elementNode = elementPathMaybe.node;
       const dep = createInternalDependency({
         symbol: "test",
         type: DependencyType.Variable,
         origin: createDependencyOrigin({
-          node: elementPath.node,
+          node: elementNode,
           file: "test.tsx",
         }),
         scope: createScopeInfo({
           type: ScopeType.Component,
-          path: elementPath,
+          path: elementPathMaybe,
           parent: null,
         }),
       });
@@ -379,22 +394,23 @@ describe("DependencyClassifier", () => {
           return <div>{React.version}</div>;
         }
       `;
-      const { classifier, elementPath, scopeManager } = setup(code);
+      const { classifier, elementPath: elementPathMaybe, scopeManager } = setup(code);
 
-      if (!elementPath) throw new Error("No JSX element found");
+      if (!isNodePath(elementPathMaybe)) throw new Error("No JSX element found");
 
       const targetScope = scopeManager.getScopeTree()?.root ?? null;
 
+      const elementNode = elementPathMaybe.node;
       const dep = createInternalDependency({
         symbol: "React",
         type: DependencyType.Import,
         origin: createDependencyOrigin({
-          node: elementPath.node,
+          node: elementNode,
           file: "test.tsx",
         }),
         scope: targetScope ?? createScopeInfo({
           type: ScopeType.Module,
-          path: elementPath,
+          path: elementPathMaybe,
           parent: null,
         }),
       });
@@ -411,22 +427,23 @@ describe("DependencyClassifier", () => {
           return <div>{value}</div>;
         }
       `;
-      const { classifier, elementPath, scopeManager } = setup(code);
+      const { classifier, elementPath: elementPathMaybe, scopeManager } = setup(code);
 
-      if (!elementPath) throw new Error("No JSX element found");
+      if (!isNodePath(elementPathMaybe)) throw new Error("No JSX element found");
 
       const targetScope = scopeManager.getScopeTree()?.root ?? null;
 
+      const elementNode = elementPathMaybe.node;
       const dep = createInternalDependency({
         symbol: "value",
         type: DependencyType.Variable,
         origin: createDependencyOrigin({
-          node: elementPath.node,
+          node: elementNode,
           file: "test.tsx",
         }),
         scope: targetScope ?? createScopeInfo({
           type: ScopeType.Module,
-          path: elementPath,
+          path: elementPathMaybe,
           parent: null,
         }),
       });
@@ -445,23 +462,24 @@ describe("DependencyClassifier", () => {
           return <div>{state}</div>;
         }
       `;
-      const { classifier, elementPath, scopeManager } = setup(code);
+      const { classifier, elementPath: elementPathMaybe, scopeManager } = setup(code);
 
-      if (!elementPath) throw new Error("No JSX element found");
+      if (!isNodePath(elementPathMaybe)) throw new Error("No JSX element found");
 
-      const elementScope = scopeManager.getScopeForPath(elementPath);
+      const elementScope = scopeManager.getScopeForPath(elementPathMaybe);
       const targetScope = scopeManager.getScopeTree()?.root ?? null;
 
+      const elementNode = elementPathMaybe.node;
       const dep = createInternalDependency({
         symbol: "state",
         type: DependencyType.Hook,
         origin: createDependencyOrigin({
-          node: elementPath.node,
+          node: elementNode,
           file: "test.tsx",
         }),
         scope: elementScope ?? createScopeInfo({
           type: ScopeType.Component,
-          path: elementPath,
+          path: elementPathMaybe,
           parent: null,
         }),
       });
@@ -483,23 +501,24 @@ describe("DependencyClassifier", () => {
           return <div>{value}</div>;
         }
       `;
-      const { classifier, elementPath, scopeManager } = setup(code);
+      const { classifier, elementPath: elementPathMaybe, scopeManager } = setup(code);
 
-      if (!elementPath) throw new Error("No JSX element found");
+      if (!isNodePath(elementPathMaybe)) throw new Error("No JSX element found");
 
-      const elementScope = scopeManager.getScopeForPath(elementPath);
+      const elementScope = scopeManager.getScopeForPath(elementPathMaybe);
       const targetScope = scopeManager.getScopeTree()?.root ?? null;
 
+      const elementNode = elementPathMaybe.node;
       const dep = createInternalDependency({
         symbol: "value",
         type: DependencyType.Variable,
         origin: createDependencyOrigin({
-          node: elementPath.node,
+          node: elementNode,
           file: "test.tsx",
         }),
         scope: elementScope ?? createScopeInfo({
           type: ScopeType.Component,
-          path: elementPath,
+          path: elementPathMaybe,
           parent: null,
         }),
       });
@@ -519,20 +538,21 @@ describe("DependencyClassifier", () => {
           return <div>test</div>;
         }
       `;
-      const { classifier, elementPath } = setup(code);
+      const { classifier, elementPath: elementPathMaybe } = setup(code);
 
-      if (!elementPath) throw new Error("No JSX element found");
+      if (!isNodePath(elementPathMaybe)) throw new Error("No JSX element found");
 
+      const elementNode = elementPathMaybe.node;
       const dep = createInternalDependency({
         symbol: "test",
         type: DependencyType.Hook,
         origin: createDependencyOrigin({
-          node: elementPath.node,
+          node: elementNode,
           file: "test.tsx",
         }),
         scope: createScopeInfo({
           type: ScopeType.Component,
-          path: elementPath,
+          path: elementPathMaybe,
           parent: null,
         }),
       });

@@ -9,7 +9,6 @@
 import { describe, test, expect } from 'vitest';
 import { parse } from '@babel/parser';
 import traverseModule from '@babel/traverse';
-import * as t from '@babel/types';
 
 import { loadTraverseFunction } from '../../utils/index.js';
 import { IdentifierCollector } from '../identifier-collector.js';
@@ -27,7 +26,7 @@ function parseAndGetPath(code: string): any {
 
   let targetPath: any = null;
   traverse(ast, {
-    Program(path) {
+    Program(path: any) {
       targetPath = path;
       path.stop();
     },
@@ -119,9 +118,12 @@ describe('IdentifierCollector', () => {
       const result = collector.collectDetailed(path);
 
       expect(result.identifiers.length).toBe(1);
-      expect(result.identifiers[0].name).toBe('someVariable');
-      expect(result.identifiers[0].path).toBeDefined();
-      expect(result.identifiers[0].usage).toBe('value');
+      const firstIdentifier = result.identifiers[0];
+      if (firstIdentifier) {
+        expect(firstIdentifier.name).toBe('someVariable');
+        expect(firstIdentifier.path).toBeDefined();
+        expect(firstIdentifier.usage).toBe('value');
+      }
     });
 
     test('shouldDetectCallUsage', () => {
@@ -129,11 +131,13 @@ describe('IdentifierCollector', () => {
       const path = parseAndGetPath(code);
       const collector = new IdentifierCollector();
 
-      const result = collector.collectDetailed(path);
+      const detailedResult = collector.collectDetailed(path);
 
-      const identifier = result.identifiers.find((id) => id.name === 'myFunction');
+      const identifier = detailedResult.identifiers.find((id) => id.name === 'myFunction');
       expect(identifier).toBeDefined();
-      expect(identifier?.usage).toBe('call');
+      if (identifier) {
+        expect(identifier.usage).toBe('call');
+      }
     });
 
     test('shouldCollectJSXElementNames', () => {

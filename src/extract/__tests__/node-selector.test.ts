@@ -11,6 +11,14 @@ import type { PositionSelector } from '../../types/public.js';
 import { createNodeSelector } from '../node-selector.js';
 import { ExtractErrorCode } from '../errors.js';
 
+function getFirst<T>(items: T[], label: string): T {
+  const [item] = items;
+  if (!item) {
+    throw new Error(`Expected ${label}`);
+  }
+  return item;
+}
+
 describe('NodeSelector - PositionSelector', () => {
   describe('selectNodes', () => {
     it('should select a single JSX element at a valid position', () => {
@@ -41,7 +49,7 @@ describe('NodeSelector - PositionSelector', () => {
       if (!result.ok) return;
 
       expect(result.value).toHaveLength(1);
-      expect(result.value[0].node.type).toBe('JSXElement');
+      expect(getFirst(result.value, 'selected node').node.type).toBe('JSXElement');
     });
 
     it('should select JSXText node at a valid position', () => {
@@ -72,7 +80,7 @@ describe('NodeSelector - PositionSelector', () => {
       if (!result.ok) return;
 
       expect(result.value).toHaveLength(1);
-      expect(result.value[0].node.type).toBe('JSXText');
+      expect(getFirst(result.value, 'selected node').node.type).toBe('JSXText');
     });
 
     // TODO: Fix JSXExpressionContainer selection in Phase 2
@@ -110,7 +118,7 @@ describe('NodeSelector - PositionSelector', () => {
       if (!result.ok) return;
 
       expect(result.value).toHaveLength(1);
-      expect(result.value[0].node.type).toBe('JSXExpressionContainer');
+      expect(getFirst(result.value, 'selected node').node.type).toBe('JSXExpressionContainer');
     });
 
     it('should fail when position does not contain a JSX node', () => {
@@ -283,18 +291,12 @@ describe('NodeSelector - PositionSelector', () => {
       expect(parseResult.ok).toBe(true);
       if (!parseResult.ok) return;
 
-      const ast = parseResult.value;
-
       // Manually create a non-JSX node path for testing
       // We'll use a path selector to get a non-JSX node (e.g., FunctionDeclaration)
-      const pathSelector = {
-        file: 'test.tsx',
-        path: 'Program.body[0]', // FunctionDeclaration node
-      };
+      // Note: ast and pathSelector are intentionally not used in this test
+      // as we're only implementing PositionSelector in Phase 1
 
       const nodeSelector = createNodeSelector();
-      const selectResult = nodeSelector.selectNodes(ast, pathSelector);
-
       // For this test, we expect selection to succeed but validation to fail
       // However, since we're only implementing PositionSelector in Phase 1,
       // we'll skip PathSelector support and just test with an empty array
@@ -358,8 +360,8 @@ describe('NodeSelector - RangeSelector', () => {
       if (!result.ok) return;
 
       expect(result.value).toHaveLength(2);
-      expect(result.value[0].node.type).toBe('JSXElement');
-      expect(result.value[1].node.type).toBe('JSXElement');
+      expect(getFirst(result.value, 'selected node').node.type).toBe('JSXElement');
+      expect(result.value[1]?.node.type).toBe('JSXElement');
     });
 
     it('should select all children when range covers entire parent', () => {
@@ -557,7 +559,7 @@ describe('NodeSelector - RangeSelector', () => {
       if (!result.ok) return;
 
       expect(result.value).toHaveLength(1);
-      expect(result.value[0].node.type).toBe('JSXElement');
+      expect(getFirst(result.value, 'selected node').node.type).toBe('JSXElement');
     });
   });
 });

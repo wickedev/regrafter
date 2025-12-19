@@ -130,7 +130,7 @@ function getJSXElementPath(code: string): NodePath | null {
   let elementPath: NodePath | null = null;
 
   traverse(ast, {
-    JSXElement(path) {
+    JSXElement(path: NodePath<t.JSXElement>) {
       if (!elementPath) {
         elementPath = path;
       }
@@ -149,7 +149,7 @@ function createTestScopeInfo(): ScopeInfo {
   let funcPath: NodePath | null = null;
 
   traverse(ast, {
-    FunctionDeclaration(path) {
+    FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
       funcPath = path;
     },
   });
@@ -163,7 +163,6 @@ function createTestScopeInfo(): ScopeInfo {
     type: ScopeType.Function,
     path: funcPath,
     parent: null,
-    children: [],
     bindings: new Map(),
     depth: 0,
   };
@@ -369,7 +368,7 @@ describe('IScopeManager Interface Compliance', () => {
     let funcPath: NodePath | null = null;
 
     traverse(ast, {
-      FunctionDeclaration(path) {
+      FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
         funcPath = path;
       },
     });
@@ -407,11 +406,12 @@ describe('IScopeManager Interface Compliance', () => {
     const ast = createTestAST();
     scopeManager.buildScopeTree(ast);
 
-    // Create test scope
-    const scope = createTestScopeInfo();
+    // Create test scopes
+    const sourceScope = createTestScopeInfo();
+    const targetScope = createTestScopeInfo();
 
     // Call checkAccessibility
-    const result = scopeManager.checkAccessibility('testBinding', scope);
+    const result = scopeManager.checkAccessibility(sourceScope, targetScope);
 
     // Verify return type is AccessibilityResult
     expect(result).toBeDefined();
@@ -451,7 +451,7 @@ describe('IScopeManager Interface Compliance', () => {
     let varPath: NodePath | null = null;
 
     traverse(ast, {
-      VariableDeclaration(path) {
+      VariableDeclaration(path: NodePath<t.VariableDeclaration>) {
         varPath = path;
       },
     });
@@ -475,7 +475,7 @@ describe('IScopeManager Interface Compliance', () => {
     let jsxPath: NodePath | null = null;
 
     traverse(ast, {
-      JSXElement(path) {
+      JSXElement(path: NodePath<t.JSXElement>) {
         jsxPath = path;
       },
     });
@@ -572,7 +572,7 @@ describe('IScopeManager Interface Compliance', () => {
 
     let jsxPath: NodePath | null = null;
     traverse(ast, {
-      JSXElement(path) {
+      JSXElement(path: NodePath<t.JSXElement>) {
         jsxPath = path;
       },
     });
@@ -681,8 +681,20 @@ describe('ICodeGenerator Interface Compliance', () => {
   it('IC-25: CodeGenerator.attachComments has correct signature', () => {
     // Create test node
     const node = t.identifier('test');
+    const comment: t.Comment = {
+      type: 'CommentLine',
+      value: 'test',
+      start: 0,
+      end: 0,
+      loc: {
+        start: { line: 1, column: 0, index: 0 },
+        end: { line: 1, column: 0, index: 0 },
+        filename: 'test.tsx',
+        identifierName: 'test',
+      },
+    };
     const comments = {
-      leadingComments: [{ type: 'CommentLine' as const, value: 'test', start: 0, end: 0, loc: { start: { line: 1, column: 0, index: 0 }, end: { line: 1, column: 0, index: 0 } } }],
+      leadingComments: [comment],
       trailingComments: [],
     };
 
@@ -774,7 +786,7 @@ describe('ICodeGenerator Interface Compliance', () => {
 
   it('IC-32: CodeGenerator.updateOptions has correct signature', () => {
     // Call updateOptions (should return void)
-    const result = generator.updateOptions({ retainLines: true });
+    const result = generator.updateOptions({ preserveComments: true });
 
     // Verify return type is void
     expect(result).toBeUndefined();
@@ -854,7 +866,7 @@ describe('ICodeGenerator Interface Compliance', () => {
     const options = asInterface.getOptions();
     expect(options).toBeDefined();
 
-    asInterface.updateOptions({ retainLines: false });
+    asInterface.updateOptions({ preserveComments: false });
 
     const node = t.identifier('test');
     const comments = asInterface.extractComments(node);

@@ -5,12 +5,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import type * as t from '@babel/types';
+
 import { parseFile } from '../../parser/index.js';
 import type { FileInput, PositionSelector } from '../../types/public.js';
-import type * as t from '@babel/types';
+
 import { ExtractPlanner } from '../extract-planner.js';
 import type { ExtractOptions } from '../types.js';
-import { ScopeManager } from '../../scope/index.js';
 
 /**
  * Helper function to parse files and create AST map

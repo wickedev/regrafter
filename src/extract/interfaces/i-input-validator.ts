@@ -4,8 +4,8 @@
  * Validates input parameters for extract operations
  */
 
-import type { Result } from '../../result/types.js';
 import type { RegraffError } from '../../errors/error-category.js';
+import type { Result } from '../../result/types.js';
 import type { FileInput, Selector } from '../../types/public.js';
 import type { ExtractOptions, RangeSelector } from '../types.js';
 

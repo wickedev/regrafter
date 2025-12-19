@@ -16,7 +16,13 @@ import * as t from '@babel/types';
 import { type ValidationErrorType, type InternalErrorType } from '../errors/index.js';
 import type { IScopeManager } from '../interfaces/index.js';
 import { type Result } from '../result/index.js';
+import type { HookUsage } from '../types/internal.js';
 
+import { createBindingTracker, type BindingTracker } from './components/binding-tracker.js';
+import { createHookTracker, type HookTracker } from './components/hook-tracker.js';
+import { createLCAComputer, type LCAComputer } from './components/lca-computer.js';
+import { createScopeQuery, type ScopeQuery } from './components/scope-query.js';
+import { createScopeTreeBuilder, type ScopeTreeBuilder } from './components/scope-tree-builder.js';
 import {
   ScopeType,
   type ScopeInfo,
@@ -25,14 +31,8 @@ import {
   type LCAResult,
   type BindingInfo,
   type ComponentInfo,
-  type HookInfo,
   type ScopeTree,
 } from './types.js';
-import { createScopeTreeBuilder, type ScopeTreeBuilder } from './components/scope-tree-builder.js';
-import { createBindingTracker, type BindingTracker } from './components/binding-tracker.js';
-import { createHookTracker, type HookTracker } from './components/hook-tracker.js';
-import { createScopeQuery, type ScopeQuery } from './components/scope-query.js';
-import { createLCAComputer, type LCAComputer } from './components/lca-computer.js';
 
 /**
  * Type guard to check if a ScopeInfo is a ComponentScope
@@ -94,7 +94,8 @@ export class ScopeManager implements IScopeManager {
       // Copy components from builder
       const builderComponents = this.treeBuilder.getComponents();
       for (const [id, info] of builderComponents.entries()) {
-        this.components.set(id, info);
+        const componentInfo: ComponentInfo = info;
+        this.components.set(id, componentInfo);
       }
     }
 
@@ -131,9 +132,9 @@ export class ScopeManager implements IScopeManager {
    * Component scope creation is now handled by ScopeTreeBuilder during tree construction.
    */
   createComponentScopeFromPath(
-    path: NodePath,
-    parent: ScopeInfo | null,
-    scopeTree: ScopeTree
+    _path: NodePath,
+    _parent: ScopeInfo | null,
+    _scopeTree: ScopeTree
   ): ComponentScope | null {
     // For backwards compatibility with the interface
     // In practice, this is now handled by ScopeTreeBuilder
@@ -365,8 +366,14 @@ export class ScopeManager implements IScopeManager {
   /**
    * Detect hooks used in a component
    */
-  private detectHooks(path: NodePath): HookInfo[] {
-    return this.hookTracker.detectHooks(path);
+  private detectHooks(path: NodePath): HookUsage[] {
+    const hookInfos = this.hookTracker.detectHooks(path);
+    // Convert HookInfo to HookUsage
+    return hookInfos.map((hookInfo) => ({
+      name: hookInfo.name,
+      path: hookInfo.path,
+      dependencies: hookInfo.dependencies ?? [],
+    }));
   }
 
 

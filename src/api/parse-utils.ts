@@ -8,6 +8,7 @@
  */
 
 import type * as t from '@babel/types';
+
 import type { RegraffError } from '../errors/index.js';
 import { parseFile } from '../parser/parse-file.js';
 import { err, isErr, ok, type Result } from '../result/index.js';

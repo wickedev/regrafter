@@ -5,8 +5,9 @@
  * Generates unique component names following React naming conventions
  */
 
-import { ok, err, type Result } from '../result/index.js';
 import type { RegraffError } from '../errors/error-category.js';
+import { ok, err, type Result } from '../result/index.js';
+
 import { createExtractError, ExtractErrorCode } from './errors.js';
 
 /**
@@ -26,10 +27,7 @@ export class ComponentNameGenerator {
    */
   generate(existingNames: Set<string>, suggestedName?: string): Result<string, RegraffError> {
     // Use default name if no suggestion provided (use ?? to handle empty string)
-    const baseName =
-      suggestedName !== undefined
-        ? suggestedName
-        : ComponentNameGenerator.DEFAULT_NAME;
+    const baseName = suggestedName ?? ComponentNameGenerator.DEFAULT_NAME;
 
     // Convert to PascalCase
     const pascalName = this.toPascalCase(baseName);

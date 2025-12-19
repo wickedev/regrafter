@@ -5,9 +5,10 @@
  * These are kept in the strategies module as they are specific to the hoisting strategies.
  */
 
-import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
-import * as t from '@babel/types';
+import type { NodePath } from '@babel/traverse';
+import type * as t from '@babel/types';
+
 import { loadTraverseFunction } from '../utils/index.js';
 
 const traverse = loadTraverseFunction(traverseModule);

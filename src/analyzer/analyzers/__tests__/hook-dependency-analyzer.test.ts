@@ -12,9 +12,9 @@ const traverse = traverseFn as any as typeof traverseFn.default;
 import { createScopeManager } from "../../../scope/index.js";
 import {
   createHookDependencyAnalyzer,
-  type IHookDependencyAnalyzer,
 } from "../hook-dependency-analyzer.js";
 import { DependencyType } from "../../types.js";
+import type { IdentifierReference } from "../../types.js";
 
 describe("HookDependencyAnalyzer", () => {
   function setup(code: string) {
@@ -31,9 +31,9 @@ describe("HookDependencyAnalyzer", () => {
     return { analyzer, ast, scopeManager };
   }
 
-  function collectIdentifiers(code: string) {
-    const { ast } = setup(code);
-    const identifiers: Array<{ name: string; path: NodePath<t.Identifier> }> = [];
+  function collectIdentifiers(code: string): IdentifierReference[] {
+    const { ast, scopeManager } = setup(code);
+    const identifiers: IdentifierReference[] = [];
 
     traverse(ast, {
       Identifier(path: NodePath<t.Identifier>) {
@@ -47,7 +47,12 @@ describe("HookDependencyAnalyzer", () => {
           return;
         }
 
-        identifiers.push({ name: path.node.name, path });
+        identifiers.push({
+          name: path.node.name,
+          path,
+          usage: 'value',
+          scope: scopeManager.getScopeForPath(path)
+        });
       },
     });
 
@@ -62,7 +67,7 @@ describe("HookDependencyAnalyzer", () => {
           return <div>{state}</div>;
         }
       `;
-      const { analyzer, scopeManager } = setup(code);
+      const { analyzer } = setup(code);
       const identifiers = collectIdentifiers(code);
 
       const result = analyzer.detectHookDependencies(identifiers, null);
@@ -382,7 +387,7 @@ describe("HookDependencyAnalyzer", () => {
           useEffect(() => {}, [value]);
         }
       `;
-      const { analyzer, ast } = setup(code);
+      const { ast } = setup(code);
 
       let binding: any = null;
       traverse(ast, {

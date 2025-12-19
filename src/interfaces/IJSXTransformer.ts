@@ -10,10 +10,11 @@
 
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
+
 import type { TransformErrorType, ValidationErrorType } from '../errors/index.js';
 import type { Result } from '../result/index.js';
-import type { Move } from '../types/public.js';
 import type { MoveOptions, MoveContext, InsertionPoint } from '../transformer/types.js';
+import type { Move } from '../types/public.js';
 
 /**
  * Interface for JSX transformation operations

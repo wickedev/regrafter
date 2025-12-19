@@ -7,6 +7,7 @@
 
 import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
+
 import type { ICodeReplacer } from './interfaces/i-code-replacer.js';
 
 /**
@@ -20,50 +21,20 @@ import type { ICodeReplacer } from './interfaces/i-code-replacer.js';
  */
 export class CodeReplacer implements ICodeReplacer {
   /**
-   * Replace JSX node with component call
+   * Replace selected nodes with a component reference
    *
-   * @param sourcePath - Path to original JSX node to replace
-   * @param componentName - New component name
-   * @param props - Props to pass (name -> expression map)
+   * @param _ast - AST to modify (unused, nodes already contain AST context)
+   * @param nodes - Nodes to replace
+   * @param replacement - Replacement JSX element
    */
   replace(
-    sourcePath: NodePath,
-    componentName: string,
-    props: Map<string, t.Expression>
+    _ast: t.File,
+    nodes: Array<NodePath<t.JSXElement>>,
+    replacement: t.JSXElement
   ): void {
-    // Generate JSX element name
-    const jsxIdentifier = t.jsxIdentifier(componentName);
-
-    // Convert Props to JSX attributes
-    const attributes: t.JSXAttribute[] = [];
-    for (const [propName, propExpression] of props.entries()) {
-      const attributeName = t.jsxIdentifier(propName);
-      const attributeValue = t.jsxExpressionContainer(propExpression);
-      attributes.push(t.jsxAttribute(attributeName, attributeValue));
+    // Replace each selected node with the replacement element
+    for (const nodePath of nodes) {
+      nodePath.replaceWith(t.cloneNode(replacement, true));
     }
-
-    // Create new JSX element
-    let newElement: t.JSXElement | t.JSXFragment;
-
-    if (attributes.length === 0) {
-      // Self-closing element if no props
-      newElement = t.jsxElement(
-        t.jsxOpeningElement(jsxIdentifier, attributes, true),
-        null, // closingElement is null for selfClosing
-        [],
-        true // selfClosing
-      );
-    } else {
-      // Self-closing element with props
-      newElement = t.jsxElement(
-        t.jsxOpeningElement(jsxIdentifier, attributes, true),
-        null,
-        [],
-        true
-      );
-    }
-
-    // Replace original node with new element
-    sourcePath.replaceWith(newElement);
   }
 }

@@ -5,6 +5,7 @@
  */
 
 import type * as t from '@babel/types';
+
 import type { ExtractPlan } from '../types.js';
 
 export interface IComponentBuilder {

@@ -9,12 +9,14 @@
  */
 
 import type * as t from '@babel/types';
-import type { ICodeFormatter } from './interfaces/i-code-formatter.js';
+
+import type { RegraffError } from '../errors/error-category.js';
 import { CodeGenerator } from '../generator/code-generator.js';
 import type { GeneratorOptions } from '../generator/types.js';
 import { ok, err, type Result } from '../result/index.js';
+
 import { createExtractError, ExtractErrorCode } from './errors.js';
-import type { RegraffError } from '../errors/error-category.js';
+import type { ICodeFormatter } from './interfaces/i-code-formatter.js';
 
 /**
  * CodeFormatter converts AST to code while preserving original code style.
@@ -28,7 +30,7 @@ import type { RegraffError } from '../errors/error-category.js';
  * Based on design.md section CodeFormatter
  */
 export class CodeFormatter implements ICodeFormatter {
-  private codeGenerator: CodeGenerator;
+  private readonly codeGenerator: CodeGenerator;
 
   constructor() {
     this.codeGenerator = new CodeGenerator();
@@ -206,8 +208,8 @@ export class CodeFormatter implements ICodeFormatter {
    */
   private analyzeSingleQuotePreference(code: string): boolean {
     // Count single/double quotes in string literals
-    const singleQuoteMatches = code.match(/'[^']*'/g) || [];
-    const doubleQuoteMatches = code.match(/"[^"]*"/g) || [];
+    const singleQuoteMatches = code.match(/'[^']*'/g) ?? [];
+    const doubleQuoteMatches = code.match(/"[^"]*"/g) ?? [];
 
     // Return true if single quotes are more common
     return singleQuoteMatches.length >= doubleQuoteMatches.length;
@@ -284,7 +286,7 @@ export class CodeFormatter implements ICodeFormatter {
 
         // Calculate current indentation level (Babel uses 2 spaces)
         const match = line.match(/^( +)/);
-        if (!match) return line;
+        if (match?.[1] === undefined) return line;
 
         const currentIndent = match[1].length;
         const level = Math.floor(currentIndent / 2); // Babel uses 2 spaces unit

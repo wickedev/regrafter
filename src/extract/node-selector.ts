@@ -5,16 +5,20 @@
  * Selects and validates JSX nodes for extraction
  */
 
-import type { NodePath } from '@babel/traverse';
-import traverse from '@babel/traverse';
-import type * as t from '@babel/types';
+import traverseModule, { type NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
+
 import { isAnyJSXNode } from '../core/index.js';
-import { createSelectorResolver } from '../selector/selector-resolver.js';
-import { ok, err, type Result } from '../result/index.js';
-import type { Selector, PositionSelector, PathSelector } from '../types/public.js';
-import type { RangeSelector } from './types.js';
 import type { RegraffError } from '../errors/error-category.js';
+import { ok, err, type Result } from '../result/index.js';
+import { createSelectorResolver } from '../selector/selector-resolver.js';
+import type { Selector } from '../types/public.js';
+import { loadTraverseFunction } from '../utils/index.js';
+
 import { createExtractError, ExtractErrorCode } from './errors.js';
+import type { RangeSelector } from './types.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 /**
  * NodeSelector Interface
@@ -51,7 +55,26 @@ export interface INodeSelector {
 function isRangeSelector(
   selector: Selector | RangeSelector
 ): selector is RangeSelector {
-  return 'start' in selector && 'end' in selector;
+  if (!('start' in selector) || !('end' in selector)) {
+    return false;
+  }
+
+  const { start, end } = selector;
+  return (
+    typeof selector.file === 'string' &&
+    typeof start.line === 'number' &&
+    typeof start.column === 'number' &&
+    typeof end.line === 'number' &&
+    typeof end.column === 'number'
+  );
+}
+
+function rangeToPositionSelector(selector: RangeSelector): Selector {
+  return {
+    file: selector.file,
+    line: selector.start.line,
+    column: selector.start.column,
+  };
 }
 
 // Removed: isJSXNode is now imported from core/ast-guards.js
@@ -60,7 +83,7 @@ function isRangeSelector(
  * NodeSelector Implementation
  */
 export class NodeSelector implements INodeSelector {
-  private selectorResolver = createSelectorResolver();
+  private readonly selectorResolver = createSelectorResolver();
 
   /**
    * Select JSX nodes using a selector
@@ -80,16 +103,13 @@ export class NodeSelector implements INodeSelector {
     }
 
     // Use SelectorResolver to find the node
-    const resolveResult = this.selectorResolver.resolveResult(
-      selector as Selector,
-      ast
-    );
+    const resolveResult = this.selectorResolver.resolveResult(selector, ast);
 
     if (!resolveResult.ok) {
       // Convert SelectorError to ExtractError
       return err(
         createExtractError(ExtractErrorCode.NODE_NOT_FOUND, {
-          selector: selector as Selector,
+          selector,
           file: selector.file,
           details: resolveResult.error.message,
         })
@@ -102,7 +122,7 @@ export class NodeSelector implements INodeSelector {
     if (!isAnyJSXNode(path.node)) {
       return err(
         createExtractError(ExtractErrorCode.NOT_JSX_NODE, {
-          selector: selector as Selector,
+          selector,
           file: selector.file,
           details: `Node type "${path.node.type}" is not a JSX node. Only JSXElement, JSXText, and JSXExpressionContainer are supported.`,
         })
@@ -145,66 +165,118 @@ export class NodeSelector implements INodeSelector {
 
     // For multi-node selection, check parent and contiguity
     if (nodes.length > 1) {
-      const firstParent = nodes[0].parent;
-
-      // Check all nodes have the same parent
-      for (let i = 1; i < nodes.length; i++) {
-        if (nodes[i].parent !== firstParent) {
-          return err(
-            createExtractError(ExtractErrorCode.DIFFERENT_PARENTS, {
-              details: 'All selected nodes must have the same parent node.',
-            })
-          );
-        }
-      }
-
-      // Check nodes are contiguous (appear consecutively in parent's children)
-      // Allow whitespace-only JSXText nodes between selected nodes
-      const parent = firstParent;
-      if (parent && 'children' in parent) {
-        const children = (parent as { children: unknown[] }).children;
-        const nodeIndices = nodes.map((n) => children.indexOf(n.node));
-
-        // Sort indices to check for gaps
-        const sortedIndices = [...nodeIndices].sort((a, b) => a - b);
-
-        // Check if there are non-whitespace nodes between selected nodes
-        for (let i = 1; i < sortedIndices.length; i++) {
-          const prevIndex = sortedIndices[i - 1];
-          const currIndex = sortedIndices[i];
-
-          // Check all nodes between prevIndex and currIndex
-          for (let j = prevIndex + 1; j < currIndex; j++) {
-            const betweenNode = children[j];
-
-            // If it's a JSXText with only whitespace, skip it
-            if (
-              betweenNode &&
-              typeof betweenNode === 'object' &&
-              'type' in betweenNode &&
-              betweenNode.type === 'JSXText' &&
-              'value' in betweenNode &&
-              typeof betweenNode.value === 'string'
-            ) {
-              const textValue = betweenNode.value.trim();
-              if (textValue.length === 0) {
-                continue; // Skip whitespace nodes
-              }
-            }
-
-            // Found a non-whitespace node between selected nodes
-            return err(
-              createExtractError(ExtractErrorCode.NON_CONTIGUOUS_NODES, {
-                details: 'Selected nodes must be contiguous (appear consecutively in the parent, ignoring whitespace).',
-              })
-            );
-          }
-        }
+      const contiguityResult = this.validateContiguity(nodes);
+      if (!contiguityResult.ok) {
+        return contiguityResult;
       }
     }
 
     // All validations passed
     return ok(undefined);
+  }
+
+  private validateContiguity(nodes: NodePath[]): Result<void, RegraffError> {
+    const [firstNode] = nodes;
+    if (!firstNode) {
+      return err(
+        createExtractError(ExtractErrorCode.INVALID_SELECTION, {
+          details: 'No nodes selected for extraction.',
+        })
+      );
+    }
+
+    const parent = firstNode.parent;
+    if (!this.hasSameParent(nodes, parent)) {
+      return err(
+        createExtractError(ExtractErrorCode.DIFFERENT_PARENTS, {
+          details: 'All selected nodes must have the same parent node.',
+        })
+      );
+    }
+
+    const children = this.getParentChildren(parent);
+    if (children === null) {
+      return ok(undefined);
+    }
+
+    const nodeIndices = nodes.map((node) => {
+      const nodeToFind = node.node;
+      if (!t.isJSXElement(nodeToFind) && !t.isJSXExpressionContainer(nodeToFind) && !t.isJSXFragment(nodeToFind) && !t.isJSXSpreadChild(nodeToFind) && !t.isJSXText(nodeToFind)) {
+        return -1;
+      }
+      return children.indexOf(nodeToFind);
+    });
+    if (nodeIndices.some((index) => index < 0)) {
+      return err(
+        createExtractError(ExtractErrorCode.INVALID_SELECTION, {
+          details: 'Selected nodes are not direct children of the same parent.',
+        })
+      );
+    }
+
+    const sortedIndices = [...nodeIndices].sort((a, b) => a - b);
+    if (this.hasNonWhitespaceBetween(children, sortedIndices)) {
+      return err(
+        createExtractError(ExtractErrorCode.NON_CONTIGUOUS_NODES, {
+          details: 'Selected nodes must be contiguous (appear consecutively in the parent, ignoring whitespace).',
+        })
+      );
+    }
+
+    return ok(undefined);
+  }
+
+  private hasSameParent(
+    nodes: NodePath[],
+    parent: t.Node | null | undefined
+  ): boolean {
+    for (const node of nodes.slice(1)) {
+      if (node.parent !== parent) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private getParentChildren(
+    parent: t.Node | null | undefined
+  ): t.JSXElement['children'] | null {
+    if (!parent) {
+      return null;
+    }
+    if (t.isJSXElement(parent) || t.isJSXFragment(parent)) {
+      return parent.children;
+    }
+    return null;
+  }
+
+  private hasNonWhitespaceBetween(
+    children: t.JSXElement['children'],
+    sortedIndices: number[]
+  ): boolean {
+    for (let i = 1; i < sortedIndices.length; i++) {
+      const prevIndex = sortedIndices[i - 1];
+      const currIndex = sortedIndices[i];
+
+      if (prevIndex === undefined || currIndex === undefined) {
+        continue;
+      }
+
+      for (let j = prevIndex + 1; j < currIndex; j++) {
+        const betweenNode = children[j];
+        if (betweenNode === undefined || this.isWhitespaceJSXText(betweenNode)) {
+          continue;
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private isWhitespaceJSXText(
+    node: t.JSXElement['children'][number]
+  ): boolean {
+    return t.isJSXText(node) && node.value.trim().length === 0;
   }
 
   /**
@@ -243,7 +315,7 @@ export class NodeSelector implements INodeSelector {
 
     // Traverse AST and collect nodes within range
     traverse(ast, {
-      enter(path) {
+      enter(path: NodePath<t.Node>) {
         const { node } = path;
         const { loc } = node;
 
@@ -289,7 +361,7 @@ export class NodeSelector implements INodeSelector {
     if (topLevelNodes.length === 0) {
       return err(
         createExtractError(ExtractErrorCode.NODE_NOT_FOUND, {
-          selector: selector as unknown as Selector,
+          selector: rangeToPositionSelector(selector),
           file: selector.file,
           details: 'No JSX nodes found within the specified range.',
         })

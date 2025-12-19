@@ -5,10 +5,10 @@
  * Provides type guards for RangeSelector and ExtractResult
  */
 
-import type { Selector } from '../types/public.js';
-import type { RangeSelector, ExtractResult } from './types.js';
-import { isOk, type Result, type Ok } from '../result/index.js';
 import type { RegraffError } from '../errors/error-category.js';
+import { isOk, type Ok, type Result } from '../result/index.js';
+
+import type { ExtractResult, RangeSelector } from './types.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Type Guard: isRangeSelector
@@ -45,48 +45,48 @@ import type { RegraffError } from '../errors/error-category.js';
  * ```
  */
 export function isRangeSelector(
-  selector: Selector | RangeSelector | unknown
+  selector: unknown
 ): selector is RangeSelector {
   // Check if selector is an object
-  if (typeof selector !== 'object' || selector === null) {
+  if (!isRecord(selector)) {
     return false;
   }
 
-  const obj = selector as Record<string, unknown>;
-
   // Must have 'file', 'start', and 'end' properties
-  if (!('file' in obj) || !('start' in obj) || !('end' in obj)) {
+  if (
+    typeof selector.file !== 'string' ||
+    !('start' in selector) ||
+    !('end' in selector)
+  ) {
     return false;
   }
 
   // Check start property structure
-  const start = obj.start;
-  if (typeof start !== 'object' || start === null) {
+  const start = selector.start;
+  if (!isRecord(start)) {
     return false;
   }
 
-  const startObj = start as Record<string, unknown>;
   if (
-    !('line' in startObj) ||
-    !('column' in startObj) ||
-    typeof startObj.line !== 'number' ||
-    typeof startObj.column !== 'number'
+    !('line' in start) ||
+    !('column' in start) ||
+    typeof start.line !== 'number' ||
+    typeof start.column !== 'number'
   ) {
     return false;
   }
 
   // Check end property structure
-  const end = obj.end;
-  if (typeof end !== 'object' || end === null) {
+  const end = selector.end;
+  if (!isRecord(end)) {
     return false;
   }
 
-  const endObj = end as Record<string, unknown>;
   if (
-    !('line' in endObj) ||
-    !('column' in endObj) ||
-    typeof endObj.line !== 'number' ||
-    typeof endObj.column !== 'number'
+    !('line' in end) ||
+    !('column' in end) ||
+    typeof end.line !== 'number' ||
+    typeof end.column !== 'number'
   ) {
     return false;
   }
@@ -126,4 +126,8 @@ export function isExtractSuccess(
   result: Result<ExtractResult, RegraffError>
 ): result is Ok<ExtractResult> {
   return isOk(result);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }

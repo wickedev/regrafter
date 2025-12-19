@@ -266,7 +266,7 @@ export class IdentifierCollector implements IIdentifierCollector {
 
     // Check if inside JSX attribute (through expression container)
     if (t.isJSXExpressionContainer(parent)) {
-      const grandParent = path.parentPath?.parent;
+      const grandParent = path.parentPath.parent;
       if (t.isJSXAttribute(grandParent)) {
         return "jsx-attribute";
       }

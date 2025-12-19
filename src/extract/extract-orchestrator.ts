@@ -10,24 +10,26 @@
  * - 10.7: Return generated file paths and change summary
  */
 
-import type { FileInput, Selector } from '../types/public.js';
+import type * as t from '@babel/types';
+
+import type { RegraffError } from '../errors/error-category.js';
+import { parseFile } from '../parser/index.js';
+import { err, ok, type Result } from '../result/types.js';
+import type { Code, FileInput, Selector } from '../types/public.js';
+
+import { CodeFormatter } from './CodeFormatter.js';
+import { createExtractError, ExtractErrorCode } from './errors.js';
+import { ExtractExecutor } from './extract-executor.js';
+import { ExtractPlanner } from './extract-planner.js';
+import { InputValidator } from './input-validator.js';
+import { TypeStringifier } from './type-stringifier.js';
 import type {
+  ExtractPlan,
   ExtractOptions,
   ExtractResult,
   ExtractAnalysis,
   RangeSelector,
 } from './types.js';
-import type { Result } from '../result/types.js';
-import type { RegraffError } from '../errors/error-category.js';
-import * as t from '@babel/types';
-import { ok, err } from '../result/types.js';
-import { InputValidator } from './input-validator.js';
-import { ExtractPlanner } from './extract-planner.js';
-import { ExtractExecutor } from './extract-executor.js';
-import { CodeFormatter } from './CodeFormatter.js';
-import { TypeStringifier } from './type-stringifier.js';
-import { parseFile } from '../parser/index.js';
-import { createExtractError, ExtractErrorCode } from './errors.js';
 
 /**
  * ExtractOrchestrator
@@ -45,11 +47,11 @@ import { createExtractError, ExtractErrorCode } from './errors.js';
  * Based on design.md section ExtractOrchestrator
  */
 export class ExtractOrchestrator {
-  private inputValidator: InputValidator;
-  private extractPlanner: ExtractPlanner;
-  private extractExecutor: ExtractExecutor;
-  private codeFormatter: CodeFormatter;
-  private typeStringifier: TypeStringifier;
+  private readonly inputValidator: InputValidator;
+  private readonly extractPlanner: ExtractPlanner;
+  private readonly extractExecutor: ExtractExecutor;
+  private readonly codeFormatter: CodeFormatter;
+  private readonly typeStringifier: TypeStringifier;
 
   constructor() {
     this.inputValidator = new InputValidator();
@@ -97,7 +99,7 @@ export class ExtractOrchestrator {
     const updatedAsts = executeResult.value;
 
     // Step 5: Code formatting
-    const codes: Array<{ path: string; content: string }> = [];
+    const codes: Code[] = [];
 
     for (const [filePath, ast] of updatedAsts) {
       const originalFile = files.find(f => f.path === filePath);
@@ -108,9 +110,14 @@ export class ExtractOrchestrator {
         return formatResult;
       }
 
+      const changed = formatResult.value !== originalContent;
+
       codes.push({
-        path: filePath,
+        file: filePath,
         content: formatResult.value,
+        changed,
+        isNew: originalFile === undefined,
+        original: changed ? originalContent : undefined,
       });
     }
 
