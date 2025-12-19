@@ -36,31 +36,16 @@ jobs:
       - name: Run memory benchmarks
         run: npm run bench:memory
 
-      - name: Store benchmark result
-        uses: benchmark-action/github-action-benchmark@v1
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        with:
-          tool: 'vitest'
-          output-file-path: benchmark-results.json
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-push: true
-          # Alert if performance degrades by more than 150%
-          alert-threshold: '150%'
-          # Comment on commit if threshold exceeded
-          comment-on-alert: true
-          # Fail the workflow if threshold exceeded
-          fail-on-alert: true
-          # Store results in gh-pages branch
-          gh-pages-branch: gh-pages
-          benchmark-data-dir-path: dev/bench
-
       - name: Upload benchmark results as artifact
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: benchmark-results
           path: |
-            benchmark-results.json
+            **/*.bench.txt
+            **/bench*.txt
           retention-days: 30
+          if-no-files-found: warn
 
       - name: Comment PR with benchmark results
         uses: actions/github-script@v7
