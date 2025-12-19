@@ -9,7 +9,7 @@ import { describe, it, expect } from "vitest";
 import * as t from "@babel/types";
 import { parse } from "@babel/parser";
 import traverseModule, { type NodePath } from "@babel/traverse";
-import { err, ok, type Result } from "../../result/index.js";
+import { err, ok, unwrapResult, type Result } from "../../result/index.js";
 import { loadTraverseFunction } from "../../utils/index.js";
 import { TypeInferrer } from "../type-inferrer.js";
 import type {
@@ -49,14 +49,6 @@ function getPropertySignature(
     return err(`Expected TSPropertySignature at index ${index}`);
   }
   return ok(property);
-}
-
-function unwrapResult<T, E>(result: Result<T, E>): T | null {
-  expect(result.ok).toBe(true);
-  if (!result.ok) {
-    return null;
-  }
-  return result.value;
 }
 
 function requireFirst<T>(items: T[], label: string): T | null {

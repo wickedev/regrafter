@@ -42,6 +42,44 @@ export function unwrap<T, E>(result: Result<T, E>): T {
 }
 
 /**
+ * Unwraps a Result, returning the Ok value or null if Err.
+ *
+ * This is a safe alternative to unwrap() that never throws and returns null
+ * instead of providing a custom default value. This is particularly useful
+ * in test contexts where you want to check if a Result is Ok and get its value,
+ * or get null if it's Err.
+ *
+ * @param result - The Result to unwrap
+ * @returns The value if Result is Ok, or null if Result is Err
+ *
+ * @example
+ * ```typescript
+ * // Ok case - returns value
+ * const result = ok(42);
+ * const value = unwrapResult(result);
+ * // value: number | null = 42
+ *
+ * // Err case - returns null
+ * const error = err('Not found');
+ * const value2 = unwrapResult(error);
+ * // value2: number | null = null
+ *
+ * // Practical usage in tests
+ * const result = parseInput('valid');
+ * const value = unwrapResult(result);
+ * if (value) {
+ *   expect(value.id).toBe(123);
+ * }
+ * ```
+ */
+export function unwrapResult<T, E>(result: Result<T, E>): T | null {
+  if (!result.ok) {
+    return null;
+  }
+  return result.value;
+}
+
+/**
  * Unwraps a Result, returning the Ok value or a default value if Err.
  *
  * This is a safe alternative to unwrap() that never throws.

@@ -18,20 +18,12 @@
 import { describe, it, expect } from 'vitest';
 import { extract } from '../extract.js';
 import type { Code, FileInput } from '../../types/public.js';
-import { err, ok, type Result } from '../../result/index.js';
+import { err, ok, unwrapResult, type Result } from '../../result/index.js';
 import type { ExtractOptions } from '../types.js';
 
 function getCode(codes: Code[], index = 0): Result<Code, string> {
   const code = codes[index];
   return code ? ok(code) : err(`Expected code output at index ${index}`);
-}
-
-function unwrapResult<T, E>(result: Result<T, E>): T | null {
-  expect(result.ok).toBe(true);
-  if (!result.ok) {
-    return null;
-  }
-  return result.value;
 }
 
 describe('Extract Integration Tests', () => {

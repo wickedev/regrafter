@@ -260,11 +260,16 @@ export function isExtractError(error: unknown): error is RegraffError {
 
   const code = error['code'];
   const message = error['message'];
+  const tag = error['_tag'];
   const category = error['category'];
+
+  // Check for new error format (with _tag) or legacy format (with category)
+  const hasValidTag = typeof tag === 'string' || typeof category === 'string';
+
   return (
     typeof code === 'string' &&
     typeof message === 'string' &&
-    typeof category === 'string' &&
+    hasValidTag &&
     ERROR_CODE_SET.has(code)
   );
 }

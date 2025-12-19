@@ -8,14 +8,12 @@
  */
 
 import type { NodePath, Binding } from '@babel/traverse';
-import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
 import { IdentifierCollector } from '../core/index.js';
 import type { RegraffError } from '../errors/index.js';
 import { ok, err, isErr, type Result } from '../result/index.js';
 import type { ScopeManager, ScopeInfo } from '../scope/index.js';
-import { loadTraverseFunction, type TraverseFunction } from '../utils/index.js';
 
 import { createExtractError, ExtractErrorCode } from './errors.js';
 import type {
@@ -25,8 +23,6 @@ import type {
   StateDependency,
   ImportDependency,
 } from './types.js';
-
-const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
 
 /**
  * ExtractDependencyAnalyzer
@@ -456,38 +452,33 @@ export class ExtractDependencyAnalyzer {
     const declared = new Set<string>();
 
     for (const nodePath of nodes) {
-      const node = nodePath.node;
-
-      traverse(
-        node,
-        {
-          VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
-            if (t.isIdentifier(path.node.id)) {
-              declared.add(path.node.id.name);
-            } else if (t.isArrayPattern(path.node.id)) {
-              // const [a, b] = ...
-              for (const elem of path.node.id.elements) {
-                if (elem !== null && t.isIdentifier(elem)) {
-                  declared.add(elem.name);
-                }
-              }
-            } else if (t.isObjectPattern(path.node.id)) {
-              // const { a, b} = ...
-              for (const prop of path.node.id.properties) {
-                if (t.isObjectProperty(prop) && t.isIdentifier(prop.value)) {
-                  declared.add(prop.value.name);
-                }
+      nodePath.traverse({
+        VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
+          if (t.isIdentifier(path.node.id)) {
+            declared.add(path.node.id.name);
+          } else if (t.isArrayPattern(path.node.id)) {
+            // const [a, b] = ...
+            for (const elem of path.node.id.elements) {
+              if (elem !== null && t.isIdentifier(elem)) {
+                declared.add(elem.name);
               }
             }
-          },
-          FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
-            const id = path.node.id;
-            if (id !== null && id !== undefined && t.isIdentifier(id)) {
-              declared.add(id.name);
+          } else if (t.isObjectPattern(path.node.id)) {
+            // const { a, b} = ...
+            for (const prop of path.node.id.properties) {
+              if (t.isObjectProperty(prop) && t.isIdentifier(prop.value)) {
+                declared.add(prop.value.name);
+              }
             }
-          },
-        }
-      );
+          }
+        },
+        FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
+          const id = path.node.id;
+          if (id !== null && id !== undefined && t.isIdentifier(id)) {
+            declared.add(id.name);
+          }
+        },
+      });
     }
 
     return declared;
@@ -498,19 +489,16 @@ export class ExtractDependencyAnalyzer {
    */
   private collectReferencedIdentifiers(declarationPath: NodePath): Set<string> {
     const referenced = new Set<string>();
-    const node = declarationPath.node;
 
-    traverse(
-      node,
-      {
-        Identifier(path: NodePath<t.Identifier>) {
-          // Collect only references, not declarations
-          // Use type guard to check if path has isReferencedIdentifier method
-          if (typeof path.isReferencedIdentifier === 'function' && path.isReferencedIdentifier()) {
-            referenced.add(path.node.name);
-          }
-        },
-      }
+    declarationPath.traverse({
+      Identifier(path: NodePath<t.Identifier>) {
+        // Collect only references, not declarations
+        // Use type guard to check if path has isReferencedIdentifier method
+        if (typeof path.isReferencedIdentifier === 'function' && path.isReferencedIdentifier()) {
+          referenced.add(path.node.name);
+        }
+      },
+    }
     );
 
     return referenced;

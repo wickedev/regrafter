@@ -12,20 +12,12 @@
 import { describe, it, expect } from 'vitest';
 import { ExtractOrchestrator } from '../extract-orchestrator.js';
 import type { Code, FileInput } from '../../types/public.js';
-import { err, ok, type Result } from '../../result/index.js';
+import { err, ok, unwrapResult, type Result } from '../../result/index.js';
 import type { ExtractOptions } from '../types.js';
 
 function getFirstCode(codes: Code[]): Result<Code, string> {
   const [code] = codes;
   return code ? ok(code) : err('Expected at least one code output');
-}
-
-function unwrapResult<T, E>(result: Result<T, E>): T | null {
-  expect(result.ok).toBe(true);
-  if (!result.ok) {
-    return null;
-  }
-  return result.value;
 }
 
 describe('ExtractOrchestrator', () => {
