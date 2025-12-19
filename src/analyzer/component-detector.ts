@@ -11,6 +11,7 @@ import traverseModule from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
 
+import { isJSXNode } from '../core/index.js';
 import { loadTraverseFunction } from '../utils/index.js';
 
 const traverse = loadTraverseFunction(traverseModule);
@@ -111,16 +112,7 @@ function returnsJSX(body: t.BlockStatement): boolean {
   return false;
 }
 
-/**
- * Checks if a node is a JSX node
- */
-function isJSXNode(node: t.Node): boolean {
-  return (
-    node.type === 'JSXElement' ||
-    node.type === 'JSXFragment' ||
-    node.type === 'JSXText'
-  );
-}
+// Removed: isJSXNode is now imported from core/ast-guards.js
 
 /**
  * Detects React hooks in a function body

@@ -8,6 +8,7 @@
 import type { NodePath } from '@babel/traverse';
 import traverse from '@babel/traverse';
 import type * as t from '@babel/types';
+import { isAnyJSXNode } from '../core/index.js';
 import { createSelectorResolver } from '../selector/selector-resolver.js';
 import { ok, err, type Result } from '../result/index.js';
 import type { Selector, PositionSelector, PathSelector } from '../types/public.js';
@@ -53,18 +54,7 @@ function isRangeSelector(
   return 'start' in selector && 'end' in selector;
 }
 
-/**
- * Check if a node is a JSX-related node
- */
-function isJSXNode(node: t.Node): boolean {
-  return (
-    node.type === 'JSXElement' ||
-    node.type === 'JSXText' ||
-    node.type === 'JSXExpressionContainer' ||
-    node.type === 'JSXFragment' ||
-    node.type === 'JSXSpreadChild'
-  );
-}
+// Removed: isJSXNode is now imported from core/ast-guards.js
 
 /**
  * NodeSelector Implementation
@@ -109,7 +99,7 @@ export class NodeSelector implements INodeSelector {
     const { path } = resolveResult.value;
 
     // Check if the node is a JSX node
-    if (!isJSXNode(path.node)) {
+    if (!isAnyJSXNode(path.node)) {
       return err(
         createExtractError(ExtractErrorCode.NOT_JSX_NODE, {
           selector: selector as Selector,
@@ -144,7 +134,7 @@ export class NodeSelector implements INodeSelector {
 
     // Check that all nodes are JSX nodes
     for (const nodePath of nodes) {
-      if (!isJSXNode(nodePath.node)) {
+      if (!isAnyJSXNode(nodePath.node)) {
         return err(
           createExtractError(ExtractErrorCode.NOT_JSX_NODE, {
             details: `Node type "${nodePath.node.type}" is not extractable. Only JSXElement, JSXText, and JSXExpressionContainer can be extracted.`,
@@ -264,7 +254,7 @@ export class NodeSelector implements INodeSelector {
         const nodeStart = loc.start;
         if (isInRange(nodeStart.line, nodeStart.column)) {
           // Only collect JSX nodes
-          if (isJSXNode(node)) {
+          if (isAnyJSXNode(node)) {
             // Skip whitespace-only JSXText nodes
             if (node.type === 'JSXText') {
               const textValue = node.value.trim();

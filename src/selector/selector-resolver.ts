@@ -12,6 +12,7 @@ import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
 import { detectCompoundComponent } from '../analyzer/index.js';
+import { isAnyJSXNode } from '../core/index.js';
 import { createSelectorError, type SelectorErrorType } from '../errors/error-category.js';
 import { ok, err, type Result } from '../result/index.js';
 import {
@@ -46,18 +47,7 @@ export interface ElementData {
   atomicUnit: AtomicUnit | null;
 }
 
-/**
- * Check if a node is a JSX element or expression container
- */
-function isJSXNode(node: t.Node): boolean {
-  return (
-    t.isJSXElement(node) ||
-    t.isJSXFragment(node) ||
-    t.isJSXExpressionContainer(node) ||
-    t.isJSXText(node) ||
-    t.isJSXSpreadChild(node)
-  );
-}
+// Removed: isJSXNode is now imported from core/ast-guards.js
 
 /**
  * Check if a position falls within a node's source location
@@ -633,7 +623,7 @@ export class SelectorResolver implements ISelectorResolver {
     }
 
     // Verify the node is a JSX element (or related)
-    if (!isJSXNode(targetNode) && !t.isJSXElement(targetNode) && !t.isJSXFragment(targetNode)) {
+    if (!isAnyJSXNode(targetNode) && !t.isJSXElement(targetNode) && !t.isJSXFragment(targetNode)) {
       // For non-JSX nodes, we still allow them but mark as Element type
       // This enables moving expressions and other nodes
     }

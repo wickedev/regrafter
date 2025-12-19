@@ -16,9 +16,9 @@ import * as t from '@babel/types';
 import { ok, err, type Result } from '../result/index.js';
 import type { RegraffError } from '../errors/error-category.js';
 import type { IExtractExecutor } from './interfaces/i-extract-executor.js';
+import { ImportManager } from '../core/index.js';
 import { ComponentBuilder } from './component-builder.js';
 import { CodeReplacer } from './code-replacer.js';
-import { ImportManager } from './import-manager.js';
 import type { ExtractPlan, PropType, VariableDependency, FunctionDependency } from './types.js';
 
 /**

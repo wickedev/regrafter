@@ -218,33 +218,6 @@ export interface IPropThreader {
 }
 
 /**
- * Interface for the Import Manager strategy
- */
-export interface IImportManager {
-  /**
-   * Check if an import already exists in the target file
-   */
-  hasImport(
-    ast: t.File,
-    source: string,
-    specifier: string
-  ): boolean;
-
-  /**
-   * Create an import operation for a dependency
-   */
-  createImportOperation(
-    dependency: InternalDependency,
-    targetFile: string
-  ): ImportOperation | null;
-
-  /**
-   * Merge duplicate import operations
-   */
-  mergeImports(operations: ImportOperation[]): ImportOperation[];
-}
-
-/**
  * Interface for the Context Handler strategy
  */
 export interface IContextHandler {

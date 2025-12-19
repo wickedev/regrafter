@@ -10,6 +10,7 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
+import { isJSXElement, isJSXFragment } from '../core/index.js';
 import { createInternalError } from '../errors/index.js';
 import {
   createScopeInfo,
@@ -655,7 +656,7 @@ function isReactComponent(path: NodePath): boolean {
   path.traverse({
     ReturnStatement(returnPath: NodePath<t.ReturnStatement>) {
       const argument = returnPath.node.argument;
-      if (argument && (isJSXNode(argument) || isJSXFragment(argument))) {
+      if (argument && (isJSXElement(argument) || isJSXFragment(argument))) {
         hasJSXReturn = true;
         returnPath.stop();
       }
@@ -671,19 +672,7 @@ function isReactComponent(path: NodePath): boolean {
   return hasJSXReturn;
 }
 
-/**
- * Check if a node is a JSX element.
- */
-function isJSXNode(node: t.Node): boolean {
-  return node.type === 'JSXElement';
-}
-
-/**
- * Check if a node is a JSX fragment.
- */
-function isJSXFragment(node: t.Node): boolean {
-  return node.type === 'JSXFragment';
-}
+// Removed: isJSXNode and isJSXFragment now imported from core/ast-guards.js
 
 /**
  * Create a SinkAnalyzer instance.

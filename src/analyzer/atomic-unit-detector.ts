@@ -12,6 +12,7 @@
 import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 
+import { isJSXNode } from '../core/index.js';
 import { createAtomicUnit } from '../types/factories.js';
 import { AtomicUnitType } from '../types/internal.js';
 import type { AtomicUnit } from '../types/internal.js';
@@ -20,13 +21,8 @@ import type { AtomicUnit } from '../types/internal.js';
 // Atomic Unit Type Guards
 // ============================================================================
 
-/**
- * Check if a node is a JSX element (JSXElement or JSXFragment)
- */
-export function isJSXNode(node: t.Node | null | undefined): node is t.JSXElement | t.JSXFragment {
-  if (!node) return false;
-  return node.type === 'JSXElement' || node.type === 'JSXFragment';
-}
+// Re-export isJSXNode from core for backward compatibility (already imported above)
+export { isJSXNode };
 
 /**
  * Check if a node is a JSX expression container with JSX content

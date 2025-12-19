@@ -14,7 +14,6 @@ export type {
   IHookHoister,
   IVariableHoister,
   IPropThreader,
-  IImportManager,
   IContextHandler,
   ISuspenseHandler,
   HookReturnInfo,
@@ -51,15 +50,21 @@ export {
   getComponentDepth,
 } from './prop-threader.js';
 
-// ImportManager - Import statement management
+// ImportManager - Import statement management (re-exported from core)
+export { ImportManager } from '../core/index.js';
+
+// Utility functions for import management
 export {
-  ImportManager,
-  createImportManager,
   isRelativeImport,
   isNodeModule,
   sortImports,
   removeUnusedImports,
-} from './import-manager.js';
+} from './import-utils.js';
+
+// Factory function for backward compatibility
+export function createImportManager(): ImportManager {
+  return new ImportManager();
+}
 
 // ContextHandler - React Context handling
 export {
@@ -91,7 +96,7 @@ export {
 import { ContextHandler } from './context-handler.js';
 import { HoistPlanner } from './hoist-planner.js';
 import { HookHoister } from './hook-hoister.js';
-import { ImportManager } from './import-manager.js';
+import { ImportManager as CoreImportManager } from '../core/index.js';
 import { PropThreader } from './prop-threader.js';
 import { SuspenseHandler } from './suspense-handler.js';
 import type { IHoistStrategy } from './types.js';
@@ -104,7 +109,7 @@ export interface StrategyRegistry {
   hookHoister: HookHoister;
   variableHoister: VariableHoister;
   propThreader: PropThreader;
-  importManager: ImportManager;
+  importManager: CoreImportManager;
   contextHandler: ContextHandler;
   suspenseHandler: SuspenseHandler;
 }
@@ -117,7 +122,7 @@ export function createStrategies(): StrategyRegistry {
     hookHoister: new HookHoister(),
     variableHoister: new VariableHoister(),
     propThreader: new PropThreader(),
-    importManager: new ImportManager(),
+    importManager: new CoreImportManager(),
     contextHandler: new ContextHandler(),
     suspenseHandler: new SuspenseHandler(),
   };

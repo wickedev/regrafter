@@ -11,6 +11,7 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
+import { IdentifierCollector } from '../core/index.js';
 import { ScopeManager, type ScopeInfo } from '../scope/index.js';
 import { loadTraverseFunction, type TraverseFunction } from '../utils/index.js';
 import { ok, err, type Result } from '../result/index.js';
@@ -104,38 +105,14 @@ export class ExtractDependencyAnalyzer {
 
   /**
    * Traverse AST node to collect all Identifiers
+   * Uses shared IdentifierCollector to eliminate code duplication
    */
   private collectIdentifiers(nodePath: NodePath, identifiers: Set<string>): void {
-    const node = nodePath.node;
+    const collector = new IdentifierCollector({ includeJSXElements: true });
+    const names = collector.collectNames(nodePath);
 
-    traverse(
-      node,
-      {
-        Identifier(path) {
-          // Exclude JSX attribute names
-          if (t.isJSXAttribute(path.parent) && path.parent.name === path.node) {
-            return;
-          }
-          // Exclude object property keys (when not computed)
-          if (
-            t.isObjectProperty(path.parent) &&
-            path.parent.key === path.node &&
-            !path.parent.computed
-          ) {
-            return;
-          }
-
-          identifiers.add(path.node.name);
-        },
-        JSXIdentifier(path) {
-          // Collect only JSX element names (exclude attribute names)
-          if (t.isJSXOpeningElement(path.parent) || t.isJSXClosingElement(path.parent)) {
-            identifiers.add(path.node.name);
-          }
-        },
-      },
-      nodePath.scope
-    );
+    // Add collected names to the provided set
+    names.forEach(name => identifiers.add(name));
   }
 
   /**
