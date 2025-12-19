@@ -5,15 +5,18 @@
  * Reads vitest --outputJson format and converts it to the format expected
  * by benchmark-action/github-action-benchmark for the 'benchmarkjs' tool.
  *
- * Usage: node scripts/vitest-to-benchmarkjs.js <input.json> <output.json>
+ * Generates both .txt file (for benchmark-action) and .json file (for PR comments)
+ *
+ * Usage: node scripts/vitest-to-benchmarkjs.js <input.json> <output.txt>
  */
 
 import { readFileSync, writeFileSync } from 'fs';
+import { basename, dirname, join } from 'path';
 
 const [,, inputFile, outputFile] = process.argv;
 
 if (!inputFile || !outputFile) {
-  console.error('Usage: node scripts/vitest-to-benchmarkjs.js <input.json> <output.json>');
+  console.error('Usage: node scripts/vitest-to-benchmarkjs.js <input.json> <output.txt>');
   process.exit(1);
 }
 
@@ -59,13 +62,37 @@ try {
     throw new Error('No benchmarks found in Vitest output');
   }
 
-  // Write benchmarkjs format
-  console.log(`💾 Writing BenchmarkJS format to ${outputFile}...`);
-  writeFileSync(outputFile, JSON.stringify(benchmarkjsData, null, 2));
+  // Convert to BenchmarkJS text format
+  // Format: "name x value ops/sec ±rme% (samples runs sampled)"
+  const textOutput = benchmarkjsData.map(bench => {
+    // Format the value with commas
+    const formattedValue = bench.value.toLocaleString('en-US', {
+      maximumFractionDigits: 0
+    });
 
-  console.log(`✅ Converted ${benchmarkjsData.length} benchmarks to ${outputFile}`);
+    // BenchmarkJS format: "name x ops/sec ±rme% (samples runs sampled)"
+    // Note: We don't have sample count from Vitest, so we use a placeholder
+    return `${bench.name} x ${formattedValue} ops/sec ${bench.range} (benchmark completed)`;
+  }).join('\n');
+
+  // Determine output file names (generate both .txt and .json)
+  const baseOutputFile = outputFile.replace(/\.(txt|json)$/, '');
+  const textOutputFile = `${baseOutputFile}.txt`;
+  const jsonOutputFile = `${baseOutputFile}.json`;
+
+  // Write benchmarkjs text format (for github-action-benchmark)
+  console.log(`💾 Writing BenchmarkJS text format to ${textOutputFile}...`);
+  writeFileSync(textOutputFile, textOutput);
+
+  // Write JSON format (for PR comments and regression checks)
+  console.log(`💾 Writing JSON format to ${jsonOutputFile}...`);
+  writeFileSync(jsonOutputFile, JSON.stringify(benchmarkjsData, null, 2));
+
+  console.log(`✅ Converted ${benchmarkjsData.length} benchmarks`);
+  console.log(`   - Text format: ${textOutputFile}`);
+  console.log(`   - JSON format: ${jsonOutputFile}`);
   console.log(`📊 Sample output:`);
-  console.log(JSON.stringify(benchmarkjsData.slice(0, 2), null, 2));
+  console.log(textOutput.split('\n').slice(0, 2).join('\n'));
 } catch (error) {
   console.error('❌ Error converting benchmark data:', error.message);
   console.error('Stack trace:', error.stack);

@@ -34,21 +34,21 @@ jobs:
         run: npx vitest bench --run --config config/vitest.config.ts --outputJson bench-output.json
 
       - name: Convert to BenchmarkJS format
-        run: node scripts/vitest-to-benchmarkjs.js bench-output.json benchmark-results.json
+        run: node scripts/vitest-to-benchmarkjs.js bench-output.json benchmark-results.txt
 
       - name: Debug - Verify benchmark files exist
         run: |
           echo "Checking if benchmark files exist..."
-          ls -lh bench-output.json benchmark-results.json
+          ls -lh bench-output.json benchmark-results.txt
           echo ""
-          echo "First 20 lines of benchmark-results.json:"
-          head -n 20 benchmark-results.json
+          echo "First 10 lines of benchmark-results.txt:"
+          head -n 10 benchmark-results.txt
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: 'benchmarkjs'
-          output-file-path: benchmark-results.json
+          output-file-path: benchmark-results.txt
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: false
           comment-on-alert: true
@@ -62,6 +62,7 @@ jobs:
           name: benchmark-results
           path: |
             bench-output.json
+            benchmark-results.txt
             benchmark-results.json
           retention-days: 30
           if-no-files-found: warn
