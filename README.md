@@ -10,6 +10,7 @@
 Programmatic AST transformation library for React/JSX code transformations with automatic dependency management.
 
 Regrafter provides three core APIs for transforming React code:
+
 - **move()** - Relocate JSX elements within and across files
 - **extract()** - Extract JSX into reusable components
 - **inline()** - Inline components at their call sites
@@ -41,6 +42,7 @@ npm install regrafter
 ```
 
 **Requirements:**
+
 - Node.js ≥18
 - TypeScript ≥4.7.0 (optional peer dependency)
 
@@ -51,34 +53,59 @@ npm install regrafter
 Relocate JSX elements with automatic dependency management:
 
 ```typescript
-import { move, Move, isOk } from 'regrafter';
+import { move, Move, isOk } from "regrafter";
 
-const files = [{
-  path: 'App.tsx',
-  content: `
-    function App() {
-      const [count, setCount] = useState(0);
-      return (
-        <div>
-          <Header />
-          <Counter value={count} onChange={setCount} />
-        </div>
-      );
-    }
-  `
-}];
+const files = [
+  {
+    path: "App.tsx",
+    content: `
+      import { useState } from 'react';
+      import { Header } from './components/Header';
+      import { Counter } from './components/Counter';
+
+      function App() {
+        const [count, setCount] = useState(0);
+        return (
+          <div>
+            <Header />
+            <Counter value={count} onChange={setCount} />
+          </div>
+        );
+      }
+    `,
+  },
+];
 
 // Move <Counter /> inside <Header />
 const result = move(
   files,
-  { file: 'App.tsx', line: 7, column: 11 },  // from: Counter
-  { file: 'App.tsx', line: 6, column: 11 },  // to: Header
+  { file: "App.tsx", line: 11, column: 13 }, // from: Counter
+  { file: "App.tsx", line: 10, column: 13 }, // to: Header
   Move.Inside
 );
 
 if (isOk(result)) {
-  console.log('Transformed:', result.value[0].content);
-  // Dependencies (count, setCount) automatically hoisted and threaded
+  console.log("Transformed:", result.value.codes[0].content);
+  /* Dependencies (count, setCount) automatically hoisted and threaded
+
+  Output example:
+
+  Transformed:
+  import { useState } from 'react';
+  import { Header } from './components/Header';
+  import { Counter } from './components/Counter';
+
+  function App() {
+    const [count, setCount] = useState(0);
+    return (
+      <div>
+        <Header count={count} setCount={setCount}>
+          <Counter value={count} onChange={setCount} />
+        </Header>
+      </div>
+    );
+  }
+  */
 }
 ```
 
@@ -87,18 +114,73 @@ if (isOk(result)) {
 Extract JSX into a reusable component:
 
 ```typescript
-import { extract, isOk } from 'regrafter';
+import { extract, isOk } from "regrafter";
+
+const files = [
+  {
+    path: "App.tsx",
+    content: `
+    function App() {
+      const userName = "John";
+      const avatar = "/avatar.jpg";
+
+      return (
+        <div>
+          <div className="profile">
+            <img src={avatar} alt={userName} />
+            <h2>{userName}</h2>
+          </div>
+        </div>
+      );
+    }
+  `,
+  },
+];
 
 const result = extract(
   files,
-  { file: 'App.tsx', line: 10, column: 5 },  // Select JSX to extract
-  'UserProfile',                              // Component name
-  { exportComponent: true, memo: true }
+  { file: "App.tsx", line: 7, column: 11 }, // Select profile div to extract
+  { componentName: "UserProfile" }
 );
 
 if (isOk(result)) {
-  console.log('Created component:', result.value[0].content);
-  // UserProfile component created with inferred props
+  console.log("Created component:", result.value.component);
+  console.log("Generated code:", result.value.codes[0].content);
+  console.log("Stats:", result.value.stats);
+  /* UserProfile component created with inferred props
+
+  Output example:
+  Created component: {
+    name: 'UserProfile',
+    file: 'App.tsx',
+    props: [
+      { name: 'userName', type: 'string', optional: false },
+      { name: 'avatar', type: 'string', optional: false }
+    ]
+  }
+
+  Generated code:
+  function UserProfile({ userName, avatar }: UserProfileProps) {
+    return (
+      <div className="profile">
+        <img src={avatar} alt={userName} />
+        <h2>{userName}</h2>
+      </div>
+    );
+  }
+
+  function App() {
+    const userName = "John";
+    const avatar = "/avatar.jpg";
+    return <UserProfile userName={userName} avatar={avatar} />;
+  }
+
+  Stats: {
+    nodesExtracted: 5,
+    dependenciesFound: 3,
+    propsGenerated: 2
+  }
+  */
 }
 ```
 
@@ -107,16 +189,80 @@ if (isOk(result)) {
 Inline a component at its call sites:
 
 ```typescript
-import { inline, isOk } from 'regrafter';
+import { inline, isOk } from "regrafter";
+
+const files = [
+  {
+    path: "components.tsx",
+    content: `
+      export function Button({ onClick, children }) {
+        return <button onClick={onClick}>{children}</button>;
+      }
+    `,
+  },
+  {
+    path: "App.tsx",
+    content: `
+      import { Button } from './components';
+
+      function App() {
+        const handleClick = () => console.log('Submit');
+        const handleCancel = () => console.log('Cancel');
+        const handleReset = () => console.log('Reset');
+
+        return (
+          <div>
+            <Button onClick={handleClick}>Submit</Button>
+            <Button onClick={handleCancel}>Cancel</Button>
+            <Button onClick={handleReset}>Reset</Button>
+          </div>
+        );
+      }
+    `,
+  },
+];
 
 const result = inline(
   files,
-  { file: 'components.tsx', name: 'Button' }  // Component to inline
+  { file: "components.tsx", name: "Button" } // Component to inline
 );
 
 if (isOk(result)) {
-  const { inlinedCallSites } = result.value;
-  console.log(`Inlined ${inlinedCallSites} call sites`);
+  console.log("Result:", result.value);
+  console.log(`Inlined ${result.value.inlinedCount} call sites`);
+
+  /* Output example:
+  Result: {
+    codes: [
+      {
+        file: 'components.tsx',
+        content: '// Button component removed',
+        changed: true
+      },
+      {
+        file: 'App.tsx',
+        content: `
+          function App() {
+            const handleClick = () => console.log('Submit');
+            const handleCancel = () => console.log('Cancel');
+            const handleReset = () => console.log('Reset');
+
+            return (
+              <div>
+                <button onClick={handleClick}>Submit</button>
+                <button onClick={handleCancel}>Cancel</button>
+                <button onClick={handleReset}>Reset</button>
+              </div>
+            );
+          }
+        `,
+        changed: true
+      }
+    ],
+    inlinedCount: 3
+  }
+  Inlined 3 call sites
+  */
 }
 ```
 
@@ -189,9 +335,9 @@ Select elements by position or AST path:
 
 ```typescript
 enum Move {
-  Inside = 'inside',   // Insert as child
-  Before = 'before',   // Insert before target
-  After = 'after'      // Insert after target
+  Inside = "inside", // Insert as child
+  Before = "before", // Insert before target
+  After = "after", // Insert after target
 }
 ```
 
@@ -200,14 +346,14 @@ enum Move {
 All APIs return `Result<T, E>` instead of throwing:
 
 ```typescript
-import { move, isOk, isErr } from 'regrafter';
+import { move, isOk, isErr } from "regrafter";
 
 const result = move(files, from, to, Move.Inside);
 
 if (isOk(result)) {
-  console.log('Success:', result.value);
+  console.log("Success:", result.value);
 } else {
-  console.error('Error:', result.error);
+  console.error("Error:", result.error);
 }
 ```
 
