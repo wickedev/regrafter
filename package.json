@@ -52,8 +52,6 @@
     "test": "vitest run --config config/vitest.config.ts",
     "test:watch": "vitest --config config/vitest.config.ts",
     "test:coverage": "vitest run --coverage --config config/vitest.config.ts",
-    "test:e2e": "vitest run --config config/vitest.e2e.config.ts",
-    "test:e2e:watch": "vitest --config config/vitest.e2e.config.ts",
     "bench": "vitest bench --config config/vitest.config.ts",
     "bench:memory": "node --expose-gc ./node_modules/.bin/vitest run src/__tests__/benchmarks/memory.bench.ts --config config/vitest.config.ts",
     "bench:profile": "node --prof ./node_modules/.bin/vitest bench --config config/vitest.config.ts && node --prof-process isolate-*.log > profile.txt",

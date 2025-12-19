@@ -1,7 +1,7 @@
 /**
- * Extract E2E Integration Tests
+ * Extract Integration Tests
  *
- * Task 12.1: MVP E2E integration test implementation
+ * Task 12.1: Core extraction functionality integration tests
  *
  * Requirements:
  * - Test with actual React component files
@@ -17,10 +17,24 @@
 
 import { describe, it, expect } from 'vitest';
 import { extract } from '../extract.js';
-import type { FileInput } from '../../types/public.js';
+import type { Code, FileInput } from '../../types/public.js';
+import { err, ok, type Result } from '../../result/index.js';
 import type { ExtractOptions } from '../types.js';
 
-describe('Extract E2E Integration Tests', () => {
+function getCode(codes: Code[], index = 0): Result<Code, string> {
+  const code = codes[index];
+  return code ? ok(code) : err(`Expected code output at index ${index}`);
+}
+
+function unwrapResult<T, E>(result: Result<T, E>): T | null {
+  expect(result.ok).toBe(true);
+  if (!result.ok) {
+    return null;
+  }
+  return result.value;
+}
+
+describe('Extract Integration Tests', () => {
   describe('Simple div extraction scenario', () => {
     it('should extract a simple div element into a new component', () => {
       // Arrange: actual React component file
@@ -74,8 +88,10 @@ export default App;
 
       // Verify code transformation
       expect(extractResult.codes).toHaveLength(1);
-      const code = extractResult.codes[0];
-      expect(code.path).toBe('App.tsx');
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
+      expect(code.file).toBe('App.tsx');
 
       // Verify new component was created
       expect(code.content).toContain('function Header()');
@@ -135,7 +151,9 @@ export default App;
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
-      const code = result.value.codes[0];
+      const codeResult = getCode(result.value.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
 
       // Verify extracted component
       expect(code.content).toContain('function MainContent()');
@@ -201,7 +219,9 @@ export default App;
       expect(propNames).toContain('title');
       expect(propNames).toContain('userName');
 
-      const code = extractResult.codes[0];
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
 
       // Verify new component receives props
       expect(code.content).toContain('function DashboardHeader(');
@@ -267,7 +287,9 @@ export default App;
       const propNames = extractResult.component.props.map(p => p.name).sort();
       expect(propNames).toEqual(['inStock', 'price', 'productName', 'rating']);
 
-      const code = extractResult.codes[0];
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
 
       // Verify Props passing
       expect(code.content).toContain('productName={productName}');
@@ -320,13 +342,18 @@ export default App;
 
       // Verify functions are passed as props
       if (extractResult.component.props.length === 0) {
-        console.log('Generated code:', extractResult.codes[0].content);
+        const logCode = unwrapResult(getCode(extractResult.codes));
+        if (logCode) {
+          console.log('Generated code:', logCode.content);
+        }
       }
       expect(extractResult.component.props.length).toBeGreaterThan(0);
       const propNames = extractResult.component.props.map(p => p.name);
       expect(propNames).toContain('handleClick');
 
-      const code = extractResult.codes[0];
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
       expect(code.content).toContain('handleClick={handleClick}');
     });
   });
@@ -367,7 +394,9 @@ export default App;
         return;
       }
 
-      const code = result.value.codes[0];
+      const codeResult = getCode(result.value.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
 
       // Verify new component was created (format flexible)
       const hasTitleComponent = code.content.includes('Title') &&
@@ -424,7 +453,9 @@ export default App;
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
-      const code = result.value.codes[0];
+      const codeResult = getCode(result.value.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
 
       // Verify indentation is correct (exact indentation may vary depending on formatter)
       expect(code.content).toContain('function NestedDiv()');
@@ -488,7 +519,7 @@ export default App;
   });
 
   /**
-   * Task 23.1: E2E scenario test implementation
+   * Task 23.1: Integration scenario test implementation
    *
    * Requirements:
    * - Reproduce real project scenarios
@@ -598,7 +629,9 @@ export default LoginPage;
       expect(propNames).toContain('errors');
       expect(propNames).toContain('handleSubmit');
 
-      const code = extractResult.codes[0];
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
 
       // Verify new component was created
       expect(code.content).toContain('function LoginForm(');
@@ -696,7 +729,9 @@ export default UserProfile;
       expect(propNames).toContain('user');
       expect(propNames).toContain('formatDate');
 
-      const code = extractResult.codes[0];
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
 
       // Verify new component creation
       expect(code.content).toContain('function UserDetails(');
@@ -763,7 +798,9 @@ export default UserProfile;
       const propNames = extractResult.component.props.map(p => p.name);
       expect(propNames).toContain('result');
 
-      const code = extractResult.codes[0];
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
       expect(code.content).toContain('result={result}');
     });
 
@@ -956,7 +993,9 @@ export default PriceCalculator;
       expect(propNames).toContain('total');
       expect(propNames).toContain('formatCurrency');
 
-      const code = extractResult.codes[0];
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
 
       // Verify new component receives formatCurrency as props
       expect(code.content).toContain('formatCurrency={formatCurrency}');
@@ -1030,7 +1069,9 @@ export default SettingsPanel;
       expect(propNames).toContain('theme');
       expect(propNames).toContain('setTheme');
 
-      const code = extractResult.codes[0];
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
       expect(code.content).toContain('theme={theme}');
       expect(code.content).toContain('setTheme={setTheme}');
     });
@@ -1103,7 +1144,9 @@ export default ComplexComponent;
       expect(propNames).toContain('expensiveValue');
       expect(propNames).toContain('handleIncrement');
 
-      const code = extractResult.codes[0];
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
       expect(code.content).toContain('count={count}');
       expect(code.content).toContain('expensiveValue={expensiveValue}');
       expect(code.content).toContain('handleIncrement={handleIncrement}');
@@ -1198,7 +1241,9 @@ export default UserProfile;
       expect(isActiveProp!.type).toBe('boolean');
 
       // Verify Props interface was created
-      const code = extractResult.codes[0];
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
       expect(code.content).toContain('interface UserInfoProps');
 
       // Verify Props interface comes before component
@@ -1277,7 +1322,9 @@ export default OptionalPropsComponent;
       expect(countProp!.type).toBe('number'); // Type with undefined removed
 
       // Verify Props interface has optional indicators
-      const code = extractResult.codes[0];
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
       expect(code.content).toMatch(/subtitle\?:\s*string/);
       expect(code.content).toMatch(/count\?:\s*number/);
     });
@@ -1362,7 +1409,9 @@ export default ComplexTypesComponent;
       expect(pairProp).toBeDefined();
       // Tuple is represented as [string, number]
 
-      const code = extractResult.codes[0];
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
       expect(code.content).toContain('interface ComplexContentProps');
     });
 
@@ -1429,7 +1478,9 @@ export default FunctionPropsComponent;
       expect(formatValueProp).toBeDefined();
       // Function type is in form (value: string) => string
 
-      const code = extractResult.codes[0];
+      const codeResult = getCode(extractResult.codes);
+      const code = unwrapResult(codeResult);
+      if (!code) return;
       expect(code.content).toContain('interface ButtonsProps');
     });
   });
