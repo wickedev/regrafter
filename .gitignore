@@ -63,6 +63,9 @@ temp/
 *.tmp
 *.temp
 
+# Working documentation (internal notes)
+docs/working/
+
 # Debug and test files
 debug-*.ts
 debug-*.tsx
