@@ -7,6 +7,7 @@
 
 import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
+import type { ICodeReplacer } from './interfaces/i-code-replacer.js';
 
 /**
  * CodeReplacer
@@ -17,7 +18,7 @@ import * as t from '@babel/types';
  * - 3.3: Replace JSX code at original location with new component call
  * - 3.6: Generate props passing code
  */
-export class CodeReplacer {
+export class CodeReplacer implements ICodeReplacer {
   /**
    * Replace JSX node with component call
    *

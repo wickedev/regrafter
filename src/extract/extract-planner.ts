@@ -11,6 +11,7 @@ import { ok, err, type Result } from '../result/index.js';
 import type { RegraffError } from '../errors/error-category.js';
 import type { FileInput, Selector } from '../types/public.js';
 import type { ExtractOptions, ExtractPlan, RangeSelector } from './types.js';
+import type { IExtractPlanner } from './interfaces/i-extract-planner.js';
 import { createExtractError, ExtractErrorCode } from './errors.js';
 import { parseFile } from '../parser/index.js';
 import { createNodeSelector, type INodeSelector } from './node-selector.js';
@@ -28,7 +29,7 @@ import { ScopeManager } from '../scope/index.js';
  * - Generating component name
  * - Creating an extraction plan
  */
-export class ExtractPlanner {
+export class ExtractPlanner implements IExtractPlanner {
   private readonly nodeSelector: INodeSelector;
   private readonly componentNameGenerator: ComponentNameGenerator;
 

@@ -9,19 +9,9 @@ import type { FileInput, Selector } from '../types/public.js';
 import type { ExtractOptions, RangeSelector } from './types.js';
 import type { Result } from '../result/types.js';
 import type { RegraffError } from '../errors/error-category.js';
+import type { IInputValidator } from './interfaces/i-input-validator.js';
 import { ok, err } from '../result/types.js';
 import { ExtractErrorCode, createExtractError } from './errors.js';
-
-/**
- * InputValidator interface
- */
-export interface IInputValidator {
-  validate(
-    files: FileInput[],
-    selector: Selector | RangeSelector,
-    options: ExtractOptions
-  ): Result<void, RegraffError>;
-}
 
 /**
  * InputValidator implementation

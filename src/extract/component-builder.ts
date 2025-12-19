@@ -6,6 +6,7 @@
  */
 
 import * as t from '@babel/types';
+import type { IComponentBuilder } from './interfaces/i-component-builder.js';
 import type { HookDeclaration } from './types.js';
 
 /**
@@ -13,7 +14,7 @@ import type { HookDeclaration } from './types.js';
  *
  * Responsible for generating AST for new component
  */
-export class ComponentBuilder {
+export class ComponentBuilder implements IComponentBuilder {
   /**
    * Generate component function declaration
    *

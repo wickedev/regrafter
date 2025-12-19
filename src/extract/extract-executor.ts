@@ -15,6 +15,7 @@ import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 import { ok, err, type Result } from '../result/index.js';
 import type { RegraffError } from '../errors/error-category.js';
+import type { IExtractExecutor } from './interfaces/i-extract-executor.js';
 import { ComponentBuilder } from './component-builder.js';
 import { CodeReplacer } from './code-replacer.js';
 import { ImportManager } from './import-manager.js';
@@ -25,7 +26,7 @@ import type { ExtractPlan, PropType, VariableDependency, FunctionDependency } fr
  *
  * Class that executes extraction plan to perform actual code transformation
  */
-export class ExtractExecutor {
+export class ExtractExecutor implements IExtractExecutor {
   private componentBuilder: ComponentBuilder;
   private codeReplacer: CodeReplacer;
   private importManager: ImportManager;

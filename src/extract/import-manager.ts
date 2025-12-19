@@ -9,8 +9,9 @@
 import * as t from '@babel/types';
 import path from 'path';
 import type { ImportDependency } from './types.js';
+import type { IImportManager } from './interfaces/i-import-manager.js';
 
-export class ImportManager {
+export class ImportManager implements IImportManager {
   /**
    * Find an existing import declaration by source path
    *

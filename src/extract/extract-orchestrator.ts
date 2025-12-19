@@ -25,6 +25,7 @@ import { InputValidator } from './input-validator.js';
 import { ExtractPlanner } from './extract-planner.js';
 import { ExtractExecutor } from './extract-executor.js';
 import { CodeFormatter } from './CodeFormatter.js';
+import { TypeStringifier } from './type-stringifier.js';
 import { parseFile } from '../parser/index.js';
 import { createExtractError, ExtractErrorCode } from './errors.js';
 
@@ -48,12 +49,14 @@ export class ExtractOrchestrator {
   private extractPlanner: ExtractPlanner;
   private extractExecutor: ExtractExecutor;
   private codeFormatter: CodeFormatter;
+  private typeStringifier: TypeStringifier;
 
   constructor() {
     this.inputValidator = new InputValidator();
     this.extractPlanner = new ExtractPlanner();
     this.extractExecutor = new ExtractExecutor();
     this.codeFormatter = new CodeFormatter();
+    this.typeStringifier = new TypeStringifier();
   }
 
   /**
@@ -120,7 +123,7 @@ export class ExtractOrchestrator {
         propsInterface: plan.propTypes.length > 0 ? plan.propsInterfaceName : undefined,
         props: plan.propTypes.map(pt => ({
           name: pt.name,
-          type: this.typeToString(pt.typeAnnotation),
+          type: this.typeStringifier.toString(pt.typeAnnotation),
           optional: pt.optional,
         })),
       },
@@ -205,7 +208,7 @@ export class ExtractOrchestrator {
       },
       propTypes: plan.propTypes.map(pt => ({
         name: pt.name,
-        type: this.typeToString(pt.typeAnnotation),
+        type: this.typeStringifier.toString(pt.typeAnnotation),
         optional: pt.optional,
       })),
       componentName: plan.componentName,
@@ -278,99 +281,6 @@ export class ExtractOrchestrator {
     }
 
     return ok(astMap);
-  }
-
-  /**
-   * Convert TypeScript type AST to string
-   *
-   * @param typeAnnotation - Type AST
-   * @returns Type string
-   */
-  private typeToString(typeAnnotation: t.TSType): string {
-    // Primitive types
-    if (t.isTSAnyKeyword(typeAnnotation)) {
-      return 'any';
-    }
-    if (t.isTSStringKeyword(typeAnnotation)) {
-      return 'string';
-    }
-    if (t.isTSNumberKeyword(typeAnnotation)) {
-      return 'number';
-    }
-    if (t.isTSBooleanKeyword(typeAnnotation)) {
-      return 'boolean';
-    }
-    if (t.isTSVoidKeyword(typeAnnotation)) {
-      return 'void';
-    }
-    if (t.isTSUndefinedKeyword(typeAnnotation)) {
-      return 'undefined';
-    }
-    if (t.isTSNullKeyword(typeAnnotation)) {
-      return 'null';
-    }
-
-    // Type references (e.g., User, React.ReactNode)
-    if (t.isTSTypeReference(typeAnnotation)) {
-      if (t.isIdentifier(typeAnnotation.typeName)) {
-        return typeAnnotation.typeName.name;
-      }
-      if (t.isTSQualifiedName(typeAnnotation.typeName)) {
-        return this.qualifiedNameToString(typeAnnotation.typeName);
-      }
-    }
-
-    // Union types (e.g., 'active' | 'inactive')
-    if (t.isTSUnionType(typeAnnotation)) {
-      return typeAnnotation.types.map(t => this.typeToString(t)).join(' | ');
-    }
-
-    // Array types (e.g., string[])
-    if (t.isTSArrayType(typeAnnotation)) {
-      return `${this.typeToString(typeAnnotation.elementType)}[]`;
-    }
-
-    // Literal types (e.g., 'active', 42, true)
-    if (t.isTSLiteralType(typeAnnotation)) {
-      const literal = typeAnnotation.literal;
-      if (t.isStringLiteral(literal)) {
-        return `'${literal.value}'`;
-      }
-      if (t.isNumericLiteral(literal)) {
-        return String(literal.value);
-      }
-      if (t.isBooleanLiteral(literal)) {
-        return String(literal.value);
-      }
-    }
-
-    // Function types (e.g., (x: number) => string)
-    if (t.isTSFunctionType(typeAnnotation)) {
-      const params = typeAnnotation.parameters.map(p => {
-        if (t.isIdentifier(p) && p.typeAnnotation && t.isTSTypeAnnotation(p.typeAnnotation)) {
-          return `${p.name}: ${this.typeToString(p.typeAnnotation.typeAnnotation)}`;
-        }
-        return 'any';
-      }).join(', ');
-      const returnType = typeAnnotation.typeAnnotation
-        ? this.typeToString(typeAnnotation.typeAnnotation.typeAnnotation)
-        : 'void';
-      return `(${params}) => ${returnType}`;
-    }
-
-    // Default fallback
-    return 'any';
-  }
-
-  /**
-   * Convert a TSQualifiedName to string (e.g., React.ReactNode)
-   */
-  private qualifiedNameToString(name: t.TSQualifiedName): string {
-    const left = t.isIdentifier(name.left)
-      ? name.left.name
-      : this.qualifiedNameToString(name.left as t.TSQualifiedName);
-    const right = name.right.name;
-    return `${left}.${right}`;
   }
 
 }

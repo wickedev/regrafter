@@ -9,6 +9,7 @@
  */
 
 import type * as t from '@babel/types';
+import type { ICodeFormatter } from './interfaces/i-code-formatter.js';
 import { CodeGenerator } from '../generator/code-generator.js';
 import type { GeneratorOptions } from '../generator/types.js';
 import { ok, err, type Result } from '../result/index.js';
@@ -26,7 +27,7 @@ import type { RegraffError } from '../errors/error-category.js';
  *
  * Based on design.md section CodeFormatter
  */
-export class CodeFormatter {
+export class CodeFormatter implements ICodeFormatter {
   private codeGenerator: CodeGenerator;
 
   constructor() {
