@@ -32,6 +32,22 @@ import {
   type IIdentifierCollector,
 } from "./analyzers/identifier-collector.js";
 import {
+  createDependencyClassifier,
+  type IDependencyClassifier,
+} from "./analyzers/dependency-classifier.js";
+import {
+  createHookDependencyAnalyzer,
+  type IHookDependencyAnalyzer,
+} from "./analyzers/hook-dependency-analyzer.js";
+import {
+  createVariableDependencyAnalyzer,
+  type IVariableDependencyAnalyzer,
+} from "./analyzers/variable-dependency-analyzer.js";
+import {
+  createImportDependencyAnalyzer,
+  type IImportDependencyAnalyzer,
+} from "./analyzers/import-dependency-analyzer.js";
+import {
   DependencyType,
   type IdentifierReference,
   type IdentifierCollectionResult,
@@ -95,12 +111,23 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
   private readonly scopeManager: ScopeManager;
   private readonly options: Required<AnalyzerOptions>;
   private readonly identifierCollector: IIdentifierCollector;
+  private readonly classifier: IDependencyClassifier;
+  private readonly hookAnalyzer: IHookDependencyAnalyzer;
+  private readonly variableAnalyzer: IVariableDependencyAnalyzer;
+  private readonly importAnalyzer: IImportDependencyAnalyzer;
   private currentFile = "";
 
   constructor(scopeManager: ScopeManager, options?: AnalyzerOptions) {
     this.scopeManager = scopeManager;
     this.options = mergeAnalyzerOptions(options);
     this.identifierCollector = createIdentifierCollector(scopeManager);
+    this.classifier = createDependencyClassifier(scopeManager);
+    this.hookAnalyzer = createHookDependencyAnalyzer();
+    this.variableAnalyzer = createVariableDependencyAnalyzer();
+    this.importAnalyzer = createImportDependencyAnalyzer(
+      this.options.includeImports,
+      (path, name) => this.findBinding(path, name)
+    );
   }
 
   /**
@@ -130,37 +157,9 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
    */
   detectHookDependencies(
     identifiers: IdentifierReference[],
-    _elementScope: ScopeInfo | null
+    elementScope: ScopeInfo | null
   ): HookDependency[] {
-    const hookDeps: HookDependency[] = [];
-    const processed = new Set<string>();
-
-    for (const idRef of identifiers) {
-      if (processed.has(idRef.name)) continue;
-
-      // Try to find the binding for this identifier
-      const binding = this.findBinding(idRef.path, idRef.name);
-      if (!binding) continue;
-
-      // Check if this binding comes from a hook
-      const hookInfo = this.getHookInfo(binding);
-      if (hookInfo) {
-        hookDeps.push({
-          hookName: hookInfo.hookName,
-          bindings: hookInfo.bindings,
-          path: hookInfo.path,
-          type: DependencyType.Hook,
-          hookDeps: hookInfo.dependencies,
-        });
-
-        // Mark all bindings from this hook as processed
-        for (const b of hookInfo.bindings) {
-          processed.add(b);
-        }
-      }
-    }
-
-    return hookDeps;
+    return this.hookAnalyzer.detectHookDependencies(identifiers, elementScope);
   }
 
   /**
@@ -172,50 +171,15 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
    */
   detectVariableDependencies(
     identifiers: IdentifierReference[],
-    _elementScope: ScopeInfo | null
+    elementScope: ScopeInfo | null
   ): VariableDependency[] {
-    const varDeps: VariableDependency[] = [];
-    const processed = new Set<string>();
-
-    for (const idRef of identifiers) {
-      if (processed.has(idRef.name)) continue;
-      processed.add(idRef.name);
-
-      // Try to find the binding for this identifier
-      const binding = this.findBinding(idRef.path, idRef.name);
-      if (!binding) continue;
-
-      // Skip if this is from a hook (handled separately)
-      if (this.isFromHook(binding)) continue;
-
-      // Skip if this is an import (handled separately)
-      if (this.isImportBinding(binding)) continue;
-
-      // Skip if this is a function parameter (might be props)
-      if (this.isParameterBinding(binding)) continue;
-
-      // This is a variable dependency
-      const declarator = binding.path.node;
-      if (t.isVariableDeclarator(declarator)) {
-        varDeps.push({
-          name: idRef.name,
-          path: binding.path,
-          type: DependencyType.Variable,
-          isConst: binding.kind === "const",
-          initializer: declarator.init ?? undefined,
-        });
-      } else if (t.isFunctionDeclaration(declarator)) {
-        // Function declarations are also variable bindings
-        varDeps.push({
-          name: idRef.name,
-          path: binding.path,
-          type: DependencyType.Variable,
-          isConst: true, // Functions are effectively const
-        });
-      }
-    }
-
-    return varDeps;
+    return this.variableAnalyzer.detectVariableDependencies(
+      identifiers,
+      elementScope,
+      (binding) => this.hookAnalyzer.isFromHook(binding),
+      (binding) => this.importAnalyzer.isImportBinding(binding),
+      (binding) => this.isParameterBinding(binding)
+    );
   }
 
   /**
@@ -227,36 +191,7 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
   detectImportDependencies(
     identifiers: IdentifierReference[]
   ): ImportDependency[] {
-    if (!this.options.includeImports) return [];
-
-    const importDeps: ImportDependency[] = [];
-    const processed = new Set<string>();
-
-    for (const idRef of identifiers) {
-      if (processed.has(idRef.name)) continue;
-      processed.add(idRef.name);
-
-      // Try to find the binding for this identifier
-      const binding = this.findBinding(idRef.path, idRef.name);
-      if (!binding) continue;
-
-      // Check if this is an import binding
-      if (!this.isImportBinding(binding)) continue;
-
-      const importInfo = this.getImportInfo(binding);
-      if (importInfo) {
-        importDeps.push({
-          localName: importInfo.localName,
-          importedName: importInfo.importedName,
-          source: importInfo.source,
-          path: binding.path,
-          importType: importInfo.type,
-          type: DependencyType.Import,
-        });
-      }
-    }
-
-    return importDeps;
+    return this.importAnalyzer.detectImportDependencies(identifiers);
   }
 
   /**
@@ -828,7 +763,7 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
 
     // Classify dependencies by what action is needed
     const { needsHoisting, needsImport, needsPropThreading } =
-      this.classifyDependencies(allDeps, elementScope, targetScope);
+      this.classifier.classifyDependencies(allDeps, elementScope, targetScope);
 
     // Check if all dependencies can be resolved
     const canResolve = this.canResolveDependencies(allDeps, targetScope);
@@ -933,32 +868,6 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
     return tempPathMap;
   }
 
-  /**
-   * Classify dependencies by required action
-   */
-  private classifyDependencies(
-    allDeps: InternalDependency[],
-    elementScope: ScopeInfo | null,
-    targetScope: ScopeInfo | null
-  ): {
-    needsHoisting: InternalDependency[];
-    needsImport: InternalDependency[];
-    needsPropThreading: InternalDependency[];
-  } {
-    const needsHoisting = allDeps.filter((d) =>
-      this.needsHoisting(d, elementScope, targetScope)
-    );
-    const needsImport = allDeps.filter(
-      (d) =>
-        d.type === DependencyType.Import && this.needsImport(d, targetScope)
-    );
-    const needsPropThreading = allDeps.filter((d) =>
-      this.needsPropThreading(d, elementScope, targetScope)
-    );
-
-    return { needsHoisting, needsImport, needsPropThreading };
-  }
-
   // ===================================================================
   // Private helper methods
   // ===================================================================
@@ -1001,179 +910,10 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
   }
 
   /**
-   * Check if a binding is from a hook
-   */
-  private isFromHook(binding: Binding): boolean {
-    const declarator = binding.path.parent;
-
-    if (t.isVariableDeclaration(declarator)) {
-      const declarations = declarator.declarations;
-      for (const decl of declarations) {
-        if (t.isCallExpression(decl.init)) {
-          const callee = decl.init.callee;
-          if (t.isIdentifier(callee) && REACT_HOOKS.has(callee.name)) {
-            return true;
-          }
-          if (
-            t.isMemberExpression(callee) &&
-            t.isIdentifier(callee.property) &&
-            REACT_HOOKS.has(callee.property.name)
-          ) {
-            return true;
-          }
-          // Custom hooks
-          if (t.isIdentifier(callee) && /^use[A-Z]/.test(callee.name)) {
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Get hook info from a binding
-   */
-  private getHookInfo(binding: Binding): {
-    hookName: string;
-    bindings: string[];
-    path: NodePath;
-    dependencies?: string[];
-  } | null {
-    const parent = binding.path.parent;
-
-    if (!t.isVariableDeclaration(parent)) return null;
-
-    for (const decl of parent.declarations) {
-      if (t.isCallExpression(decl.init)) {
-        const callee = decl.init.callee;
-        let hookName: string | null = null;
-
-        if (
-          t.isIdentifier(callee) &&
-          (REACT_HOOKS.has(callee.name) || /^use[A-Z]/.test(callee.name))
-        ) {
-          hookName = callee.name;
-        } else if (
-          t.isMemberExpression(callee) &&
-          t.isIdentifier(callee.property) &&
-          REACT_HOOKS.has(callee.property.name)
-        ) {
-          hookName = callee.property.name;
-        }
-
-        if (hookName !== null && hookName !== "") {
-          // Get all bindings created by this hook
-          const bindings: string[] = [];
-          if (t.isIdentifier(decl.id)) {
-            bindings.push(decl.id.name);
-          } else if (t.isArrayPattern(decl.id)) {
-            for (const elem of decl.id.elements) {
-              if (t.isIdentifier(elem)) {
-                bindings.push(elem.name);
-              }
-            }
-          } else if (t.isObjectPattern(decl.id)) {
-            for (const prop of decl.id.properties) {
-              if (t.isObjectProperty(prop) && t.isIdentifier(prop.value)) {
-                bindings.push(prop.value.name);
-              }
-            }
-          }
-
-          // Get hook dependencies if applicable
-          let dependencies: string[] | undefined;
-          const depsArg = decl.init.arguments[1];
-          if (
-            ["useEffect", "useLayoutEffect", "useMemo", "useCallback"].includes(
-              hookName
-            ) &&
-            t.isArrayExpression(depsArg)
-          ) {
-            dependencies = depsArg.elements
-              .filter((e): e is t.Identifier => t.isIdentifier(e))
-              .map((e) => e.name);
-          }
-
-          return {
-            hookName,
-            bindings,
-            path: binding.path,
-            dependencies,
-          };
-        }
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Check if a binding is from an import
-   */
-  private isImportBinding(binding: Binding): boolean {
-    return (
-      t.isImportSpecifier(binding.path.node) ||
-      t.isImportDefaultSpecifier(binding.path.node) ||
-      t.isImportNamespaceSpecifier(binding.path.node)
-    );
-  }
-
-  /**
    * Check if a binding is a function parameter
    */
   private isParameterBinding(binding: Binding): boolean {
     return binding.kind === "param";
-  }
-
-  /**
-   * Get import info from a binding
-   */
-  private getImportInfo(binding: Binding): {
-    localName: string;
-    importedName: string;
-    source: string;
-    type: "default" | "named" | "namespace";
-  } | null {
-    const node = binding.path.node;
-    const importDecl = binding.path.parent;
-
-    if (!t.isImportDeclaration(importDecl)) return null;
-
-    const source = importDecl.source.value;
-
-    if (t.isImportDefaultSpecifier(node)) {
-      return {
-        localName: node.local.name,
-        importedName: "default",
-        source,
-        type: "default",
-      };
-    }
-
-    if (t.isImportNamespaceSpecifier(node)) {
-      return {
-        localName: node.local.name,
-        importedName: "*",
-        source,
-        type: "namespace",
-      };
-    }
-
-    if (t.isImportSpecifier(node)) {
-      const imported = t.isIdentifier(node.imported)
-        ? node.imported.name
-        : node.imported.value;
-      return {
-        localName: node.local.name,
-        importedName: imported,
-        source,
-        type: "named",
-      };
-    }
-
-    return null;
   }
 
   /**
@@ -1373,7 +1113,7 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
           if (!binding) return;
 
           // Create a variable dependency for this transitive
-          if (!this.isImportBinding(binding) && !this.isFromHook(binding)) {
+          if (!this.importAnalyzer.isImportBinding(binding) && !this.hookAnalyzer.isFromHook(binding)) {
             transitives.push({
               name,
               path: binding.path,
@@ -1455,72 +1195,6 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
         isTransitive: false,
       });
     });
-  }
-
-  /**
-   * Check if a dependency needs hoisting
-   */
-  private needsHoisting(
-    dep: InternalDependency,
-    elementScope: ScopeInfo | null,
-    targetScope: ScopeInfo | null
-  ): boolean {
-    if (!elementScope || !targetScope) return false;
-
-    // Imports don't need hoisting, they need re-importing
-    if (dep.type === DependencyType.Import) return false;
-
-    // Check if target scope already has bindings for all required symbols
-    // If yes, the references will be rebound to the target scope's bindings (no hoisting needed)
-    const targetBindings = this.scopeManager.getBindingsInScope(targetScope);
-
-    // Parse comma-separated symbols (e.g., "theme, toggleTheme" -> ["theme", "toggleTheme"])
-    const symbols = dep.symbol.split(',').map(s => s.trim());
-    const allSymbolsExist = symbols.every(symbol => targetBindings.has(symbol));
-
-    if (allSymbolsExist) {
-      return false;
-    }
-
-    // Check if dependency scope is accessible from target
-    const accessibility = this.scopeManager.checkAccessibility(
-      dep.scope,
-      targetScope
-    );
-    return !accessibility.accessible;
-  }
-
-  /**
-   * Check if an import needs to be added
-   */
-  private needsImport(
-    dep: InternalDependency,
-    _targetScope: ScopeInfo | null
-  ): boolean {
-    // Only imports need import operations
-    return dep.type === DependencyType.Import;
-  }
-
-  /**
-   * Check if a dependency needs prop threading
-   */
-  private needsPropThreading(
-    dep: InternalDependency,
-    elementScope: ScopeInfo | null,
-    targetScope: ScopeInfo | null
-  ): boolean {
-    if (!elementScope || !targetScope) return false;
-
-    // Hooks may need prop threading when moved out of component
-    if (dep.type === DependencyType.Hook) {
-      const accessibility = this.scopeManager.checkAccessibility(
-        dep.scope,
-        targetScope
-      );
-      return !accessibility.accessible;
-    }
-
-    return false;
   }
 
   /**
