@@ -106,7 +106,8 @@ function moveAndUnwrap(
   if (isErr(result)) {
     throw new Error(`Move failed: ${result.error.message}`);
   }
-  return result.value;
+  // move() now returns TransformedCode, extract codes array
+  return result.value.codes;
 }
 
 // =============================================================================

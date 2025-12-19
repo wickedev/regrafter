@@ -48,6 +48,10 @@ import {
   type IImportDependencyAnalyzer,
 } from "./analyzers/import-dependency-analyzer.js";
 import {
+  createPropDependencyAnalyzer,
+  type IPropDependencyAnalyzer,
+} from "./analyzers/prop-dependency-analyzer.js";
+import {
   DependencyType,
   type IdentifierReference,
   type IdentifierCollectionResult,
@@ -115,6 +119,7 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
   private readonly hookAnalyzer: IHookDependencyAnalyzer;
   private readonly variableAnalyzer: IVariableDependencyAnalyzer;
   private readonly importAnalyzer: IImportDependencyAnalyzer;
+  private readonly propAnalyzer: IPropDependencyAnalyzer;
   private currentFile = "";
 
   constructor(scopeManager: ScopeManager, options?: AnalyzerOptions) {
@@ -127,6 +132,10 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
     this.importAnalyzer = createImportDependencyAnalyzer(
       this.options.includeImports,
       (path, name) => this.findBinding(path, name)
+    );
+    this.propAnalyzer = createPropDependencyAnalyzer(
+      (path, name) => this.findBinding(path, name),
+      (binding) => this.isParameterBinding(binding)
     );
   }
 
@@ -205,31 +214,7 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
     identifiers: IdentifierReference[],
     componentScope: ComponentScope | null
   ): PropDependency[] {
-    const propDeps: PropDependency[] = [];
-    const processed = new Set<string>();
-
-    for (const idRef of identifiers) {
-      if (processed.has(idRef.name)) continue;
-      processed.add(idRef.name);
-
-      // Try to find the binding for this identifier
-      const binding = this.findBinding(idRef.path, idRef.name);
-      if (!binding) continue;
-
-      // Check if this binding is from props
-      const propInfo = this.getPropInfo(binding, componentScope);
-      if (propInfo) {
-        propDeps.push({
-          name: propInfo.name,
-          component: propInfo.component,
-          path: binding.path,
-          type: DependencyType.Prop,
-          isDestructured: propInfo.isDestructured,
-        });
-      }
-    }
-
-    return propDeps;
+    return this.propAnalyzer.detectPropDependencies(identifiers, componentScope);
   }
 
   /**
@@ -914,74 +899,6 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
    */
   private isParameterBinding(binding: Binding): boolean {
     return binding.kind === "param";
-  }
-
-  /**
-   * Get prop info from a binding
-   */
-  private getPropInfo(
-    binding: Binding,
-    componentScope: ComponentScope | null
-  ): {
-    name: string;
-    component: string;
-    isDestructured: boolean;
-  } | null {
-    // Check if this binding is from a function parameter (likely props)
-    if (!this.isParameterBinding(binding)) return null;
-
-    // Get the function that contains this parameter
-    let funcPath: NodePath | null = binding.path;
-    while (funcPath && !funcPath.isFunction()) {
-      funcPath = funcPath.parentPath;
-    }
-
-    if (!funcPath) return null;
-
-    // Check if this is the first parameter (props)
-    const funcNode = funcPath.node;
-    if (
-      !t.isFunctionDeclaration(funcNode) &&
-      !t.isFunctionExpression(funcNode) &&
-      !t.isArrowFunctionExpression(funcNode)
-    ) {
-      return null;
-    }
-
-    const firstParam = funcNode.params[0];
-    if (!firstParam) return null;
-
-    // Check if binding is from the first param
-    if (t.isIdentifier(binding.path.node)) {
-      // Direct props access: function Component(props)
-      if (firstParam === binding.path.node) {
-        return null; // This is the props object itself, not a specific prop
-      }
-
-      // Destructured prop: function Component({ name })
-      if (t.isObjectPattern(firstParam)) {
-        for (const prop of firstParam.properties) {
-          if (
-            t.isObjectProperty(prop) &&
-            t.isIdentifier(prop.value) &&
-            prop.value.name === binding.identifier.name
-          ) {
-            const propName = t.isIdentifier(prop.key)
-              ? prop.key.name
-              : t.isStringLiteral(prop.key)
-                ? prop.key.value
-                : binding.identifier.name;
-            return {
-              name: propName,
-              component: componentScope?.componentName ?? "Unknown",
-              isDestructured: true,
-            };
-          }
-        }
-      }
-    }
-
-    return null;
   }
 
   /**

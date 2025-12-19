@@ -144,7 +144,8 @@ describe('Migration Validation - Task 20.1: No try-catch blocks', () => {
       'analyzer/move-validator.ts',
       'analyzer/validators/selector-validator.ts', // Extracted from move-validator.ts
       'api/inline.ts', // Integration boundary: catches exceptions from ComponentInliner
-      'api/regraft.ts', // Integration boundary: catches exceptions from transformation pipeline
+      'api/move.ts', // Integration boundary: catches exceptions from transformation pipeline
+      'api/regraft.ts', // Deprecated: now just an alias to move()
       'errors/error-recovery.ts',
       'generator/code-generator.ts',
       'optimizer/fast-can-move.ts',

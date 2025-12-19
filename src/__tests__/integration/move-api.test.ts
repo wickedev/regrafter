@@ -1,7 +1,7 @@
 /**
- * End-to-End Tests for Regrafter
+ * Integration Tests for move() API
  *
- * Tests complete workflows from input to output.
+ * Tests complete workflows from input to output using the move() API.
  */
 
 import { describe, it, expect } from "vitest";
@@ -13,10 +13,10 @@ import {
   isValidSelector,
   isValidMove,
   isValidOptions,
-  regraft,
+  move,
 } from "../../index.js";
 
-describe("E2E: Input Validation", () => {
+describe("Integration: Input Validation", () => {
   describe("Full Input Validation Flow", () => {
     it("should validate complete valid input", () => {
       const files = [
@@ -138,7 +138,7 @@ describe("E2E: Input Validation", () => {
   });
 });
 
-describe("E2E: Error Handling Flow", () => {
+describe("Integration: Error Handling Flow", () => {
   it("should create and handle parse errors", () => {
     const error = new RegraffErrorClass({
       category: ErrorCategory.Parse,
@@ -197,7 +197,7 @@ describe("E2E: Error Handling Flow", () => {
   });
 });
 
-describe("E2E: Type Coercion", () => {
+describe("Integration: Type Coercion", () => {
   it("should handle string file paths consistently", () => {
     const files = [
       { path: "src/components/App.tsx", content: "code" },
@@ -236,7 +236,7 @@ describe("E2E: Type Coercion", () => {
   });
 });
 
-describe("E2E: Complex Scenarios", () => {
+describe("Integration: Complex Scenarios", () => {
   describe("Multi-file operations", () => {
     const multiFileSetup = [
       {
@@ -343,7 +343,7 @@ describe("E2E: Complex Scenarios", () => {
   });
 });
 
-describe("E2E: Simple JSX Moves", () => {
+describe("Integration: Simple JSX Moves", () => {
   describe("Move.Before operation", () => {
     it("should move footer before header", () => {
       const files = [
@@ -364,7 +364,7 @@ describe("E2E: Simple JSX Moves", () => {
       const from = { file: "App.tsx", line: 6, column: 7 }; // footer
       const to = { file: "App.tsx", line: 4, column: 7 }; // header
 
-      const result = regraft(files, from, to, Move.Before);
+      const result = move(files, from, to, Move.Before);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function App() {
@@ -390,7 +390,7 @@ describe("E2E: Simple JSX Moves", () => {
       const from = { file: "Component.tsx", line: 5, column: 7 }; // p
       const to = { file: "Component.tsx", line: 4, column: 7 }; // h1
 
-      const result = regraft(files, from, to, Move.Before);
+      const result = move(files, from, to, Move.Before);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Component() {
@@ -419,7 +419,7 @@ describe("E2E: Simple JSX Moves", () => {
       const from = { file: "App.tsx", line: 4, column: 7 }; // header
       const to = { file: "App.tsx", line: 6, column: 7 }; // footer
 
-      const result = regraft(files, from, to, Move.After);
+      const result = move(files, from, to, Move.After);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function App() {
@@ -446,7 +446,7 @@ describe("E2E: Simple JSX Moves", () => {
       const from = { file: "Fragment.tsx", line: 4, column: 7 }; // First
       const to = { file: "Fragment.tsx", line: 6, column: 7 }; // Third
 
-      const result = regraft(files, from, to, Move.After);
+      const result = move(files, from, to, Move.After);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Fragment() {
@@ -476,7 +476,7 @@ describe("E2E: Simple JSX Moves", () => {
       const from = { file: "App.tsx", line: 7, column: 7 }; // p
       const to = { file: "App.tsx", line: 4, column: 7 }; // section
 
-      const result = regraft(files, from, to, Move.Inside);
+      const result = move(files, from, to, Move.Inside);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function App() {
@@ -504,7 +504,7 @@ describe("E2E: Simple JSX Moves", () => {
       const from = { file: "App.tsx", line: 5, column: 7 }; // p
       const to = { file: "App.tsx", line: 4, column: 7 }; // section
 
-      const result = regraft(files, from, to, Move.Inside);
+      const result = move(files, from, to, Move.Inside);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function App() {
@@ -514,7 +514,7 @@ describe("E2E: Simple JSX Moves", () => {
   });
 });
 
-describe("E2E: Moves with State Dependencies", () => {
+describe("Integration: Moves with State Dependencies", () => {
   describe("useState hoisting", () => {
     it("should hoist useState when moving component with state", () => {
       const files = [
@@ -538,7 +538,7 @@ function Child() {
       const from = { file: "App.tsx", line: 11, column: 10 }; // button with state
       const to = { file: "App.tsx", line: 3, column: 7 }; // inside Parent div
 
-      const result = regraft(files, from, to, Move.Inside);
+      const result = move(files, from, to, Move.Inside);
 
       expect(result.ok).toBe(true);
       // Should hoist useState to Parent component
@@ -579,7 +579,7 @@ function Child() {
       const from = { file: "App.tsx", line: 10, column: 5 }; // div with multiple states
       const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
-      const result = regraft(files, from, to, Move.Inside);
+      const result = move(files, from, to, Move.Inside);
 
       expect(result.ok).toBe(true);
       // All hooks should be hoisted in order
@@ -623,7 +623,7 @@ function Child() {
       const from = { file: "App.tsx", line: 12, column: 10 }; // button with effect
       const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
-      const result = regraft(files, from, to, Move.Inside);
+      const result = move(files, from, to, Move.Inside);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
@@ -665,7 +665,7 @@ function Timer() {
       const from = { file: "App.tsx", line: 16, column: 10 }; // timer div
       const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
-      const result = regraft(files, from, to, Move.Inside);
+      const result = move(files, from, to, Move.Inside);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
@@ -713,7 +713,7 @@ function Child() {
       const from = { file: "App.tsx", line: 13, column: 5 }; // div with ref
       const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
-      const result = regraft(files, from, to, Move.Inside);
+      const result = move(files, from, to, Move.Inside);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
@@ -765,7 +765,7 @@ function Counter() {
       const from = { file: "App.tsx", line: 16, column: 5 }; // Counter div
       const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
-      const result = regraft(files, from, to, Move.Inside);
+      const result = move(files, from, to, Move.Inside);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
@@ -797,7 +797,7 @@ function Counter() {
   });
 });
 
-describe("E2E: Moves with Variable Dependencies", () => {
+describe("Integration: Moves with Variable Dependencies", () => {
   it("should hoist const variable when moving dependent element", () => {
     const files = [
       {
@@ -816,7 +816,7 @@ function Child() {
     const from = { file: "App.tsx", line: 7, column: 10 }; // div with message
     const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
-    const result = regraft(files, from, to, Move.Inside);
+    const result = move(files, from, to, Move.Inside);
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
@@ -849,7 +849,7 @@ function Child() {
     const from = { file: "App.tsx", line: 10, column: 10 }; // button with handler
     const to = { file: "App.tsx", line: 2, column: 11 }; // inside Parent div (the div element, not Child)
 
-    const result = regraft(files, from, to, Move.Inside);
+    const result = move(files, from, to, Move.Inside);
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
@@ -884,7 +884,7 @@ function Child() {
     const from = { file: "App.tsx", line: 10, column: 10 }; // div with fullName
     const to = { file: "App.tsx", line: 2, column: 15 }; // inside Parent div
 
-    const result = regraft(files, from, to, Move.Inside);
+    const result = move(files, from, to, Move.Inside);
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
@@ -899,7 +899,7 @@ function Child() {
   });
 });
 
-describe("E2E: Complex Component Moves", () => {
+describe("Integration: Complex Component Moves", () => {
   it("should move component with mixed hooks and variables", () => {
     const files = [
       {
@@ -935,7 +935,7 @@ function Form() {
     const from = { file: "App.tsx", line: 19, column: 5 }; // form element
     const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
-    const result = regraft(files, from, to, Move.Inside);
+    const result = move(files, from, to, Move.Inside);
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.codes[0]?.content).toBe(`function Parent() {
@@ -977,7 +977,7 @@ function Child() {
     const from = { file: "App.tsx", line: 7, column: 11 }; // Child's div
     const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
-    const result = regraft(files, from, to, Move.Inside);
+    const result = move(files, from, to, Move.Inside);
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -1015,7 +1015,7 @@ function Child() {
     const from = { file: "App.tsx", line: 7, column: 11 }; // Child's div
     const to = { file: "App.tsx", line: 2, column: 10 }; // inside Parent div
 
-    const result = regraft(files, from, to, Move.Inside, { insertIndex: 0 });
+    const result = move(files, from, to, Move.Inside, { insertIndex: 0 });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -1035,7 +1035,7 @@ function Child() {
   });
 });
 
-describe("E2E: Atomic Unit Moves", () => {
+describe("Integration: Atomic Unit Moves", () => {
   // Note: Conditional/ternary expression tests removed due to validation bug
   // These are same-function moves that get incorrectly flagged as circular
 
@@ -1062,7 +1062,7 @@ describe("E2E: Atomic Unit Moves", () => {
       const from = { file: "App.tsx", line: 8, column: 9 }; // map expression
       const to = { file: "App.tsx", line: 6, column: 7 }; // before header
 
-      const result = regraft(files, from, to, Move.Before);
+      const result = move(files, from, to, Move.Before);
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.codes[0]?.content).toBe(`function App() {

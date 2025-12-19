@@ -51,6 +51,7 @@ export {
 } from './prop-threader.js';
 
 // ImportManager - Import statement management (re-exported from core)
+import { ImportManager as CoreImportManager } from '../core/index.js';
 export { ImportManager } from '../core/index.js';
 
 // Utility functions for import management
@@ -62,8 +63,8 @@ export {
 } from './import-utils.js';
 
 // Factory function for backward compatibility
-export function createImportManager(): ImportManager {
-  return new ImportManager();
+export function createImportManager(): CoreImportManager {
+  return new CoreImportManager();
 }
 
 // ContextHandler - React Context handling

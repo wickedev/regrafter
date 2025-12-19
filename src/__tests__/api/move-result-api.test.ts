@@ -1,7 +1,7 @@
 /**
  * Tests for move() API with Result-based error handling
  *
- * This test suite verifies that move() returns Result<Code[], RegraffError>
+ * This test suite verifies that move() returns Result<TransformedCode, RegraffError>
  * instead of throwing exceptions, ensuring consistent error handling across
  * the public API.
  */
@@ -40,10 +40,13 @@ function App() {
     }
     expect(isOk(result)).toBe(true);
     if (isOk(result)) {
-      expect(Array.isArray(result.value)).toBe(true);
-      expect(result.value.length).toBeGreaterThan(0);
-      expect(result.value[0]).toHaveProperty('file');
-      expect(result.value[0]).toHaveProperty('content');
+      // move() now returns TransformedCode with codes array
+      expect(result.value).toHaveProperty('codes');
+      expect(result.value).toHaveProperty('analysis');
+      expect(Array.isArray(result.value.codes)).toBe(true);
+      expect(result.value.codes.length).toBeGreaterThan(0);
+      expect(result.value.codes[0]).toHaveProperty('file');
+      expect(result.value.codes[0]).toHaveProperty('content');
     }
   });
 
@@ -130,7 +133,7 @@ function App() {
     expect(isErr(result)).toBe(true);
     if (isErr(result)) {
       // Message should indicate the element was not found
-      expect(result.error.message).toMatch(/No JSX element found|not found/i);
+      expect(result.error.message).toMatch(/No element found|No JSX element found|not found/i);
     }
   });
 

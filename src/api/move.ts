@@ -26,9 +26,14 @@ import type { HoistExecutionContext } from '../strategies/hoist-executor.js';
 import { createConfiguredHoistPlanner, createHoistExecutor } from '../strategies/index.js';
 import type { HoistContext } from '../strategies/types.js';
 import { createJSXTransformer } from '../transformer/index.js';
-import type { Code, FileInput, Move, Selector } from '../types/index.js';
+import type { Code, FileInput, Move, Selector, Options, SuggestedFix } from '../types/index.js';
+import { mergeOptions, createCode, createSuggestedFix } from '../types/index.js';
 import type { ScopeInfo } from '../types/internal.js';
 import { loadTraverseFunction } from '../utils/index.js';
+import { analyze } from './analyze.js';
+import { optimize } from './optimize.js';
+import { createSuccessResult, createErrorFromException } from './result-helpers.js';
+import type { TransformedCode } from './types.js';
 
 const traverse = loadTraverseFunction(traverseModule);
 
@@ -55,18 +60,75 @@ export function canMove(
 }
 
 /**
- * Execute element movement without validation or optimization.
+ * Move a JSX element with automatic dependency management.
  *
- * Lower-level API for custom workflows. Does not check if the move
- * is safe or perform dependency sinking.
+ * This is the main API for moving React/JSX elements. It performs:
+ * 1. Validation of the move operation
+ * 2. Dependency analysis
+ * 3. Element relocation with automatic hoisting
+ * 4. Optional optimization (sinking over-hoisted dependencies)
  *
  * @param files - Array of file inputs with path and content
  * @param from - Selector identifying the source element
  * @param to - Selector identifying the target location
  * @param mode - How to position the element relative to target
- * @returns Result containing array of transformed file contents or error
+ * @param options - Optional configuration
+ * @returns Result containing transformed code and analysis or error
+ *
+ * @example
+ * ```typescript
+ * import { move, Move, isOk } from 'regrafter';
+ *
+ * const result = move(
+ *   [{ path: 'App.tsx', content: sourceCode }],
+ *   { file: 'App.tsx', line: 10, column: 5 },
+ *   { file: 'App.tsx', line: 20, column: 5 },
+ *   Move.Inside
+ * );
+ *
+ * if (result.ok) {
+ *   console.log('Moved!', result.value.codes);
+ * }
+ * ```
  */
 export function move(
+  files: FileInput[],
+  from: Selector,
+  to: Selector,
+  mode: Move,
+  options?: Options
+): Result<TransformedCode, RegraffError> {
+  const mergedOptions = mergeOptions(options);
+
+  // Validate the move first
+  const validation = validateMoveOperation(files, from, to, mode);
+
+  if (!validation.valid) {
+    return createErrorResult(
+      validation.reason ?? 'Move validation failed',
+      [],
+      getSuggestedFixes(validation.errorCode)
+    );
+  }
+
+  // If dryRun is enabled, return analysis without transformation
+  if (mergedOptions.dryRun) {
+    return createDryRunResult(files, from, to, mode);
+  }
+
+  // Execute the transformation
+  return executeTransformation(files, from, to, mode, mergedOptions, validation);
+}
+
+/**
+ * Internal: Execute element movement without validation or optimization.
+ *
+ * Lower-level function for custom workflows. Does not check if the move
+ * is safe or perform dependency sinking.
+ *
+ * @internal
+ */
+function moveInternal(
   files: FileInput[],
   from: Selector,
   to: Selector,
@@ -142,9 +204,11 @@ export function move(
  * Internal function: Move with hoisting integration
  *
  * Performs the complete transformation with dependency hoisting.
- * This is used internally by regraft() to execute the full pipeline.
+ * This is used internally by move() to execute the full pipeline.
+ *
+ * @internal
  */
-export function moveWithHoisting(
+function moveWithHoistingInternal(
   files: FileInput[],
   from: Selector,
   to: Selector,
@@ -559,4 +623,153 @@ function refreshNodePaths(
       },
     },
   };
+}
+
+// =============================================================================
+// Helper Functions for Main move() API
+// =============================================================================
+
+/**
+ * Get suggested fixes based on error code
+ */
+function getSuggestedFixes(errorCode?: string): SuggestedFix[] | undefined {
+  if (errorCode === undefined || errorCode === '') return undefined;
+
+  const fixMap: Record<string, SuggestedFix[]> = {
+    'CIRCULAR_MOVE': [
+      createSuggestedFix({
+        description: 'Move to a different target that is not a descendant of the source',
+        action: 'select_different_target',
+        automatic: false,
+      }),
+    ],
+    'INVALID_SOURCE': [
+      createSuggestedFix({
+        description: 'Select a valid JSX element as the source',
+        action: 'select_jsx_element',
+        automatic: false,
+      }),
+    ],
+    'INVALID_TARGET': [
+      createSuggestedFix({
+        description: 'Select a valid target location',
+        action: 'select_valid_target',
+        automatic: false,
+      }),
+    ],
+  };
+
+  return fixMap[errorCode];
+}
+
+/**
+ * Create a dry run result (analysis only, no transformation)
+ */
+function createDryRunResult(
+  files: FileInput[],
+  from: Selector,
+  to: Selector,
+  mode: Move
+): Result<TransformedCode, RegraffError> {
+  const codes: Code[] = files.map(file =>
+    createCode({
+      file: file.path,
+      content: file.content,
+      changed: false,
+    })
+  );
+
+  const analysisResult = analyze(files, from, to, mode);
+
+  if (isErr(analysisResult)) {
+    return err(analysisResult.error);
+  }
+
+  const analysis = analysisResult.value;
+
+  return createSuccessResult(codes, analysis);
+}
+
+/**
+ * Execute the transformation after validation
+ */
+function executeTransformation(
+  files: FileInput[],
+  from: Selector,
+  to: Selector,
+  mode: Move,
+  options: Required<Options>,
+  _validation: unknown
+): Result<TransformedCode, RegraffError> {
+  try {
+    const analysisResult = analyze(files, from, to, mode);
+
+    if (isErr(analysisResult)) {
+      return err(analysisResult.error);
+    }
+
+    const fullAnalysis = analysisResult.value;
+
+    const moveResult = moveWithHoistingInternal(files, from, to, mode, {
+      insertIndex: options.insertIndex,
+      preserveComments: options.preserveComments,
+    });
+
+    if (isErr(moveResult)) {
+      return err(moveResult.error);
+    }
+
+    let codes = moveResult.value;
+
+    if (options.optimize) {
+      const originalChangedFlags = new Map<string, boolean>();
+      for (const code of codes) {
+        originalChangedFlags.set(code.file, code.changed);
+      }
+
+      const optimizeInput: FileInput[] = codes.map(code => ({
+        path: code.file,
+        content: code.content,
+      }));
+
+      const optimizeResult = optimize(optimizeInput);
+
+      if (isErr(optimizeResult)) {
+        return err(optimizeResult.error);
+      }
+
+      codes = optimizeResult.value.map(code => ({
+        ...code,
+        changed: code.changed || (originalChangedFlags.get(code.file) ?? false),
+      }));
+    }
+
+    return createSuccessResult(codes, fullAnalysis);
+  } catch (error) {
+    return createErrorFromException(error, {
+      file: files[0]?.path,
+      operation: 'transformation',
+    });
+  }
+}
+
+/**
+ * Create an error result from a message
+ */
+function createErrorResult(
+  message: string,
+  codes?: Code[],
+  suggestedFixes?: Array<{ description: string; action: string; automatic: boolean }>,
+  file?: string
+): Result<TransformedCode, RegraffError> {
+  const error: RegraffError = createValidationError({
+    code: 'MOVE_FAILED',
+    message,
+    constraint: 'general',
+    details: 'Move validation failed',
+    file: file ?? codes?.[0]?.file ?? 'unknown',
+    suggestions: suggestedFixes ?? [],
+  });
+
+  return err(error);
 }
