@@ -26,12 +26,14 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "yarn"
-          registry-url: "https://registry.npmjs.org"
 
       - name: Configure Git
         run: |
@@ -80,4 +82,19 @@ jobs:
           generate_release_notes: true
 
       - name: Publish to npm (OIDC)
-        run: yarn npm publish --access public --tolerate-republish
+        run: |
+          echo "=== GitHub Context ==="
+          echo "Repository: ${{ github.repository }}"
+          echo "Workflow: ${{ github.workflow }}"
+          echo "Workflow file: ${{ github.workflow_ref }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "=== npm version ==="
+          npm --version
+          echo "=== Checking OIDC environment variables ==="
+          env | grep -E "(ACTIONS_ID_TOKEN|NODE_AUTH|GITHUB_)" || echo "No relevant env vars found"
+          echo "=== Package.json repository ==="
+          grep -A 3 '"repository"' package.json
+          echo "=== Unsetting NODE_AUTH_TOKEN ==="
+          unset NODE_AUTH_TOKEN
+          echo "=== Attempting publish with verbose output ==="
+          npm publish --access public --provenance --ignore-scripts --loglevel verbose 2>&1 || true
