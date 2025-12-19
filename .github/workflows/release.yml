@@ -1,17 +1,9 @@
 name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version to release (e.g., 0.1.0, 0.2.0-beta.1)"
-        required: true
-        type: string
-      prerelease:
-        description: "Is this a prerelease?"
-        required: false
-        type: boolean
-        default: false
+  push:
+    tags:
+      - 'v*.*.*'
 
 jobs:
   release:
@@ -26,6 +18,19 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          # Check if this is a prerelease
+          if [[ "$VERSION" =~ (alpha|beta|rc) ]]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Enable Corepack
         run: corepack enable
 
@@ -35,66 +40,28 @@ jobs:
           node-version: "24"
           cache: "yarn"
 
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Install dependencies
         run: yarn install --immutable
 
-      # - name: Run tests
-      #   run: yarn test
+      - name: Run tests
+        run: yarn test
 
-      # - name: Run type check
-      #   run: yarn typecheck
+      - name: Run type check
+        run: yarn typecheck
 
-      # - name: Run lint
-      #   run: yarn lint
+      - name: Run lint
+        run: yarn lint
 
-      - name: Update version
-        run: yarn version ${{ inputs.version }}
-
-      - name: Build package (placeholder)
-        run: |
-          mkdir -p dist/esm dist/cjs dist/types
-          echo "export const version = '${{ inputs.version }}';" > dist/esm/index.js
-          echo "exports.version = '${{ inputs.version }}';" > dist/cjs/index.cjs
-          echo "export declare const version: string;" > dist/types/index.d.ts
-
-      - name: Create release commit
-        run: |
-          git add package.json yarn.lock
-          git commit -m "chore: release v${{ inputs.version }}"
-          git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}"
-
-      - name: Push changes
-        run: |
-          git push origin main
-          git push origin "v${{ inputs.version }}"
+      - name: Build package
+        run: yarn build
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ inputs.version }}
-          name: Release v${{ inputs.version }}
-          prerelease: ${{ inputs.prerelease }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          prerelease: ${{ steps.version.outputs.prerelease }}
           generate_release_notes: true
 
-      - name: Publish to npm (OIDC)
-        run: |
-          echo "=== GitHub Context ==="
-          echo "Repository: ${{ github.repository }}"
-          echo "Workflow: ${{ github.workflow }}"
-          echo "Workflow file: ${{ github.workflow_ref }}"
-          echo "Event: ${{ github.event_name }}"
-          echo "=== npm version ==="
-          npm --version
-          echo "=== Checking OIDC environment variables ==="
-          env | grep -E "(ACTIONS_ID_TOKEN|NODE_AUTH|GITHUB_)" || echo "No relevant env vars found"
-          echo "=== Package.json repository ==="
-          grep -A 3 '"repository"' package.json
-          echo "=== Unsetting NODE_AUTH_TOKEN ==="
-          unset NODE_AUTH_TOKEN
-          echo "=== Attempting publish with verbose output ==="
-          npm publish --access public --provenance --ignore-scripts --loglevel verbose 2>&1 || true
+      - name: Publish to npm
+        run: npm publish --access public --provenance
