@@ -52,7 +52,8 @@ try {
           name: `${groupName} > ${benchmark.name}`,
           value: benchmark.hz,          // ops/sec
           unit: 'ops/sec',
-          range: `±${benchmark.rme.toFixed(2)}%`
+          range: `±${benchmark.rme.toFixed(2)}%`,
+          samples: benchmark.sampleCount || 1  // actual sample count from Vitest
         });
       }
     }
@@ -71,8 +72,8 @@ try {
     });
 
     // BenchmarkJS format: "name x ops/sec ±rme% (samples runs sampled)"
-    // Note: We don't have sample count from Vitest, so we use a placeholder
-    return `${bench.name} x ${formattedValue} ops/sec ${bench.range} (benchmark completed)`;
+    const sampleText = bench.samples === 1 ? '1 run sampled' : `${bench.samples} runs sampled`;
+    return `${bench.name} x ${formattedValue} ops/sec ${bench.range} (${sampleText})`;
   }).join('\n');
 
   // Determine output file names (generate both .txt and .json)
