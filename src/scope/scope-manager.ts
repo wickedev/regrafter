@@ -30,6 +30,8 @@ import {
   type ScopeTree,
 } from './types.js';
 import { createScopeTreeBuilder, type ScopeTreeBuilder } from './components/scope-tree-builder.js';
+import { createBindingTracker, type BindingTracker } from './components/binding-tracker.js';
+import { createHookTracker, type HookTracker } from './components/hook-tracker.js';
 
 const traverse: TraverseFunction = loadTraverseFunction(traverseModule);
 
@@ -69,9 +71,13 @@ export class ScopeManager implements IScopeManager {
   private scopeTree: ScopeTree | null = null;
   private readonly components: Map<string, ComponentInfo> = new Map();
   private readonly treeBuilder: ScopeTreeBuilder;
+  private readonly bindingTracker: BindingTracker;
+  private readonly hookTracker: HookTracker;
 
   constructor() {
     this.treeBuilder = createScopeTreeBuilder();
+    this.bindingTracker = createBindingTracker();
+    this.hookTracker = createHookTracker();
   }
 
   /**
@@ -377,8 +383,7 @@ export class ScopeManager implements IScopeManager {
    * Get all bindings in a scope
    */
   getBindingsInScope(scope: ScopeInfo): Map<string, BindingInfo> {
-    if (!this.scopeTree) return new Map<string, BindingInfo>();
-    return this.scopeTree.bindingsByScope.get(scope.id) ?? new Map<string, BindingInfo>();
+    return this.bindingTracker.getBindingsInScope(scope, this.scopeTree);
   }
 
   /**
@@ -389,12 +394,13 @@ export class ScopeManager implements IScopeManager {
     fromScope: ScopeInfo,
     bindingScope: ScopeInfo
   ): boolean {
-    const accessibility = this.checkAccessibility(bindingScope, fromScope);
-    if (!accessibility.accessible) return false;
-
-    // Check if binding is actually defined in bindingScope
-    const bindings = this.getBindingsInScope(bindingScope);
-    return bindings.has(bindingName);
+    return this.bindingTracker.isBindingAccessible(
+      bindingName,
+      fromScope,
+      bindingScope,
+      this.scopeTree,
+      (sourceScope, targetScope) => this.checkAccessibility(sourceScope, targetScope)
+    );
   }
 
   /**
@@ -423,24 +429,7 @@ export class ScopeManager implements IScopeManager {
     scope: ScopeInfo,
     scopeTree: ScopeTree
   ): void {
-    const bindings = new Map<string, BindingInfo>();
-
-    // Get Babel's scope bindings
-    const babelScope = path.scope;
-    for (const [name, binding] of Object.entries(babelScope.bindings)) {
-      const isHook = this.isHookCall(binding.path);
-      const usedInJSX = this.isUsedInJSX(binding);
-
-      bindings.set(name, {
-        binding,
-        scope,
-        isHook,
-        usedInJSX,
-        references: binding.referencePaths,
-      });
-    }
-
-    scopeTree.bindingsByScope.set(scope.id, bindings);
+    this.bindingTracker.extractBindings(path, scope, scopeTree);
   }
 
 
@@ -448,118 +437,10 @@ export class ScopeManager implements IScopeManager {
    * Detect hooks used in a component
    */
   private detectHooks(path: NodePath): HookInfo[] {
-    const hooks: HookInfo[] = [];
-
-    path.traverse({
-      CallExpression(callPath) {
-        const callee = callPath.node.callee;
-
-        // Check for direct hook calls: useState()
-        if (t.isIdentifier(callee) && REACT_HOOKS.has(callee.name)) {
-          hooks.push({
-            name: callee.name,
-            path: callPath,
-            returnBindings: getHookReturnBindings(callPath),
-            dependencies: getHookDependencies(callPath, callee.name),
-          });
-        }
-
-        // Check for React.useState() pattern
-        if (
-          t.isMemberExpression(callee) &&
-          t.isIdentifier(callee.object) &&
-          callee.object.name === 'React' &&
-          t.isIdentifier(callee.property) &&
-          REACT_HOOKS.has(callee.property.name)
-        ) {
-          hooks.push({
-            name: callee.property.name,
-            path: callPath,
-            returnBindings: getHookReturnBindings(callPath),
-            dependencies: getHookDependencies(callPath, callee.property.name),
-          });
-        }
-
-        // Check for custom hooks (useXxx pattern)
-        if (
-          t.isIdentifier(callee) &&
-          /^use[A-Z]/.test(callee.name) &&
-          !REACT_HOOKS.has(callee.name)
-        ) {
-          hooks.push({
-            name: callee.name,
-            path: callPath,
-            returnBindings: getHookReturnBindings(callPath),
-            dependencies: [],
-          });
-        }
-      },
-    });
-
-    return hooks;
+    return this.hookTracker.detectHooks(path);
   }
 
 
-  /**
-   * Check if a binding is from a hook call
-   */
-  private isHookCall(path: NodePath): boolean {
-    const parent = path.parentPath;
-    if (!parent) return false;
-
-    // Check for const [x, setX] = useState()
-    if (t.isVariableDeclarator(parent.node)) {
-      const init = parent.node.init;
-      if (t.isCallExpression(init)) {
-        const callee = init.callee;
-        if (t.isIdentifier(callee) && REACT_HOOKS.has(callee.name)) {
-          return true;
-        }
-        if (
-          t.isMemberExpression(callee) &&
-          t.isIdentifier(callee.property) &&
-          REACT_HOOKS.has(callee.property.name)
-        ) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Check if a binding is used in JSX
-   */
-  private isUsedInJSX(binding: Binding): boolean {
-    for (const ref of binding.referencePaths) {
-      if (this.isInJSXContext(ref)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Check if a path is in a JSX context
-   */
-  private isInJSXContext(path: NodePath): boolean {
-    let current: NodePath | null = path;
-
-    while (current) {
-      if (
-        t.isJSXElement(current.node) ||
-        t.isJSXFragment(current.node) ||
-        t.isJSXAttribute(current.node) ||
-        t.isJSXExpressionContainer(current.node)
-      ) {
-        return true;
-      }
-      current = current.parentPath;
-    }
-
-    return false;
-  }
 
   /**
    * Get the path from a scope to the root
@@ -593,53 +474,6 @@ export class ScopeManager implements IScopeManager {
   }
 }
 
-/**
- * Helper: Get return bindings from a hook call
- */
-function getHookReturnBindings(callPath: NodePath): string[] {
-  const parent = callPath.parentPath;
-  if (!parent) return [];
-
-  // const [state, setState] = useState()
-  if (
-    t.isVariableDeclarator(parent.node) &&
-    t.isArrayPattern(parent.node.id)
-  ) {
-    return parent.node.id.elements
-      .filter((e): e is t.Identifier => t.isIdentifier(e))
-      .map((e) => e.name);
-  }
-
-  // const ref = useRef()
-  if (
-    t.isVariableDeclarator(parent.node) &&
-    t.isIdentifier(parent.node.id)
-  ) {
-    return [parent.node.id.name];
-  }
-
-  return [];
-}
-
-/**
- * Helper: Get dependencies array from hooks like useEffect, useMemo
- */
-function getHookDependencies(callPath: NodePath, hookName: string): string[] {
-  const node = callPath.node;
-  if (!t.isCallExpression(node)) return [];
-
-  // Hooks with dependency arrays: useEffect, useLayoutEffect, useMemo, useCallback
-  const hooksWithDeps = ['useEffect', 'useLayoutEffect', 'useMemo', 'useCallback', 'useInsertionEffect'];
-  if (!hooksWithDeps.includes(hookName)) return [];
-
-  // Dependencies are in the second argument
-  const depsArg = node.arguments[1];
-  if (!t.isArrayExpression(depsArg)) return [];
-
-  return depsArg.elements
-    .filter((e): e is t.Identifier => t.isIdentifier(e))
-    .map((e) => e.name);
-}
 
 /**
  * Create a new ScopeManager instance

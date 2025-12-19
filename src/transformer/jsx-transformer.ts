@@ -5,6 +5,8 @@
  * - Move.Inside (appendChild)
  * - Move.Before (insertBefore sibling)
  * - Move.After (insertAfter sibling)
+ *
+ * Uses Strategy Pattern to delegate move operations to specialized strategy classes.
  */
 
 import type { NodePath } from "@babel/traverse";
@@ -22,21 +24,30 @@ import { Move } from "../types/public.js";
 import type { MoveOptions, MoveContext, InsertionPoint } from "./types.js";
 import { mergeMoveOptions, TransformerErrorCodes } from "./types.js";
 
-/**
- * Type alias for JSX child elements
- * JSXChild was removed from @babel/types, so we define it here
- */
-type JSXChild =
-  | t.JSXText
-  | t.JSXExpressionContainer
-  | t.JSXSpreadChild
-  | t.JSXElement
-  | t.JSXFragment;
+import type { IMoveStrategy } from "./strategies/i-move-strategy.js";
+import { InsideMoveStrategy } from "./strategies/inside-move-strategy.js";
+import { BeforeMoveStrategy } from "./strategies/before-move-strategy.js";
+import { AfterMoveStrategy } from "./strategies/after-move-strategy.js";
+import * as helpers from "./strategies/move-helpers.js";
 
 /**
- * JSXTransformer handles all JSX element transformations
+ * Type alias for JSX child elements
+ */
+export type JSXChild = helpers.JSXChild;
+
+/**
+ * JSXTransformer handles all JSX element transformations using Strategy Pattern
  */
 export class JSXTransformer {
+  private strategies: Map<Move, IMoveStrategy>;
+
+  constructor() {
+    this.strategies = new Map([
+      [Move.Inside, new InsideMoveStrategy()],
+      [Move.Before, new BeforeMoveStrategy()],
+      [Move.After, new AfterMoveStrategy()],
+    ]);
+  }
   /**
    * Check if source and target are the same element.
    * Uses node identity and source location for comparison.
@@ -120,7 +131,7 @@ export class JSXTransformer {
   }
 
   /**
-   * Execute a move operation based on the mode
+   * Execute a move operation based on the mode using Strategy Pattern
    *
    * @param ast - The AST to transform
    * @param sourcePath - Path to the source element
@@ -153,227 +164,22 @@ export class JSXTransformer {
       options: mergedOptions,
     };
 
-    switch (mode) {
-      case Move.Inside:
-        return this.moveInside(context);
-      case Move.Before:
-        return this.moveBefore(context);
-      case Move.After:
-        return this.moveAfter(context);
-      default:
-        return err(
-          createTransformError({
-            code: TransformerErrorCodes.INTERNAL_ERROR,
-            message: `Unknown move mode: ${String(mode)}`,
-            operation: "transform",
-            file: "",
-            suggestions: [],
-          })
-        );
-    }
-  }
-
-  /**
-   * Move.Inside operation - appendChild semantics
-   *
-   * Inserts the source element as a child of the target element.
-   * By default, appends to the end of children. Use insertIndex for specific position.
-   *
-   * @param context - Move context with source, target, and options
-   * @returns InsertionResult with transformed AST or error
-   */
-  moveInside(
-    context: MoveContext
-  ): Result<InsertionPoint, TransformErrorType | ValidationErrorType> {
-    const { ast, sourcePath, targetPath, options } = context;
-
-    // Validate source is a JSX element
-    if (!this.isValidJSXSource(sourcePath)) {
-      return err(
-        createValidationError({
-          code: "V007",
-          message:
-            "Source must be a JSX element, expression container, or fragment",
-          constraint: "jsx_element_required",
-          details: "Source node must be a JSX element",
-          file: "",
-        })
-      );
-    }
-
-    // Validate target can have children
-    if (!this.isValidJSXTarget(targetPath)) {
-      return err(
-        createTransformError({
-          code: TransformerErrorCodes.INVALID_TARGET,
-          message:
-            "Target must be a JSX element or fragment that can contain children",
-          operation: "transform",
-          file: "",
-          suggestions: [],
-        })
-      );
-    }
-
-    // Check for circular moves before proceeding
-    if (this.isCircularMove(sourcePath, targetPath)) {
-      return err(
-        createTransformError({
-          code: TransformerErrorCodes.CIRCULAR_MOVE,
-          message: "Cannot move an element into itself or its descendants",
-          operation: "transform",
-          file: "",
-          suggestions: [],
-        })
-      );
-    }
-
-    // Clone the source node to avoid mutation issues
-    const sourceNode = this.cloneNode(sourcePath.node);
-
-    // Extract and preserve comments if needed
-    if (options.preserveComments) {
-      this.preserveComments(sourcePath.node, sourceNode);
-    }
-
-    // Get target's children container
-    // targetNode is available for future validation needs
-    const _targetNode = targetPath.node;
-    void _targetNode; // Suppress unused variable warning
-    const childrenResult = this.getChildren(targetPath);
-
-    if (!childrenResult.ok) {
-      return childrenResult;
-    }
-
-    const children = childrenResult.value;
-
-    // Wrap source in expression container if necessary
-    const wrappedSource = this.wrapInExpressionContainer(
-      sourceNode,
-      targetPath
-    );
-
-    // Determine insertion index
-    const insertIndex =
-      options.insertIndex >= 0
-        ? Math.min(options.insertIndex, children.length)
-        : children.length;
-
-    // Insert the source node at the appropriate position
-    children.splice(insertIndex, 0, wrappedSource);
-
-    // Update the target node's children
-    this.setChildren(targetPath, children);
-
-    // Remove the source from its original location
-    this.removeSource(sourcePath);
-
-    return ok({
-      ast,
-      movedNode: sourceNode,
-    });
-  }
-
-  /**
-   * Move.Before operation - insertBefore sibling semantics
-   *
-   * Inserts the source element as the previous sibling of the target element.
-   *
-   * @param context - Move context with source, target, and options
-   * @returns InsertionResult with transformed AST or error
-   */
-  moveBefore(
-    context: MoveContext
-  ): Result<InsertionPoint, TransformErrorType | ValidationErrorType> {
-    const { ast, options } = context;
-
-    // Normalize paths to handle JSXExpressionContainer
-    const sourcePathResult = this.normalizePathForMove(context.sourcePath);
-    if (isErr(sourcePathResult)) return err(sourcePathResult.error);
-    const sourcePath = sourcePathResult.value;
-
-    const targetPathResult = this.normalizePathForMove(context.targetPath);
-    if (isErr(targetPathResult)) return err(targetPathResult.error);
-    const targetPath = targetPathResult.value;
-
-    // Validate source is a JSX element
-    if (!this.isValidJSXSource(sourcePath)) {
-      return err(
-        createValidationError({
-          code: "V007",
-          message:
-            "Source must be a JSX element, expression container, or fragment",
-          constraint: "jsx_element_required",
-          details: "Source node must be a JSX element",
-          file: "",
-        })
-      );
-    }
-
-    // Clone the source node
-    const sourceNode = this.cloneNode(sourcePath.node);
-
-    // Extract and preserve comments if needed
-    if (options.preserveComments) {
-      this.preserveComments(sourcePath.node, sourceNode);
-    }
-
-    // Get target's parent and find target index in siblings
-    const parentPath = targetPath.parentPath;
-    if (!parentPath) {
-      return err(
-        createTransformError({
-          code: TransformerErrorCodes.NO_PARENT,
-          message: "Target has no parent",
-          operation: "moveBefore",
-          file: "",
-          suggestions: [],
-        })
-      );
-    }
-
-    const siblingsResult = this.getSiblings(targetPath);
-    if (!siblingsResult.ok) {
-      return siblingsResult;
-    }
-
-    const siblings = siblingsResult.value;
-
-    const targetIndexResult = this.getIndexInParent(targetPath);
-    if (!targetIndexResult.ok) {
+    // Use strategy pattern to delegate to appropriate move strategy
+    const strategy = this.strategies.get(mode);
+    if (!strategy) {
       return err(
         createTransformError({
           code: TransformerErrorCodes.INTERNAL_ERROR,
-          message: "Could not find target in parent",
-          operation: "moveBefore",
+          message: `Unknown move mode: ${String(mode)}`,
+          operation: "transform",
           file: "",
           suggestions: [],
         })
       );
     }
-    const targetIndex = targetIndexResult.value;
 
-    // Check if source and target are in the same parent
-    const sourceParentPath = sourcePath.parentPath;
-    const sameParent =
-      sourceParentPath && sourceParentPath.node === parentPath.node;
-
-    // Wrap source in expression container if necessary
-    const wrappedSource = this.wrapInExpressionContainer(
-      sourceNode,
-      parentPath
-    );
-
-    if (sameParent === true) {
-      // Same parent: remove source first, then insert at adjusted index
-      const sourceIndexResult = this.getIndexInParent(sourcePath);
-
-      // Remove source from siblings array
-      const sourceIndex = sourceIndexResult.ok ? sourceIndexResult.value : -1;
-      if (sourceIndex >= 0) {
-        siblings.splice(sourceIndex, 1);
-      }
+    return strategy.execute(context);
+  }
 
       // Adjust target index if source was before target
       const adjustedTargetIndex =
@@ -399,106 +205,6 @@ export class JSXTransformer {
       movedNode: sourceNode,
     });
   }
-
-  /**
-   * Move.After operation - insertAfter sibling semantics
-   *
-   * Inserts the source element as the next sibling of the target element.
-   *
-   * @param context - Move context with source, target, and options
-   * @returns InsertionResult with transformed AST or error
-   */
-  moveAfter(
-    context: MoveContext
-  ): Result<InsertionPoint, TransformErrorType | ValidationErrorType> {
-    const { ast, options } = context;
-
-    // Normalize paths to handle JSXExpressionContainer
-    const sourcePathResult = this.normalizePathForMove(context.sourcePath);
-    if (isErr(sourcePathResult)) return err(sourcePathResult.error);
-    const sourcePath = sourcePathResult.value;
-
-    const targetPathResult = this.normalizePathForMove(context.targetPath);
-    if (isErr(targetPathResult)) return err(targetPathResult.error);
-    const targetPath = targetPathResult.value;
-
-    // Validate source is a JSX element
-    if (!this.isValidJSXSource(sourcePath)) {
-      return err(
-        createValidationError({
-          code: "V007",
-          message:
-            "Source must be a JSX element, expression container, or fragment",
-          constraint: "jsx_element_required",
-          details: "Source node must be a JSX element",
-          file: "",
-        })
-      );
-    }
-
-    // Clone the source node
-    const sourceNode = this.cloneNode(sourcePath.node);
-
-    // Extract and preserve comments if needed
-    if (options.preserveComments) {
-      this.preserveComments(sourcePath.node, sourceNode);
-    }
-
-    // Get target's parent and find target index in siblings
-    const parentPath = targetPath.parentPath;
-    if (!parentPath) {
-      return err(
-        createTransformError({
-          code: TransformerErrorCodes.NO_PARENT,
-          message: "Target has no parent",
-          operation: "moveAfter",
-          file: "",
-          suggestions: [],
-        })
-      );
-    }
-
-    const siblingsResult = this.getSiblings(targetPath);
-    if (!siblingsResult.ok) {
-      return siblingsResult;
-    }
-
-    const siblings = siblingsResult.value;
-
-    const targetIndexResult = this.getIndexInParent(targetPath);
-    if (!targetIndexResult.ok) {
-      return err(
-        createTransformError({
-          code: TransformerErrorCodes.INTERNAL_ERROR,
-          message: "Could not find target in parent",
-          operation: "moveAfter",
-          file: "",
-          suggestions: [],
-        })
-      );
-    }
-    const targetIndex = targetIndexResult.value;
-
-    // Check if source and target are in the same parent
-    const sourceParentPath = sourcePath.parentPath;
-    const sameParent =
-      sourceParentPath && sourceParentPath.node === parentPath.node;
-
-    // Wrap source in expression container if necessary
-    const wrappedSource = this.wrapInExpressionContainer(
-      sourceNode,
-      parentPath
-    );
-
-    if (sameParent === true) {
-      // Same parent: remove source first, then insert at adjusted index
-      const sourceIndexResult = this.getIndexInParent(sourcePath);
-
-      // Remove source from siblings array
-      const sourceIndex = sourceIndexResult.ok ? sourceIndexResult.value : -1;
-      if (sourceIndex >= 0) {
-        siblings.splice(sourceIndex, 1);
-      }
 
       // Adjust target index if source was before target
       const adjustedTargetIndex =
