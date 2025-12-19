@@ -30,11 +30,22 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Run performance benchmarks
-        run: npm run bench
+      - name: Run performance benchmarks (JSON output)
+        run: npx vitest bench --run --config config/vitest.config.ts --outputJson bench-output.json
 
-      - name: Run memory benchmarks
-        run: npm run bench:memory
+      - name: Convert to BenchmarkJS format
+        run: node scripts/vitest-to-benchmarkjs.js bench-output.json benchmark-results.json
+
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'benchmarkjs'
+          output-file-path: benchmark-results.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: false
+          comment-on-alert: true
+          fail-on-alert: false
+          alert-threshold: '200%'
 
       - name: Upload benchmark results as artifact
         uses: actions/upload-artifact@v4
@@ -42,8 +53,8 @@ jobs:
         with:
           name: benchmark-results
           path: |
-            **/*.bench.txt
-            **/bench*.txt
+            bench-output.json
+            benchmark-results.json
           retention-days: 30
           if-no-files-found: warn
 
@@ -54,21 +65,31 @@ jobs:
           script: |
             const fs = require('fs');
 
-            // Read benchmark results if available
+            // Read benchmark results
             let benchmarkComment = '## 📊 Performance Benchmark Results\n\n';
 
             try {
-              // This is a placeholder - actual results would come from vitest output
-              benchmarkComment += '✅ All performance benchmarks passed!\n\n';
-              benchmarkComment += '### Requirements Status:\n';
-              benchmarkComment += '- ✅ Single file (< 1000 lines): P95 < 100ms\n';
-              benchmarkComment += '- ✅ Multi-file (10 files): P95 < 500ms\n';
-              benchmarkComment += '- ✅ canMove: < 20% of full operation\n';
-              benchmarkComment += '- ✅ Memory: < 10x file size\n\n';
-              benchmarkComment += '_Note: Run `npm run bench` locally for detailed results._';
+              const results = JSON.parse(fs.readFileSync('benchmark-results.json', 'utf-8'));
+
+              if (results.length === 0) {
+                benchmarkComment += '⚠️ No benchmark results found.\n';
+              } else {
+                benchmarkComment += '✅ All performance benchmarks completed!\n\n';
+                benchmarkComment += '| Benchmark | ops/sec | Variance |\n';
+                benchmarkComment += '|-----------|---------|----------|\n';
+
+                for (const bench of results) {
+                  const name = bench.name.length > 50 ? bench.name.substring(0, 47) + '...' : bench.name;
+                  const value = bench.value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+                  benchmarkComment += `| ${name} | ${value} | ${bench.range} |\n`;
+                }
+
+                benchmarkComment += '\n_Note: Run `npm run bench` locally for detailed results._';
+              }
             } catch (error) {
               benchmarkComment += '⚠️ Could not read benchmark results.\n';
-              benchmarkComment += `Error: ${error.message}`;
+              benchmarkComment += `Error: ${error.message}\n\n`;
+              benchmarkComment += '_Note: Run `npm run bench` locally for detailed results._';
             }
 
             // Post comment on PR
@@ -103,7 +124,10 @@ jobs:
         run: npm run build
 
       - name: Run benchmarks on PR branch
-        run: npm run bench > pr-bench.txt 2>&1 || true
+        run: npx vitest bench --run --config config/vitest.config.ts --outputJson pr-bench-output.json
+
+      - name: Convert PR benchmarks to BenchmarkJS format
+        run: node scripts/vitest-to-benchmarkjs.js pr-bench-output.json pr-benchmark-results.json
 
       - name: Checkout base branch
         run: |
@@ -117,16 +141,44 @@ jobs:
         run: npm run build
 
       - name: Run benchmarks on base branch
-        run: npm run bench > base-bench.txt 2>&1 || true
+        run: npx vitest bench --run --config config/vitest.config.ts --outputJson base-bench-output.json
+
+      - name: Convert base benchmarks to BenchmarkJS format
+        run: node scripts/vitest-to-benchmarkjs.js base-bench-output.json base-benchmark-results.json
 
       - name: Compare results
-        run: |
-          echo "## Benchmark Comparison"
-          echo ""
-          echo "### Base branch (${{ github.base_ref }})"
-          cat base-bench.txt || echo "No results"
-          echo ""
-          echo "### PR branch"
-          cat pr-bench.txt || echo "No results"
-          echo ""
-          echo "ℹ️ Manual comparison required. Automated comparison coming soon."
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            try {
+              const prResults = JSON.parse(fs.readFileSync('pr-benchmark-results.json', 'utf-8'));
+              const baseResults = JSON.parse(fs.readFileSync('base-benchmark-results.json', 'utf-8'));
+
+              let comment = '## 📊 Benchmark Comparison\n\n';
+              comment += '| Benchmark | Base ops/sec | PR ops/sec | Change |\n';
+              comment += '|-----------|--------------|------------|--------|\n';
+
+              const baseMap = new Map(baseResults.map(b => [b.name, b]));
+
+              for (const prBench of prResults) {
+                const baseBench = baseMap.get(prBench.name);
+                if (baseBench) {
+                  const baseValue = baseBench.value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+                  const prValue = prBench.value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+                  const change = ((prBench.value - baseBench.value) / baseBench.value * 100).toFixed(2);
+                  const changeIcon = change > 0 ? '🚀' : change < 0 ? '⚠️' : '➡️';
+                  const name = prBench.name.length > 40 ? prBench.name.substring(0, 37) + '...' : prBench.name;
+
+                  comment += `| ${name} | ${baseValue} | ${prValue} | ${changeIcon} ${change}% |\n`;
+                } else {
+                  comment += `| ${prBench.name} | N/A | ${prBench.value.toLocaleString('en-US', { maximumFractionDigits: 0 })} | 🆕 New |\n`;
+                }
+              }
+
+              console.log(comment);
+            } catch (error) {
+              console.log('## ⚠️ Benchmark Comparison Failed\n');
+              console.log(`Error: ${error.message}`);
+            }
