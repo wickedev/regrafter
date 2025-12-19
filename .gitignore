@@ -63,6 +63,14 @@ temp/
 *.tmp
 *.temp
 
+# Debug and test files
+debug-*.ts
+debug-*.tsx
+debug-*.js
+/test-*.ts
+/test-*.tsx
+/test-*.js
+
 # OS generated
 .DS_Store
 .DS_Store?

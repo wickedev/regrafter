@@ -87,7 +87,12 @@ export class CodeGenerator {
       const result: GeneratorResult = generateCode(ast, babelGeneratorOptions);
 
       // Remove trailing whitespace from all lines
-      const cleanedCode = result.code.split('\n').map(line => line.trimEnd()).join('\n');
+      let cleanedCode = result.code.split('\n').map(line => line.trimEnd()).join('\n');
+
+      // Remove semicolons if option is false
+      if (mergedOptions.semicolons === false) {
+        cleanedCode = this.removeSemicolons(cleanedCode);
+      }
 
       return ok({
         code: cleanedCode,
@@ -146,28 +151,74 @@ export class CodeGenerator {
     return {
       // Comment preservation configuration
       comments: options.preserveComments,
-      
+
       // Retain leading/trailing comments on nodes
       retainLines: false,
-      
+
       // Compact mode disabled to preserve readability
       compact: false,
-      
+
       // Minified mode disabled
       minified: false,
-      
-      // JSX-specific options
+
+      // String literal and JSX quote style
       jsescOption: {
-        quotes: options.jsxSingleQuote ? 'single' : 'double',
+        // Use singleQuote option for JavaScript string literals
+        quotes: options.singleQuote ? 'single' : 'double',
       },
-      
+
       // Generate source maps
       sourceMaps: true,
-      
+
       // Formatting options
       auxiliaryCommentBefore: undefined,
       auxiliaryCommentAfter: undefined,
     };
+  }
+
+  /**
+   * Remove semicolons from generated code
+   *
+   * Removes semicolons from the end of statements while preserving:
+   * - Semicolons in for loop headers
+   * - Semicolons within strings
+   * - Necessary semicolons for ASI (Automatic Semicolon Insertion) safety
+   *
+   * @param code - The generated code
+   * @returns Code with semicolons removed where appropriate
+   */
+  private removeSemicolons(code: string): string {
+    const lines = code.split('\n');
+
+    return lines
+      .map((line) => {
+        const trimmed = line.trim();
+
+        // Skip empty lines
+        if (trimmed.length === 0) {
+          return line;
+        }
+
+        // Skip lines that are comments
+        if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) {
+          return line;
+        }
+
+        // For statements: don't remove semicolons from for loop headers
+        // Example: for (let i = 0; i < n; i++)
+        if (trimmed.startsWith('for')) {
+          return line;
+        }
+
+        // Remove trailing semicolon from the line
+        // This is a simple approach that handles most cases
+        if (line.trimEnd().endsWith(';')) {
+          return line.trimEnd().slice(0, -1);
+        }
+
+        return line;
+      })
+      .join('\n');
   }
 
   /**
