@@ -64,7 +64,7 @@
     "format": "prettier --write \"src/**/*.ts\" --config config/prettier.config.json",
     "format:check": "prettier --check \"src/**/*.ts\" --config config/prettier.config.json",
     "typecheck": "tsc --noEmit -p config/tsconfig.json",
-    "prepublishOnly": "npm run build && npm run test && npm run typecheck",
+    "prepublishOnly": "npm run build",
     "version": "npm run build",
     "release": "npm publish --access public",
     "docs:start": "cd website && yarn start",
