@@ -1,0 +1,42 @@
+name: Quality Checks
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version to use'
+        required: false
+        type: string
+        default: '20.x'
+
+jobs:
+  quality:
+    name: Quality Checks (Node ${{ inputs.node-version }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Run type check
+        run: yarn typecheck
+
+      - name: Run linter
+        run: yarn lint
+
+      - name: Run tests
+        run: yarn test
+
+      - name: Test build
+        run: yarn build
