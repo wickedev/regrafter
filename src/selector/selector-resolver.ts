@@ -475,8 +475,23 @@ export class SelectorResolver implements ISelectorResolver {
 
         // Check if position is within the expression container
         if (positionInNode(node, line, column)) {
-          // First, check if position is specifically in the inner expression
-          if (!t.isJSXEmptyExpression(expression) && positionInNode(expression, line, column)) {
+          // For atomic units (LogicalExpression, ConditionalExpression), always select the container
+          // This ensures {condition && <Element />} and {cond ? <A /> : <B />} are treated as atomic units
+          if (
+            t.isLogicalExpression(expression) ||
+            t.isConditionalExpression(expression) ||
+            t.isJSXElement(expression) ||
+            t.isJSXFragment(expression) ||
+            t.isCallExpression(expression)
+          ) {
+            const spec = nodeSpecificity(node);
+            if (found.path === null || spec < found.specificity) {
+              found.node = node;
+              found.path = path;
+              found.specificity = spec;
+            }
+          } else if (!t.isJSXEmptyExpression(expression) && positionInNode(expression, line, column)) {
+            // For other expressions, check if position is specifically in the inner expression
             const spec = nodeSpecificity(expression);
             if (found.path === null || spec < found.specificity) {
               // Find NodePath for the expression
@@ -490,20 +505,6 @@ export class SelectorResolver implements ISelectorResolver {
                   }
                 }
               });
-            }
-          } else if (
-            // Otherwise, match the container itself if it contains JSX-related expressions
-            t.isJSXElement(expression) ||
-            t.isJSXFragment(expression) ||
-            t.isCallExpression(expression) ||
-            t.isLogicalExpression(expression) ||  // For {condition && <Element />}
-            t.isConditionalExpression(expression) // For {condition ? <A /> : <B />}
-          ) {
-            const spec = nodeSpecificity(node);
-            if (found.path === null || spec < found.specificity) {
-              found.node = node;
-              found.path = path;
-              found.specificity = spec;
             }
           }
         }

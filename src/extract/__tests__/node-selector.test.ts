@@ -83,9 +83,7 @@ describe('NodeSelector - PositionSelector', () => {
       expect(getFirst(result.value, 'selected node').node.type).toBe('JSXText');
     });
 
-    // TODO: Fix JSXExpressionContainer selection in Phase 2
-    // SelectorResolver tends to select inner expression instead of container
-    it.skip('should select JSXExpressionContainer node at a valid position', () => {
+    it('should select JSXExpressionContainer node at a valid position', () => {
       // Arrange: Use conditional rendering which contains JSXExpressionContainer
       const source = `
         function App() {
@@ -244,8 +242,7 @@ describe('NodeSelector - PositionSelector', () => {
       expect(validateResult.ok).toBe(true);
     });
 
-    // TODO: Fix JSXExpressionContainer selection in Phase 2
-    it.skip('should validate that a JSXExpressionContainer is extractable', () => {
+    it('should validate that a JSXExpressionContainer is extractable', () => {
       // Arrange
       const source = `
         function App() {
