@@ -23,7 +23,6 @@ import {
   createInternalDependency,
   createDependencyOrigin,
   createDependencyAnalysis,
-  createScopeInfo,
 } from "../types/factories.js";
 
 import {
@@ -50,6 +49,10 @@ import {
   createVariableDependencyAnalyzer,
   type IVariableDependencyAnalyzer,
 } from "./analyzers/variable-dependency-analyzer.js";
+import {
+  createDependencyConverter,
+  type IDependencyConverter,
+} from "./dependency-converter.js";
 import { createDynamicCodeDetector } from "./dynamic-code-detector.js";
 import {
   DependencyType,
@@ -99,6 +102,7 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
   private readonly variableAnalyzer: IVariableDependencyAnalyzer;
   private readonly importAnalyzer: IImportDependencyAnalyzer;
   private readonly propAnalyzer: IPropDependencyAnalyzer;
+  private readonly converter: IDependencyConverter;
   private currentFile = "";
 
   constructor(scopeManager: ScopeManager, options?: AnalyzerOptions) {
@@ -116,6 +120,7 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
       (path, name) => this.findBinding(path, name),
       (binding) => this.isParameterBinding(binding)
     );
+    this.converter = createDependencyConverter(scopeManager);
   }
 
   /**
@@ -123,6 +128,7 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
    */
   setCurrentFile(file: string): void {
     this.currentFile = file;
+    this.converter.setCurrentFile(file);
   }
 
   /**
@@ -670,14 +676,14 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
 
     // Deduplicate dependencies - useRef creates both Hook and Ref dependencies
     // Deduplicate dependencies
-    const deduplicatedDeps = this.deduplicateDependencies(allSpecificDeps);
+    const deduplicatedDeps = this.converter.deduplicate(allSpecificDeps);
 
     // Build temporary map from symbol:type to NodePath
-    const tempPathMap = this.buildDependencyPathsMap(deduplicatedDeps);
+    const tempPathMap = this.converter.buildDependencyPaths(deduplicatedDeps);
 
     // Convert to internal dependencies - wrapped in tryCatch to handle any throws
     const allDepsResult = tryCatch(() =>
-      this.convertToInternalDeps(deduplicatedDeps, elementScope)
+      this.converter.convertToInternal(deduplicatedDeps, elementScope)
     );
     if (isErr(allDepsResult)) {
       const errorMsg =
@@ -759,77 +765,6 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
         dependencyPaths,
       })
     );
-  }
-
-  /**
-   * Deduplicate dependencies, preferring Hook over Ref types
-   */
-  private deduplicateDependencies(
-    allDeps: SpecificDependency[]
-  ): SpecificDependency[] {
-    const deduplicatedDeps: SpecificDependency[] = [];
-    const seenSymbols = new Map<string, SpecificDependency>();
-
-    for (const dep of allDeps) {
-      const symbol =
-        "name" in dep
-          ? dep.name
-          : "bindings" in dep
-            ? dep.bindings.join(",")
-            : "localName" in dep
-              ? dep.localName
-              : "unknown";
-
-      const existing = seenSymbols.get(symbol);
-      if (existing) {
-        if (
-          existing.type === DependencyType.Hook &&
-          dep.type === DependencyType.Ref
-        ) {
-          continue;
-        }
-        if (
-          existing.type === DependencyType.Ref &&
-          dep.type === DependencyType.Hook
-        ) {
-          const index = deduplicatedDeps.indexOf(existing);
-          if (index !== -1) {
-            deduplicatedDeps[index] = dep;
-          }
-          seenSymbols.set(symbol, dep);
-          continue;
-        }
-      }
-
-      seenSymbols.set(symbol, dep);
-      deduplicatedDeps.push(dep);
-    }
-
-    return deduplicatedDeps;
-  }
-
-  /**
-   * Build path map from deduplicated dependencies
-   */
-  private buildDependencyPathsMap(
-    deduplicatedDeps: SpecificDependency[]
-  ): Map<string, NodePath> {
-    const tempPathMap = new Map<string, NodePath>();
-
-    for (const dep of deduplicatedDeps) {
-      const name =
-        "name" in dep
-          ? dep.name
-          : "bindings" in dep
-            ? dep.bindings.join(", ")
-            : "localName" in dep
-              ? dep.localName
-              : "unknown";
-      const key = `${name}:${dep.type}`;
-      tempPathMap.set(key, dep.path);
-    }
-
-    return tempPathMap;
   }
 
   // ===================================================================
@@ -1022,75 +957,6 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
     }
 
     return transitives;
-  }
-
-  /**
-   * Convert specific dependencies to internal dependencies
-   */
-  private convertToInternalDeps(
-    deps: SpecificDependency[],
-    elementScope: ScopeInfo | null
-  ): InternalDependency[] {
-    return deps.map((dep) => {
-      // For variable dependencies, find the enclosing component scope
-      // instead of using getScopeForPath which may return module scope
-      let scope: ScopeInfo | null = null;
-
-      if (dep.type === DependencyType.Variable) {
-        // For variables, find the component they're declared in
-        const enclosingResult = this.scopeManager.findEnclosingComponent(dep.path);
-        if (!isErr(enclosingResult)) {
-          scope = enclosingResult.value;
-        }
-      }
-
-      // Fallback to original logic for other types or if no component found
-      scope ??=
-        this.scopeManager.getScopeForPath(dep.path) ??
-        elementScope ??
-        this.scopeManager.getScopeTree()?.root ??
-        null;
-
-      const name =
-        "name" in dep
-          ? dep.name
-          : "bindings" in dep
-            ? dep.bindings.join(", ")
-            : "localName" in dep
-              ? dep.localName
-              : "unknown";
-
-      if (!scope) {
-        // Return a placeholder dependency with error information
-        // This maintains backward compatibility while allowing graceful error handling
-        return createInternalDependency({
-          symbol: name,
-          type: dep.type,
-          origin: createDependencyOrigin({
-            node: dep.path.node,
-            file: this.currentFile,
-            location: dep.path.node.loc,
-          }),
-          scope: createScopeInfo({
-            type: ScopeType.Module,
-            path: dep.path,
-            parent: null,
-          }),
-        });
-      }
-
-      return createInternalDependency({
-        symbol: name,
-        type: dep.type,
-        origin: createDependencyOrigin({
-          node: dep.path.node,
-          file: this.currentFile,
-          location: dep.path.node.loc,
-        }),
-        scope,
-        isTransitive: false,
-      });
-    });
   }
 
   /**
