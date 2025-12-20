@@ -80,7 +80,8 @@ describe('NodeSelector - PositionSelector', () => {
       if (!result.ok) return;
 
       expect(result.value).toHaveLength(1);
-      expect(getFirst(result.value, 'selected node').node.type).toBe('JSXText');
+      // After fix: selecting JSXText returns parent JSXElement
+      expect(getFirst(result.value, 'selected node').node.type).toBe('JSXElement');
     });
 
     it('should select JSXExpressionContainer node at a valid position', () => {
@@ -116,7 +117,8 @@ describe('NodeSelector - PositionSelector', () => {
       if (!result.ok) return;
 
       expect(result.value).toHaveLength(1);
-      expect(getFirst(result.value, 'selected node').node.type).toBe('JSXExpressionContainer');
+      // After fix: selecting JSXExpressionContainer returns parent JSXFragment
+      expect(getFirst(result.value, 'selected node').node.type).toBe('JSXFragment');
     });
 
     it('should fail when position does not contain a JSX node', () => {

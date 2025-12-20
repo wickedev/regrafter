@@ -8,7 +8,7 @@
 import traverseModule, { type NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 
-import { isAnyJSXNode } from '../core/index.js';
+import { isAnyJSXNode, isJSXNode } from '../core/index.js';
 import type { RegraffError } from '../errors/error-category.js';
 import { ok, err, type Result } from '../result/index.js';
 import { createSelectorResolver } from '../selector/selector-resolver.js';
@@ -118,19 +118,44 @@ export class NodeSelector implements INodeSelector {
 
     const { path } = resolveResult.value;
 
-    // Check if the node is a JSX node
+    // Check if the node is a JSX-related node
     if (!isAnyJSXNode(path.node)) {
       return err(
         createExtractError(ExtractErrorCode.NOT_JSX_NODE, {
           selector,
           file: selector.file,
-          details: `Node type "${path.node.type}" is not a JSX node. Only JSXElement, JSXText, and JSXExpressionContainer are supported.`,
+          details: `Node type "${path.node.type}" is not a JSX node. Only JSXElement and JSXFragment can be extracted.`,
         })
       );
     }
 
-    // Return single node as array
-    return ok([path]);
+    // If the selected node is JSXText or JSXExpressionContainer, find parent JSXElement
+    let extractablePath = path;
+    if (!isJSXNode(path.node)) {
+      // Navigate up to find nearest JSXElement or JSXFragment
+      let current = path.parentPath;
+      while (current) {
+        if (isJSXNode(current.node)) {
+          extractablePath = current;
+          break;
+        }
+        current = current.parentPath;
+      }
+
+      // If we couldn't find a JSX parent, this is an error
+      if (!isJSXNode(extractablePath.node)) {
+        return err(
+          createExtractError(ExtractErrorCode.NOT_JSX_NODE, {
+            selector,
+            file: selector.file,
+            details: `Selected node "${path.node.type}" is not inside a JSXElement or JSXFragment.`,
+          })
+        );
+      }
+    }
+
+    // Return the extractable JSX element
+    return ok([extractablePath]);
   }
 
   /**

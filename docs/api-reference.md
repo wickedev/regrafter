@@ -68,6 +68,49 @@ if (isOk(result)) {
 }
 ```
 
+**Move Directions:**
+
+The `mode` parameter controls how the element is positioned relative to the target:
+
+- `Move.Before` - Insert element before the target element
+- `Move.After` - Insert element after the target element
+- `Move.Inside` - Insert element as a child of the target element (**prepends** by default)
+- `Move.Replace` - Replace the target element entirely
+
+**Controlling Insertion Position (Move.Inside only):**
+
+When using `Move.Inside`, the element is **prepended** (inserted as the first child) by default. You can control the insertion position using the `insertIndex` option:
+
+```typescript
+// Default: prepend (insert at beginning)
+move(files, from, to, Move.Inside);
+
+// Insert at a specific position (0-based index)
+move(files, from, to, Move.Inside, { insertIndex: 0 }); // First child
+move(files, from, to, Move.Inside, { insertIndex: 2 }); // Third child
+
+// Append (insert at end)
+move(files, from, to, Move.Inside, { insertIndex: -1 }); // Last child
+```
+
+**Example: Controlling child order**
+
+```typescript
+// Source:
+<div>
+  <p>Existing child</p>
+</div>
+<span>New element</span>
+
+// Default prepend behavior:
+move(files, from, to, Move.Inside);
+// Result: <div><span>New element</span><p>Existing child</p></div>
+
+// Append behavior:
+move(files, from, to, Move.Inside, { insertIndex: -1 });
+// Result: <div><p>Existing child</p><span>New element</span></div>
+```
+
 ---
 
 ### extract()

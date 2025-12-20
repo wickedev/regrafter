@@ -96,11 +96,11 @@ export function extractPropNames(
 /**
  * Substitute prop references in a JSX body with their actual values
  *
- * @param body - The JSX element body to transform
+ * @param body - The JSX element or fragment body to transform
  * @param propMapping - Map of prop names to their values
- * @returns Transformed JSX element
+ * @returns Transformed JSX element or fragment
  */
-export function substituteProps(body: t.JSXElement, propMapping: PropMapping): t.JSXElement {
+export function substituteProps(body: t.JSXElement | t.JSXFragment, propMapping: PropMapping): t.JSXElement | t.JSXFragment {
   // Clone the body to avoid mutating the original
   const clonedBody = t_factory.cloneNode(body, true);
 
@@ -132,6 +132,13 @@ function visitNode(node: t.Node, propMapping: PropMapping): void {
     for (const attribute of node.openingElement.attributes) {
       visitNode(attribute, propMapping);
     }
+    // Visit children
+    for (const child of node.children) {
+      visitNode(child, propMapping);
+    }
+  }
+  // Handle JSX fragments
+  else if (t_factory.isJSXFragment(node)) {
     // Visit children
     for (const child of node.children) {
       visitNode(child, propMapping);

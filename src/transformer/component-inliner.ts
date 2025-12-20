@@ -172,7 +172,7 @@ export class ComponentInliner {
           }
 
           // Step 3d: Substitute props in the component body
-          let inlinedBody: t.JSXElement;
+          let inlinedBody: t.JSXElement | t.JSXFragment;
           if (propMapping.size > 0) {
             inlinedBody = substituteProps(componentBody, propMapping);
           } else {
@@ -203,13 +203,13 @@ export class ComponentInliner {
    */
   private extractComponentBody(
     node: t.FunctionDeclaration | t.FunctionExpression | t.ArrowFunctionExpression
-  ): t.JSXElement | null {
+  ): t.JSXElement | t.JSXFragment | null {
     // For function declarations with block body
     if (t_factory.isBlockStatement(node.body)) {
       // Find the return statement
       for (const statement of node.body.body) {
         if (t_factory.isReturnStatement(statement) && statement.argument) {
-          if (t_factory.isJSXElement(statement.argument)) {
+          if (t_factory.isJSXElement(statement.argument) || t_factory.isJSXFragment(statement.argument)) {
             return statement.argument;
           }
         }

@@ -412,25 +412,6 @@ export class MoveTransformationPipeline {
   // Helper Methods
   // =============================================================================
 
-  // Helper method for future validation logic
-  private isSourceAncestorOfTarget(
-    sourceScope: ScopeInfo,
-    targetScope: ScopeInfo
-  ): boolean {
-    let current: ScopeInfo | null = targetScope;
-    let depth = 0;
-    const MAX_DEPTH = 100; // Prevent infinite loops
-
-    while (current !== null && depth < MAX_DEPTH) {
-      if (current.id === sourceScope.id) {
-        return true;
-      }
-      current = current.parent;
-      depth++;
-    }
-    return false;
-  }
-
   /**
    * Build scope paths map for hoisting
    */

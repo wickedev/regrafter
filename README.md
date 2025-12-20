@@ -109,6 +109,33 @@ if (isOk(result)) {
 }
 ```
 
+**Move Directions:**
+
+Regrafter supports four move directions:
+
+- `Move.Before` - Insert element before the target
+- `Move.After` - Insert element after the target
+- `Move.Inside` - Insert element as a child of the target (**prepends** to children by default)
+- `Move.Replace` - Replace the target with the element
+
+**Control insertion position with `insertIndex`:**
+
+When using `Move.Inside`, you can control where the element is inserted among the target's children:
+
+```typescript
+// Insert at the beginning (default behavior)
+move(files, from, to, Move.Inside);
+
+// Insert at a specific position (0-based index)
+move(files, from, to, Move.Inside, { insertIndex: 0 }); // First child
+move(files, from, to, Move.Inside, { insertIndex: 2 }); // Third child
+
+// Insert at the end (append)
+move(files, from, to, Move.Inside, { insertIndex: -1 });
+```
+
+**Note:** By default, `Move.Inside` **prepends** (inserts at the beginning). Use `insertIndex: -1` to append at the end.
+
 ### Extract API
 
 Extract JSX into a reusable component:
