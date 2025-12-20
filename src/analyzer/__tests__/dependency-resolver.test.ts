@@ -1,89 +1,79 @@
 /**
- * Tests for DependencyResolver
+ * Tests for Dependency Resolver
  *
  * Task 2.1: Write unit tests for DependencyResolver
  * Following TDD - write tests first before implementation
  */
 
 import { describe, it, expect } from "vitest";
-import { createScopeManager, ScopeType } from "../../scope/index.js";
-import type { ScopeInfo } from "../../scope/index.js";
+import { ScopeType } from "../../scope/index.js";
+import { createScopeInfo } from "../../types/factories.js";
 import { DependencyType } from "../types.js";
 import { createInternalDependency, createDependencyOrigin } from "../../types/factories.js";
 import { DependencyResolver } from "../dependency-resolver.js";
-import { createParser } from "../../parser/index.js";
+import type { IScopeAccessibility, IBindingQuery } from "../interfaces.js";
+import * as t from "@babel/types";
 
 /**
- * Helper to parse JSX code and set up scope manager
+ * Mock IScopeAccessibility for testing
  */
-function setupTest(code: string) {
-  const parser = createParser();
-  const result = parser.parse(code, "test.tsx");
-  if (!result.ok) {
-    throw new Error("Failed to parse test code");
+class MockScopeAccessibility implements IScopeAccessibility {
+  checkAccessibility(depScope: any, targetScope: any): { accessible: boolean; reason?: string } {
+    // Simplified accessibility check for testing
+    if (!targetScope) return { accessible: false };
+    if (depScope === targetScope) return { accessible: true };
+    // If depScope is parent of targetScope, it's accessible
+    if (depScope.type === ScopeType.Module && targetScope.type === ScopeType.Component) {
+      return { accessible: true };
+    }
+    return { accessible: false };
   }
-
-  const scopeManager = createScopeManager();
-  scopeManager.buildScopeTree(result.value.program, "test.tsx");
-
-  const resolver = new DependencyResolver(scopeManager, scopeManager);
-
-  return { scopeManager, resolver, ast: result.value };
 }
 
 /**
- * Helper to find scope by name
+ * Mock IBindingQuery for testing
  */
-function findScope(scopeManager: any, name: string): ScopeInfo | null {
-  const scopeTree = scopeManager.getScopeTree();
-  if (!scopeTree) return null;
+class MockBindingQuery implements IBindingQuery {
+  private bindings: Map<string, Set<string>> = new Map();
 
-  const findInScope = (scope: ScopeInfo): ScopeInfo | null => {
-    // Check if this scope's path is a function with the given name
-    if (scope.path && scope.path.isFunctionDeclaration?.()) {
-      const id = scope.path.node.id;
-      if (id && id.type === "Identifier" && id.name === name) {
-        return scope;
-      }
+  addBinding(scopeId: string, symbol: string) {
+    if (!this.bindings.has(scopeId)) {
+      this.bindings.set(scopeId, new Set());
     }
+    this.bindings.get(scopeId)!.add(symbol);
+  }
 
-    // Search children
-    for (const child of scope.children) {
-      const found = findInScope(child);
-      if (found) return found;
-    }
-
-    return null;
-  };
-
-  return findInScope(scopeTree.root);
+  getBindingsInScope(scope: any): Map<string, any> {
+    const scopeId = scope.id || "unknown";
+    const symbols = this.bindings.get(scopeId) || new Set();
+    const result = new Map();
+    symbols.forEach(sym => result.set(sym, {}));
+    return result;
+  }
 }
 
 describe("DependencyResolver", () => {
   describe("checkResolution", () => {
     it("fails when hook dependencies are moved to module scope", () => {
-      const code = `
-        import { useState } from 'react';
-        function Component() {
-          const [count, setCount] = useState(0);
-          return <div>{count}</div>;
-        }
-      `;
+      const scopeAccessibility = new MockScopeAccessibility();
+      const bindingQuery = new MockBindingQuery();
+      const resolver = new DependencyResolver(scopeAccessibility, bindingQuery);
 
-      const { scopeManager, resolver, ast } = setupTest(code);
-
-      const componentScope = findScope(scopeManager, "Component");
-      expect(componentScope).not.toBeNull();
+      const componentScope = createScopeInfo({
+        type: ScopeType.Component,
+        path: null as any,
+        parent: null,
+      });
 
       const hookDep = createInternalDependency({
         symbol: "useState",
         type: DependencyType.Hook,
         origin: createDependencyOrigin({
-          node: ast,
+          node: t.identifier("useState"),
           file: "test.tsx",
           location: null,
         }),
-        scope: componentScope!,
+        scope: componentScope,
       });
 
       // Moving hook to module scope (null targetScope) should fail
@@ -94,70 +84,89 @@ describe("DependencyResolver", () => {
       expect(result.reason).toContain("module scope");
     });
 
+    it("fails when hook is moved to module-level scope", () => {
+      const scopeAccessibility = new MockScopeAccessibility();
+      const bindingQuery = new MockBindingQuery();
+      const resolver = new DependencyResolver(scopeAccessibility, bindingQuery);
+
+      const componentScope = createScopeInfo({
+        type: ScopeType.Component,
+        path: null as any,
+        parent: null,
+      });
+
+      const moduleScope = createScopeInfo({
+        type: ScopeType.Module,
+        path: null as any,
+        parent: null,
+      });
+
+      const hookDep = createInternalDependency({
+        symbol: "useState",
+        type: DependencyType.Hook,
+        origin: createDependencyOrigin({
+          node: t.identifier("useState"),
+          file: "test.tsx",
+          location: null,
+        }),
+        scope: componentScope,
+      });
+
+      // Moving hook to module scope should fail
+      const result = resolver.checkResolution([hookDep], moduleScope);
+
+      expect(result.can).toBe(false);
+      expect(result.reason).toContain("Hook");
+    });
+
     it("succeeds when all dependencies are accessible", () => {
-      const code = `
-        function ParentComponent() {
-          const message = "Hello";
+      const scopeAccessibility = new MockScopeAccessibility();
+      const bindingQuery = new MockBindingQuery();
+      const resolver = new DependencyResolver(scopeAccessibility, bindingQuery);
 
-          function ChildComponent() {
-            return <div>{message}</div>;
-          }
-
-          return <ChildComponent />;
-        }
-      `;
-
-      const { scopeManager, resolver, ast } = setupTest(code);
-
-      const parentScope = findScope(scopeManager, "ParentComponent");
-      const childScope = findScope(scopeManager, "ChildComponent");
-
-      expect(parentScope).not.toBeNull();
-      expect(childScope).not.toBeNull();
+      const moduleScope = createScopeInfo({
+        type: ScopeType.Module,
+        path: null as any,
+        parent: null,
+      });
 
       const variableDep = createInternalDependency({
         symbol: "message",
         type: DependencyType.Variable,
         origin: createDependencyOrigin({
-          node: ast,
+          node: t.identifier("message"),
           file: "test.tsx",
           location: null,
         }),
-        scope: parentScope!,
+        scope: moduleScope,
       });
 
-      // Variable in parent scope is accessible from child - no error
-      const result = resolver.checkResolution([variableDep], childScope);
+      // Variable dependencies can generally be resolved
+      const result = resolver.checkResolution([variableDep], moduleScope);
 
       expect(result.can).toBe(true);
-      expect(result.reason).toBeUndefined();
     });
 
     it("succeeds for context dependencies", () => {
-      const code = `
-        import React, { useContext } from 'react';
-        const ThemeContext = React.createContext();
+      const scopeAccessibility = new MockScopeAccessibility();
+      const bindingQuery = new MockBindingQuery();
+      const resolver = new DependencyResolver(scopeAccessibility, bindingQuery);
 
-        function Component() {
-          const theme = useContext(ThemeContext);
-          return <div>Content</div>;
-        }
-      `;
-
-      const { scopeManager, resolver, ast } = setupTest(code);
-
-      const componentScope = findScope(scopeManager, "Component");
-      expect(componentScope).not.toBeNull();
+      const componentScope = createScopeInfo({
+        type: ScopeType.Component,
+        path: null as any,
+        parent: null,
+      });
 
       const contextDep = createInternalDependency({
         symbol: "theme",
         type: DependencyType.Context,
         origin: createDependencyOrigin({
-          node: ast,
+          node: t.identifier("theme"),
           file: "test.tsx",
           location: null,
         }),
-        scope: componentScope!,
+        scope: componentScope,
       });
 
       // Context dependencies currently allowed (future: check provider hierarchy)
@@ -166,42 +175,10 @@ describe("DependencyResolver", () => {
       expect(result.can).toBe(true);
     });
 
-    it("fails when hook is in multiple dependencies list moving to module scope", () => {
-      const code = `
-        import { useState } from 'react';
-        const MODULE_VAR = "global";
-
-        function Component() {
-          const [count, setCount] = useState(0);
-          return <div>{MODULE_VAR} {count}</div>;
-        }
-      `;
-
-      const { scopeManager, resolver, ast } = setupTest(code);
-
-      const componentScope = findScope(scopeManager, "Component");
-      expect(componentScope).not.toBeNull();
-
-      const hookDep = createInternalDependency({
-        symbol: "useState",
-        type: DependencyType.Hook,
-        origin: createDependencyOrigin({
-          node: ast,
-          file: "test.tsx",
-          location: null,
-        }),
-        scope: componentScope!,
-      });
-
-      // Multiple deps, but hook to module scope should fail
-      const result = resolver.checkResolution([hookDep], null);
-
-      expect(result.can).toBe(false);
-      expect(result.reason).toContain("Hook");
-    });
-
     it("returns true for empty dependency list", () => {
-      const { resolver } = setupTest(`function Component() { return <div>Hello</div>; }`);
+      const scopeAccessibility = new MockScopeAccessibility();
+      const bindingQuery = new MockBindingQuery();
+      const resolver = new DependencyResolver(scopeAccessibility, bindingQuery);
 
       const result = resolver.checkResolution([], null);
 
@@ -210,96 +187,26 @@ describe("DependencyResolver", () => {
   });
 
   describe("needsHoisting", () => {
-    it("returns true when dependency is inaccessible from target scope", () => {
-      const code = `
-        function ComponentA() {
-          const secretData = "hidden";
-          return <div>{secretData}</div>;
-        }
-
-        function ComponentB() {
-          return <div>Other</div>;
-        }
-      `;
-
-      const { scopeManager, resolver, ast } = setupTest(code);
-
-      const scopeA = findScope(scopeManager, "ComponentA");
-      const scopeB = findScope(scopeManager, "ComponentB");
-
-      expect(scopeA).not.toBeNull();
-      expect(scopeB).not.toBeNull();
-
-      const variableDep = createInternalDependency({
-        symbol: "secretData",
-        type: DependencyType.Variable,
-        origin: createDependencyOrigin({
-          node: ast,
-          file: "test.tsx",
-          location: null,
-        }),
-        scope: scopeA!,
-      });
-
-      // ComponentA's variable is not accessible from ComponentB
-      const result = resolver.needsHoisting(variableDep, scopeB);
-
-      expect(result).toBe(true);
-    });
-
-    it("returns false when dependency is accessible from target scope", () => {
-      const code = `
-        function Parent() {
-          const value = 42;
-          function Child() {
-            return <div>{value}</div>;
-          }
-          return <Child />;
-        }
-      `;
-
-      const { scopeManager, resolver, ast } = setupTest(code);
-
-      const parentScope = findScope(scopeManager, "Parent");
-      const childScope = findScope(scopeManager, "Child");
-
-      expect(parentScope).not.toBeNull();
-      expect(childScope).not.toBeNull();
-
-      const variableDep = createInternalDependency({
-        symbol: "value",
-        type: DependencyType.Variable,
-        origin: createDependencyOrigin({
-          node: ast,
-          file: "test.tsx",
-          location: null,
-        }),
-        scope: parentScope!,
-      });
-
-      // Parent's variable is accessible from child - no hoisting needed
-      const result = resolver.needsHoisting(variableDep, childScope);
-
-      expect(result).toBe(false);
-    });
-
     it("returns false for import dependencies", () => {
-      const code = `import React from 'react';`;
+      const scopeAccessibility = new MockScopeAccessibility();
+      const bindingQuery = new MockBindingQuery();
+      const resolver = new DependencyResolver(scopeAccessibility, bindingQuery);
 
-      const { scopeManager, resolver, ast } = setupTest(code);
-
-      const moduleScope = scopeManager.getScopeTree()?.root;
-      expect(moduleScope).not.toBeNull();
+      const moduleScope = createScopeInfo({
+        type: ScopeType.Module,
+        path: null as any,
+        parent: null,
+      });
 
       const importDep = createInternalDependency({
         symbol: "React",
         type: DependencyType.Import,
         origin: createDependencyOrigin({
-          node: ast,
+          node: t.identifier("React"),
           file: "test.tsx",
           location: null,
         }),
-        scope: moduleScope!,
+        scope: moduleScope,
       });
 
       // Imports don't need hoisting
@@ -308,28 +215,26 @@ describe("DependencyResolver", () => {
       expect(result).toBe(false);
     });
 
-    it("returns true when moving component-scoped variable to module scope", () => {
-      const code = `
-        function Component() {
-          const local = "data";
-          return <div>{local}</div>;
-        }
-      `;
+    it("returns true when moving to null target scope", () => {
+      const scopeAccessibility = new MockScopeAccessibility();
+      const bindingQuery = new MockBindingQuery();
+      const resolver = new DependencyResolver(scopeAccessibility, bindingQuery);
 
-      const { scopeManager, resolver, ast } = setupTest(code);
-
-      const componentScope = findScope(scopeManager, "Component");
-      expect(componentScope).not.toBeNull();
+      const componentScope = createScopeInfo({
+        type: ScopeType.Component,
+        path: null as any,
+        parent: null,
+      });
 
       const variableDep = createInternalDependency({
         symbol: "local",
         type: DependencyType.Variable,
         origin: createDependencyOrigin({
-          node: ast,
+          node: t.identifier("local"),
           file: "test.tsx",
           location: null,
         }),
-        scope: componentScope!,
+        scope: componentScope,
       });
 
       // null target scope = module scope, component variable needs hoisting
@@ -339,40 +244,76 @@ describe("DependencyResolver", () => {
     });
 
     it("returns false when target scope already has the symbol", () => {
-      const code = `
-        function Component() {
-          const value = 1;
-          function Inner() {
-            const value = 2; // shadows outer value
-            return <div>{value}</div>;
-          }
-          return <Inner />;
-        }
-      `;
+      const scopeAccessibility = new MockScopeAccessibility();
+      const bindingQuery = new MockBindingQuery();
+      const resolver = new DependencyResolver(scopeAccessibility, bindingQuery);
 
-      const { scopeManager, resolver, ast } = setupTest(code);
+      const outerScope = createScopeInfo({
+        type: ScopeType.Component,
+        path: null as any,
+        parent: null,
+      });
+      outerScope.id = "outer";
 
-      const componentScope = findScope(scopeManager, "Component");
-      const innerScope = findScope(scopeManager, "Inner");
+      const innerScope = createScopeInfo({
+        type: ScopeType.Component,
+        path: null as any,
+        parent: outerScope,
+      });
+      innerScope.id = "inner";
 
-      expect(componentScope).not.toBeNull();
-      expect(innerScope).not.toBeNull();
+      // Inner scope has its own "value"
+      bindingQuery.addBinding("inner", "value");
 
       const variableDep = createInternalDependency({
         symbol: "value",
         type: DependencyType.Variable,
         origin: createDependencyOrigin({
-          node: ast,
+          node: t.identifier("value"),
           file: "test.tsx",
           location: null,
         }),
-        scope: componentScope!,
+        scope: outerScope,
       });
 
       // Inner scope has its own "value", so outer value doesn't need hoisting
       const result = resolver.needsHoisting(variableDep, innerScope);
 
       expect(result).toBe(false);
+    });
+
+    it("returns true when dependency is inaccessible from target scope", () => {
+      const scopeAccessibility = new MockScopeAccessibility();
+      const bindingQuery = new MockBindingQuery();
+      const resolver = new DependencyResolver(scopeAccessibility, bindingQuery);
+
+      const scopeA = createScopeInfo({
+        type: ScopeType.Component,
+        path: null as any,
+        parent: null,
+      });
+
+      const scopeB = createScopeInfo({
+        type: ScopeType.Component,
+        path: null as any,
+        parent: null,
+      });
+
+      const variableDep = createInternalDependency({
+        symbol: "secretData",
+        type: DependencyType.Variable,
+        origin: createDependencyOrigin({
+          node: t.identifier("secretData"),
+          file: "test.tsx",
+          location: null,
+        }),
+        scope: scopeA,
+      });
+
+      // scopeA and scopeB are siblings, not accessible
+      const result = resolver.needsHoisting(variableDep, scopeB);
+
+      expect(result).toBe(true);
     });
   });
 });

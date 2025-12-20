@@ -115,7 +115,7 @@
   - **Commit**: `test: add comprehensive tests for scope-helpers`
   - _Requirements: 3.9_
 
-- [ ] 6. Replace scope helper patterns in DependencyOrchestrator
+- [x] 6. Replace scope helper patterns in DependencyOrchestrator
   - Import scope-helpers functions
   - Replace 13 instances of duplicated scope traversal patterns
   - Verify behavior is unchanged (run tests after each replacement)
@@ -123,21 +123,21 @@
   - **Commit**: `refactor: use scope-helpers in DependencyOrchestrator`
   - _Requirements: 3.6, 3.7, 3.8_
 
-- [ ] 6.1 Replace scope helper patterns in move.ts
+- [x] 6.1 Replace scope helper patterns in move.ts
   - Replace 7 instances of duplicated scope patterns
   - Verify moveWithHoistingInternal still works correctly
   - **Acceptance**: move.ts reduced by ~30 lines, tests pass
   - **Commit**: `refactor: use scope-helpers in move.ts`
   - _Requirements: 3.6, 3.8_
 
-- [ ] 6.2 Replace scope helper patterns in identifier-collector.ts
+- [x] 6.2 Replace scope helper patterns in identifier-collector.ts
   - Replace 7 instances of duplicated scope patterns
   - Verify identifier collection logic unchanged
   - **Acceptance**: identifier-collector.ts reduced by ~25 lines, tests pass
   - **Commit**: `refactor: use scope-helpers in identifier-collector.ts`
   - _Requirements: 3.6, 3.8_
 
-- [ ] 6.3 Replace scope helper patterns in remaining files (batch)
+- [x] 6.3 Replace scope helper patterns in remaining files (batch)
   - Update hoist-planner.ts, scope-manager.ts, and other files with duplicated patterns
   - Process in batches of 3-5 files
   - Run tests after each batch
@@ -145,7 +145,7 @@
   - **Commit**: `refactor: use scope-helpers across remaining files`
   - _Requirements: 3.6, 3.7, 3.8_
 
-- [ ] 6.4 Run validation checkpoint after scope-helpers migration
+- [x] 6.4 Run validation checkpoint after scope-helpers migration
   - Run `npm run typecheck`
   - Run `npm test`
   - Use `grep -r "findEnclosingComponent" --include="*.ts" src/` to verify pattern reduction

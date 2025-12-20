@@ -34,12 +34,30 @@ import type { IHoistStrategySelector } from "./selectors/hoist-strategy-selector
  * - Coordinate validation and strategy selection
  * - Build complete HoistPlan with all operations
  * - Validate the overall plan
+ *
+ * Implements IHoistPlanner interface for backward compatibility.
  */
 export class HoistPlanBuilder {
   constructor(
     private readonly hookValidator: IHookLocationValidator,
     private readonly strategySelector: IHoistStrategySelector
   ) {}
+
+  /**
+   * Check if a scope is a valid location for React hooks
+   * (Delegates to HookLocationValidator)
+   */
+  isValidHookLocation(scope: ScopeInfo): boolean {
+    return this.hookValidator.isValidHookLocation(scope);
+  }
+
+  /**
+   * Find the nearest valid hook location from a given scope
+   * (Delegates to HookLocationValidator)
+   */
+  findNearestValidHookScope(scope: ScopeInfo): ScopeInfo | null {
+    return this.hookValidator.findNearestValidHookScope(scope);
+  }
 
   /**
    * Create a hoisting plan for moving an element's dependencies

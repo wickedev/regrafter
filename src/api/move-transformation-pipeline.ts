@@ -26,7 +26,7 @@ import type { ScopeManager } from '../scope/index.js';
 import type { SelectorResolver } from '../selector/index.js';
 import type { ElementData } from '../selector/index.js';
 import type { HoistExecutor, HoistExecutionContext } from '../strategies/hoist-executor.js';
-import type { HoistPlanner } from '../strategies/hoist-planner.js';
+import type { HoistPlanBuilder } from '../strategies/hoist-plan-builder.js';
 import type { HoistPlan, HoistContext } from '../strategies/types.js';
 import type { JSXTransformer } from '../transformer/jsx-transformer.js';
 import type { Code, FileInput, Move, Selector } from '../types/index.js';

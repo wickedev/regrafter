@@ -13,7 +13,7 @@ import type { ScopeInfo } from "../../types/internal.js";
 import { ok, err } from "../../result/index.js";
 import type { Result } from "../../result/index.js";
 import { createValidationError } from "../../errors/index.js";
-import type { RegraffError } from "../../errors/error-types.js";
+import type { RegraffError } from "../../errors/error-category.js";
 import { isHookName } from "../types.js";
 
 /**
@@ -218,22 +218,6 @@ export class HookLocationValidator implements IHookLocationValidator {
     }
 
     return false;
-  }
-
-  /**
-   * Find the nearest safe scope (not conditional or loop)
-   */
-  private findNearestSafeScope(scope: ScopeInfo): ScopeInfo | null {
-    let current: ScopeInfo | null = scope;
-
-    while (current !== null) {
-      if (!this.isConditionalOrLoop(current)) {
-        return current;
-      }
-      current = current.parent;
-    }
-
-    return null;
   }
 
   /**

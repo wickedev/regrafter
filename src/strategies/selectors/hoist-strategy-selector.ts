@@ -6,7 +6,7 @@
  * and other contextual factors.
  */
 
-import { HoistStrategy, ScopeType } from "../../types/internal.js";
+import { HoistStrategy } from "../../types/internal.js";
 import { DependencyType } from "../../types/public.js";
 import type {
   InternalDependency,
@@ -283,8 +283,10 @@ export class HoistStrategySelector implements IHoistStrategySelector {
     const minLength = Math.min(path1.length, path2.length);
 
     for (let i = 0; i < minLength; i++) {
-      if (path1[i].id === path2[i].id) {
-        lca = path1[i];
+      const scope1Item = path1[i];
+      const scope2Item = path2[i];
+      if (scope1Item !== undefined && scope2Item !== undefined && scope1Item.id === scope2Item.id) {
+        lca = scope1Item;
       } else {
         break;
       }
