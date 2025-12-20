@@ -23,9 +23,9 @@ import type {
 } from "../types/internal.js";
 import { DependencyType } from "../types/public.js";
 
+import type { IHoistStrategySelector } from "./selectors/hoist-strategy-selector.js";
 import type { HoistContext, HoistPlan, HoistPlanItem } from "./types.js";
 import type { IHookLocationValidator } from "./validators/hook-location-validator.js";
-import type { IHoistStrategySelector } from "./selectors/hoist-strategy-selector.js";
 
 /**
  * Plans dependency hoisting operations for element movement.
@@ -177,12 +177,12 @@ export class HoistPlanBuilder {
     });
 
     // Handle failed strategy selection
-    if (!selection.strategy) {
+    if (selection.strategy === null) {
       return {
         dependency: dep,
         operation: this.createDefaultHoistOperation(dep, context),
         needsBackwardReference,
-        reason: selection.reason || "Strategy selection failed",
+        reason: selection.reason ?? "Strategy selection failed",
       };
     }
 

@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type * as t from '@babel/types';
 
-import { DependencyAnalyzer } from '../../analyzer/dependency-analyzer.js';
+import { DependencyOrchestrator } from '../../analyzer/dependency-orchestrator.js';
 import { createValidationError } from '../../errors/index.js';
 import { CodeGenerator } from '../../generator/code-generator.js';
 import { err, isErr, ok } from '../../result/index.js';
@@ -42,7 +42,7 @@ describe('MoveTransformationPipeline', () => {
       // Create pipeline with all dependencies
       const resolver = createSelectorResolver();
       const scopeManager = createScopeManager();
-      const analyzer = new DependencyAnalyzer(scopeManager);
+      const analyzer = new DependencyOrchestrator(scopeManager);
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
@@ -100,7 +100,7 @@ describe('MoveTransformationPipeline', () => {
 
       const resolver = createSelectorResolver();
       const scopeManager = createScopeManager();
-      const analyzer = new DependencyAnalyzer(scopeManager);
+      const analyzer = new DependencyOrchestrator(scopeManager);
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
@@ -138,7 +138,7 @@ describe('MoveTransformationPipeline', () => {
 
       const resolver = createSelectorResolver();
       const scopeManager = createScopeManager();
-      const analyzer = new DependencyAnalyzer(scopeManager);
+      const analyzer = new DependencyOrchestrator(scopeManager);
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
@@ -177,7 +177,7 @@ describe('MoveTransformationPipeline', () => {
 
       const resolver = createSelectorResolver();
       const scopeManager = createScopeManager();
-      const analyzer = new DependencyAnalyzer(scopeManager);
+      const analyzer = new DependencyOrchestrator(scopeManager);
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
@@ -213,7 +213,7 @@ describe('MoveTransformationPipeline', () => {
 
       const resolver = createSelectorResolver();
       const scopeManager = createScopeManager();
-      const analyzer = new DependencyAnalyzer(scopeManager);
+      const analyzer = new DependencyOrchestrator(scopeManager);
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
@@ -262,7 +262,7 @@ describe('MoveTransformationPipeline', () => {
 
       const resolver = createSelectorResolver();
       const scopeManager = createScopeManager();
-      const analyzer = new DependencyAnalyzer(scopeManager);
+      const analyzer = new DependencyOrchestrator(scopeManager);
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
@@ -321,7 +321,7 @@ describe('MoveTransformationPipeline', () => {
 
       const resolver = createSelectorResolver();
       const scopeManager = createScopeManager();
-      const analyzer = new DependencyAnalyzer(scopeManager);
+      const analyzer = new DependencyOrchestrator(scopeManager);
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
@@ -375,7 +375,7 @@ describe('MoveTransformationPipeline', () => {
 
       const resolver = createSelectorResolver();
       const scopeManager = createScopeManager();
-      const analyzer = new DependencyAnalyzer(scopeManager);
+      const analyzer = new DependencyOrchestrator(scopeManager);
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
@@ -424,7 +424,7 @@ describe('MoveTransformationPipeline', () => {
 
       const resolver = createSelectorResolver();
       const scopeManager = createScopeManager();
-      const analyzer = new DependencyAnalyzer(scopeManager);
+      const analyzer = new DependencyOrchestrator(scopeManager);
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
@@ -458,7 +458,7 @@ describe('MoveTransformationPipeline', () => {
       // Arrange
       const resolver = createSelectorResolver();
       const scopeManager = createScopeManager();
-      const analyzer = new DependencyAnalyzer(scopeManager);
+      const analyzer = new DependencyOrchestrator(scopeManager);
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();

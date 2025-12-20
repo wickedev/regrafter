@@ -12,9 +12,9 @@
 
 import type { NodePath } from '@babel/traverse';
 
+import type { IScopeManager } from '../interfaces/IScopeManager.js';
 import { isErr } from '../result/index.js';
 
-import type { IScopeManager } from '../interfaces/IScopeManager.js';
 import type { ScopeInfo, ComponentScope } from './types.js';
 
 /**
@@ -145,10 +145,10 @@ export function findCommonAncestor(
 
   // Find last common scope in paths
   for (let i = 0; i < Math.min(pathA.length, pathB.length); i++) {
-    const scopeA = pathA[i];
-    const scopeB = pathB[i];
-    if (scopeA && scopeB && scopeA.id === scopeB.id) {
-      lca = scopeA;
+    const currentScopeA = pathA[i];
+    const currentScopeB = pathB[i];
+    if (currentScopeA && currentScopeB && currentScopeA.id === currentScopeB.id) {
+      lca = currentScopeA;
     } else {
       break; // Paths diverge, stop here
     }
@@ -281,9 +281,9 @@ export function computeScopeDistance(
   // Find LCA index
   let lcaIndex = -1;
   for (let i = 0; i < Math.min(pathA.length, pathB.length); i++) {
-    const scopeA = pathA[i];
-    const scopeB = pathB[i];
-    if (scopeA && scopeB && scopeA.id === scopeB.id) {
+    const currentScopeA = pathA[i];
+    const currentScopeB = pathB[i];
+    if (currentScopeA && currentScopeB && currentScopeA.id === currentScopeB.id) {
       lcaIndex = i;
     } else {
       break;

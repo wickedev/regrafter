@@ -28,17 +28,17 @@ import * as t from '@babel/types';
 import { parseFile } from '../../parser/parse-file.js';
 import { createScopeManager } from '../../scope/scope-manager.js';
 import {
-  createDependencyAnalyzer,
-  type DependencyAnalyzer,
-} from '../dependency-analyzer.js';
+  createDependencyOrchestrator,
+  type DependencyOrchestrator,
+} from '../dependency-orchestrator.js';
 import { DependencyType } from '../types.js';
 
 describe('dependency analyzer helper functions (Task 12.3)', () => {
-  let analyzer: DependencyAnalyzer;
+  let analyzer: DependencyOrchestrator;
 
   beforeEach(() => {
     const scopeManager = createScopeManager();
-    analyzer = createDependencyAnalyzer(scopeManager);
+    analyzer = createDependencyOrchestrator(scopeManager);
     analyzer.setCurrentFile('test.tsx');
   });
 
@@ -295,7 +295,7 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
   describe('detectImportDependencies', () => {
     it('should detect import dependencies when includeImports is enabled', () => {
       const scopeManager = createScopeManager();
-      const analyzerWithImports = createDependencyAnalyzer(scopeManager, {
+      const analyzerWithImports = createDependencyOrchestrator(scopeManager, {
         includeImports: true,
       });
       analyzerWithImports.setCurrentFile('test.tsx');
@@ -338,7 +338,7 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
     it('should return empty array when includeImports is disabled', () => {
       // Create analyzer with includeImports explicitly disabled
       const scopeManager = createScopeManager();
-      const analyzerNoImports = createDependencyAnalyzer(scopeManager, {
+      const analyzerNoImports = createDependencyOrchestrator(scopeManager, {
         includeImports: false,
       });
       analyzerNoImports.setCurrentFile('test.tsx');
@@ -386,7 +386,7 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       // Build scope tree for proper analysis
       const scopeManager = createScopeManager();
       scopeManager.buildScopeTree(parseResult.value);
-      const analyzerWithScope = createDependencyAnalyzer(scopeManager);
+      const analyzerWithScope = createDependencyOrchestrator(scopeManager);
       analyzerWithScope.setCurrentFile('test.tsx');
 
       let jsxElement: NodePath | null = null;
@@ -586,7 +586,7 @@ describe('dependency analyzer helper functions (Task 12.3)', () => {
       // Build scope tree for proper analysis
       const scopeManager = createScopeManager();
       scopeManager.buildScopeTree(parseResult.value);
-      const analyzerWithTransitive = createDependencyAnalyzer(scopeManager, {
+      const analyzerWithTransitive = createDependencyOrchestrator(scopeManager, {
         trackTransitive: true,
         maxTransitiveDepth: 2,
       });

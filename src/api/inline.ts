@@ -12,8 +12,9 @@ import type * as t from '@babel/types';
 import * as t_factory from '@babel/types';
 
 import { findComponentDefinition } from '../analyzer/component-detector.js';
+import { error } from '../errors/error-builder.js';
 import type { RegraffError } from '../errors/index.js';
-import { createInternalError, createValidationError } from '../errors/index.js';
+import { createInternalError } from '../errors/index.js';
 import { CodeGenerator } from '../generator/code-generator.js';
 import { parseFile } from '../parser/parse-file.js';
 import { err, isErr, ok, type Result } from '../result/index.js';
@@ -114,30 +115,36 @@ export function inline(
   try {
     // Validate inputs
     if (files.length === 0) {
-      return err(createValidationError({
-        code: 'EMPTY_INPUT',
-        message: 'No files provided',
-        constraint: 'non_empty_array',
-        details: 'The files array cannot be empty',
-      }));
+      return err(
+        error()
+          .code('EMPTY_INPUT')
+          .message('No files provided')
+          .constraint('non_empty_array')
+          .details('The files array cannot be empty')
+          .build()
+      );
     }
 
     if (component.name.trim() === '') {
-      return err(createValidationError({
-        code: 'EMPTY_INPUT',
-        message: 'Component name cannot be empty',
-        constraint: 'non_empty_string',
-        details: 'The component.name parameter must be a non-empty string',
-      }));
+      return err(
+        error()
+          .code('EMPTY_INPUT')
+          .message('Component name cannot be empty')
+          .constraint('non_empty_string')
+          .details('The component.name parameter must be a non-empty string')
+          .build()
+      );
     }
 
     if (component.file.trim() === '') {
-      return err(createValidationError({
-        code: 'EMPTY_INPUT',
-        message: 'Component file path cannot be empty',
-        constraint: 'non_empty_string',
-        details: 'The component.file parameter must be a non-empty string',
-      }));
+      return err(
+        error()
+          .code('EMPTY_INPUT')
+          .message('Component file path cannot be empty')
+          .constraint('non_empty_string')
+          .details('The component.file parameter must be a non-empty string')
+          .build()
+      );
     }
 
     // Create required instances
@@ -172,23 +179,27 @@ export function inline(
     // Get the AST for the specified file
     const componentDefSourceAst = parsedFiles.get(componentFile);
     if (!componentDefSourceAst) {
-      return err(createValidationError({
-        code: 'ELEMENT_NOT_FOUND',
-        message: `Component '${componentName}' not found in file '${componentFile}'`,
-        constraint: 'element_exists',
-        details: `The specified file '${componentFile}' does not exist in the files array`,
-      }));
+      return err(
+        error()
+          .code('ELEMENT_NOT_FOUND')
+          .message(`Component '${componentName}' not found in file '${componentFile}'`)
+          .constraint('element_exists')
+          .details(`The specified file '${componentFile}' does not exist in the files array`)
+          .build()
+      );
     }
 
     // Find the component in the specified file
     const componentInfo = findComponentDefinition(componentDefSourceAst, componentName);
     if (!componentInfo) {
-      return err(createValidationError({
-        code: 'ELEMENT_NOT_FOUND',
-        message: `Component '${componentName}' not found in file '${componentFile}'`,
-        constraint: 'element_exists',
-        details: `The component '${componentName}' could not be found in the specified file '${componentFile}'`,
-      }));
+      return err(
+        error()
+          .code('ELEMENT_NOT_FOUND')
+          .message(`Component '${componentName}' not found in file '${componentFile}'`)
+          .constraint('element_exists')
+          .details(`The component '${componentName}' could not be found in the specified file '${componentFile}'`)
+          .build()
+      );
     }
 
     // Clone the AST for use in inlining

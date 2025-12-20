@@ -8,6 +8,7 @@
 import type { NodePath } from "@babel/traverse";
 
 import type { ScopeInfo, BindingInfo } from "../scope/index.js";
+
 import type { InternalDependency } from "./types.js";
 
 /**

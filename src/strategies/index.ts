@@ -109,11 +109,11 @@ import { ContextHandler } from './context-handler.js';
 import { HoistPlanBuilder } from './hoist-plan-builder.js';
 import { HookHoister } from './hook-hoister.js';
 import { PropThreader } from './prop-threader.js';
+import { HoistStrategySelector } from './selectors/hoist-strategy-selector.js';
 import { SuspenseHandler } from './suspense-handler.js';
 import type { IHoistStrategy } from './types.js';
-import { VariableHoister } from './variable-hoister.js';
 import { HookLocationValidator } from './validators/hook-location-validator.js';
-import { HoistStrategySelector } from './selectors/hoist-strategy-selector.js';
+import { VariableHoister } from './variable-hoister.js';
 
 /**
  * Strategy registry for dependency hoisting

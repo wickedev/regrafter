@@ -7,7 +7,7 @@
 
 import * as t from '@babel/types';
 
-import { createInternalError, type InternalErrorType } from '../errors/index.js';
+import { type InternalErrorType, createInternalError } from '../errors/index.js';
 import { ok, err, isErr, type Result } from '../result/index.js';
 import {
   createPropThreadOperation,
@@ -180,11 +180,11 @@ export class PropThreader implements IPropThreader {
     }
 
     if (counter >= MAX_ATTEMPTS) {
-      const error = createInternalError({
+      const internalError = createInternalError({
         code: 'E001',
         message: `resolveNameConflict: Could not generate unique prop name after ${MAX_ATTEMPTS} attempts for base ${propName} (existing props: ${existingProps.size})`,
       });
-      throw new Error(error.message);
+      throw new Error(internalError.message);
     }
 
     return `${propName}${counter}`;

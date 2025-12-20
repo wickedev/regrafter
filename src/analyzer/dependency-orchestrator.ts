@@ -15,12 +15,10 @@
 import type { NodePath, Binding } from "@babel/traverse";
 import * as t from "@babel/types";
 
-import {
-  createDependencyError,
-  type DependencyErrorType,
-} from "../errors/error-category.js";
+import { DependencyErrorBuilder } from "../errors/dependency-error-builder.js";
+import type { DependencyErrorType } from "../errors/error-category.js";
 import type { IDependencyAnalyzer } from "../interfaces/index.js";
-import { ok, err, tryCatch, isErr, type Result } from "../result/index.js";
+import { ok, err, tryCatch, type Result, mapErr } from "../result/index.js";
 import {
   getScopeWithFallback,
   getEnclosingComponentOrNull,
@@ -65,8 +63,8 @@ import {
   type IDependencyConverter,
 } from "./dependency-converter.js";
 import { createDependencyResolver } from "./dependency-resolver.js";
-import type { IDependencyResolver } from "./interfaces.js";
 import { createDynamicCodeDetector } from "./dynamic-code-detector.js";
+import type { IDependencyResolver } from "./interfaces.js";
 import {
   createRelatedDependencyDetector,
   type IRelatedDependencyDetector,
@@ -121,7 +119,7 @@ export class DependencyOrchestrator implements IDependencyAnalyzer {
   private readonly propAnalyzer: IPropDependencyAnalyzer;
   private readonly converter: IDependencyConverter;
   private readonly resolver: IDependencyResolver;
-  private readonly relatedDependencyDetector: IRelatedDependencyDetector;
+  private relatedDependencyDetector: IRelatedDependencyDetector;
   private currentFile = "";
 
   constructor(scopeManager: ScopeManager, options?: AnalyzerOptions) {
@@ -151,9 +149,7 @@ export class DependencyOrchestrator implements IDependencyAnalyzer {
     this.currentFile = file;
     this.converter.setCurrentFile(file);
     // Create new detector with updated file
-    (this.relatedDependencyDetector as any) = createRelatedDependencyDetector(
-      file
-    );
+    this.relatedDependencyDetector = createRelatedDependencyDetector(file);
   }
 
   /**
@@ -419,18 +415,17 @@ export class DependencyOrchestrator implements IDependencyAnalyzer {
     const analyzability = this.checkAnalyzability(elementPath);
     if (!analyzability.analyzable) {
       const blocker = analyzability.blockers?.[0];
+      const description =
+        blocker?.description ?? "Code contains unanalyzable patterns";
       return err(
-        createDependencyError({
-          code: "E030",
-          message:
-            blocker?.description ?? "Code contains unanalyzable patterns",
-          unresolvableReason:
-            blocker?.description ?? "Code contains unanalyzable patterns",
-          file: this.currentFile,
-          location: blocker?.location,
-          suggestions: [],
-          recoverable: false,
-        })
+        new DependencyErrorBuilder()
+          .code("E030")
+          .message(description)
+          .reason(description)
+          .inFile(this.currentFile)
+          .at(blocker?.location ?? null)
+          .recoverable(false)
+          .build()
       );
     }
 
@@ -474,26 +469,23 @@ export class DependencyOrchestrator implements IDependencyAnalyzer {
     const tempPathMap = this.converter.buildDependencyPaths(deduplicatedDeps);
 
     // Convert to internal dependencies - wrapped in tryCatch to handle any throws
-    const allDepsResult = tryCatch(() =>
-      this.converter.convertToInternal(deduplicatedDeps, elementScope)
+    const allDepsResult = mapErr(
+      tryCatch(() =>
+        this.converter.convertToInternal(deduplicatedDeps, elementScope)
+      ),
+      (error) => {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        return new DependencyErrorBuilder()
+          .code("E032")
+          .message(errorMsg)
+          .reason(`Failed to convert dependencies: ${errorMsg}`)
+          .inFile(this.currentFile)
+          .at(elementPath.node.loc)
+          .recoverable(false)
+          .build();
+      }
     );
-    if (isErr(allDepsResult)) {
-      const errorMsg =
-        allDepsResult.error instanceof Error
-          ? allDepsResult.error.message
-          : String(allDepsResult.error);
-      return err(
-        createDependencyError({
-          code: "E032",
-          message: errorMsg,
-          unresolvableReason: `Failed to convert dependencies: ${errorMsg}`,
-          file: this.currentFile,
-          location: elementPath.node.loc ?? undefined,
-          suggestions: [],
-          recoverable: false,
-        })
-      );
-    }
+    if (!allDepsResult.ok) return allDepsResult;
     const allDeps = allDepsResult.value;
 
     // Build final dependency paths map using InternalDependency IDs
@@ -532,17 +524,16 @@ export class DependencyOrchestrator implements IDependencyAnalyzer {
 
     // If dependencies cannot be resolved, return error
     if (!canResolve.can) {
+      const reason = canResolve.reason ?? "Cannot resolve all dependencies";
       return err(
-        createDependencyError({
-          code: "E031",
-          message: canResolve.reason ?? "Cannot resolve all dependencies",
-          unresolvableReason:
-            canResolve.reason ?? "Cannot resolve all dependencies",
-          file: this.currentFile,
-          location: elementPath.node.loc ?? undefined,
-          suggestions: [],
-          recoverable: false,
-        })
+        new DependencyErrorBuilder()
+          .code("E031")
+          .message(reason)
+          .reason(reason)
+          .inFile(this.currentFile)
+          .at(elementPath.node.loc)
+          .recoverable(false)
+          .build()
       );
     }
 

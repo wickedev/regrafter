@@ -12,8 +12,8 @@
 import type { NodePath } from "@babel/traverse";
 import type * as t from "@babel/types";
 
+import { error } from "../errors/error-builder.js";
 import {
-  createValidationError,
   createTransformError,
   type ValidationErrorType,
   type TransformErrorType,
@@ -242,40 +242,39 @@ export class JSXTransformer {
     // Check for circular reference
     if (this.isCircularMove(sourcePath, targetPath)) {
       return err(
-        createValidationError({
-          code: "V001",
-          message: "Cannot move an element into itself or its descendants",
-          constraint: "circular_reference",
-          details:
-            "Moving an element into itself or its descendants would create a circular reference",
-          file: "",
-        })
+        error()
+          .code("V001")
+          .message("Cannot move an element into itself or its descendants")
+          .constraint("circular_reference")
+          .details("Moving an element into itself or its descendants would create a circular reference")
+          .inFile("")
+          .build()
       );
     }
 
     // Validate source
     if (!this.isValidJSXSource(sourcePath)) {
       return err(
-        createValidationError({
-          code: "V002",
-          message: "Source must be a valid JSX element or expression",
-          constraint: "invalid_source",
-          details: "Source must be a valid JSX element or expression",
-          file: "",
-        })
+        error()
+          .code("V002")
+          .message("Source must be a valid JSX element or expression")
+          .constraint("invalid_source")
+          .details("Source must be a valid JSX element or expression")
+          .inFile("")
+          .build()
       );
     }
 
     // For Move.Inside, target must be able to have children
     if (mode === Move.Inside && !this.isValidJSXTarget(targetPath)) {
       return err(
-        createValidationError({
-          code: "V003",
-          message: "Target must be a JSX element or fragment for Move.Inside",
-          constraint: "invalid_target",
-          details: "Target must be a JSX element or fragment",
-          file: "",
-        })
+        error()
+          .code("V003")
+          .message("Target must be a JSX element or fragment for Move.Inside")
+          .constraint("invalid_target")
+          .details("Target must be a JSX element or fragment")
+          .inFile("")
+          .build()
       );
     }
 
@@ -285,13 +284,13 @@ export class JSXTransformer {
       !targetPath.parentPath
     ) {
       return err(
-        createValidationError({
-          code: "V004",
-          message: "Target must have a parent for Move.Before/After",
-          constraint: "no_parent",
-          details: "Target must have a parent",
-          file: "",
-        })
+        error()
+          .code("V004")
+          .message("Target must have a parent for Move.Before/After")
+          .constraint("no_parent")
+          .details("Target must have a parent")
+          .inFile("")
+          .build()
       );
     }
 

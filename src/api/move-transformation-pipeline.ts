@@ -13,27 +13,31 @@
  * @module api/move-transformation-pipeline
  */
 
+import traverseModule from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
 
 import type { DependencyOrchestrator } from '../analyzer/dependency-orchestrator.js';
+import { error } from '../errors/error-builder.js';
+import { createSelectorError } from '../errors/index.js';
 import type { RegraffError } from '../errors/index.js';
-import { createSelectorError, createValidationError } from '../errors/index.js';
 import type { CodeGenerator } from '../generator/code-generator.js';
 import { err, isErr, ok, type Result } from '../result/index.js';
-import { getScopeWithFallback } from '../scope/scope-helpers.js';
 import type { ScopeManager } from '../scope/index.js';
-import type { SelectorResolver } from '../selector/index.js';
-import type { ElementData } from '../selector/index.js';
+import { getScopeWithFallback } from '../scope/scope-helpers.js';
+import type { SelectorResolver, ElementData } from '../selector/index.js';
 import type { HoistExecutor, HoistExecutionContext } from '../strategies/hoist-executor.js';
 import type { HoistPlanBuilder } from '../strategies/hoist-plan-builder.js';
 import type { HoistPlan, HoistContext } from '../strategies/types.js';
 import type { JSXTransformer } from '../transformer/jsx-transformer.js';
 import type { Code, FileInput, Move, Selector } from '../types/index.js';
 import type { DependencyAnalysis, ScopeInfo } from '../types/internal.js';
+import { loadTraverseFunction } from '../utils/index.js';
 
 import { generateCodeForFiles } from './generation-utils.js';
 import { parseAllFiles } from './parse-utils.js';
+
+const traverse = loadTraverseFunction(traverseModule);
 
 // =============================================================================
 // Context Interfaces
@@ -163,24 +167,24 @@ export class MoveTransformationPipeline {
     const sourceAst = parsedFiles.get(context.from.file);
     if (!sourceAst) {
       return err(
-        createValidationError({
-          code: 'FILE_NOT_FOUND',
-          message: `Source file not found: ${context.from.file}`,
-          constraint: 'file_exists',
-          details: `The source file "${context.from.file}" could not be found in the parsed files map`,
-        })
+        error()
+          .code('FILE_NOT_FOUND')
+          .message(`Source file not found: ${context.from.file}`)
+          .constraint('file_exists')
+          .details(`The source file "${context.from.file}" could not be found in the parsed files map`)
+          .build()
       );
     }
 
     // For same-file moves only (cross-file not yet implemented)
     if (context.from.file !== context.to.file) {
       return err(
-        createValidationError({
-          code: 'CROSS_FILE_NOT_SUPPORTED',
-          message: 'Cross-file moves not yet implemented',
-          constraint: 'same_file_move',
-          details: 'Cross-file moves are not yet supported in moveWithHoisting',
-        })
+        error()
+          .code('CROSS_FILE_NOT_SUPPORTED')
+          .message('Cross-file moves not yet implemented')
+          .constraint('same_file_move')
+          .details('Cross-file moves are not yet supported in moveWithHoisting')
+          .build()
       );
     }
 
@@ -299,7 +303,7 @@ export class MoveTransformationPipeline {
     let refreshedTargetResult = context.targetResult;
 
     // If there's a valid hoisting plan, execute it
-    if (context.hoistPlan && context.hoistPlan.valid) {
+    if (context.hoistPlan?.valid === true) {
       // Use dependency paths from analysis
       const dependencyPaths = context.dependencyAnalysis.dependencyPaths;
       const scopePaths = this.buildScopePaths(context.sourceAst);
@@ -395,8 +399,6 @@ export class MoveTransformationPipeline {
    */
   private buildScopePaths(ast: t.File): Map<string, NodePath> {
     const scopePaths = new Map<string, NodePath>();
-    const traverseModule = require('@babel/traverse');
-    const traverse = traverseModule.default || traverseModule;
 
     traverse(ast, {
       FunctionDeclaration: (path: NodePath<t.FunctionDeclaration>) => {
@@ -426,9 +428,6 @@ export class MoveTransformationPipeline {
    * Recrawl scope to synchronize Babel's internal state
    */
   private recrawlScope(ast: t.File): void {
-    const traverseModule = require('@babel/traverse');
-    const traverse = traverseModule.default || traverseModule;
-
     traverse(ast, {
       Program(path: NodePath<t.Program>) {
         path.scope.crawl();
@@ -510,8 +509,6 @@ export class MoveTransformationPipeline {
    */
   private findNodePath(ast: t.File, targetNode: t.Node): NodePath | null {
     let foundPath: NodePath | null = null;
-    const traverseModule = require('@babel/traverse');
-    const traverse = traverseModule.default || traverseModule;
 
     traverse(ast, {
       enter(path: NodePath) {

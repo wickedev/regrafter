@@ -19,7 +19,7 @@ import * as t from '@babel/types';
 
 const traverse = traverseFn as any as typeof traverseFn.default;
 
-import { createDependencyAnalyzer } from '../dependency-analyzer.js';
+import { createDependencyOrchestrator } from '../dependency-orchestrator.js';
 import { createScopeManager } from '../../scope/index.js';
 import { isOk, isErr, type Result } from '../../result/index.js';
 import {
@@ -114,7 +114,7 @@ describe('DependencyAnalyzer.analyzeElement - Result-based Error Handling', () =
     const ast = parseCode(validComponentCode);
     const scopeManager = createScopeManager();
     scopeManager.buildScopeTree(ast);
-    const analyzer = createDependencyAnalyzer(scopeManager);
+    const analyzer = createDependencyOrchestrator(scopeManager);
     analyzer.setCurrentFile('test.tsx');
 
     const elementPath = findJSXElement(ast);
@@ -156,7 +156,7 @@ describe('DependencyAnalyzer.analyzeElement - Result-based Error Handling', () =
     const ast = parseCode(componentWithEval);
     const scopeManager = createScopeManager();
     scopeManager.buildScopeTree(ast);
-    const analyzer = createDependencyAnalyzer(scopeManager);
+    const analyzer = createDependencyOrchestrator(scopeManager);
     analyzer.setCurrentFile('dangerous.tsx');
 
     const elementPath = findJSXElement(ast);
@@ -192,7 +192,7 @@ describe('DependencyAnalyzer.analyzeElement - Result-based Error Handling', () =
     const ast = parseCode(componentWithUnresolvableHook);
     const scopeManager = createScopeManager();
     scopeManager.buildScopeTree(ast);
-    const analyzer = createDependencyAnalyzer(scopeManager);
+    const analyzer = createDependencyOrchestrator(scopeManager);
     analyzer.setCurrentFile('problem.tsx');
 
     const elementPath = findJSXElement(ast);
@@ -227,7 +227,7 @@ describe('DependencyAnalyzer.analyzeElement - Result-based Error Handling', () =
     const ast = parseCode(componentWithEval);
     const scopeManager = createScopeManager();
     scopeManager.buildScopeTree(ast);
-    const analyzer = createDependencyAnalyzer(scopeManager);
+    const analyzer = createDependencyOrchestrator(scopeManager);
     analyzer.setCurrentFile('test.tsx');
 
     const elementPath = findJSXElement(ast);
@@ -262,7 +262,7 @@ describe('DependencyAnalyzer.analyzeElement - Result-based Error Handling', () =
     const ast = parseCode(componentWithEval);
     const scopeManager = createScopeManager();
     scopeManager.buildScopeTree(ast);
-    const analyzer = createDependencyAnalyzer(scopeManager);
+    const analyzer = createDependencyOrchestrator(scopeManager);
     analyzer.setCurrentFile(filename);
 
     const elementPath = findJSXElement(ast);
@@ -301,7 +301,7 @@ describe('DependencyAnalyzer.analyzeElement - Result-based Error Handling', () =
     const ast = parseCode(componentWithEval);
     const scopeManager = createScopeManager();
     scopeManager.buildScopeTree(ast);
-    const analyzer = createDependencyAnalyzer(scopeManager);
+    const analyzer = createDependencyOrchestrator(scopeManager);
     analyzer.setCurrentFile('test.tsx');
 
     const elementPath = findJSXElement(ast);
@@ -331,7 +331,7 @@ describe('DependencyAnalyzer.analyzeElement - Result-based Error Handling', () =
     const ast = parseCode(componentWithEval);
     const scopeManager = createScopeManager();
     scopeManager.buildScopeTree(ast);
-    const analyzer = createDependencyAnalyzer(scopeManager);
+    const analyzer = createDependencyOrchestrator(scopeManager);
     analyzer.setCurrentFile('test.tsx');
 
     const elementPath = findJSXElement(ast);
@@ -365,7 +365,7 @@ describe('DependencyAnalyzer.analyzeElement - Result-based Error Handling', () =
     const ast = parseCode(componentWithEval);
     const scopeManager = createScopeManager();
     scopeManager.buildScopeTree(ast);
-    const analyzer = createDependencyAnalyzer(scopeManager);
+    const analyzer = createDependencyOrchestrator(scopeManager);
     analyzer.setCurrentFile('test.tsx');
 
     const elementPath = findJSXElement(ast);

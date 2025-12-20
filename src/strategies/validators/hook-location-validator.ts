@@ -8,12 +8,12 @@
  * - NOT inside conditionals, loops, or nested functions
  */
 
-import { ScopeType } from "../../types/internal.js";
-import type { ScopeInfo } from "../../types/internal.js";
-import { ok, err } from "../../result/index.js";
-import type { Result } from "../../result/index.js";
-import { createValidationError } from "../../errors/index.js";
 import type { RegraffError } from "../../errors/error-category.js";
+import { createValidationError } from "../../errors/index.js";
+import type { Result } from "../../result/index.js";
+import { ok, err } from "../../result/index.js";
+import type { ScopeInfo } from "../../types/internal.js";
+import { ScopeType } from "../../types/internal.js";
 import { isHookName } from "../types.js";
 
 /**

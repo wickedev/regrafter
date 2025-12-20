@@ -9,7 +9,7 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-import { createInternalError, type InternalErrorType } from '../errors/index.js';
+import { type InternalErrorType, createInternalError } from '../errors/index.js';
 import { ok, err, isErr, type Result } from '../result/index.js';
 import type {
   InternalDependency,

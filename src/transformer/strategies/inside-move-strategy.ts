@@ -5,9 +5,8 @@
  * Inserts the source element as a child of the target element.
  */
 
+import { error } from "../../errors/error-builder.js";
 import {
-  createValidationError,
-  createTransformError,
   type ValidationErrorType,
   type TransformErrorType,
 } from "../../errors/index.js";
@@ -36,41 +35,37 @@ export class InsideMoveStrategy implements IMoveStrategy {
     // Validate source is a JSX element
     if (!helpers.isValidJSXSource(sourcePath)) {
       return err(
-        createValidationError({
-          code: "V007",
-          message:
-            "Source must be a JSX element, expression container, or fragment",
-          constraint: "jsx_element_required",
-          details: "Source node must be a JSX element",
-          file: "",
-        })
+        error()
+          .code("V007")
+          .message("Source must be a JSX element, expression container, or fragment")
+          .constraint("jsx_element_required")
+          .details("Source node must be a JSX element")
+          .inFile("")
+          .build()
       );
     }
 
     // Validate target can have children
     if (!helpers.isValidJSXTarget(targetPath)) {
       return err(
-        createTransformError({
-          code: TransformerErrorCodes.INVALID_TARGET,
-          message:
-            "Target must be a JSX element or fragment that can contain children",
-          operation: "transform",
-          file: "",
-          suggestions: [],
-        })
+        error()
+          .code(TransformerErrorCodes.INVALID_TARGET)
+          .message("Target must be a JSX element or fragment that can contain children")
+          .details("Operation: transform")
+          .inFile("")
+          .build()
       );
     }
 
     // Check for circular moves before proceeding
     if (helpers.isCircularMove(sourcePath, targetPath)) {
       return err(
-        createTransformError({
-          code: TransformerErrorCodes.CIRCULAR_MOVE,
-          message: "Cannot move an element into itself or its descendants",
-          operation: "transform",
-          file: "",
-          suggestions: [],
-        })
+        error()
+          .code(TransformerErrorCodes.CIRCULAR_MOVE)
+          .message("Cannot move an element into itself or its descendants")
+          .details("Operation: transform")
+          .inFile("")
+          .build()
       );
     }
 

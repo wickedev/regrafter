@@ -95,3 +95,7 @@ export {
 
 // Error Builder (Phase 3.1: Error Handling Ergonomics)
 export { ErrorBuilder, error } from './error-builder.js';
+export {
+  DependencyErrorBuilder,
+  dependencyError,
+} from './dependency-error-builder.js';

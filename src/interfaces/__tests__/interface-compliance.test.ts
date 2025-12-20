@@ -21,13 +21,13 @@ import * as t from '@babel/types';
 
 // Import interfaces
 import type {
-  IDependencyAnalyzer,
+  IDependencyOrchestrator,
   IScopeManager,
   ICodeGenerator,
 } from '../index.js';
 
 // Import implementing classes
-import { DependencyAnalyzer } from '../../analyzer/dependency-analyzer.js';
+import { DependencyOrchestrator } from '../../analyzer/dependency-orchestrator.js';
 import { ScopeManager } from '../../scope/scope-manager.js';
 import { CodeGenerator } from '../../generator/code-generator.js';
 
@@ -48,11 +48,11 @@ const traverse =
 /**
  * | Case ID | Feature Description | Test Type |
  * |---------|---------------------|-------------|
- * | IC-01   | DependencyAnalyzer implements IDependencyAnalyzer | Structural Test |
- * | IC-02   | DependencyAnalyzer.setCurrentFile signature | Signature Test |
- * | IC-03   | DependencyAnalyzer.analyzeElement signature | Signature Test |
- * | IC-04   | DependencyAnalyzer.checkAnalyzability signature | Signature Test |
- * | IC-05   | DependencyAnalyzer.analyzeElement returns Result | Return Type Test |
+ * | IC-01   | DependencyOrchestrator implements IDependencyOrchestrator | Structural Test |
+ * | IC-02   | DependencyOrchestrator.setCurrentFile signature | Signature Test |
+ * | IC-03   | DependencyOrchestrator.analyzeElement signature | Signature Test |
+ * | IC-04   | DependencyOrchestrator.checkAnalyzability signature | Signature Test |
+ * | IC-05   | DependencyOrchestrator.analyzeElement returns Result | Return Type Test |
  * | IC-06   | ScopeManager implements IScopeManager | Structural Test |
  * | IC-07   | ScopeManager.buildScopeTree signature | Signature Test |
  * | IC-08   | ScopeManager.getScopeTree signature | Signature Test |
@@ -83,7 +83,7 @@ const traverse =
  * | IC-33   | CodeGenerator.getOptions signature | Signature Test |
  * | IC-34   | CodeGenerator.generate returns Result | Return Type Test |
  * | IC-35   | CodeGenerator.generateMultiple returns Result | Return Type Test |
- * | IC-36   | Interface assignability (IDependencyAnalyzer) | Type Safety Test |
+ * | IC-36   | Interface assignability (IDependencyOrchestrator) | Type Safety Test |
  * | IC-37   | Interface assignability (IScopeManager) | Type Safety Test |
  * | IC-38   | Interface assignability (ICodeGenerator) | Type Safety Test |
  */
@@ -169,21 +169,21 @@ function createTestScopeInfo(): ScopeInfo {
 }
 
 // =============================================================================
-// IDependencyAnalyzer Interface Compliance Tests
+// IDependencyOrchestrator Interface Compliance Tests
 // =============================================================================
 
-describe('IDependencyAnalyzer Interface Compliance', () => {
+describe('IDependencyOrchestrator Interface Compliance', () => {
   let scopeManager: ScopeManager;
-  let analyzer: DependencyAnalyzer;
+  let analyzer: DependencyOrchestrator;
 
   beforeEach(() => {
     scopeManager = createTestScopeManager();
-    analyzer = new DependencyAnalyzer(scopeManager);
+    analyzer = new DependencyOrchestrator(scopeManager);
   });
 
-  it('IC-01: DependencyAnalyzer implements IDependencyAnalyzer', () => {
+  it('IC-01: DependencyOrchestrator implements IDependencyOrchestrator', () => {
     // Verify class implements interface
-    const asInterface: IDependencyAnalyzer = analyzer;
+    const asInterface: IDependencyOrchestrator = analyzer;
 
     // Verify all required methods exist
     expect(asInterface).toBeDefined();
@@ -192,14 +192,14 @@ describe('IDependencyAnalyzer Interface Compliance', () => {
     expect(typeof asInterface.checkAnalyzability).toBe('function');
   });
 
-  it('IC-02: DependencyAnalyzer.setCurrentFile has correct signature', () => {
+  it('IC-02: DependencyOrchestrator.setCurrentFile has correct signature', () => {
     // Test that setCurrentFile accepts string and returns void
     const result = analyzer.setCurrentFile('test.tsx');
 
     expect(result).toBeUndefined();
   });
 
-  it('IC-03: DependencyAnalyzer.analyzeElement has correct signature', () => {
+  it('IC-03: DependencyOrchestrator.analyzeElement has correct signature', () => {
     // Create test data
     const code = `
       function TestComponent() {
@@ -222,7 +222,7 @@ describe('IDependencyAnalyzer Interface Compliance', () => {
     }
   });
 
-  it('IC-04: DependencyAnalyzer.checkAnalyzability has correct signature', () => {
+  it('IC-04: DependencyOrchestrator.checkAnalyzability has correct signature', () => {
     // Create test data
     const code = `
       function TestComponent() {
@@ -246,7 +246,7 @@ describe('IDependencyAnalyzer Interface Compliance', () => {
     }
   });
 
-  it('IC-05: DependencyAnalyzer.analyzeElement returns Result pattern', () => {
+  it('IC-05: DependencyOrchestrator.analyzeElement returns Result pattern', () => {
     // Create valid test data
     const code = `
       function TestComponent() {
@@ -286,9 +286,9 @@ describe('IDependencyAnalyzer Interface Compliance', () => {
     }
   });
 
-  it('IC-36: Interface assignability (IDependencyAnalyzer)', () => {
+  it('IC-36: Interface assignability (IDependencyOrchestrator)', () => {
     // Create instance and assign to interface type
-    const asInterface: IDependencyAnalyzer = analyzer;
+    const asInterface: IDependencyOrchestrator = analyzer;
 
     // Call methods through interface reference
     asInterface.setCurrentFile('test.tsx');

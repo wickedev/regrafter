@@ -9,10 +9,10 @@ import type { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
 
 import {
-  createValidationError,
-  createTransformError,
   type ValidationErrorType,
   type TransformErrorType,
+  createTransformError,
+  createValidationError,
 } from "../../errors/index.js";
 import { ok, err, type Result } from "../../result/index.js";
 
@@ -232,7 +232,6 @@ export function getSiblings(path: NodePath): Result<t.Node[], TransformErrorType
             code: "T011",
             message: "Unexpected null parent path for JSXExpressionContainer",
             operation: "getSiblings",
-            file: "",
           })
         );
       }
@@ -278,7 +277,6 @@ export function getSiblings(path: NodePath): Result<t.Node[], TransformErrorType
         code: "E030",
         message: `Maximum tree depth (${MAX_DEPTH}) exceeded while finding siblings`,
         operation: "getSiblings",
-        file: "",
       })
     );
   }
@@ -307,7 +305,6 @@ export function getSiblings(path: NodePath): Result<t.Node[], TransformErrorType
       code: "T010",
       message: "Cannot access siblings for this node type",
       operation: "transform",
-      file: "",
     })
   );
 }
@@ -412,7 +409,6 @@ export function normalizePathForMove(
         code: "E030",
         message: `Maximum tree depth (${MAX_DEPTH}) exceeded while finding JSX container`,
         operation: "normalizePathForMove",
-        file: "",
       })
     );
   }

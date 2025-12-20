@@ -6,12 +6,12 @@
  * and other contextual factors.
  */
 
-import { HoistStrategy } from "../../types/internal.js";
-import { DependencyType } from "../../types/public.js";
 import type {
   InternalDependency,
   ScopeInfo,
 } from "../../types/internal.js";
+import { HoistStrategy } from "../../types/internal.js";
+import { DependencyType } from "../../types/public.js";
 import type { IHookLocationValidator } from "../validators/hook-location-validator.js";
 
 /**

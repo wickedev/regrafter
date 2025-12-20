@@ -5,9 +5,8 @@
  * Inserts the source element as the previous sibling of the target element.
  */
 
+import { error } from "../../errors/error-builder.js";
 import {
-  createValidationError,
-  createTransformError,
   type ValidationErrorType,
   type TransformErrorType,
 } from "../../errors/index.js";
@@ -44,14 +43,13 @@ export class BeforeMoveStrategy implements IMoveStrategy {
     // Validate source is a JSX element
     if (!helpers.isValidJSXSource(sourcePath)) {
       return err(
-        createValidationError({
-          code: "V007",
-          message:
-            "Source must be a JSX element, expression container, or fragment",
-          constraint: "jsx_element_required",
-          details: "Source node must be a JSX element",
-          file: "",
-        })
+        error()
+          .code("V007")
+          .message("Source must be a JSX element, expression container, or fragment")
+          .constraint("jsx_element_required")
+          .details("Source node must be a JSX element")
+          .inFile("")
+          .build()
       );
     }
 
@@ -67,13 +65,12 @@ export class BeforeMoveStrategy implements IMoveStrategy {
     const parentPath = targetPath.parentPath;
     if (!parentPath) {
       return err(
-        createTransformError({
-          code: TransformerErrorCodes.NO_PARENT,
-          message: "Target has no parent",
-          operation: "moveBefore",
-          file: "",
-          suggestions: [],
-        })
+        error()
+          .code(TransformerErrorCodes.NO_PARENT)
+          .message("Target has no parent")
+          .details("Operation: moveBefore")
+          .inFile("")
+          .build()
       );
     }
 
@@ -87,13 +84,12 @@ export class BeforeMoveStrategy implements IMoveStrategy {
     const targetIndexResult = helpers.getIndexInParent(targetPath);
     if (!targetIndexResult.ok) {
       return err(
-        createTransformError({
-          code: TransformerErrorCodes.INTERNAL_ERROR,
-          message: "Could not find target in parent",
-          operation: "moveBefore",
-          file: "",
-          suggestions: [],
-        })
+        error()
+          .code(TransformerErrorCodes.INTERNAL_ERROR)
+          .message("Could not find target in parent")
+          .details("Operation: moveBefore")
+          .inFile("")
+          .build()
       );
     }
     const targetIndex = targetIndexResult.value;
