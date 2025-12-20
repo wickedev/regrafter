@@ -6,6 +6,7 @@
  */
 
 import type { NodePath } from "@babel/traverse";
+
 import type { ScopeInfo, BindingInfo } from "../scope/index.js";
 import type { InternalDependency } from "./types.js";
 
@@ -65,4 +66,29 @@ export interface IDependencyResolver {
     dep: InternalDependency,
     targetScope: ScopeInfo | null
   ): boolean;
+}
+
+/**
+ * Interface for related dependency detection
+ *
+ * Detects transitive dependencies that reference hoisted symbols.
+ */
+export interface IRelatedDependencyDetector {
+  /**
+   * Detect related dependencies that should be hoisted together.
+   * This includes:
+   * - useEffect calls that reference hoisted state
+   * - Helper functions that use hoisted variables
+   * - Variables that reference hoisted symbols
+   *
+   * @param dependencies - All dependencies detected so far
+   * @param elementScope - Scope of the element being moved
+   * @param elementPath - Path to the element being moved
+   * @returns Array of {dependency, path} tuples
+   */
+  detectRelatedDependencies(
+    dependencies: InternalDependency[],
+    elementScope: ScopeInfo | null,
+    elementPath: NodePath
+  ): Array<{ dependency: InternalDependency; path: NodePath }>;
 }
