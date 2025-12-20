@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1766246903907,
+  "lastUpdate": 1766250507209,
   "repoUrl": "https://github.com/wickedev/regrafter",
   "entries": {
     "Benchmark": [
@@ -1020,6 +1020,261 @@ window.BENCHMARK_DATA = {
             "range": "±0.90%",
             "unit": "ops/sec",
             "extra": "12519 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "orange881217@gmail.com",
+            "name": "wickedev",
+            "username": "wickedev"
+          },
+          "committer": {
+            "email": "orange881217@gmail.com",
+            "name": "wickedev",
+            "username": "wickedev"
+          },
+          "distinct": true,
+          "id": "e4e802a757e3379fb6d2e1845992f7188db13eac",
+          "message": "test: add integration and debug tests\n- Add comprehensive API integration tests (1307 lines)\n- Add dependency detection debug tests\n- Add identifier collection debug tests\n- Improve node-selector JSX handling\n- Fix component-inliner and prop-substituter edge cases\n- Update README and API reference documentation\n- Remove unused code from move-transformation-pipeline",
+          "timestamp": "2025-12-21T02:06:48+09:00",
+          "tree_id": "68ef3ef2e767fd83985c1a75d18c8d3479f638a8",
+          "url": "https://github.com/wickedev/regrafter/commit/e4e802a757e3379fb6d2e1845992f7188db13eac"
+        },
+        "date": 1766250506981,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "src/__tests__/benchmarks/performance.bench.ts > Performance Benchmarks - Single File > regraft - 500 lines",
+            "value": 39,
+            "range": "±9.35%",
+            "unit": "ops/sec",
+            "extra": "20 samples"
+          },
+          {
+            "name": "src/__tests__/benchmarks/performance.bench.ts > Performance Benchmarks - Single File > regraft - 1000 lines",
+            "value": 22,
+            "range": "±7.47%",
+            "unit": "ops/sec",
+            "extra": "12 samples"
+          },
+          {
+            "name": "src/__tests__/benchmarks/performance.bench.ts > Performance Benchmarks - Single File > canMove - 1000 lines",
+            "value": 58,
+            "range": "±13.02%",
+            "unit": "ops/sec",
+            "extra": "29 samples"
+          },
+          {
+            "name": "src/__tests__/benchmarks/performance.bench.ts > Performance Benchmarks - Multi-File > regraft - 10 files, 1000 lines each",
+            "value": 21,
+            "range": "±8.14%",
+            "unit": "ops/sec",
+            "extra": "11 samples"
+          },
+          {
+            "name": "src/__tests__/benchmarks/performance.bench.ts > Performance Benchmarks - Multi-File > regraft - 10 files, cross-file move",
+            "value": 13,
+            "range": "±12.63%",
+            "unit": "ops/sec",
+            "extra": "10 samples"
+          },
+          {
+            "name": "src/__tests__/benchmarks/performance.bench.ts > Performance Benchmarks - canMove vs Full Operation > canMove only",
+            "value": 46,
+            "range": "±16.45%",
+            "unit": "ops/sec",
+            "extra": "24 samples"
+          },
+          {
+            "name": "src/__tests__/benchmarks/performance.bench.ts > Performance Benchmarks - canMove vs Full Operation > full regraft",
+            "value": 20,
+            "range": "±11.43%",
+            "unit": "ops/sec",
+            "extra": "11 samples"
+          },
+          {
+            "name": "src/__tests__/benchmarks/performance.bench.ts > Performance Benchmarks - Move Modes > Move.Before - 1000 lines",
+            "value": 20,
+            "range": "±15.63%",
+            "unit": "ops/sec",
+            "extra": "10 samples"
+          },
+          {
+            "name": "src/__tests__/benchmarks/performance.bench.ts > Performance Benchmarks - Move Modes > Move.After - 1000 lines",
+            "value": 22,
+            "range": "±5.14%",
+            "unit": "ops/sec",
+            "extra": "11 samples"
+          },
+          {
+            "name": "src/__tests__/benchmarks/performance.bench.ts > Performance Benchmarks - Move Modes > Move.Inside - 1000 lines",
+            "value": 19,
+            "range": "±14.55%",
+            "unit": "ops/sec",
+            "extra": "10 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Result Creation Performance > ok() constructor",
+            "value": 11130179,
+            "range": "±0.10%",
+            "unit": "ops/sec",
+            "extra": "5565090 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Result Creation Performance > err() constructor",
+            "value": 11100310,
+            "range": "±0.10%",
+            "unit": "ops/sec",
+            "extra": "5550155 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Result Creation Performance > ok() with object",
+            "value": 11183822,
+            "range": "±0.10%",
+            "unit": "ops/sec",
+            "extra": "5591911 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Result Creation Performance > err() with object",
+            "value": 11079158,
+            "range": "±0.10%",
+            "unit": "ops/sec",
+            "extra": "5539579 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Mapping Operations Performance > map() on Ok",
+            "value": 8732882,
+            "range": "±0.12%",
+            "unit": "ops/sec",
+            "extra": "4366441 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Mapping Operations Performance > map() on Err (passthrough)",
+            "value": 10871021,
+            "range": "±0.10%",
+            "unit": "ops/sec",
+            "extra": "5435511 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Mapping Operations Performance > flatMap() on Ok",
+            "value": 8372791,
+            "range": "±0.28%",
+            "unit": "ops/sec",
+            "extra": "4186396 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Mapping Operations Performance > flatMap() on Err (passthrough)",
+            "value": 10846657,
+            "range": "±0.11%",
+            "unit": "ops/sec",
+            "extra": "5423329 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Mapping Operations Performance > mapErr() on Ok (passthrough)",
+            "value": 11033994,
+            "range": "±0.10%",
+            "unit": "ops/sec",
+            "extra": "5516998 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Mapping Operations Performance > mapErr() on Err",
+            "value": 9434425,
+            "range": "±0.47%",
+            "unit": "ops/sec",
+            "extra": "4717213 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Chained Operations Performance > map chain (3 operations)",
+            "value": 4131066,
+            "range": "±0.98%",
+            "unit": "ops/sec",
+            "extra": "2065534 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Chained Operations Performance > flatMap chain (3 operations)",
+            "value": 3345410,
+            "range": "±1.09%",
+            "unit": "ops/sec",
+            "extra": "1672705 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Chained Operations Performance > mixed chain (map + flatMap + mapErr)",
+            "value": 4249281,
+            "range": "±1.31%",
+            "unit": "ops/sec",
+            "extra": "2124641 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > End-to-End Pipeline - Result vs Try-Catch > Result-based pipeline (success path)",
+            "value": 4934903,
+            "range": "±0.10%",
+            "unit": "ops/sec",
+            "extra": "2467452 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > End-to-End Pipeline - Result vs Try-Catch > Try-catch pipeline (success path)",
+            "value": 15630492,
+            "range": "±0.09%",
+            "unit": "ops/sec",
+            "extra": "7815246 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > End-to-End Pipeline - Result vs Try-Catch > Result-based pipeline (error path)",
+            "value": 8132507,
+            "range": "±0.37%",
+            "unit": "ops/sec",
+            "extra": "4066254 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > End-to-End Pipeline - Result vs Try-Catch > Try-catch pipeline (error path)",
+            "value": 221928,
+            "range": "±0.40%",
+            "unit": "ops/sec",
+            "extra": "110964 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > End-to-End Pipeline - Result vs Try-Catch > tryCatch wrapper",
+            "value": 2717962,
+            "range": "±0.25%",
+            "unit": "ops/sec",
+            "extra": "1358981 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > End-to-End Pipeline - Result vs Try-Catch > raw try-catch",
+            "value": 3149580,
+            "range": "±0.10%",
+            "unit": "ops/sec",
+            "extra": "1574790 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Stress Test - High Volume > 10,000 ok() creations",
+            "value": 4451,
+            "range": "±0.21%",
+            "unit": "ops/sec",
+            "extra": "2226 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Stress Test - High Volume > 10,000 map() operations",
+            "value": 2733,
+            "range": "±1.45%",
+            "unit": "ops/sec",
+            "extra": "1368 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Stress Test - High Volume > 10,000 flatMap() operations",
+            "value": 2095,
+            "range": "±1.26%",
+            "unit": "ops/sec",
+            "extra": "1048 samples"
+          },
+          {
+            "name": "src/result/__tests__/performance.bench.ts > Stress Test - High Volume > 1,000 chained operations",
+            "value": 25101,
+            "range": "±1.68%",
+            "unit": "ops/sec",
+            "extra": "12551 samples"
           }
         ]
       }
