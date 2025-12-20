@@ -190,9 +190,16 @@ export {
 // Export strategy utilities for dependency hoisting
 export {
   // Main planner
-  HoistPlanner,
+  HoistPlanBuilder,
+  HoistPlanner, // Backward compatibility
+  createHoistPlanBuilder,
   createHoistPlanner,
+  createConfiguredHoistPlanBuilder,
   createConfiguredHoistPlanner,
+  HookLocationValidator,
+  createHookLocationValidator,
+  HoistStrategySelector,
+  createHoistStrategySelector,
 
   // Individual strategies
   HookHoister,

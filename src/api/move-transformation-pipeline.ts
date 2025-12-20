@@ -21,6 +21,7 @@ import type { RegraffError } from '../errors/index.js';
 import { createSelectorError, createValidationError } from '../errors/index.js';
 import type { CodeGenerator } from '../generator/code-generator.js';
 import { err, isErr, ok, type Result } from '../result/index.js';
+import { getScopeWithFallback } from '../scope/scope-helpers.js';
 import type { ScopeManager } from '../scope/index.js';
 import type { SelectorResolver } from '../selector/index.js';
 import type { ElementData } from '../selector/index.js';
@@ -217,24 +218,8 @@ export class MoveTransformationPipeline {
    */
   private runAnalysis(context: ValidatedContext): Result<AnalyzedContext, RegraffError> {
     // Get scopes
-    let sourceScope = this.scopeManager.getScopeForPath(context.sourceResult.path);
-    let targetScope = this.scopeManager.getScopeForPath(context.targetResult.path);
-
-    // If source element doesn't have its own scope, use enclosing component
-    if (!sourceScope) {
-      const enclosingComponentResult = this.scopeManager.findEnclosingComponent(context.sourceResult.path);
-      if (!isErr(enclosingComponentResult) && enclosingComponentResult.value) {
-        sourceScope = enclosingComponentResult.value;
-      }
-    }
-
-    // If target element doesn't have its own scope, use enclosing component
-    if (!targetScope) {
-      const enclosingComponentResult = this.scopeManager.findEnclosingComponent(context.targetResult.path);
-      if (!isErr(enclosingComponentResult) && enclosingComponentResult.value) {
-        targetScope = enclosingComponentResult.value;
-      }
-    }
+    const sourceScope = getScopeWithFallback(context.sourceResult.path, this.scopeManager);
+    const targetScope = getScopeWithFallback(context.targetResult.path, this.scopeManager);
 
     // Perform dependency analysis
     const depAnalysisResult = this.analyzer.analyzeElement(context.sourceResult.path, targetScope);

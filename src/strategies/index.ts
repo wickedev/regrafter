@@ -28,8 +28,19 @@ export {
   classifyHook,
 } from './types.js';
 
-// HoistPlanner - Main planning orchestrator
-export { HoistPlanner, createHoistPlanner } from './hoist-planner.js';
+// HoistPlanBuilder - Main planning orchestrator
+export { HoistPlanBuilder, createHoistPlanBuilder } from './hoist-plan-builder.js';
+
+// Backward compatibility export
+export { HoistPlanBuilder as HoistPlanner } from './hoist-plan-builder.js';
+
+// Validators
+export { HookLocationValidator, createHookLocationValidator } from './validators/hook-location-validator.js';
+export type { IHookLocationValidator } from './validators/hook-location-validator.js';
+
+// Selectors
+export { HoistStrategySelector, createHoistStrategySelector } from './selectors/hoist-strategy-selector.js';
+export type { IHoistStrategySelector, StrategyContext, StrategySelection } from './selectors/hoist-strategy-selector.js';
 
 // HoistExecutor - Executes hoisting operations on AST
 export { HoistExecutor, createHoistExecutor } from './hoist-executor.js';
@@ -95,12 +106,14 @@ export {
 // ===============================================================================
 
 import { ContextHandler } from './context-handler.js';
-import { HoistPlanner } from './hoist-planner.js';
+import { HoistPlanBuilder } from './hoist-plan-builder.js';
 import { HookHoister } from './hook-hoister.js';
 import { PropThreader } from './prop-threader.js';
 import { SuspenseHandler } from './suspense-handler.js';
 import type { IHoistStrategy } from './types.js';
 import { VariableHoister } from './variable-hoister.js';
+import { HookLocationValidator } from './validators/hook-location-validator.js';
+import { HoistStrategySelector } from './selectors/hoist-strategy-selector.js';
 
 /**
  * Strategy registry for dependency hoisting
@@ -141,9 +154,26 @@ export function getAllHoistStrategies(): IHoistStrategy[] {
 }
 
 /**
- * Create a fully configured HoistPlanner with all strategies
+ * Create a fully configured HoistPlanBuilder with all dependencies
  */
-export function createConfiguredHoistPlanner(): HoistPlanner {
-  // HoistPlanner has all strategies built-in, no registration needed
-  return new HoistPlanner();
+export function createConfiguredHoistPlanBuilder(): HoistPlanBuilder {
+  const hookValidator = new HookLocationValidator();
+  const strategySelector = new HoistStrategySelector(hookValidator);
+  return new HoistPlanBuilder(hookValidator, strategySelector);
+}
+
+/**
+ * Create a fully configured HoistPlanner (backward compatibility)
+ * @deprecated Use createConfiguredHoistPlanBuilder instead
+ */
+export function createConfiguredHoistPlanner(): HoistPlanBuilder {
+  return createConfiguredHoistPlanBuilder();
+}
+
+/**
+ * Create a basic HoistPlanner (backward compatibility)
+ * @deprecated Use createConfiguredHoistPlanBuilder instead
+ */
+export function createHoistPlanner(): HoistPlanBuilder {
+  return createConfiguredHoistPlanBuilder();
 }

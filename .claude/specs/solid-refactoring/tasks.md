@@ -91,7 +91,7 @@
 
 ### Phase 1.2: Scope/Binding Helper Utilities (Days 3-4)
 
-- [ ] 5. Create scope-helpers utility module
+- [x] 5. Create scope-helpers utility module
   - Create new file `src/scope/scope-helpers.ts`
   - Implement `getScopeWithFallback()` function
   - Implement `getEnclosingComponentOrNull()` function
@@ -105,7 +105,7 @@
   - **Commit**: `feat: add scope-helpers utility module`
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 5.1 Write unit tests for scope-helpers
+- [x] 5.1 Write unit tests for scope-helpers
   - Test `getScopeWithFallback()` with direct scope and component fallback
   - Test `buildScopePath()` builds correct ancestor chain
   - Test `findCommonAncestor()` LCA computation for various scope trees

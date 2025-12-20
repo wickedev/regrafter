@@ -5,27 +5,58 @@
  * Following TDD - write tests first before implementation
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
-import { parse } from "@babel/parser";
-import traverseFn, { type NodePath } from "@babel/traverse";
-import * as t from "@babel/types";
+import { describe, it, expect } from "vitest";
 import { createScopeManager, ScopeType } from "../../scope/index.js";
-import type { ScopeManager, ScopeInfo } from "../../scope/index.js";
+import type { ScopeInfo } from "../../scope/index.js";
 import { DependencyType } from "../types.js";
-import type { InternalDependency } from "../types.js";
 import { createInternalDependency, createDependencyOrigin } from "../../types/factories.js";
 import { DependencyResolver } from "../dependency-resolver.js";
-
-const traverse = traverseFn as any as typeof traverseFn.default;
+import { createParser } from "../../parser/index.js";
 
 /**
- * Helper to parse JSX code
+ * Helper to parse JSX code and set up scope manager
  */
-function parseCode(code: string): t.File {
-  return parse(code, {
-    sourceType: "module",
-    plugins: ["jsx", "typescript"],
-  });
+function setupTest(code: string) {
+  const parser = createParser();
+  const result = parser.parse(code, "test.tsx");
+  if (!result.ok) {
+    throw new Error("Failed to parse test code");
+  }
+
+  const scopeManager = createScopeManager();
+  scopeManager.buildScopeTree(result.value.program, "test.tsx");
+
+  const resolver = new DependencyResolver(scopeManager, scopeManager);
+
+  return { scopeManager, resolver, ast: result.value };
+}
+
+/**
+ * Helper to find scope by name
+ */
+function findScope(scopeManager: any, name: string): ScopeInfo | null {
+  const scopeTree = scopeManager.getScopeTree();
+  if (!scopeTree) return null;
+
+  const findInScope = (scope: ScopeInfo): ScopeInfo | null => {
+    // Check if this scope's path is a function with the given name
+    if (scope.path && scope.path.isFunctionDeclaration?.()) {
+      const id = scope.path.node.id;
+      if (id && id.type === "Identifier" && id.name === name) {
+        return scope;
+      }
+    }
+
+    // Search children
+    for (const child of scope.children) {
+      const found = findInScope(child);
+      if (found) return found;
+    }
+
+    return null;
+  };
+
+  return findInScope(scopeTree.root);
 }
 
 describe("DependencyResolver", () => {
@@ -39,37 +70,18 @@ describe("DependencyResolver", () => {
         }
       `;
 
-      const ast = parseCode(code);
-      const scopeManager = createScopeManager();
-      scopeManager.buildScopeTree(ast.program, "test.tsx");
-      const resolver = new DependencyResolver(scopeManager, scopeManager);
+      const { scopeManager, resolver, ast } = setupTest(code);
 
-      let hookCallPath: NodePath | null = null;
-      let componentScope: ScopeInfo | null = null;
-
-      traverse(ast, {
-        CallExpression(path) {
-          if (t.isIdentifier(path.node.callee) && path.node.callee.name === "useState") {
-            hookCallPath = path as NodePath;
-          }
-        },
-        FunctionDeclaration(path) {
-          if (t.isIdentifier(path.node.id) && path.node.id.name === "Component") {
-            componentScope = scopeManager.getScopeForPath(path as NodePath);
-          }
-        },
-      });
-
-      expect(hookCallPath).not.toBeNull();
+      const componentScope = findScope(scopeManager, "Component");
       expect(componentScope).not.toBeNull();
 
       const hookDep = createInternalDependency({
         symbol: "useState",
         type: DependencyType.Hook,
         origin: createDependencyOrigin({
-          node: hookCallPath!.node,
+          node: ast,
           file: "test.tsx",
-          location: hookCallPath!.node.loc,
+          location: null,
         }),
         scope: componentScope!,
       });
@@ -95,32 +107,11 @@ describe("DependencyResolver", () => {
         }
       `;
 
-      const ast = parseCode(code);
-      const scopeManager = createScopeManager();
-      scopeManager.buildScopeTree(ast.program, "test.tsx");
-      const resolver = new DependencyResolver(scopeManager, scopeManager);
+      const { scopeManager, resolver, ast } = setupTest(code);
 
-      let variablePath: NodePath | null = null;
-      let parentScope: ScopeInfo | null = null;
-      let childScope: ScopeInfo | null = null;
+      const parentScope = findScope(scopeManager, "ParentComponent");
+      const childScope = findScope(scopeManager, "ChildComponent");
 
-      traverse(ast, {
-        Identifier(path) {
-          if (path.node.name === "message" && (path as any).scope.hasBinding("message")) {
-            variablePath = path as NodePath;
-          }
-        },
-        FunctionDeclaration(path) {
-          const scope = scopeManager.getScopeForPath(path as NodePath);
-          if (t.isIdentifier(path.node.id) && path.node.id.name === "ParentComponent") {
-            parentScope = scope;
-          } else if (t.isIdentifier(path.node.id) && path.node.id.name === "ChildComponent") {
-            childScope = scope;
-          }
-        },
-      });
-
-      expect(variablePath).not.toBeNull();
       expect(parentScope).not.toBeNull();
       expect(childScope).not.toBeNull();
 
@@ -128,9 +119,9 @@ describe("DependencyResolver", () => {
         symbol: "message",
         type: DependencyType.Variable,
         origin: createDependencyOrigin({
-          node: variablePath!.node,
+          node: ast,
           file: "test.tsx",
-          location: variablePath!.node.loc,
+          location: null,
         }),
         scope: parentScope!,
       });
@@ -142,7 +133,7 @@ describe("DependencyResolver", () => {
       expect(result.reason).toBeUndefined();
     });
 
-    it("fails when context dependencies cannot be resolved", () => {
+    it("succeeds for context dependencies", () => {
       const code = `
         import React, { useContext } from 'react';
         const ThemeContext = React.createContext();
@@ -153,49 +144,29 @@ describe("DependencyResolver", () => {
         }
       `;
 
-      const ast = parseCode(code);
-      const scopeManager = createScopeManager();
-      scopeManager.buildScopeTree(ast.program, "test.tsx");
-      const resolver = new DependencyResolver(scopeManager, scopeManager);
+      const { scopeManager, resolver, ast } = setupTest(code);
 
-      let contextCallPath: NodePath | null = null;
-      let componentScope: ScopeInfo | null = null;
-
-      traverse(ast, {
-        CallExpression(path) {
-          if (t.isIdentifier(path.node.callee) && path.node.callee.name === "useContext") {
-            contextCallPath = path as NodePath;
-          }
-        },
-        FunctionDeclaration(path) {
-          if (t.isIdentifier(path.node.id) && path.node.id.name === "Component") {
-            componentScope = scopeManager.getScopeForPath(path as NodePath);
-          }
-        },
-      });
-
-      expect(contextCallPath).not.toBeNull();
+      const componentScope = findScope(scopeManager, "Component");
       expect(componentScope).not.toBeNull();
 
       const contextDep = createInternalDependency({
         symbol: "theme",
         type: DependencyType.Context,
         origin: createDependencyOrigin({
-          node: contextCallPath!.node,
+          node: ast,
           file: "test.tsx",
-          location: contextCallPath!.node.loc,
+          location: null,
         }),
         scope: componentScope!,
       });
 
-      // Context dependencies currently not validated (always pass)
-      // In future, could check provider hierarchy
+      // Context dependencies currently allowed (future: check provider hierarchy)
       const result = resolver.checkResolution([contextDep], null);
 
       expect(result.can).toBe(true);
     });
 
-    it("handles multiple dependencies with mixed results", () => {
+    it("fails when hook is in multiple dependencies list moving to module scope", () => {
       const code = `
         import { useState } from 'react';
         const MODULE_VAR = "global";
@@ -206,37 +177,18 @@ describe("DependencyResolver", () => {
         }
       `;
 
-      const ast = parseCode(code);
-      const scopeManager = createScopeManager();
-      scopeManager.buildScopeTree(ast.program, "test.tsx");
-      const resolver = new DependencyResolver(scopeManager, scopeManager);
+      const { scopeManager, resolver, ast } = setupTest(code);
 
-      let hookCallPath: NodePath | null = null;
-      let componentScope: ScopeInfo | null = null;
-
-      traverse(ast, {
-        CallExpression(path) {
-          if (t.isIdentifier(path.node.callee) && path.node.callee.name === "useState") {
-            hookCallPath = path as NodePath;
-          }
-        },
-        FunctionDeclaration(path) {
-          if (t.isIdentifier(path.node.id) && path.node.id.name === "Component") {
-            componentScope = scopeManager.getScopeForPath(path as NodePath);
-          }
-        },
-      });
-
-      expect(hookCallPath).not.toBeNull();
+      const componentScope = findScope(scopeManager, "Component");
       expect(componentScope).not.toBeNull();
 
       const hookDep = createInternalDependency({
         symbol: "useState",
         type: DependencyType.Hook,
         origin: createDependencyOrigin({
-          node: hookCallPath!.node,
+          node: ast,
           file: "test.tsx",
-          location: hookCallPath!.node.loc,
+          location: null,
         }),
         scope: componentScope!,
       });
@@ -249,11 +201,7 @@ describe("DependencyResolver", () => {
     });
 
     it("returns true for empty dependency list", () => {
-      const code = `function Component() { return <div>Hello</div>; }`;
-      const ast = parseCode(code);
-      const scopeManager = createScopeManager();
-      scopeManager.buildScopeTree(ast.program, "test.tsx");
-      const resolver = new DependencyResolver(scopeManager, scopeManager);
+      const { resolver } = setupTest(`function Component() { return <div>Hello</div>; }`);
 
       const result = resolver.checkResolution([], null);
 
@@ -274,32 +222,11 @@ describe("DependencyResolver", () => {
         }
       `;
 
-      const ast = parseCode(code);
-      const scopeManager = createScopeManager();
-      scopeManager.buildScopeTree(ast.program, "test.tsx");
-      const resolver = new DependencyResolver(scopeManager, scopeManager);
+      const { scopeManager, resolver, ast } = setupTest(code);
 
-      let variablePath: NodePath | null = null;
-      let scopeA: ScopeInfo | null = null;
-      let scopeB: ScopeInfo | null = null;
+      const scopeA = findScope(scopeManager, "ComponentA");
+      const scopeB = findScope(scopeManager, "ComponentB");
 
-      traverse(ast, {
-        Identifier(path) {
-          if (path.node.name === "secretData" && (path as any).scope.hasBinding("secretData")) {
-            variablePath = path as NodePath;
-          }
-        },
-        FunctionDeclaration(path) {
-          const scope = scopeManager.getScopeForPath(path as NodePath);
-          if (t.isIdentifier(path.node.id) && path.node.id.name === "ComponentA") {
-            scopeA = scope;
-          } else if (t.isIdentifier(path.node.id) && path.node.id.name === "ComponentB") {
-            scopeB = scope;
-          }
-        },
-      });
-
-      expect(variablePath).not.toBeNull();
       expect(scopeA).not.toBeNull();
       expect(scopeB).not.toBeNull();
 
@@ -307,9 +234,9 @@ describe("DependencyResolver", () => {
         symbol: "secretData",
         type: DependencyType.Variable,
         origin: createDependencyOrigin({
-          node: variablePath!.node,
+          node: ast,
           file: "test.tsx",
-          location: variablePath!.node.loc,
+          location: null,
         }),
         scope: scopeA!,
       });
@@ -331,32 +258,11 @@ describe("DependencyResolver", () => {
         }
       `;
 
-      const ast = parseCode(code);
-      const scopeManager = createScopeManager();
-      scopeManager.buildScopeTree(ast.program, "test.tsx");
-      const resolver = new DependencyResolver(scopeManager, scopeManager);
+      const { scopeManager, resolver, ast } = setupTest(code);
 
-      let variablePath: NodePath | null = null;
-      let parentScope: ScopeInfo | null = null;
-      let childScope: ScopeInfo | null = null;
+      const parentScope = findScope(scopeManager, "Parent");
+      const childScope = findScope(scopeManager, "Child");
 
-      traverse(ast, {
-        Identifier(path) {
-          if (path.node.name === "value" && (path as any).scope.hasBinding("value")) {
-            variablePath = path as NodePath;
-          }
-        },
-        FunctionDeclaration(path) {
-          const scope = scopeManager.getScopeForPath(path as NodePath);
-          if (t.isIdentifier(path.node.id) && path.node.id.name === "Parent") {
-            parentScope = scope;
-          } else if (t.isIdentifier(path.node.id) && path.node.id.name === "Child") {
-            childScope = scope;
-          }
-        },
-      });
-
-      expect(variablePath).not.toBeNull();
       expect(parentScope).not.toBeNull();
       expect(childScope).not.toBeNull();
 
@@ -364,9 +270,9 @@ describe("DependencyResolver", () => {
         symbol: "value",
         type: DependencyType.Variable,
         origin: createDependencyOrigin({
-          node: variablePath!.node,
+          node: ast,
           file: "test.tsx",
-          location: variablePath!.node.loc,
+          location: null,
         }),
         scope: parentScope!,
       });
@@ -379,30 +285,19 @@ describe("DependencyResolver", () => {
 
     it("returns false for import dependencies", () => {
       const code = `import React from 'react';`;
-      const ast = parseCode(code);
-      const scopeManager = createScopeManager();
-      scopeManager.buildScopeTree(ast.program, "test.tsx");
-      const resolver = new DependencyResolver(scopeManager, scopeManager);
 
-      let importPath: NodePath | null = null;
+      const { scopeManager, resolver, ast } = setupTest(code);
+
       const moduleScope = scopeManager.getScopeTree()?.root;
-
-      traverse(ast, {
-        ImportDefaultSpecifier(path) {
-          importPath = path.get("local") as NodePath;
-        },
-      });
-
-      expect(importPath).not.toBeNull();
       expect(moduleScope).not.toBeNull();
 
       const importDep = createInternalDependency({
         symbol: "React",
         type: DependencyType.Import,
         origin: createDependencyOrigin({
-          node: importPath!.node,
+          node: ast,
           file: "test.tsx",
-          location: importPath!.node.loc,
+          location: null,
         }),
         scope: moduleScope!,
       });
@@ -413,7 +308,7 @@ describe("DependencyResolver", () => {
       expect(result).toBe(false);
     });
 
-    it("handles null target scope gracefully", () => {
+    it("returns true when moving component-scoped variable to module scope", () => {
       const code = `
         function Component() {
           const local = "data";
@@ -421,46 +316,63 @@ describe("DependencyResolver", () => {
         }
       `;
 
-      const ast = parseCode(code);
-      const scopeManager = createScopeManager();
-      scopeManager.buildScopeTree(ast.program, "test.tsx");
-      const resolver = new DependencyResolver(scopeManager, scopeManager);
+      const { scopeManager, resolver, ast } = setupTest(code);
 
-      let variablePath: NodePath | null = null;
-      let componentScope: ScopeInfo | null = null;
-
-      traverse(ast, {
-        Identifier(path) {
-          if (path.node.name === "local" && (path as any).scope.hasBinding("local")) {
-            variablePath = path as NodePath;
-          }
-        },
-        FunctionDeclaration(path) {
-          if (t.isIdentifier(path.node.id) && path.node.id.name === "Component") {
-            componentScope = scopeManager.getScopeForPath(path as NodePath);
-          }
-        },
-      });
-
-      expect(variablePath).not.toBeNull();
+      const componentScope = findScope(scopeManager, "Component");
       expect(componentScope).not.toBeNull();
 
       const variableDep = createInternalDependency({
         symbol: "local",
         type: DependencyType.Variable,
         origin: createDependencyOrigin({
-          node: variablePath!.node,
+          node: ast,
           file: "test.tsx",
-          location: variablePath!.node.loc,
+          location: null,
         }),
         scope: componentScope!,
       });
 
-      // null target scope should be handled gracefully
+      // null target scope = module scope, component variable needs hoisting
       const result = resolver.needsHoisting(variableDep, null);
 
-      // Component-scoped variable to module scope needs hoisting
       expect(result).toBe(true);
+    });
+
+    it("returns false when target scope already has the symbol", () => {
+      const code = `
+        function Component() {
+          const value = 1;
+          function Inner() {
+            const value = 2; // shadows outer value
+            return <div>{value}</div>;
+          }
+          return <Inner />;
+        }
+      `;
+
+      const { scopeManager, resolver, ast } = setupTest(code);
+
+      const componentScope = findScope(scopeManager, "Component");
+      const innerScope = findScope(scopeManager, "Inner");
+
+      expect(componentScope).not.toBeNull();
+      expect(innerScope).not.toBeNull();
+
+      const variableDep = createInternalDependency({
+        symbol: "value",
+        type: DependencyType.Variable,
+        origin: createDependencyOrigin({
+          node: ast,
+          file: "test.tsx",
+          location: null,
+        }),
+        scope: componentScope!,
+      });
+
+      // Inner scope has its own "value", so outer value doesn't need hoisting
+      const result = resolver.needsHoisting(variableDep, innerScope);
+
+      expect(result).toBe(false);
     });
   });
 });

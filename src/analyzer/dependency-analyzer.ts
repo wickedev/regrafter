@@ -13,7 +13,11 @@ import {
 } from "../errors/error-category.js";
 import type { IDependencyAnalyzer } from "../interfaces/index.js";
 import { ok, err, tryCatch, isErr, type Result } from "../result/index.js";
-import { ScopeType } from "../scope/index.js";
+import {
+  ScopeType,
+  getScopeWithFallback,
+  getEnclosingComponentOrNull,
+} from "../scope/index.js";
 import type {
   ScopeManager,
   ScopeInfo,
@@ -634,18 +638,8 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
 
     // Collect all identifiers
     const collection = this.collectIdentifiers(elementPath);
-    let elementScope = this.scopeManager.getScopeForPath(elementPath);
-
-    // If element doesn't have its own scope (e.g., JSX elements), use enclosing component
-    if (!elementScope) {
-      const enclosingResult = this.scopeManager.findEnclosingComponent(elementPath);
-      if (!isErr(enclosingResult)) {
-        elementScope = enclosingResult.value;
-      }
-    }
-
-    const componentScopeResult = this.scopeManager.findEnclosingComponent(elementPath);
-    const componentScope = !isErr(componentScopeResult) ? componentScopeResult.value : null;
+    const elementScope = getScopeWithFallback(elementPath, this.scopeManager);
+    const componentScope = getEnclosingComponentOrNull(elementPath, this.scopeManager);
 
     // Detect different types of dependencies
     const hookDeps = this.detectHookDependencies(

@@ -5,8 +5,8 @@
  * Supports Dependency Inversion Principle (SOLID).
  */
 
-import type { NodePath, Binding } from "@babel/traverse";
-import type { ScopeInfo } from "../scope/index.js";
+import type { NodePath } from "@babel/traverse";
+import type { ScopeInfo, BindingInfo } from "../scope/index.js";
 import type { InternalDependency } from "./types.js";
 
 /**
@@ -33,12 +33,7 @@ export interface IBindingQuery {
   /**
    * Get all bindings available in a scope
    */
-  getBindingsInScope(scope: ScopeInfo): Map<string, Binding>;
-
-  /**
-   * Find binding for a name in a scope
-   */
-  getBinding(path: NodePath, name: string): Binding | null;
+  getBindingsInScope(scope: ScopeInfo): Map<string, BindingInfo>;
 }
 
 /**

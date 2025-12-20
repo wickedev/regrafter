@@ -9,7 +9,7 @@ import type * as t from '@babel/types';
 
 import { type DependencyErrorType } from '../errors/error-category.js';
 import { isErr, type Result } from '../result/index.js';
-import { ScopeType } from '../scope/index.js';
+import { ScopeType, getScopeWithFallback } from '../scope/index.js';
 import type { ScopeManager, ScopeInfo } from '../scope/index.js';
 import {
   createMoveAnalysis,
@@ -135,17 +135,7 @@ export class MoveAnalysisBuilder {
 
     // Get scopes for source and target
     const sourceScope = this.scopeManager.getScopeForPath(sourcePath);
-    let targetScope = this.scopeManager.getScopeForPath(targetPath);
-
-    // If target element doesn't have its own scope (e.g., simple JSX element),
-    // use the enclosing component scope to properly determine if we're moving
-    // within a component or to module level
-    if (!targetScope) {
-      const enclosingComponentResult = this.scopeManager.findEnclosingComponent(targetPath);
-      if (!isErr(enclosingComponentResult) && enclosingComponentResult.value) {
-        targetScope = enclosingComponentResult.value;
-      }
-    }
+    const targetScope = getScopeWithFallback(targetPath, this.scopeManager);
 
     // Build and return the analysis
     return this.buildMoveAnalysis(sourcePath, targetPath, sourceScope, targetScope);
