@@ -228,14 +228,9 @@ export class MoveTransformationPipeline {
     }
     const dependencyAnalysis = depAnalysisResult.value;
 
-    // Check if sourceScope is an ancestor of targetScope (moving down the tree)
-    // If so, dependencies are already accessible and hoisting is not needed
-    // If moving up the tree (target is ancestor of source), we NEED hoisting
-    const shouldSkipHoisting =
-      sourceScope !== null &&
-      targetScope !== null &&
-      dependencyAnalysis.needsHoisting.length > 0 &&
-      this.isSourceAncestorOfTarget(sourceScope, targetScope);
+    // Never skip hoisting if there are dependencies that need hoisting
+    // The dependency classifier has already determined what needs hoisting
+    const shouldSkipHoisting = false;
 
     return ok({
       ...context,
@@ -378,6 +373,8 @@ export class MoveTransformationPipeline {
   // Helper Methods
   // =============================================================================
 
+  // Helper method for future validation logic
+  // @ts-expect-error - Unused currently but kept for future validation logic
   private isSourceAncestorOfTarget(sourceScope: ScopeInfo, targetScope: ScopeInfo): boolean {
     let current: ScopeInfo | null = targetScope;
     let depth = 0;

@@ -22,7 +22,6 @@ import {
 import type { IDependencyAnalyzer } from "../interfaces/index.js";
 import { ok, err, tryCatch, isErr, type Result } from "../result/index.js";
 import {
-  ScopeType,
   getScopeWithFallback,
   getEnclosingComponentOrNull,
 } from "../scope/index.js";
@@ -65,10 +64,8 @@ import {
   createDependencyConverter,
   type IDependencyConverter,
 } from "./dependency-converter.js";
-import {
-  createDependencyResolver,
-  type IDependencyResolver,
-} from "./dependency-resolver.js";
+import { createDependencyResolver } from "./dependency-resolver.js";
+import type { IDependencyResolver } from "./interfaces.js";
 import { createDynamicCodeDetector } from "./dynamic-code-detector.js";
 import {
   createRelatedDependencyDetector,
