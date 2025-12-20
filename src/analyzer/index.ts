@@ -49,9 +49,12 @@ export {
 
 // Dependency Analysis
 export {
+  DependencyOrchestrator,
+  createDependencyOrchestrator,
+  // Legacy exports for backward compatibility
   DependencyAnalyzer,
   createDependencyAnalyzer,
-} from './dependency-analyzer.js';
+} from './dependency-orchestrator.js';
 
 // MoveAnalysis Builder
 export {

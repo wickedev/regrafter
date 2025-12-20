@@ -88,7 +88,9 @@ export class DependencyClassifier implements IDependencyClassifier {
     elementScope: ScopeInfo | null,
     targetScope: ScopeInfo | null
   ): boolean {
-    if (!elementScope || !targetScope) return false;
+    if (!elementScope || !targetScope) {
+      return false;
+    }
 
     // Imports don't need hoisting, they need re-importing
     if (dep.type === DependencyType.Import) return false;

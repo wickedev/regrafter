@@ -1,7 +1,15 @@
 /**
- * Dependency Analyzer
+ * Dependency Orchestrator
  *
- * Analyzes dependencies of JSX elements for safe move operations.
+ * Orchestrates dependency analysis for JSX elements by coordinating
+ * specialized analyzers, converters, and resolvers.
+ *
+ * Responsibilities:
+ * - Coordinate dependency detection across all analyzers
+ * - Delegate to specialized components (converters, resolvers, detectors)
+ * - Aggregate results into final DependencyAnalysis
+ *
+ * Single Responsibility: Orchestration and coordination
  */
 
 import type { NodePath, Binding } from "@babel/traverse";
@@ -57,6 +65,10 @@ import {
   createDependencyConverter,
   type IDependencyConverter,
 } from "./dependency-converter.js";
+import {
+  createDependencyResolver,
+  type IDependencyResolver,
+} from "./dependency-resolver.js";
 import { createDynamicCodeDetector } from "./dynamic-code-detector.js";
 import {
   createRelatedDependencyDetector,
@@ -99,9 +111,9 @@ function getDependencyName(dep: SpecificDependency): string {
 }
 
 /**
- * DependencyAnalyzer class for analyzing JSX element dependencies
+ * DependencyOrchestrator class for orchestrating JSX element dependency analysis
  */
-export class DependencyAnalyzer implements IDependencyAnalyzer {
+export class DependencyOrchestrator implements IDependencyAnalyzer {
   private readonly scopeManager: ScopeManager;
   private readonly options: Required<AnalyzerOptions>;
   private readonly identifierCollector: IIdentifierCollector;
@@ -111,6 +123,7 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
   private readonly importAnalyzer: IImportDependencyAnalyzer;
   private readonly propAnalyzer: IPropDependencyAnalyzer;
   private readonly converter: IDependencyConverter;
+  private readonly resolver: IDependencyResolver;
   private readonly relatedDependencyDetector: IRelatedDependencyDetector;
   private currentFile = "";
 
@@ -130,6 +143,7 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
       (binding) => this.isParameterBinding(binding)
     );
     this.converter = createDependencyConverter(scopeManager);
+    this.resolver = createDependencyResolver(scopeManager, scopeManager);
     this.relatedDependencyDetector = createRelatedDependencyDetector("");
   }
 
@@ -517,7 +531,7 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
       this.classifier.classifyDependencies(allDeps, elementScope, targetScope);
 
     // Check if all dependencies can be resolved
-    const canResolve = this.canResolveDependencies(allDeps, targetScope);
+    const canResolve = this.resolver.checkResolution(allDeps, targetScope);
 
     // If dependencies cannot be resolved, return error
     if (!canResolve.can) {
@@ -739,44 +753,31 @@ export class DependencyAnalyzer implements IDependencyAnalyzer {
 
     return transitives;
   }
-
-  /**
-   * Check if all dependencies can be resolved
-   */
-  private canResolveDependencies(
-    deps: InternalDependency[],
-    targetScope: ScopeInfo | null
-  ): { can: boolean; reason?: string } {
-    for (const dep of deps) {
-      // Context dependencies may not be resolvable
-      if (dep.type === DependencyType.Context) {
-        // Check if context is available at target
-        // For now, assume context needs special handling
-        // In a real implementation, we'd check the provider hierarchy
-      }
-
-      // Hook dependencies can't be moved outside of components
-      if (dep.type === DependencyType.Hook) {
-        // null targetScope or Module scope both indicate moving to module level
-        if (!targetScope || targetScope.type === ScopeType.Module) {
-          return {
-            can: false,
-            reason: `Hook dependency "${dep.symbol}" cannot be moved to module scope`,
-          };
-        }
-      }
-    }
-
-    return { can: true };
-  }
 }
 
 /**
- * Create a new DependencyAnalyzer instance
+ * Create a new DependencyOrchestrator instance
+ */
+export function createDependencyOrchestrator(
+  scopeManager: ScopeManager,
+  options?: AnalyzerOptions
+): DependencyOrchestrator {
+  return new DependencyOrchestrator(scopeManager, options);
+}
+
+/**
+ * Legacy alias for backward compatibility
+ * @deprecated Use createDependencyOrchestrator instead
  */
 export function createDependencyAnalyzer(
   scopeManager: ScopeManager,
   options?: AnalyzerOptions
-): DependencyAnalyzer {
-  return new DependencyAnalyzer(scopeManager, options);
+): DependencyOrchestrator {
+  return createDependencyOrchestrator(scopeManager, options);
 }
+
+/**
+ * Legacy alias for backward compatibility
+ * @deprecated Use DependencyOrchestrator instead
+ */
+export const DependencyAnalyzer = DependencyOrchestrator;

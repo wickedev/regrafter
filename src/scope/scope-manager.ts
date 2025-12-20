@@ -14,7 +14,14 @@ import type { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 
 import { type ValidationErrorType, type InternalErrorType } from '../errors/index.js';
-import type { IScopeManager } from '../interfaces/index.js';
+import type {
+  IScopeManager,
+  IScopeTreeBuilder,
+  IScopeQuery,
+  IScopeAccessibility,
+  IBindingQuery,
+  IComponentInfo,
+} from '../interfaces/index.js';
 import { type Result } from '../result/index.js';
 import type { HookUsage } from '../types/internal.js';
 import { extractFunctionName } from '../utils/index.js';
@@ -53,9 +60,22 @@ function isComponentScope(scope: ScopeInfo): scope is ComponentScope {
  * - Delegates queries to ScopeQuery
  * - Delegates LCA computation to LCAComputer
  *
- * Implements the IScopeManager interface for external consumers.
+ * Implements the IScopeManager interface for backward compatibility and
+ * all five focused interfaces for Interface Segregation Principle:
+ * - IScopeTreeBuilder: Tree construction operations
+ * - IScopeQuery: Scope lookup operations
+ * - IScopeAccessibility: Accessibility checking operations
+ * - IBindingQuery: Binding query operations
+ * - IComponentInfo: Component information operations
  */
-export class ScopeManager implements IScopeManager {
+export class ScopeManager
+  implements
+    IScopeManager,
+    IScopeTreeBuilder,
+    IScopeQuery,
+    IScopeAccessibility,
+    IBindingQuery,
+    IComponentInfo {
   private scopeTree: ScopeTree | null = null;
   private readonly components: Map<string, ComponentInfo> = new Map();
   private readonly treeBuilder: ScopeTreeBuilder;
@@ -71,6 +91,10 @@ export class ScopeManager implements IScopeManager {
     this.scopeQuery = createScopeQuery();
     this.lcaComputer = createLCAComputer();
   }
+
+  // ===================================================================
+  // IScopeTreeBuilder interface implementation
+  // ===================================================================
 
   /**
    * Analyzes the AST and builds a hierarchical scope tree
@@ -142,7 +166,6 @@ export class ScopeManager implements IScopeManager {
     return null;
   }
 
-
   /**
    * Check if a function returns JSX
    */
@@ -171,6 +194,10 @@ export class ScopeManager implements IScopeManager {
 
     return hasJSXReturn;
   }
+
+  // ===================================================================
+  // IScopeAccessibility interface implementation
+  // ===================================================================
 
   /**
    * A scope is accessible if:
@@ -256,6 +283,10 @@ export class ScopeManager implements IScopeManager {
     return this.lcaComputer.computeLCA(scopeA, scopeB);
   }
 
+  // ===================================================================
+  // IScopeQuery interface implementation
+  // ===================================================================
+
   /**
    * Get the scope containing a specific AST node
    */
@@ -276,6 +307,10 @@ export class ScopeManager implements IScopeManager {
   findEnclosingComponent(path: NodePath): Result<ComponentScope | null, InternalErrorType> {
     return this.scopeQuery.findEnclosingComponent(path, this.scopeTree);
   }
+
+  // ===================================================================
+  // IBindingQuery interface implementation
+  // ===================================================================
 
   /**
    * Get all bindings in a scope
@@ -300,6 +335,10 @@ export class ScopeManager implements IScopeManager {
       (sourceScope, targetScope) => this.checkAccessibility(sourceScope, targetScope)
     );
   }
+
+  // ===================================================================
+  // IComponentInfo interface implementation
+  // ===================================================================
 
   /**
    * Get all components in the scope tree

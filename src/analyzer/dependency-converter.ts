@@ -13,9 +13,10 @@
 
 import type { NodePath } from "@babel/traverse";
 
+import type { IScopeQuery, IScopeTreeBuilder } from "../interfaces/index.js";
 import { isErr } from "../result/index.js";
 import { ScopeType } from "../scope/index.js";
-import type { ScopeInfo, ScopeManager } from "../scope/index.js";
+import type { ScopeInfo } from "../scope/index.js";
 import {
   createDependencyOrigin,
   createInternalDependency,
@@ -69,7 +70,10 @@ export interface IDependencyConverter {
 export class DependencyConverter implements IDependencyConverter {
   private currentFile = "";
 
-  constructor(private readonly scopeManager: ScopeManager) {}
+  constructor(
+    private readonly scopeQuery: IScopeQuery,
+    private readonly scopeTreeBuilder: IScopeTreeBuilder
+  ) {}
 
   /**
    * Set the current file being analyzed
@@ -161,7 +165,7 @@ export class DependencyConverter implements IDependencyConverter {
 
       if (dep.type === DependencyType.Variable) {
         // For variables, find the component they're declared in
-        const enclosingResult = this.scopeManager.findEnclosingComponent(dep.path);
+        const enclosingResult = this.scopeQuery.findEnclosingComponent(dep.path);
         if (!isErr(enclosingResult)) {
           scope = enclosingResult.value;
         }
@@ -169,9 +173,9 @@ export class DependencyConverter implements IDependencyConverter {
 
       // Fallback to original logic for other types or if no component found
       scope ??=
-        this.scopeManager.getScopeForPath(dep.path) ??
+        this.scopeQuery.getScopeForPath(dep.path) ??
         elementScope ??
-        this.scopeManager.getScopeTree()?.root ??
+        this.scopeTreeBuilder.getScopeTree()?.root ??
         null;
 
       const name =
@@ -221,7 +225,7 @@ export class DependencyConverter implements IDependencyConverter {
  * Create a new DependencyConverter instance
  */
 export function createDependencyConverter(
-  scopeManager: ScopeManager
+  scopeManager: IScopeQuery & IScopeTreeBuilder
 ): DependencyConverter {
-  return new DependencyConverter(scopeManager);
+  return new DependencyConverter(scopeManager, scopeManager);
 }

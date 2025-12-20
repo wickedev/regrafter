@@ -45,9 +45,9 @@ describe("DependencyConverter", () => {
 
     const ast = parseCode(code);
     scopeManager = createScopeManager();
-    scopeManager.buildScopeTree(ast.program, "test.tsx");
+    scopeManager.buildScopeTree(ast);
 
-    converter = new DependencyConverter(scopeManager);
+    converter = new DependencyConverter(scopeManager, scopeManager);
     converter.setCurrentFile("test.tsx");
   });
 

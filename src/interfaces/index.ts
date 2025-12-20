@@ -13,8 +13,17 @@
 // Export dependency analysis interfaces
 export type { IDependencyAnalyzer } from './IDependencyAnalyzer.js';
 
-// Export scope management interfaces
+// Export scope management interfaces (legacy, deprecated)
 export type { IScopeManager } from './IScopeManager.js';
+
+// Export focused scope interfaces (ISP-compliant)
+export type {
+  IScopeTreeBuilder,
+  IScopeQuery,
+  IScopeAccessibility,
+  IBindingQuery,
+  IComponentInfo,
+} from './scope-interfaces.js';
 
 // Export code generation interfaces
 export type { ICodeGenerator } from './ICodeGenerator.js';

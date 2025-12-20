@@ -171,7 +171,7 @@ export class HoistPlanBuilder {
     // Select strategy using strategy selector
     const selection = this.strategySelector.selectStrategy(dep, {
       sourceScope: dep.scope,
-      targetScope: context.targetScope,
+      targetScope: targetScope,
       isCrossFile: context.isCrossFile,
       needsBackwardReference,
     });

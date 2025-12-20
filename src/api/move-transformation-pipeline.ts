@@ -16,7 +16,7 @@
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
 
-import type { DependencyAnalyzer } from '../analyzer/dependency-analyzer.js';
+import type { DependencyOrchestrator } from '../analyzer/dependency-orchestrator.js';
 import type { RegraffError } from '../errors/index.js';
 import { createSelectorError, createValidationError } from '../errors/index.js';
 import type { CodeGenerator } from '../generator/code-generator.js';
@@ -101,8 +101,8 @@ export class MoveTransformationPipeline {
   constructor(
     private readonly resolver: SelectorResolver,
     private readonly scopeManager: ScopeManager,
-    private readonly analyzer: DependencyAnalyzer,
-    private readonly planner: HoistPlanner,
+    private readonly analyzer: DependencyOrchestrator,
+    private readonly planner: HoistPlanBuilder,
     private readonly executor: HoistExecutor,
     private readonly transformer: JSXTransformer,
     private readonly generator: CodeGenerator
@@ -228,13 +228,14 @@ export class MoveTransformationPipeline {
     }
     const dependencyAnalysis = depAnalysisResult.value;
 
-    // Check if targetScope is an ancestor of sourceScope
+    // Check if sourceScope is an ancestor of targetScope (moving down the tree)
     // If so, dependencies are already accessible and hoisting is not needed
+    // If moving up the tree (target is ancestor of source), we NEED hoisting
     const shouldSkipHoisting =
       sourceScope !== null &&
       targetScope !== null &&
       dependencyAnalysis.needsHoisting.length > 0 &&
-      this.isTargetAncestorOfSource(sourceScope, targetScope);
+      this.isSourceAncestorOfTarget(sourceScope, targetScope);
 
     return ok({
       ...context,
@@ -377,16 +378,13 @@ export class MoveTransformationPipeline {
   // Helper Methods
   // =============================================================================
 
-  /**
-   * Check if target scope is an ancestor of source scope
-   */
-  private isTargetAncestorOfSource(sourceScope: ScopeInfo, targetScope: ScopeInfo): boolean {
-    let current: ScopeInfo | null = sourceScope;
+  private isSourceAncestorOfTarget(sourceScope: ScopeInfo, targetScope: ScopeInfo): boolean {
+    let current: ScopeInfo | null = targetScope;
     let depth = 0;
     const MAX_DEPTH = 100; // Prevent infinite loops
 
     while (current !== null && depth < MAX_DEPTH) {
-      if (current.id === targetScope.id) {
+      if (current.id === sourceScope.id) {
         return true;
       }
       current = current.parent;
@@ -546,8 +544,8 @@ export class MoveTransformationPipeline {
 export function createMoveTransformationPipeline(
   resolver: SelectorResolver,
   scopeManager: ScopeManager,
-  analyzer: DependencyAnalyzer,
-  planner: HoistPlanner,
+  analyzer: DependencyOrchestrator,
+  planner: HoistPlanBuilder,
   executor: HoistExecutor,
   transformer: JSXTransformer,
   generator: CodeGenerator

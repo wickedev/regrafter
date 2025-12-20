@@ -123,11 +123,14 @@ function moveWithHoistingInternal(
   mode: Move,
   options?: { insertIndex?: number; preserveComments?: boolean }
 ): Result<Code[], RegraffError> {
+  // Create shared scope manager
+  const scopeManager = createScopeManager();
+
   // Create pipeline with all dependencies
   const pipeline = createMoveTransformationPipeline(
     createSelectorResolver(),
-    createScopeManager(),
-    new DependencyAnalyzer(createScopeManager()),
+    scopeManager,
+    new DependencyAnalyzer(scopeManager), // Use same scope manager!
     createConfiguredHoistPlanner(),
     createHoistExecutor(),
     createJSXTransformer(),

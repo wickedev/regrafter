@@ -27,7 +27,7 @@ import {
   ResolutionStrategy,
 } from '../types/public.js';
 
-import { DependencyAnalyzer } from './dependency-analyzer.js';
+import { DependencyOrchestrator } from './dependency-orchestrator.js';
 import type { AnalyzerOptions } from './types.js';
 
 /**
@@ -35,11 +35,11 @@ import type { AnalyzerOptions } from './types.js';
  */
 export class MoveAnalysisBuilder {
   private readonly scopeManager: ScopeManager;
-  private readonly analyzer: DependencyAnalyzer;
+  private readonly analyzer: DependencyOrchestrator;
 
   constructor(scopeManager: ScopeManager, options?: AnalyzerOptions) {
     this.scopeManager = scopeManager;
-    this.analyzer = new DependencyAnalyzer(scopeManager, options);
+    this.analyzer = new DependencyOrchestrator(scopeManager, options);
   }
 
   /**
@@ -154,9 +154,9 @@ export class MoveAnalysisBuilder {
   }
 
   /**
-   * Get the underlying DependencyAnalyzer
+   * Get the underlying DependencyOrchestrator
    */
-  getDependencyAnalyzer(): DependencyAnalyzer {
+  getDependencyOrchestrator(): DependencyOrchestrator {
     return this.analyzer;
   }
 

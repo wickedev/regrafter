@@ -37,7 +37,7 @@ import {
 import { createParser } from "../../parser/index.js";
 import { createScopeManager, type ComponentScope } from "../../scope/index.js";
 import { createSelectorResolver } from "../../selector/index.js";
-import { DependencyAnalyzer } from "../dependency-analyzer.js";
+import { DependencyOrchestrator } from "../dependency-orchestrator.js";
 
 // =============================================================================
 // Test Cases Overview
@@ -1107,7 +1107,7 @@ function Child() {
     const targetScope = scopeManager.getScopeForPath(parentResult.value.path);
 
     // Analyze dependencies of the <span> element
-    const depAnalyzer = new DependencyAnalyzer(scopeManager);
+    const depAnalyzer = new DependencyOrchestrator(scopeManager);
     depAnalyzer.setCurrentFile("test.tsx");
     const analysisResult = depAnalyzer.analyzeElement(
       spanResult.value.path,
