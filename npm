@@ -1,1 +1,0 @@
-=== ROUND 1: Phase 1 - Issue Collection === echo  ROUND=1 echo Collecting TypeScript errors... npm run typecheck
