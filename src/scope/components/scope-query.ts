@@ -52,7 +52,7 @@ export class ScopeQuery {
     const MAX_DEPTH = 1000;
     let depth = 0;
 
-    while (current !== null && depth < MAX_DEPTH) {
+    while (current?.node && depth < MAX_DEPTH) {
       depth++;
       const scope = this.getScopeForNode(current.node, scopeTree);
       if (scope !== null && isComponentScope(scope)) {

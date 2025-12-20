@@ -349,7 +349,7 @@ describe("HoistStrategySelector", () => {
       expect(result).toBe(null);
     });
 
-    it("should compute LCA for variable dependencies", () => {
+    it("should hoist variable dependencies to target scope", () => {
       const moduleScope = createMockScope(ScopeType.Module);
       const component1 = createComponentScope("c1", "C1", moduleScope);
       const component2 = createComponentScope("c2", "C2", moduleScope);
@@ -361,8 +361,8 @@ describe("HoistStrategySelector", () => {
 
       const result = selector.determineTargetScope(dep, component2, false);
 
-      // LCA should be moduleScope
-      expect(result).toBe(moduleScope);
+      // Variables should follow the moved element to the target scope
+      expect(result).toBe(component2);
     });
   });
 

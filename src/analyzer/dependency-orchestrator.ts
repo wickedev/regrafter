@@ -18,7 +18,8 @@ import * as t from "@babel/types";
 import { DependencyErrorBuilder } from "../errors/dependency-error-builder.js";
 import type { DependencyErrorType } from "../errors/error-category.js";
 import type { IDependencyAnalyzer } from "../interfaces/index.js";
-import { ok, err, tryCatch, type Result, mapErr } from "../result/index.js";
+import { ok, err, tryCatch, mapErr } from "../result/index.js";
+import type { Result } from "../result/index.js";
 import {
   getScopeWithFallback,
   getEnclosingComponentOrNull,
@@ -423,7 +424,7 @@ export class DependencyOrchestrator implements IDependencyAnalyzer {
           .message(description)
           .reason(description)
           .inFile(this.currentFile)
-          .at(blocker?.location ?? null)
+          .at(blocker?.location)
           .recoverable(false)
           .build()
       );

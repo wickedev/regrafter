@@ -11,10 +11,11 @@
 import type * as t from '@babel/types';
 
 import type { RegraffError } from '../errors/error-category.js';
-import { createCodeGenerator } from '../generator/index.js';
 import type { CodeGenerator } from '../generator/code-generator.js';
+import { createCodeGenerator } from '../generator/index.js';
 import type { GeneratorOptions } from '../generator/types.js';
-import { ok, err, type Result } from '../result/index.js';
+import type { Result } from '../result/index.js';
+import { ok, err } from '../result/index.js';
 
 import { createExtractError, ExtractErrorCode } from './errors.js';
 import type { ICodeFormatter } from './interfaces/i-code-formatter.js';

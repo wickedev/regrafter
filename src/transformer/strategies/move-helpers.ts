@@ -9,12 +9,15 @@ import type { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
 
 import {
-  type ValidationErrorType,
-  type TransformErrorType,
   createTransformError,
   createValidationError,
 } from "../../errors/index.js";
-import { ok, err, type Result } from "../../result/index.js";
+import type {
+  ValidationErrorType,
+  TransformErrorType,
+} from "../../errors/index.js";
+import { ok, err } from "../../result/index.js";
+import type { Result } from "../../result/index.js";
 
 /**
  * Type alias for JSX child elements
@@ -214,7 +217,7 @@ export function removeSource(path: NodePath): void {
 /**
  * Get siblings of a node
  */
-export function getSiblings(path: NodePath): Result<t.Node[], TransformErrorType> {
+export function getSiblings(path: NodePath): Result<t.Node[], TransformErrorType | ValidationErrorType> {
   let currentPath = path;
   let shouldContinue = true;
   const MAX_DEPTH = 100;
@@ -360,7 +363,7 @@ export function setSiblings(path: NodePath, siblings: t.Node[]): void {
  */
 export function normalizePathForMove(
   path: NodePath
-): Result<NodePath, TransformErrorType> {
+): Result<NodePath, TransformErrorType | ValidationErrorType> {
   let currentPath = path;
   let shouldContinue = true;
   const MAX_DEPTH = 100;
@@ -421,7 +424,7 @@ export function normalizePathForMove(
  */
 export function getIndexInParent(
   path: NodePath
-): Result<number, ValidationErrorType> {
+): Result<number, ValidationErrorType | TransformErrorType> {
   const containerResult = findContainerPath(path);
   if (containerResult.ok === false) {
     return containerResult;
@@ -454,7 +457,7 @@ export function getIndexInParent(
  */
 function findContainerPath(
   path: NodePath
-): Result<{ path: NodePath; node: t.Node }, ValidationErrorType> {
+): Result<{ path: NodePath; node: t.Node }, ValidationErrorType | TransformErrorType> {
   let currentPath = path;
   let nodeToFind = currentPath.node;
   let shouldContinue = true;

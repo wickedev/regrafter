@@ -164,7 +164,7 @@ describe('ErrorBuilder', () => {
           .constraint('constraint')
           .details('details')
           .build();
-      }).toThrow('ErrorBuilder: code and message are required');
+      }).toThrow('ErrorBuilder: code is required');
     });
 
     it('should throw error when message is missing', () => {
@@ -175,7 +175,7 @@ describe('ErrorBuilder', () => {
           .constraint('constraint')
           .details('details')
           .build();
-      }).toThrow('ErrorBuilder: code and message are required');
+      }).toThrow('ErrorBuilder: message is required');
     });
 
     it('should allow constraint and details to be optional', () => {

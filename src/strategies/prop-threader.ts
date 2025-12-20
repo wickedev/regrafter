@@ -7,8 +7,10 @@
 
 import * as t from '@babel/types';
 
-import { type InternalErrorType, createInternalError } from '../errors/index.js';
-import { ok, err, isErr, type Result } from '../result/index.js';
+import { createInternalError } from '../errors/index.js';
+import type { InternalErrorType, ValidationErrorType } from '../errors/index.js';
+import { ok, err, isErr } from '../result/index.js';
+import type { Result } from '../result/index.js';
 import {
   createPropThreadOperation,
 } from '../types/factories.js';
@@ -330,7 +332,7 @@ export class PropThreader implements IPropThreader {
   /**
    * Get ancestor chain for a component (from component up to root)
    */
-  private getAncestorChain(component: ComponentScope): Result<ComponentScope[], InternalErrorType> {
+  private getAncestorChain(component: ComponentScope): Result<ComponentScope[], InternalErrorType | ValidationErrorType> {
     const chain: ComponentScope[] = [];
     let current: ComponentScope | null = component;
     const MAX_DEPTH = 1000;
@@ -434,7 +436,7 @@ export function createPropThreader(): PropThreader {
 export function hasCommonAncestor(
   component1: ComponentScope,
   component2: ComponentScope
-): Result<boolean, InternalErrorType> {
+): Result<boolean, InternalErrorType | ValidationErrorType> {
   const ancestors1 = new Set<string>();
   let current: ComponentScope | null = component1;
   const MAX_DEPTH = 1000;
@@ -483,7 +485,7 @@ export function hasCommonAncestor(
 export function findLowestCommonAncestor(
   component1: ComponentScope,
   component2: ComponentScope
-): Result<ComponentScope | null, InternalErrorType> {
+): Result<ComponentScope | null, InternalErrorType | ValidationErrorType> {
   const ancestors1 = new Map<string, ComponentScope>();
   let current: ComponentScope | null = component1;
   const MAX_DEPTH = 1000;

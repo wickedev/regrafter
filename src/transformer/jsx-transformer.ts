@@ -13,10 +13,10 @@ import type { NodePath } from "@babel/traverse";
 import type * as t from "@babel/types";
 
 import { error } from "../errors/error-builder.js";
-import {
-  createTransformError,
-  type ValidationErrorType,
-  type TransformErrorType,
+import { createTransformError } from "../errors/index.js";
+import type {
+  ValidationErrorType,
+  TransformErrorType,
 } from "../errors/index.js";
 import { ok, err, type Result } from "../result/index.js";
 import { Move } from "../types/public.js";
@@ -211,14 +211,14 @@ export class JSXTransformer {
   /**
    * Get siblings of a node
    */
-  getSiblings(path: NodePath): Result<t.Node[], TransformErrorType> {
+  getSiblings(path: NodePath): Result<t.Node[], TransformErrorType | ValidationErrorType> {
     return helpers.getSiblings(path);
   }
 
   /**
    * Get the index of a node in its parent's children
    */
-  getIndexInParent(path: NodePath): Result<number, ValidationErrorType> {
+  getIndexInParent(path: NodePath): Result<number, ValidationErrorType | TransformErrorType> {
     return helpers.getIndexInParent(path);
   }
 

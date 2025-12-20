@@ -147,10 +147,10 @@ describe('transformElement - Result return type', () => {
       Move.Before
     );
 
-    // Verify it returns Err with TransformError
+    // Verify it returns Err with ValidationError (no parent is a validation issue)
     expect(isErr(result)).toBe(true);
     if (isErr(result)) {
-      expect(result.error._tag).toBe('TransformError');
+      expect(result.error._tag).toBe('ValidationError');
       expect(result.error.message).toBeTruthy();
     }
   });

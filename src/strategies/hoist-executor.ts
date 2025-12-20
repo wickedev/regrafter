@@ -9,8 +9,10 @@ import type { NodePath } from '@babel/traverse';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-import { type InternalErrorType, createInternalError } from '../errors/index.js';
-import { ok, err, isErr, type Result } from '../result/index.js';
+import { createInternalError } from '../errors/index.js';
+import type { InternalErrorType, ValidationErrorType } from '../errors/index.js';
+import { ok, err, isErr } from '../result/index.js';
+import type { Result } from '../result/index.js';
 import type {
   InternalDependency,
   HoistOperation,
@@ -49,7 +51,7 @@ export class HoistExecutor {
   /**
    * Execute a complete hoisting plan
    */
-  execute(plan: HoistPlan, context: HoistExecutionContext): Result<void, InternalErrorType> {
+  execute(plan: HoistPlan, context: HoistExecutionContext): Result<void, InternalErrorType | ValidationErrorType> {
     if (!plan.valid) {
       return err(
         createInternalError({
@@ -89,7 +91,7 @@ export class HoistExecutor {
   private executeHoistOperation(
     operation: HoistOperation,
     context: HoistExecutionContext
-  ): Result<void, InternalErrorType> {
+  ): Result<void, InternalErrorType | ValidationErrorType> {
     switch (operation.strategy) {
       case HoistStrategy.Hoist:
         this.executeHoisting(operation, context);

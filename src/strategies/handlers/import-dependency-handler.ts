@@ -5,14 +5,16 @@
  * Manages cross-file import statements.
  */
 
+import type { InternalErrorType } from '../../errors/index.js';
 import { ok } from '../../result/index.js';
 import type { Result } from '../../result/index.js';
-import type { InternalErrorType } from '../../errors/index.js';
+import { createHoistOperation, generateId } from '../../types/factories.js';
+import { HoistStrategy } from '../../types/internal.js';
 import type { InternalDependency, HoistOperation, ImportOperation } from '../../types/internal.js';
 import { DependencyType } from '../../types/public.js';
-import { createHoistOperation, generateId } from '../../types/factories.js';
-import type { HoistContext, HoistPlanItem } from '../types.js';
 import type { HoistExecutionContext } from '../hoist-executor.js';
+import type { HoistContext, HoistPlanItem } from '../types.js';
+
 import type { IDependencyHandler } from './dependency-handler.js';
 
 /**
@@ -65,7 +67,7 @@ export class ImportDependencyHandler implements IDependencyHandler {
       fromScope: dependency.scope.id,
       toFile: context.targetFile,
       toScope: context.targetScope.id,
-      strategy: 'CreateShared' as any,
+      strategy: HoistStrategy.CreateShared,
     });
 
     return {

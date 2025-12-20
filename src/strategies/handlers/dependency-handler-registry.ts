@@ -10,6 +10,7 @@
  */
 
 import type { DependencyType } from '../../types/public.js';
+
 import type { IDependencyHandler } from './dependency-handler.js';
 
 /**
@@ -31,7 +32,7 @@ import type { IDependencyHandler } from './dependency-handler.js';
  * ```
  */
 export class DependencyHandlerRegistry {
-  private handlers = new Map<DependencyType, IDependencyHandler>();
+  private readonly handlers = new Map<DependencyType, IDependencyHandler>();
 
   /**
    * Register a handler for a specific dependency type.

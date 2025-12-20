@@ -8,12 +8,12 @@
  * that knows how to plan and execute hoisting operations for that type.
  */
 
-import type { Result } from '../../result/index.js';
 import type { InternalErrorType } from '../../errors/index.js';
+import type { Result } from '../../result/index.js';
 import type { InternalDependency, HoistOperation } from '../../types/internal.js';
 import type { DependencyType } from '../../types/public.js';
-import type { HoistContext, HoistPlanItem } from '../types.js';
 import type { HoistExecutionContext } from '../hoist-executor.js';
+import type { HoistContext, HoistPlanItem } from '../types.js';
 
 /**
  * Interface for dependency type handlers.

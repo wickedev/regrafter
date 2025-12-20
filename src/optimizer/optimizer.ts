@@ -10,8 +10,8 @@ import traverseModule from '@babel/traverse';
 import type * as t from '@babel/types';
 
 import type { RegraffError } from '../errors/index.js';
-import { createCodeGenerator } from '../generator/index.js';
 import type { CodeGenerator } from '../generator/code-generator.js';
+import { createCodeGenerator } from '../generator/index.js';
 import type { Parser} from '../parser/index.js';
 import { createParser } from '../parser/index.js';
 import { ok, err, isErr, type Result } from '../result/index.js';

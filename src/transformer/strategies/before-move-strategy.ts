@@ -6,9 +6,9 @@
  */
 
 import { error } from "../../errors/error-builder.js";
-import {
-  type ValidationErrorType,
-  type TransformErrorType,
+import type {
+  ValidationErrorType,
+  TransformErrorType,
 } from "../../errors/index.js";
 import { ok, err, isErr, type Result } from "../../result/index.js";
 import type { MoveContext, InsertionPoint } from "../types.js";

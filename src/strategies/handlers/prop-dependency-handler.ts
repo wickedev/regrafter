@@ -5,14 +5,16 @@
  * Creates prop threading operations to pass props through component boundaries.
  */
 
+import type { InternalErrorType } from '../../errors/index.js';
 import { ok } from '../../result/index.js';
 import type { Result } from '../../result/index.js';
-import type { InternalErrorType } from '../../errors/index.js';
+import { createHoistOperation, createPropThreadOperation } from '../../types/factories.js';
+import { HoistStrategy } from '../../types/internal.js';
 import type { InternalDependency, HoistOperation, ComponentScope } from '../../types/internal.js';
 import { DependencyType } from '../../types/public.js';
-import { createHoistOperation, createPropThreadOperation } from '../../types/factories.js';
-import type { HoistContext, HoistPlanItem } from '../types.js';
 import type { HoistExecutionContext } from '../hoist-executor.js';
+import type { HoistContext, HoistPlanItem } from '../types.js';
+
 import type { IDependencyHandler } from './dependency-handler.js';
 
 /**
@@ -55,7 +57,7 @@ export class PropDependencyHandler implements IDependencyHandler {
       fromScope: dependency.scope.id,
       toFile: context.targetFile,
       toScope: context.targetScope.id,
-      strategy: 'PassAsProp' as any,
+      strategy: HoistStrategy.PassAsProp,
     });
 
     // Create prop thread operation
@@ -118,7 +120,7 @@ export class PropDependencyHandler implements IDependencyHandler {
       fromScope: dependency.scope.id,
       toFile: context.targetFile,
       toScope: context.targetScope.id,
-      strategy: 'PassAsProp' as any,
+      strategy: HoistStrategy.PassAsProp,
     });
   }
 }

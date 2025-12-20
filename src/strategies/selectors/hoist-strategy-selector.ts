@@ -114,12 +114,10 @@ export class HoistStrategySelector implements IHoistStrategySelector {
       return this.hookValidator.findNearestValidHookScope(targetScope);
     }
 
-    // For other dependencies, compute LCA of source and target
-    if (dep.scope.id === targetScope.id) {
-      return targetScope;
-    }
-
-    return this.findCommonAncestor(dep.scope, targetScope);
+    // For variables and other dependencies in a move operation,
+    // hoist to the target scope directly (where the JSX is being moved)
+    // rather than computing LCA. This ensures dependencies follow the moved element.
+    return targetScope;
   }
 
   /**
@@ -264,50 +262,6 @@ export class HoistStrategySelector implements IHoistStrategySelector {
     }
 
     return false;
-  }
-
-  /**
-   * Find the lowest common ancestor of two scopes
-   */
-  private findCommonAncestor(
-    scope1: ScopeInfo,
-    scope2: ScopeInfo
-  ): ScopeInfo | null {
-    // Build path from scope1 to root
-    const path1 = this.buildScopePath(scope1);
-    // Build path from scope2 to root
-    const path2 = this.buildScopePath(scope2);
-
-    // Find common ancestor
-    let lca: ScopeInfo | null = null;
-    const minLength = Math.min(path1.length, path2.length);
-
-    for (let i = 0; i < minLength; i++) {
-      const scope1Item = path1[i];
-      const scope2Item = path2[i];
-      if (scope1Item !== undefined && scope2Item !== undefined && scope1Item.id === scope2Item.id) {
-        lca = scope1Item;
-      } else {
-        break;
-      }
-    }
-
-    return lca;
-  }
-
-  /**
-   * Build path from scope to root
-   */
-  private buildScopePath(scope: ScopeInfo): ScopeInfo[] {
-    const path: ScopeInfo[] = [];
-    let current: ScopeInfo | null = scope;
-
-    while (current !== null) {
-      path.unshift(current);
-      current = current.parent;
-    }
-
-    return path;
   }
 }
 

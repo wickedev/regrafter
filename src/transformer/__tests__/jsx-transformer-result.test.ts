@@ -167,7 +167,7 @@ describe('JSXTransformer - Result Pattern', () => {
 
       expect(isErr(result)).toBe(true);
       if (isErr(result)) {
-        expect(result.error._tag).toBe('TransformError');
+        expect(result.error._tag).toBe('ValidationError');
         expect(result.error.message).toContain('Cannot move an element into itself');
       }
     });

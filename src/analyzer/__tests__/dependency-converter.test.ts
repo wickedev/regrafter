@@ -279,21 +279,28 @@ describe("DependencyConverter", () => {
     it("converts variable dependencies correctly", () => {
       const code = `function Component() { const count = 1; return <div>{count}</div>; }`;
       const ast = parseCode(code);
-      const testScopeManager = createScopeManager();
-      testScopeManager.buildScopeTree(ast.program, "test.tsx");
-      const testConverter = new DependencyConverter(testScopeManager);
-      testConverter.setCurrentFile("test.tsx");
 
+      // CRITICAL: Find NodePath BEFORE buildScopeTree to avoid Babel scope conflicts
       let variablePath: NodePath | null = null;
       traverse(ast, {
         Identifier(path) {
-          if (path.node.name === "count" && (path as any).scope.hasBinding("count")) {
-            variablePath = path as NodePath;
+          // Find the identifier "count" in JSX context
+          if (path.node.name === "count" && !variablePath) {
+            const parent = path.parent;
+            if (parent && t.isJSXExpressionContainer(parent)) {
+              variablePath = path as NodePath;
+            }
           }
         },
       });
 
       expect(variablePath).not.toBeNull();
+
+      // NOW build scope tree after getting the NodePath
+      const testScopeManager = createScopeManager();
+      testScopeManager.buildScopeTree(ast.program, "test.tsx");
+      const testConverter = new DependencyConverter(testScopeManager, testScopeManager);
+      testConverter.setCurrentFile("test.tsx");
 
       const deps: SpecificDependency[] = [
         {
@@ -315,11 +322,8 @@ describe("DependencyConverter", () => {
     it("converts hook dependencies correctly", () => {
       const code = `import { useState } from 'react'; function Component() { const [count, setCount] = useState(0); }`;
       const ast = parseCode(code);
-      const testScopeManager = createScopeManager();
-      testScopeManager.buildScopeTree(ast.program, "test.tsx");
-      const testConverter = new DependencyConverter(testScopeManager);
-      testConverter.setCurrentFile("test.tsx");
 
+      // CRITICAL: Find NodePath BEFORE buildScopeTree to avoid Babel scope conflicts
       let hookPath: NodePath | null = null;
       traverse(ast, {
         CallExpression(path) {
@@ -330,6 +334,12 @@ describe("DependencyConverter", () => {
       });
 
       expect(hookPath).not.toBeNull();
+
+      // NOW build scope tree after getting the NodePath
+      const testScopeManager = createScopeManager();
+      testScopeManager.buildScopeTree(ast.program, "test.tsx");
+      const testConverter = new DependencyConverter(testScopeManager, testScopeManager);
+      testConverter.setCurrentFile("test.tsx");
 
       const deps: SpecificDependency[] = [
         {
@@ -350,7 +360,7 @@ describe("DependencyConverter", () => {
       const ast = parseCode(code);
       const testScopeManager = createScopeManager();
       testScopeManager.buildScopeTree(ast.program, "test.tsx");
-      const testConverter = new DependencyConverter(testScopeManager);
+      const testConverter = new DependencyConverter(testScopeManager, testScopeManager);
       testConverter.setCurrentFile("test.tsx");
 
       let importPath: NodePath | null = null;
@@ -381,17 +391,15 @@ describe("DependencyConverter", () => {
     it("converts prop dependencies correctly", () => {
       const code = `function Component({ name }) { return <div>{name}</div>; }`;
       const ast = parseCode(code);
-      const testScopeManager = createScopeManager();
-      testScopeManager.buildScopeTree(ast.program, "test.tsx");
-      const testConverter = new DependencyConverter(testScopeManager);
-      testConverter.setCurrentFile("test.tsx");
 
+      // CRITICAL: Find NodePath BEFORE buildScopeTree to avoid Babel scope conflicts
       let propPath: NodePath | null = null;
       traverse(ast, {
         Identifier(path) {
-          if (path.node.name === "name" && (path as any).scope.hasBinding("name")) {
-            const binding = (path as any).scope.getBinding("name");
-            if (binding && binding.kind === "param") {
+          // Find the first identifier named "name" in JSX context
+          if (path.node.name === "name" && !propPath) {
+            const parent = path.parent;
+            if (parent && t.isJSXExpressionContainer(parent)) {
               propPath = path as NodePath;
             }
           }
@@ -399,6 +407,12 @@ describe("DependencyConverter", () => {
       });
 
       expect(propPath).not.toBeNull();
+
+      // NOW build scope tree after getting the NodePath
+      const testScopeManager = createScopeManager();
+      testScopeManager.buildScopeTree(ast.program, "test.tsx");
+      const testConverter = new DependencyConverter(testScopeManager, testScopeManager);
+      testConverter.setCurrentFile("test.tsx");
 
       const deps: SpecificDependency[] = [
         {

@@ -5,24 +5,30 @@
  * eliminating the need for switch statements.
  */
 
-import type { DependencyType } from '../../types/public.js';
 import type { SpecificDependency } from '../../analyzer/types.js';
+import type { DependencyType } from '../../types/public.js';
+
+/**
+ * Type for dependency name extractor functions.
+ */
+type DependencyExtractor = (dep: SpecificDependency) => string;
 
 /**
  * Map of dependency types to their name extraction functions.
  *
  * This eliminates the need for switch statements when getting dependency names.
+ * Uses type guards with the `in` operator to safely narrow dependency types.
+ * Marked as Partial to support runtime extensibility via registerDependencyNameExtractor.
  */
-const DEPENDENCY_NAME_EXTRACTORS: Record<
-  string,
-  (dep: any) => string
+const DEPENDENCY_NAME_EXTRACTORS: Partial<
+  Record<DependencyType, DependencyExtractor>
 > = {
-  Hook: (dep) => dep.hookName,
-  Import: (dep) => dep.localName,
-  Variable: (dep) => dep.name,
-  Prop: (dep) => dep.propName,
-  Context: (dep) => dep.contextName ?? dep.name,
-  Ref: (dep) => dep.refName ?? dep.name,
+  Hook: (dep) => ('hookName' in dep ? dep.hookName : 'unknown'),
+  Import: (dep) => ('localName' in dep ? dep.localName : 'unknown'),
+  Variable: (dep) => ('name' in dep ? dep.name : 'unknown'),
+  Prop: (dep) => ('name' in dep ? dep.name : 'unknown'),
+  Context: (dep) => ('contextName' in dep ? dep.contextName : 'unknown'),
+  Ref: (dep) => ('name' in dep ? dep.name : 'unknown'),
 };
 
 /**
@@ -37,12 +43,15 @@ const DEPENDENCY_NAME_EXTRACTORS: Record<
 export function getDependencyName(dep: SpecificDependency): string {
   const extractor = DEPENDENCY_NAME_EXTRACTORS[dep.type];
 
-  if (!extractor) {
-    // Fallback for unknown dependency types
-    return (dep as any).name ?? (dep as any).symbol ?? 'unknown';
+  if (extractor) {
+    return extractor(dep);
   }
 
-  return extractor(dep);
+  // Fallback for unknown dependency types using type narrowing
+  if ('name' in dep && typeof dep.name === 'string') {
+    return dep.name;
+  }
+  return 'unknown';
 }
 
 /**
@@ -55,7 +64,7 @@ export function getDependencyName(dep: SpecificDependency): string {
  */
 export function registerDependencyNameExtractor(
   type: DependencyType,
-  extractor: (dep: any) => string
+  extractor: DependencyExtractor
 ): void {
   DEPENDENCY_NAME_EXTRACTORS[type] = extractor;
 }

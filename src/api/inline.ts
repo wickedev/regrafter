@@ -13,8 +13,8 @@ import * as t_factory from '@babel/types';
 
 import { findComponentDefinition } from '../analyzer/component-detector.js';
 import { error } from '../errors/error-builder.js';
-import type { RegraffError } from '../errors/index.js';
 import { createInternalError } from '../errors/index.js';
+import type { RegraffError } from '../errors/index.js';
 import { createCodeGenerator } from '../generator/index.js';
 import { parseFile } from '../parser/parse-file.js';
 import { err, isErr, ok, type Result } from '../result/index.js';
@@ -277,13 +277,13 @@ export function inline(
       codes,
       inlinedCount: totalInlinedCount,
     });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+  } catch (caughtError) {
+    const message = caughtError instanceof Error ? caughtError.message : String(caughtError);
     return err(createInternalError({
       code: 'INTERNAL_ERROR',
       message: `Internal error during inline operation: ${message}`,
       file: files[0]?.path ?? 'unknown',
-      cause: error instanceof Error ? error : new Error(message),
+      cause: caughtError instanceof Error ? caughtError : new Error(message),
     }));
   }
 }

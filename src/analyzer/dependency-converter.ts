@@ -90,41 +90,79 @@ export class DependencyConverter implements IDependencyConverter {
     const seenSymbols = new Map<string, SpecificDependency>();
 
     for (const dep of allDeps) {
-      const symbol =
-        "name" in dep
-          ? dep.name
-          : "bindings" in dep
-            ? dep.bindings.join(",")
-            : "localName" in dep
-              ? dep.localName
-              : "unknown";
+      const symbol = this.extractSymbolName(dep);
 
-      const existing = seenSymbols.get(symbol);
-      if (existing) {
-        if (
-          existing.type === DependencyType.Hook &&
-          dep.type === DependencyType.Ref
-        ) {
-          continue;
-        }
-        if (
-          existing.type === DependencyType.Ref &&
-          dep.type === DependencyType.Hook
-        ) {
-          const index = deduplicatedDeps.indexOf(existing);
-          if (index !== -1) {
-            deduplicatedDeps[index] = dep;
-          }
-          seenSymbols.set(symbol, dep);
-          continue;
-        }
+      // Handle Hook/Ref priority deduplication
+      if (this.shouldSkipHookRefDuplicate(dep, symbol, seenSymbols, deduplicatedDeps)) {
+        continue;
       }
 
-      seenSymbols.set(symbol, dep);
+      // Include type in the key to keep dependencies with same name but different types separate
+      const key = `${symbol}:${dep.type}`;
+      const existing = seenSymbols.get(key);
+      if (existing) {
+        // General duplicate of same type - skip
+        continue;
+      }
+
+      // Add new dependency
+      seenSymbols.set(key, dep);
       deduplicatedDeps.push(dep);
     }
 
     return deduplicatedDeps;
+  }
+
+  /**
+   * Extract symbol name from a dependency
+   */
+  private extractSymbolName(dep: SpecificDependency): string {
+    return "name" in dep
+      ? dep.name
+      : "bindings" in dep && dep.bindings.length > 0
+        ? dep.bindings.join(",")
+        : "hookName" in dep
+          ? dep.hookName
+          : "localName" in dep
+            ? dep.localName
+            : "unknown";
+  }
+
+  /**
+   * Check if a Hook/Ref dependency should be skipped due to priority
+   */
+  private shouldSkipHookRefDuplicate(
+    dep: SpecificDependency,
+    symbol: string,
+    seenSymbols: Map<string, SpecificDependency>,
+    deduplicatedDeps: SpecificDependency[]
+  ): boolean {
+    // Special case: Hook/Ref priority uses symbol-only matching
+    if (dep.type === DependencyType.Hook || dep.type === DependencyType.Ref) {
+      // Look for matching Hook or Ref by symbol only
+      for (const [existingKey, existingDep] of seenSymbols.entries()) {
+        if (
+          existingKey.startsWith(symbol + ":") &&
+          (existingDep.type === DependencyType.Hook || existingDep.type === DependencyType.Ref)
+        ) {
+          // Found a Hook or Ref with the same symbol
+          if (existingDep.type === DependencyType.Hook && dep.type === DependencyType.Ref) {
+            return true; // Skip Ref, keep Hook
+          }
+          if (existingDep.type === DependencyType.Ref && dep.type === DependencyType.Hook) {
+            // Replace Ref with Hook
+            const index = deduplicatedDeps.indexOf(existingDep);
+            if (index !== -1) {
+              deduplicatedDeps[index] = dep;
+            }
+            seenSymbols.delete(existingKey);
+            seenSymbols.set(`${symbol}:${dep.type}`, dep);
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /**
@@ -139,11 +177,13 @@ export class DependencyConverter implements IDependencyConverter {
       const name =
         "name" in dep
           ? dep.name
-          : "bindings" in dep
+          : "bindings" in dep && dep.bindings.length > 0
             ? dep.bindings.join(", ")
-            : "localName" in dep
-              ? dep.localName
-              : "unknown";
+            : "hookName" in dep
+              ? dep.hookName
+              : "localName" in dep
+                ? dep.localName
+                : "unknown";
       const key = `${name}:${dep.type}`;
       tempPathMap.set(key, dep.path);
     }
@@ -165,27 +205,39 @@ export class DependencyConverter implements IDependencyConverter {
 
       if (dep.type === DependencyType.Variable) {
         // For variables, find the component they're declared in
-        const enclosingResult = this.scopeQuery.findEnclosingComponent(dep.path);
-        if (!isErr(enclosingResult)) {
-          scope = enclosingResult.value;
+        try {
+          const enclosingResult = this.scopeQuery.findEnclosingComponent(dep.path);
+          if (!isErr(enclosingResult)) {
+            scope = enclosingResult.value;
+          }
+        } catch {
+          // Babel scope errors can occur with improperly initialized paths
+          // Fall through to fallback logic
         }
       }
 
       // Fallback to original logic for other types or if no component found
-      scope ??=
-        this.scopeQuery.getScopeForPath(dep.path) ??
-        elementScope ??
-        this.scopeTreeBuilder.getScopeTree()?.root ??
-        null;
+      try {
+        scope ??=
+          this.scopeQuery.getScopeForPath(dep.path) ??
+          elementScope ??
+          this.scopeTreeBuilder.getScopeTree()?.root ??
+          null;
+      } catch {
+        // Babel scope errors can occur with improperly initialized paths
+        scope ??= elementScope ?? this.scopeTreeBuilder.getScopeTree()?.root ?? null;
+      }
 
       const name =
         "name" in dep
           ? dep.name
-          : "bindings" in dep
+          : "bindings" in dep && dep.bindings.length > 0
             ? dep.bindings.join(", ")
-            : "localName" in dep
-              ? dep.localName
-              : "unknown";
+            : "hookName" in dep
+              ? dep.hookName
+              : "localName" in dep
+                ? dep.localName
+                : "unknown";
 
       if (!scope) {
         // Return a placeholder dependency with error information
