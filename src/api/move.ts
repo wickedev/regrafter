@@ -9,7 +9,7 @@
 import { DependencyAnalyzer, validateMoveOperation } from '../analyzer/index.js';
 import type { RegraffError } from '../errors/index.js';
 import { createValidationError } from '../errors/index.js';
-import { CodeGenerator } from '../generator/code-generator.js';
+import { createCodeGenerator } from '../generator/index.js';
 import { err, isErr, type Result } from '../result/index.js';
 import { createScopeManager } from '../scope/index.js';
 import { createSelectorResolver } from '../selector/index.js';
@@ -134,7 +134,7 @@ function moveWithHoistingInternal(
     createConfiguredHoistPlanner(),
     createHoistExecutor(),
     createJSXTransformer(),
-    new CodeGenerator()
+    createCodeGenerator()
   );
 
   // Execute the transformation pipeline

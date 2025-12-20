@@ -160,7 +160,7 @@
 
 ### Phase 1.3: Week 1 Final Validation (Day 5)
 
-- [x] 7. Run comprehensive Week 1 validation
+- [ ] 7. Run comprehensive Week 1 validation
   - Run `npm run typecheck` (must pass)
   - Run `npm test` (must pass with zero regression)
   - Run `npm run test:e2e` (must pass)
@@ -170,7 +170,7 @@
   - **Acceptance**: All validation checks pass, coverage targets met
   - _Requirements: 1.7, 1.8, 3.8_
 
-- [x] 7.1 Update Week 1 documentation
+- [ ] 7.1 Update Week 1 documentation
   - Document class extraction decisions in design.md
   - Update inline code comments for extracted classes
   - Add migration notes to MIGRATION.md if needed
@@ -241,7 +241,7 @@
   - **Commit**: `refactor: add factory function for HoistPlanBuilder`
   - _Requirements: 2.1_
 
-- [x] 10.2 Run validation checkpoint after HoistPlanner decomposition
+- [ ] 10.2 Run validation checkpoint after HoistPlanner decomposition
   - Run `npm run typecheck`
   - Run `npm test` (zero regression)
   - Run `npm run bench` (maintain performance)
@@ -338,7 +338,7 @@
 
 ### Phase 2.3: Week 2 Final Validation (Day 5)
 
-- [x] 13. Run comprehensive Week 2 validation
+- [ ] 13. Run comprehensive Week 2 validation
   - Run `npm run typecheck`
   - Run `npm test` (zero regression)
   - Run `npm run test:e2e`
@@ -348,7 +348,7 @@
   - **Acceptance**: All validation checks pass
   - _Requirements: 2.6, 4.7_
 
-- [x] 13.1 Update Week 2 documentation
+- [ ] 13.1 Update Week 2 documentation
   - Document pipeline architecture in design.md
   - Update consumer migration guide
   - Add code examples for pipeline usage
@@ -399,7 +399,7 @@
   - **Commit**: `feat: add ErrorBuilder for fluent error creation`
   - _Requirements: 5.7_
 
-- [x] 16. Migrate DependencyOrchestrator to use Result utilities and ErrorBuilder
+- [ ] 16. Migrate DependencyOrchestrator to use Result utilities and ErrorBuilder
   - Replace 13 instances of verbose isErr patterns with unwrapOrReturn or andThen
   - Replace verbose error creation with ErrorBuilder
   - Verify behavior unchanged (run tests)
@@ -407,14 +407,14 @@
   - **Commit**: `refactor: use Result utilities and ErrorBuilder in DependencyOrchestrator`
   - _Requirements: 5.6, 5.8_
 
-- [x] 16.1 Migrate HoistPlanBuilder to use Result utilities and ErrorBuilder
+- [ ] 16.1 Migrate HoistPlanBuilder to use Result utilities and ErrorBuilder
   - Replace 11 instances of verbose error handling
   - Use ErrorBuilder for all error creation
   - **Acceptance**: Code more concise, ~40 lines reduced, tests pass
   - **Commit**: `refactor: use Result utilities and ErrorBuilder in HoistPlanBuilder`
   - _Requirements: 5.6, 5.8_
 
-- [x] 16.2 Migrate move.ts and other high-impact files
+- [ ] 16.2 Migrate move.ts and other high-impact files
   - Update move.ts (7 instances)
   - Update other files with high pattern frequency
   - Run tests after each file
@@ -516,7 +516,7 @@
 
 ### Phase 3.4: Week 3 Final Validation (Day 5)
 
-- [x] 22. Run comprehensive Week 3 and final validation
+- [ ] 22. Run comprehensive Week 3 and final validation
   - Run `npm run typecheck`
   - Run `npm test` (zero regression)
   - Run `npm run test:e2e`
@@ -527,7 +527,7 @@
   - **Acceptance**: All validation checks pass, all targets met
   - _Requirements: 5.8, 6.7, 7.7_
 
-- [x] 22.1 Measure and verify success metrics
+- [ ] 22.1 Measure and verify success metrics
   - Verify DependencyAnalyzer reduced from 1,136 lines to <300 lines across classes
   - Verify HoistPlanner reduced from 871 lines to <250 lines across classes
   - Verify moveWithHoistingInternal reduced from 193 lines to <50 lines
@@ -536,7 +536,7 @@
   - Document metrics in summary report
   - **Acceptance**: All success metrics achieved and documented
 
-- [x] 22.2 Create final summary report
+- [ ] 22.2 Create final summary report
   - Document all changes made during refactoring
   - List all extracted classes and their responsibilities
   - Report before/after metrics (lines of code, duplication, coverage)
@@ -545,7 +545,7 @@
   - **Acceptance**: Complete summary report created
   - **Commit**: `docs: add final summary report for SOLID refactoring`
 
-- [x] 22.3 Update all project documentation
+- [ ] 22.3 Update all project documentation
   - Update CLAUDE.md with new class structure
   - Update architecture diagrams
   - Update API documentation
@@ -559,7 +559,7 @@
 
 ### Test Coverage Enhancement (Requirement 8)
 
-- [x] 23. Enhance HoistExecutor test coverage
+- [ ] 23. Enhance HoistExecutor test coverage
   - Add tests for all mutation edge cases
   - Test hoisting to different scope levels
   - Test prop threading mutations
@@ -567,7 +567,7 @@
   - **Acceptance**: HoistExecutor coverage ≥95%
   - _Requirements: 8.1, 8.2, 8.8_
 
-- [x] 23.1 Enhance cross-file strategy test coverage
+- [ ] 23.1 Enhance cross-file strategy test coverage
   - Add integration tests for circular dependency scenarios
   - Add tests for transitive dependency resolution
   - Test multi-file moves
@@ -576,18 +576,17 @@
 
 ### Dependency Handler Strategy Pattern (Requirement 9)
 
-- [x] 24. Create DependencyHandler strategy pattern
+- [ ] 24. Create DependencyHandler strategy pattern
   - Define IDependencyHandler interface with getName(), plan(), execute() methods
   - Create concrete handlers: HookDependencyHandler, VariableDependencyHandler, PropDependencyHandler, ImportDependencyHandler
   - Create DependencyHandlerRegistry class
-  - Replace switch statements with registry lookups (demonstrated with getDependencyName helper)
-  - **Acceptance**: All dependency types use handler pattern, switch statements can be eliminated using the registry
-  - **Note**: The current architecture already has good separation through HoistStrategySelector. The handler pattern has been implemented and can be used where beneficial. A registry-based getDependencyName helper has been created to demonstrate the pattern.
+  - Replace switch statements with registry lookups
+  - **Acceptance**: All dependency types use handler pattern, switch statements eliminated
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
 
 ### Factory Function Standardization (Requirement 10)
 
-- [x] 25. Standardize all factory functions
+- [ ] 25. Standardize all factory functions
   - Add factory functions for all public API classes
   - Update tests to use factories
   - Restrict direct constructor usage to factories only

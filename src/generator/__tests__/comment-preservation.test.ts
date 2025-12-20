@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
 import type * as t from '@babel/types';
-import { CodeGenerator } from '../code-generator.js';
+import type { CodeGenerator } from '../code-generator.js';
+import { createCodeGenerator } from '../index.js';
 
 /**
  * Comprehensive tests for comment preservation during code generation
@@ -20,7 +21,7 @@ describe('Comment Preservation - TASK-005', () => {
   };
 
   beforeEach(() => {
-    generator = new CodeGenerator();
+    generator = createCodeGenerator();
   });
 
   // ============================================================

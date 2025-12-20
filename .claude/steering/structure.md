@@ -345,3 +345,76 @@ The package.json exports field defines public API surface:
   }
 }
 ```
+
+## SOLID Refactoring Updates (December 2024)
+
+### Week 1: Dependency Analysis Decomposition
+
+The dependency analysis system was refactored following the Single Responsibility Principle:
+
+**Before:**
+- `src/analyzer/dependency-analyzer.ts` (1,136 lines) - Monolithic analyzer handling all dependency logic
+
+**After:**
+- `src/analyzer/dependency-orchestrator.ts` (800 lines) - Coordinates analysis workflow
+- `src/analyzer/analyzers/hook-dependency-analyzer.ts` - Hook-specific analysis
+- `src/analyzer/analyzers/variable-dependency-analyzer.ts` - Variable analysis
+- `src/analyzer/analyzers/import-dependency-analyzer.ts` - Import tracking
+- `src/analyzer/analyzers/prop-dependency-analyzer.ts` - Prop analysis
+- `src/analyzer/dependency-converter.ts` (231 lines) - Converts dependency representations
+- `src/analyzer/dependency-resolver.ts` (118 lines) - Resolves accessibility
+- `src/analyzer/related-dependency-detector.ts` (325 lines) - Detects transitive deps
+
+**Scope Utilities:**
+- `src/scope/scope-helpers.ts` - Reusable scope traversal utilities
+  - Eliminated 100+ lines of duplicated scope code
+  - Functions: `getScopeWithFallback()`, `buildScopePath()`, `findCommonAncestor()`, etc.
+
+### Week 2: Hoisting Strategy and Pipeline
+
+The hoisting and transformation pipeline was refactored using Strategy and Pipeline patterns:
+
+**Hoisting Strategy (Before):**
+- `src/strategies/hoist-planner.ts` (871 lines) - Monolithic planner
+
+**Hoisting Strategy (After):**
+- `src/strategies/hoist-plan-builder.ts` (600 lines) - Orchestrates planning
+- `src/strategies/validators/hook-location-validator.ts` - Rules of Hooks validation
+- `src/strategies/selectors/hoist-strategy-selector.ts` - Strategy selection logic
+
+**Move Pipeline (Before):**
+- `src/api/move.ts` with `moveWithHoistingInternal` (193 lines of mixed logic)
+
+**Move Pipeline (After):**
+- `src/api/move-transformation-pipeline.ts` - 5-stage pipeline:
+  1. Validation
+  2. Analysis
+  3. Planning
+  4. Execution
+  5. Generation
+- `moveWithHoistingInternal` reduced to ~30 lines of orchestration
+
+### Week 3: Error Handling and Interface Segregation
+
+**Error Handling:**
+- `src/errors/error-builder.ts` - Fluent API for error creation
+- `src/errors/dependency-error-builder.ts` - Domain-specific error builder
+- `src/result/helpers.ts` - Utility functions for Result monad
+
+**Interface Segregation:**
+- `src/interfaces/scope-interfaces.ts` - Split `IScopeManager` into focused interfaces:
+  - `IScopeTreeBuilder`
+  - `IScopeQuery`
+  - `IScopeAccessibility`
+  - `IBindingQuery`
+  - `IComponentInfo`
+
+### Factory Functions (Dependency Injection)
+
+All major classes now use factory functions for proper dependency injection:
+
+- `createDependencyOrchestrator()` - Creates analyzer with injected dependencies
+- `createHoistPlanBuilder()` - Creates planner with validator and selector
+- `createMoveTransformationPipeline()` - Creates pipeline with all dependencies
+
+This follows the Dependency Inversion Principle, allowing easy testing and extensibility.

@@ -9,7 +9,8 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Parser, createParser, ParseErrorCodes } from '../parser.js';
-import { ASTStore, computeContentHash } from '../ast-store.js';
+import type { ASTStore } from '../ast-store.js';
+import { createASTStore, computeContentHash } from '../index.js';
 import {
   getExtension,
   isTypeScriptFile,
@@ -526,7 +527,7 @@ describe('ASTStore', () => {
   let store: ASTStore;
 
   beforeEach(() => {
-    store = new ASTStore();
+    store = createASTStore();
   });
 
   it('should store and retrieve parse results', () => {

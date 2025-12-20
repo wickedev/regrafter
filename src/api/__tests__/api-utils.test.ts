@@ -17,7 +17,7 @@ import { describe, it, expect } from 'vitest';
 import type * as t from '@babel/types';
 import { parseAllFiles } from '../parse-utils.js';
 import { generateCodeForFiles } from '../generation-utils.js';
-import { CodeGenerator } from '../../generator/code-generator.js';
+import { createCodeGenerator } from '../../generator/index.js';
 import { isErr, isOk, err } from '../../result/index.js';
 import type { FileInput } from '../../types/index.js';
 
@@ -398,7 +398,7 @@ describe('API Utility Functions', () => {
           { path: 'test.tsx', content: 'const x = 1;' }
         ];
         const parsedFiles = createParsedFiles(files);
-        const generator = new CodeGenerator();
+        const generator = createCodeGenerator();
 
         const result = generateCodeForFiles(files, parsedFiles, 'test.tsx', generator);
 
@@ -423,7 +423,7 @@ describe('API Utility Functions', () => {
           { path: 'utils.ts', content: 'const z = 3;' }
         ];
         const parsedFiles = createParsedFiles(files);
-        const generator = new CodeGenerator();
+        const generator = createCodeGenerator();
 
         const result = generateCodeForFiles(files, parsedFiles, 'App.tsx', generator);
 
@@ -451,7 +451,7 @@ describe('API Utility Functions', () => {
           { path: 'Button.tsx', content: 'const y = 2;' }
         ];
         const parsedFiles = createParsedFiles(files);
-        const generator = new CodeGenerator();
+        const generator = createCodeGenerator();
 
         const result = generateCodeForFiles(files, parsedFiles, 'App.tsx', generator);
 
@@ -471,7 +471,7 @@ describe('API Utility Functions', () => {
           { path: 'Button.tsx', content: 'const y = 2;' }
         ];
         const parsedFiles = createParsedFiles(files);
-        const generator = new CodeGenerator();
+        const generator = createCodeGenerator();
 
         const result = generateCodeForFiles(files, parsedFiles, 'App.tsx', generator);
 
@@ -494,7 +494,7 @@ describe('API Utility Functions', () => {
           }
         ];
         const parsedFiles = createParsedFiles(files);
-        const generator = new CodeGenerator();
+        const generator = createCodeGenerator();
 
         const result = generateCodeForFiles(files, parsedFiles, 'Component.tsx', generator);
 
@@ -518,7 +518,7 @@ describe('API Utility Functions', () => {
           }
         ];
         const parsedFiles = createParsedFiles(files);
-        const generator = new CodeGenerator();
+        const generator = createCodeGenerator();
 
         const result = generateCodeForFiles(files, parsedFiles, 'module.ts', generator);
 
@@ -538,7 +538,7 @@ describe('API Utility Functions', () => {
       it('should handle empty files array', () => {
         const files: FileInput[] = [];
         const parsedFiles = new Map<string, t.File>();
-        const generator = new CodeGenerator();
+        const generator = createCodeGenerator();
 
         const result = generateCodeForFiles(files, parsedFiles, '', generator);
 
@@ -564,7 +564,7 @@ describe('API Utility Functions', () => {
           }
         }
 
-        const generator = new CodeGenerator();
+        const generator = createCodeGenerator();
         const result = generateCodeForFiles(files, parsedFiles, 'exists.tsx', generator);
 
         expect(isOk(result)).toBe(true);
@@ -586,7 +586,7 @@ describe('API Utility Functions', () => {
           { path: 'folder/sub-folder/Component.tsx', content: 'const x = 1;' }
         ];
         const parsedFiles = createParsedFiles(files);
-        const generator = new CodeGenerator();
+        const generator = createCodeGenerator();
 
         const result = generateCodeForFiles(files, parsedFiles, 'folder/sub-folder/Component.tsx', generator);
 
@@ -605,7 +605,7 @@ describe('API Utility Functions', () => {
           { path: 'App.tsx', content: 'const x = 1;' }
         ];
         const parsedFiles = createParsedFiles(files);
-        const generator = new CodeGenerator();
+        const generator = createCodeGenerator();
 
         const result = generateCodeForFiles(files, parsedFiles, 'NonExistent.tsx', generator);
 
@@ -625,7 +625,7 @@ describe('API Utility Functions', () => {
           { path: 'test.tsx', content: 'const x = 1;' }
         ];
         const parsedFiles = createParsedFiles(files);
-        const generator = new CodeGenerator();
+        const generator = createCodeGenerator();
 
         const result1 = generateCodeForFiles(files, parsedFiles, 'test.tsx', generator);
         const result2 = generateCodeForFiles(files, parsedFiles, 'test.tsx', generator);
@@ -652,7 +652,7 @@ describe('API Utility Functions', () => {
           { path: 'test.tsx', content: 'const x = 1;' }
         ];
         const parsedFiles = createParsedFiles(files);
-        const generator = new CodeGenerator();
+        const generator = createCodeGenerator();
 
         const result = generateCodeForFiles(files, parsedFiles, 'test.tsx', generator);
 
@@ -668,7 +668,7 @@ describe('API Utility Functions', () => {
           { path: 'test.tsx', content: 'const x = 1;' }
         ];
         const parsedFiles = createParsedFiles(files);
-        const generator = new CodeGenerator();
+        const generator = createCodeGenerator();
 
         const result = generateCodeForFiles(files, parsedFiles, 'test.tsx', generator);
 
@@ -722,7 +722,7 @@ describe('API Utility Functions', () => {
         expect(isOk(parseResult)).toBe(true);
 
         if (isOk(parseResult)) {
-          const generator = new CodeGenerator();
+          const generator = createCodeGenerator();
           const genResult = generateCodeForFiles(files, parseResult.value, 'App.tsx', generator);
 
           expect(isOk(genResult)).toBe(true);
@@ -750,7 +750,7 @@ describe('API Utility Functions', () => {
 
         // Generate
         if (isOk(parseResult)) {
-          const generator = new CodeGenerator();
+          const generator = createCodeGenerator();
           const genResult = generateCodeForFiles(files, parseResult.value, 'Component.tsx', generator);
 
           expect(isOk(genResult)).toBe(true);

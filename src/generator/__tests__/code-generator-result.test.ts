@@ -7,7 +7,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
 import type * as t from '@babel/types';
-import { CodeGenerator } from '../code-generator.js';
+import type { CodeGenerator } from '../code-generator.js';
+import { createCodeGenerator } from '../index.js';
 import { isOk, isErr } from '../../result/index.js';
 
 describe('CodeGenerator - Result-based Error Handling', () => {
@@ -21,7 +22,7 @@ describe('CodeGenerator - Result-based Error Handling', () => {
   };
 
   beforeEach(() => {
-    generator = new CodeGenerator();
+    generator = createCodeGenerator();
   });
 
   describe('generate() with Result return type', () => {

@@ -23,7 +23,7 @@ import {
 } from "../../index.js";
 import { createParser } from "../../parser/index.js";
 import { createJSXTransformer } from "../../transformer/index.js";
-import { CodeGenerator } from "../../generator/code-generator.js";
+import { createCodeGenerator } from "../../generator/index.js";
 import { isErr } from "../../result/index.js";
 
 // =============================================================================
@@ -124,7 +124,7 @@ async function testHoisting(
   }
 
   // Generate code
-  const generator = new CodeGenerator();
+  const generator = createCodeGenerator();
   const generated = generator.generate(ast);
 
   if (!generated.ok) {

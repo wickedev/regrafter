@@ -145,6 +145,24 @@ export {
   type TransformedCode,
 } from './api/types.js';
 
+// Export parser utilities
+export {
+  Parser,
+  createParser,
+  ASTStore,
+  createASTStore,
+  parseFile,
+  computeContentHash,
+} from './parser/index.js';
+
+// Export generator utilities
+export {
+  CodeGenerator,
+  createCodeGenerator,
+  generateCode,
+  DEFAULT_GENERATOR_OPTIONS,
+} from './generator/index.js';
+
 // Export analyzer utilities
 export {
   // Atomic unit detection

@@ -29,7 +29,7 @@ import type {
 // Import implementing classes
 import { DependencyOrchestrator } from '../../analyzer/dependency-orchestrator.js';
 import { ScopeManager } from '../../scope/scope-manager.js';
-import { CodeGenerator } from '../../generator/code-generator.js';
+import { createCodeGenerator } from '../../generator/index.js';
 
 // Import types and utilities
 import { isErr, isOk } from '../../result/index.js';
@@ -627,7 +627,7 @@ describe('ICodeGenerator Interface Compliance', () => {
   let generator: CodeGenerator;
 
   beforeEach(() => {
-    generator = new CodeGenerator();
+    generator = createCodeGenerator();
   });
 
   it('IC-22: CodeGenerator implements ICodeGenerator', () => {

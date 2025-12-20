@@ -11,7 +11,8 @@
 import type * as t from '@babel/types';
 
 import type { RegraffError } from '../errors/error-category.js';
-import { CodeGenerator } from '../generator/code-generator.js';
+import { createCodeGenerator } from '../generator/index.js';
+import type { CodeGenerator } from '../generator/code-generator.js';
 import type { GeneratorOptions } from '../generator/types.js';
 import { ok, err, type Result } from '../result/index.js';
 
@@ -33,7 +34,7 @@ export class CodeFormatter implements ICodeFormatter {
   private readonly codeGenerator: CodeGenerator;
 
   constructor() {
-    this.codeGenerator = new CodeGenerator();
+    this.codeGenerator = createCodeGenerator();
   }
 
   /**

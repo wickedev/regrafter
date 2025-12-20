@@ -9,7 +9,7 @@ import type * as t from '@babel/types';
 
 import { DependencyOrchestrator } from '../../analyzer/dependency-orchestrator.js';
 import { createValidationError } from '../../errors/index.js';
-import { CodeGenerator } from '../../generator/code-generator.js';
+import { createCodeGenerator } from '../../generator/index.js';
 import { err, isErr, ok } from '../../result/index.js';
 import { createScopeManager } from '../../scope/index.js';
 import { createSelectorResolver } from '../../selector/index.js';
@@ -46,7 +46,7 @@ describe('MoveTransformationPipeline', () => {
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
-      const generator = new CodeGenerator();
+      const generator = createCodeGenerator();
 
       const pipeline = createMoveTransformationPipeline(
         resolver,
@@ -104,7 +104,7 @@ describe('MoveTransformationPipeline', () => {
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
-      const generator = new CodeGenerator();
+      const generator = createCodeGenerator();
 
       const pipeline = createMoveTransformationPipeline(
         resolver,
@@ -142,7 +142,7 @@ describe('MoveTransformationPipeline', () => {
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
-      const generator = new CodeGenerator();
+      const generator = createCodeGenerator();
 
       const pipeline = createMoveTransformationPipeline(
         resolver,
@@ -181,7 +181,7 @@ describe('MoveTransformationPipeline', () => {
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
-      const generator = new CodeGenerator();
+      const generator = createCodeGenerator();
 
       const pipeline = createMoveTransformationPipeline(
         resolver,
@@ -217,7 +217,7 @@ describe('MoveTransformationPipeline', () => {
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
-      const generator = new CodeGenerator();
+      const generator = createCodeGenerator();
 
       const pipeline = createMoveTransformationPipeline(
         resolver,
@@ -266,7 +266,7 @@ describe('MoveTransformationPipeline', () => {
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
-      const generator = new CodeGenerator();
+      const generator = createCodeGenerator();
 
       const pipeline = createMoveTransformationPipeline(
         resolver,
@@ -325,7 +325,7 @@ describe('MoveTransformationPipeline', () => {
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
-      const generator = new CodeGenerator();
+      const generator = createCodeGenerator();
 
       const pipeline = createMoveTransformationPipeline(
         resolver,
@@ -379,7 +379,7 @@ describe('MoveTransformationPipeline', () => {
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
-      const generator = new CodeGenerator();
+      const generator = createCodeGenerator();
 
       const pipeline = createMoveTransformationPipeline(
         resolver,
@@ -428,7 +428,7 @@ describe('MoveTransformationPipeline', () => {
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
-      const generator = new CodeGenerator();
+      const generator = createCodeGenerator();
 
       const pipeline = createMoveTransformationPipeline(
         resolver,
@@ -462,7 +462,7 @@ describe('MoveTransformationPipeline', () => {
       const planner = createConfiguredHoistPlanner();
       const executor = createHoistExecutor();
       const transformer = createJSXTransformer();
-      const generator = new CodeGenerator();
+      const generator = createCodeGenerator();
 
       // Act
       const pipeline = createMoveTransformationPipeline(

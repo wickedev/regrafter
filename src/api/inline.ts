@@ -15,7 +15,7 @@ import { findComponentDefinition } from '../analyzer/component-detector.js';
 import { error } from '../errors/error-builder.js';
 import type { RegraffError } from '../errors/index.js';
 import { createInternalError } from '../errors/index.js';
-import { CodeGenerator } from '../generator/code-generator.js';
+import { createCodeGenerator } from '../generator/index.js';
 import { parseFile } from '../parser/parse-file.js';
 import { err, isErr, ok, type Result } from '../result/index.js';
 import { ComponentInliner } from '../transformer/component-inliner.js';
@@ -147,8 +147,8 @@ export function inline(
       );
     }
 
-    // Create required instances
-    const generator = new CodeGenerator();
+    // Create required instances using factories
+    const generator = createCodeGenerator();
     const inliner = new ComponentInliner();
 
     // Parse all files

@@ -28,6 +28,32 @@ export type {
 export { DEFAULT_GENERATOR_OPTIONS } from './types.js';
 
 /**
+ * Create a new CodeGenerator instance with optional configuration.
+ *
+ * Factory function following DIP (Dependency Inversion Principle).
+ * Use this instead of direct constructor instantiation for better
+ * testability and dependency management.
+ *
+ * @param options - Optional generator options
+ * @returns A new CodeGenerator instance
+ *
+ * @example
+ * ```typescript
+ * import { createCodeGenerator } from './generator';
+ *
+ * const generator = createCodeGenerator({
+ *   preserveComments: true,
+ *   singleQuote: true,
+ * });
+ *
+ * const result = generator.generate(ast);
+ * ```
+ */
+export function createCodeGenerator(options?: GeneratorOptions): CodeGenerator {
+  return new CodeGenerator(options);
+}
+
+/**
  * Generate code from a Babel AST using the Result pattern.
  *
  * This function wraps the CodeGenerator's generate method and returns
@@ -58,8 +84,8 @@ export function generateCode(
   ast: t.File,
   options?: GeneratorOptions
 ): Result<string, TransformErrorType> {
-  // Create generator with options
-  const generator = new CodeGenerator(options);
+  // Create generator with options using factory
+  const generator = createCodeGenerator(options);
 
   // Generate code - this now returns Result<GeneratedCode, TransformErrorType>
   const generateResult = generator.generate(ast);

@@ -25,7 +25,9 @@ import { createCode, type Code, type FileInput } from '../types/index.js';
  *
  * @example
  * ```typescript
- * const generator = new CodeGenerator();
+ * import { createCodeGenerator } from '../generator';
+ *
+ * const generator = createCodeGenerator();
  * const result = generateCodeForFiles(files, parsedFiles, 'App.tsx', generator);
  * if (isErr(result)) {
  *   console.error('Generation failed:', result.error.message);

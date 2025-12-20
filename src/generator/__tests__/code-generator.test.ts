@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
 import type * as t from '@babel/types';
-import { CodeGenerator } from '../code-generator.js';
+import type { CodeGenerator } from '../code-generator.js';
+import { createCodeGenerator } from '../index.js';
 import type { IndentationInfo, GeneratedCode } from '../types.js';
 import { unwrap, isErr } from '../../result/index.js';
 
@@ -25,7 +26,7 @@ describe('CodeGenerator', () => {
   };
 
   beforeEach(() => {
-    generator = new CodeGenerator();
+    generator = createCodeGenerator();
   });
 
   // ============================================================
@@ -512,7 +513,7 @@ function Component() {
   // ============================================================
   describe('Options Handling', () => {
     it('should use default options when none provided', () => {
-      const defaultGenerator = new CodeGenerator();
+      const defaultGenerator = createCodeGenerator();
       const options = defaultGenerator.getOptions();
 
       expect(options.preserveComments).toBe(true);
@@ -522,7 +523,7 @@ function Component() {
     });
 
     it('should merge custom options with defaults', () => {
-      const customGenerator = new CodeGenerator({ indentSize: 4 });
+      const customGenerator = createCodeGenerator({ indentSize: 4 });
       const options = customGenerator.getOptions();
 
       expect(options.indentSize).toBe(4);
