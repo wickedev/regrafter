@@ -13,29 +13,32 @@
  * @module api/move-transformation-pipeline
  */
 
-import traverseModule from '@babel/traverse';
-import type { NodePath } from '@babel/traverse';
-import type * as t from '@babel/types';
+import traverseModule from "@babel/traverse";
+import type { NodePath } from "@babel/traverse";
+import type * as t from "@babel/types";
 
-import type { DependencyOrchestrator } from '../analyzer/dependency-orchestrator.js';
-import { error } from '../errors/error-builder.js';
-import { createSelectorError } from '../errors/index.js';
-import type { RegraffError } from '../errors/index.js';
-import type { CodeGenerator } from '../generator/code-generator.js';
-import { err, isErr, ok, type Result } from '../result/index.js';
-import type { ScopeManager } from '../scope/index.js';
-import { getScopeWithFallback } from '../scope/scope-helpers.js';
-import type { SelectorResolver, ElementData } from '../selector/index.js';
-import type { HoistExecutor, HoistExecutionContext } from '../strategies/hoist-executor.js';
-import type { HoistPlanBuilder } from '../strategies/hoist-plan-builder.js';
-import type { HoistPlan, HoistContext } from '../strategies/types.js';
-import type { JSXTransformer } from '../transformer/jsx-transformer.js';
-import type { Code, FileInput, Move, Selector } from '../types/index.js';
-import type { DependencyAnalysis, ScopeInfo } from '../types/internal.js';
-import { loadTraverseFunction } from '../utils/index.js';
+import type { DependencyOrchestrator } from "../analyzer/dependency-orchestrator.js";
+import { error } from "../errors/error-builder.js";
+import { createSelectorError } from "../errors/index.js";
+import type { RegraffError } from "../errors/index.js";
+import type { CodeGenerator } from "../generator/code-generator.js";
+import { err, isErr, ok, type Result } from "../result/index.js";
+import type { ScopeManager } from "../scope/index.js";
+import { getScopeWithFallback } from "../scope/scope-helpers.js";
+import type { SelectorResolver, ElementData } from "../selector/index.js";
+import type {
+  HoistExecutor,
+  HoistExecutionContext,
+} from "../strategies/hoist-executor.js";
+import type { HoistPlanBuilder } from "../strategies/hoist-plan-builder.js";
+import type { HoistPlan, HoistContext } from "../strategies/types.js";
+import type { JSXTransformer } from "../transformer/jsx-transformer.js";
+import type { Code, FileInput, Move, Selector } from "../types/index.js";
+import type { DependencyAnalysis, ScopeInfo } from "../types/internal.js";
+import { loadTraverseFunction } from "../utils/index.js";
 
-import { generateCodeForFiles } from './generation-utils.js';
-import { parseAllFiles } from './parse-utils.js';
+import { generateCodeForFiles } from "./generation-utils.js";
+import { parseAllFiles } from "./parse-utils.js";
 
 const traverse = loadTraverseFunction(traverseModule);
 
@@ -155,7 +158,9 @@ export class MoveTransformationPipeline {
    * @param context - Initial move context
    * @returns ValidatedContext or error
    */
-  private runValidation(context: MoveContext): Result<ValidatedContext, RegraffError> {
+  private runValidation(
+    context: MoveContext
+  ): Result<ValidatedContext, RegraffError> {
     // Parse all files
     const parsedFilesResult = parseAllFiles(context.files);
     if (isErr(parsedFilesResult)) {
@@ -168,10 +173,12 @@ export class MoveTransformationPipeline {
     if (!sourceAst) {
       return err(
         error()
-          .code('FILE_NOT_FOUND')
+          .code("FILE_NOT_FOUND")
           .message(`Source file not found: ${context.from.file}`)
-          .constraint('file_exists')
-          .details(`The source file "${context.from.file}" could not be found in the parsed files map`)
+          .constraint("file_exists")
+          .details(
+            `The source file "${context.from.file}" could not be found in the parsed files map`
+          )
           .build()
       );
     }
@@ -180,10 +187,10 @@ export class MoveTransformationPipeline {
     if (context.from.file !== context.to.file) {
       return err(
         error()
-          .code('CROSS_FILE_NOT_SUPPORTED')
-          .message('Cross-file moves not yet implemented')
-          .constraint('same_file_move')
-          .details('Cross-file moves are not yet supported in moveWithHoisting')
+          .code("CROSS_FILE_NOT_SUPPORTED")
+          .message("Cross-file moves not yet implemented")
+          .constraint("same_file_move")
+          .details("Cross-file moves are not yet supported in moveWithHoisting")
           .build()
       );
     }
@@ -220,13 +227,24 @@ export class MoveTransformationPipeline {
    * @param context - Validated context
    * @returns AnalyzedContext or error
    */
-  private runAnalysis(context: ValidatedContext): Result<AnalyzedContext, RegraffError> {
+  private runAnalysis(
+    context: ValidatedContext
+  ): Result<AnalyzedContext, RegraffError> {
     // Get scopes
-    const sourceScope = getScopeWithFallback(context.sourceResult.path, this.scopeManager);
-    const targetScope = getScopeWithFallback(context.targetResult.path, this.scopeManager);
+    const sourceScope = getScopeWithFallback(
+      context.sourceResult.path,
+      this.scopeManager
+    );
+    const targetScope = getScopeWithFallback(
+      context.targetResult.path,
+      this.scopeManager
+    );
 
     // Perform dependency analysis
-    const depAnalysisResult = this.analyzer.analyzeElement(context.sourceResult.path, targetScope);
+    const depAnalysisResult = this.analyzer.analyzeElement(
+      context.sourceResult.path,
+      targetScope
+    );
     if (isErr(depAnalysisResult)) {
       return err(depAnalysisResult.error);
     }
@@ -253,7 +271,9 @@ export class MoveTransformationPipeline {
    * @param context - Analyzed context
    * @returns PlannedContext or error
    */
-  private runPlanning(context: AnalyzedContext): Result<PlannedContext, RegraffError> {
+  private runPlanning(
+    context: AnalyzedContext
+  ): Result<PlannedContext, RegraffError> {
     // If there are no dependencies that need hoisting, skip planning
     if (
       context.dependencyAnalysis.needsHoisting.length === 0 ||
@@ -281,7 +301,10 @@ export class MoveTransformationPipeline {
     };
 
     // Create hoisting plan
-    const hoistPlan = this.planner.plan(context.dependencyAnalysis, hoistContext);
+    const hoistPlan = this.planner.plan(
+      context.dependencyAnalysis,
+      hoistContext
+    );
 
     return ok({
       ...context,
@@ -298,7 +321,9 @@ export class MoveTransformationPipeline {
    * @param context - Planned context
    * @returns ExecutedContext or error
    */
-  private runExecution(context: PlannedContext): Result<ExecutedContext, RegraffError> {
+  private runExecution(
+    context: PlannedContext
+  ): Result<ExecutedContext, RegraffError> {
     let refreshedSourceResult = context.sourceResult;
     let refreshedTargetResult = context.targetResult;
 
@@ -315,7 +340,10 @@ export class MoveTransformationPipeline {
         scopePaths,
       };
 
-      const executeResult = this.executor.execute(context.hoistPlan, execContext);
+      const executeResult = this.executor.execute(
+        context.hoistPlan,
+        execContext
+      );
       if (isErr(executeResult)) {
         return err(executeResult.error);
       }
@@ -369,8 +397,15 @@ export class MoveTransformationPipeline {
    * @param context - Executed context
    * @returns Code array or error
    */
-  private runGeneration(context: ExecutedContext): Result<Code[], RegraffError> {
-    return generateCodeForFiles(context.files, context.parsedFiles, context.from.file, this.generator);
+  private runGeneration(
+    context: ExecutedContext
+  ): Result<Code[], RegraffError> {
+    return generateCodeForFiles(
+      context.files,
+      context.parsedFiles,
+      context.from.file,
+      this.generator
+    );
   }
 
   // =============================================================================
@@ -378,8 +413,10 @@ export class MoveTransformationPipeline {
   // =============================================================================
 
   // Helper method for future validation logic
-  // @ts-expect-error - Unused currently but kept for future validation logic
-  private isSourceAncestorOfTarget(sourceScope: ScopeInfo, targetScope: ScopeInfo): boolean {
+  private isSourceAncestorOfTarget(
+    sourceScope: ScopeInfo,
+    targetScope: ScopeInfo
+  ): boolean {
     let current: ScopeInfo | null = targetScope;
     let depth = 0;
     const MAX_DEPTH = 100; // Prevent infinite loops
@@ -458,14 +495,14 @@ export class MoveTransformationPipeline {
       return {
         sourceResult: err(
           createSelectorError({
-            code: 'NODE_NOT_FOUND',
-            message: 'Failed to find source node after hoisting',
+            code: "NODE_NOT_FOUND",
+            message: "Failed to find source node after hoisting",
             selector: {
-              file: '',
+              file: "",
               line: loc?.start.line ?? 0,
               column: loc?.start.column ?? 0,
             },
-            file: '',
+            file: "",
           })
         ),
         targetResult: ok(targetMatch),
@@ -477,14 +514,14 @@ export class MoveTransformationPipeline {
         sourceResult: ok(sourceMatch),
         targetResult: err(
           createSelectorError({
-            code: 'NODE_NOT_FOUND',
-            message: 'Failed to find target node after hoisting',
+            code: "NODE_NOT_FOUND",
+            message: "Failed to find target node after hoisting",
             selector: {
-              file: '',
+              file: "",
               line: loc?.start.line ?? 0,
               column: loc?.start.column ?? 0,
             },
-            file: '',
+            file: "",
           })
         ),
       };
