@@ -16,3 +16,14 @@ export {
   type HookInfo,
   type ScopeTree,
 } from './types.js';
+
+// Scope helper utilities
+export {
+  getScopeWithFallback,
+  getEnclosingComponentOrNull,
+  buildScopePath,
+  findCommonAncestor,
+  isAncestorOf,
+  findNearestAncestor,
+  computeScopeDistance,
+} from './scope-helpers.js';

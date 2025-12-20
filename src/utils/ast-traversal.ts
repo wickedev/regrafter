@@ -205,7 +205,7 @@ export function isJSXAttribute(path: NodePath<t.Identifier>): boolean {
     // If we find a JSXExpressionContainer, check if it's in an attribute
     if (t.isJSXExpressionContainer(node)) {
       // JSXExpressionContainer can be in JSXAttribute or as a child
-      if (parent && t.isJSXAttribute(parent)) {
+      if (t.isJSXAttribute(parent)) {
         return true;
       }
       return false;

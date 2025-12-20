@@ -9,9 +9,11 @@
  */
 
 import type { SourceLocation } from '@babel/types';
+
+import type { SuggestedFix } from '../types/public.js';
+
 import { createValidationError, type ValidationErrorType } from './error-category.js';
 import { createSuggestedFix } from './suggested-fixes.js';
-import type { SuggestedFix } from '../types/public.js';
 
 /**
  * Parameters for building a ValidationError.
@@ -50,7 +52,7 @@ interface ValidationErrorParams {
  * ```
  */
 export class ErrorBuilder {
-  private params: ValidationErrorParams = {
+  private readonly params: ValidationErrorParams = {
     suggestions: [],
   };
 
@@ -168,9 +170,7 @@ export class ErrorBuilder {
    * ```
    */
   suggest(suggestion: string): this {
-    if (!this.params.suggestions) {
-      this.params.suggestions = [];
-    }
+    this.params.suggestions ??= [];
     this.params.suggestions.push(suggestion);
     return this;
   }
@@ -232,11 +232,17 @@ export class ErrorBuilder {
    * ```
    */
   build(): ValidationErrorType {
-    // Validate required fields
-    if (!this.params.code || !this.params.message) {
-      throw new Error('ErrorBuilder: code and message are required');
+    // Validate required fields - destructure to enable type narrowing
+    const { code, message } = this.params;
+
+    if (code === undefined || code === '') {
+      throw new Error('ErrorBuilder: code is required');
+    }
+    if (message === undefined || message === '') {
+      throw new Error('ErrorBuilder: message is required');
     }
 
+    // At this point, TypeScript knows code and message are non-empty strings
     // Ensure constraint and details have defaults for ValidationError
     const constraint = this.params.constraint ?? '';
     const details = this.params.details ?? '';
@@ -248,8 +254,8 @@ export class ErrorBuilder {
 
     // Create the ValidationError
     return createValidationError({
-      code: this.params.code,
-      message: this.params.message,
+      code,
+      message,
       constraint,
       details,
       file: this.params.file,
