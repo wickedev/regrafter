@@ -18,7 +18,11 @@ import {
   generateId,
 } from '../../types/factories.js';
 import type { HookUsage } from '../../types/internal.js';
-import { loadTraverseFunction, type TraverseFunction } from '../../utils/index.js';
+import {
+  loadTraverseFunction,
+  type TraverseFunction,
+  extractFunctionName,
+} from '../../utils/index.js';
 import {
   ScopeType,
   type ScopeInfo,
@@ -286,7 +290,7 @@ export class ScopeTreeBuilder {
    * - It may have a props parameter
    */
   private isReactComponent(path: NodePath): boolean {
-    const name = this.getFunctionName(path);
+    const name = extractFunctionName(path);
 
     // React components start with uppercase
     if (name === null || !/^[A-Z]/.test(name)) {
@@ -311,7 +315,7 @@ export class ScopeTreeBuilder {
       return null;
     }
 
-    const name = this.getFunctionName(path) ?? 'Anonymous';
+    const name = extractFunctionName(path) ?? 'Anonymous';
     const isConditional = this.isInsideConditional(path);
     const isLoop = this.isInsideLoop(path);
     const parentComponent = this.findParentComponent(path, scopeTree);
@@ -346,39 +350,6 @@ export class ScopeTreeBuilder {
     return componentScope;
   }
 
-  /**
-   * Get the name of a function
-   */
-  private getFunctionName(path: NodePath): string | null {
-    const node = path.node;
-
-    if (t.isFunctionDeclaration(node) && node.id) {
-      return node.id.name;
-    }
-
-    if (
-      (t.isFunctionExpression(node) || t.isArrowFunctionExpression(node)) &&
-      path.parentPath
-    ) {
-      const parent = path.parentPath.node;
-
-      // const Foo = () => {}
-      if (t.isVariableDeclarator(parent) && t.isIdentifier(parent.id)) {
-        return parent.id.name;
-      }
-
-      // { foo: () => {} }
-      if (t.isObjectProperty(parent) && t.isIdentifier(parent.key)) {
-        return parent.key.name;
-      }
-    }
-
-    if (t.isFunctionExpression(node) && node.id) {
-      return node.id.name;
-    }
-
-    return null;
-  }
 
   /**
    * Check if a function returns JSX

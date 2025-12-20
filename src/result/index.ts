@@ -873,3 +873,117 @@ export type { BatchResult } from './batch.js';
  * ```
  */
 export { processBatch } from './batch.js';
+
+// ============================================================================
+// Ergonomic Utilities (Phase 3.1: Error Handling Ergonomics)
+// ============================================================================
+
+/**
+ * Unwrap Result value or return error object for early return pattern.
+ *
+ * This utility enables clean early returns in Result-returning functions.
+ * If the Result is Ok, returns the unwrapped value.
+ * If the Result is Err, returns an object with 'error' property.
+ *
+ * @typeParam T - The type of the success value
+ * @typeParam E - The type of the error value
+ * @param result - The Result to unwrap
+ * @returns The unwrapped value (T) or error object ({ error: E })
+ *
+ * @example
+ * ```typescript
+ * function process(): Result<Output, Error> {
+ *   const input = unwrapOrReturn(getInput());
+ *   if ('error' in input) return input;
+ *
+ *   // input is now typed as Input (not Result)
+ *   return ok(transform(input));
+ * }
+ * ```
+ */
+export { unwrapOrReturn } from './helpers.js';
+
+/**
+ * Unwrap Result value or return null if Err.
+ *
+ * This is an alias for unwrapResult() provided for naming consistency.
+ * Use when null is an acceptable fallback value.
+ *
+ * @typeParam T - The type of the success value
+ * @typeParam E - The type of the error value
+ * @param result - The Result to unwrap
+ * @returns The value if Result is Ok, or null if Result is Err
+ *
+ * @example
+ * ```typescript
+ * const component = unwrapOrNull(
+ *   scopeManager.findEnclosingComponent(path)
+ * );
+ * ```
+ */
+export { unwrapOrNull } from './helpers.js';
+
+/**
+ * Chain Result-returning operations (monadic bind).
+ *
+ * This is an alias for flatMap() provided for naming consistency.
+ * Stops at first error, otherwise chains through operations.
+ *
+ * @typeParam T - The type of the original success value
+ * @typeParam U - The type of the new success value
+ * @typeParam E - The type of the error value
+ * @param result - The Result to chain from
+ * @param fn - Function that takes the Ok value and returns a new Result
+ * @returns The Result from the function, or the original Err
+ *
+ * @example
+ * ```typescript
+ * const result = andThen(
+ *   parseFile(path),
+ *   ast => buildScopeTree(ast)
+ * );
+ * ```
+ */
+export { andThen } from './helpers.js';
+
+/**
+ * Map over Result value (functional transformation).
+ *
+ * This is an alias for map() provided for naming consistency.
+ *
+ * @typeParam T - The type of the original success value
+ * @typeParam U - The type of the transformed success value
+ * @typeParam E - The type of the error value
+ * @param result - The Result to map over
+ * @param fn - Function to transform the Ok value
+ * @returns A new Result with the transformed value, or the original Err
+ *
+ * @example
+ * ```typescript
+ * const doubled = mapResult(getNumber(), n => n * 2);
+ * ```
+ */
+export { mapResult } from './helpers.js';
+
+/**
+ * Combine multiple Results into a single Result of array.
+ *
+ * This is an alias for all() provided for naming clarity.
+ * Returns first error encountered, or ok with all values.
+ *
+ * @typeParam T - The type of the success values
+ * @typeParam E - The type of the error values
+ * @param results - Array of Results to combine
+ * @returns Ok with array of values if all Results are Ok, or the first Err
+ *
+ * @example
+ * ```typescript
+ * const results = combineResults([
+ *   parseFile('a.tsx'),
+ *   parseFile('b.tsx'),
+ *   parseFile('c.tsx'),
+ * ]);
+ * // Result<[AST, AST, AST], Error>
+ * ```
+ */
+export { combineResults } from './helpers.js';

@@ -4,7 +4,7 @@
  * Helper functions for working with Result types, including unwrapping operations and exception conversion.
  */
 
-import type { Result } from './types.js';
+import type { Result, Err } from './types.js';
 import { ok, err } from './types.js';
 
 /**
@@ -447,4 +447,166 @@ export function mapErr<T, E, F>(
     return err(fn(result.error));
   }
   return result;
+}
+
+/**
+ * Unwrap Result value or return error Result for early return pattern.
+ *
+ * This utility enables clean early returns in Result-returning functions.
+ * If the Result is Ok, returns the unwrapped value.
+ * If the Result is Err, returns the error Result itself which can be returned directly.
+ *
+ * The return type uses TypeScript's type narrowing with 'ok' property to distinguish
+ * between the unwrapped value and the error Result.
+ *
+ * @param result - The Result to unwrap
+ * @returns The unwrapped value (T) or the error Result (Err<E>)
+ *
+ * @example
+ * ```typescript
+ * function process(): Result<Output, Error> {
+ *   const input = unwrapOrReturn(getInput());
+ *   if (!input.ok) return input;  // Early return with error
+ *
+ *   // input.value is now typed as Input
+ *   const validated = unwrapOrReturn(validate(input.value));
+ *   if (!validated.ok) return validated;
+ *
+ *   return ok(transform(validated.value));
+ * }
+ * ```
+ */
+export function unwrapOrReturn<T, E>(
+  result: Result<T, E>
+): T | Err<E> {
+  if (!result.ok) {
+    return result;  // Return the Err result directly
+  }
+  return result.value;
+}
+
+/**
+ * Unwrap Result value or return null if Err.
+ *
+ * This is an alias for unwrapResult() provided for naming consistency
+ * and clarity in different contexts. Use when null is an acceptable
+ * fallback value.
+ *
+ * @param result - The Result to unwrap
+ * @returns The value if Result is Ok, or null if Result is Err
+ *
+ * @example
+ * ```typescript
+ * const component = unwrapOrNull(
+ *   scopeManager.findEnclosingComponent(path)
+ * );
+ *
+ * if (component) {
+ *   // Use component
+ * } else {
+ *   // Handle not found case
+ * }
+ * ```
+ */
+export function unwrapOrNull<T, E>(result: Result<T, E>): T | null {
+  return unwrapResult(result);
+}
+
+/**
+ * Chain Result-returning operations (monadic bind).
+ *
+ * This is an alias for flatMap() provided for naming consistency with
+ * other functional programming conventions. The name 'andThen' suggests
+ * sequential chaining of operations.
+ *
+ * If the Result is Ok, applies the function and returns its Result.
+ * If the Result is Err, passes it through unchanged. This stops at the
+ * first error, making it ideal for composing multiple fallible operations.
+ *
+ * @param result - The Result to chain from
+ * @param fn - Function that takes the Ok value and returns a new Result
+ * @returns The Result from the function, or the original Err
+ *
+ * @example
+ * ```typescript
+ * const result = andThen(
+ *   parseFile(path),
+ *   ast => andThen(
+ *     buildScopeTree(ast),
+ *     scope => analyzeDependencies(scope)
+ *   )
+ * );
+ * // Stops at first error, or returns final success
+ * ```
+ */
+export function andThen<T, U, E>(
+  result: Result<T, E>,
+  fn: (value: T) => Result<U, E>
+): Result<U, E> {
+  return flatMap(result, fn);
+}
+
+/**
+ * Map over Result value (functional transformation).
+ *
+ * This is an alias for map() provided for naming consistency and clarity.
+ * The name 'mapResult' makes it explicit that we're mapping over a Result type.
+ *
+ * If the Result is Ok, applies the function to transform the value.
+ * If the Result is Err, passes it through unchanged.
+ *
+ * @param result - The Result to map over
+ * @param fn - Function to transform the Ok value
+ * @returns A new Result with the transformed value, or the original Err
+ *
+ * @example
+ * ```typescript
+ * const doubled = mapResult(getNumber(), n => n * 2);
+ *
+ * const formatted = mapResult(
+ *   parseUser(data),
+ *   user => `${user.name} <${user.email}>`
+ * );
+ * ```
+ */
+export function mapResult<T, U, E>(
+  result: Result<T, E>,
+  fn: (value: T) => U
+): Result<U, E> {
+  return map(result, fn);
+}
+
+/**
+ * Combine multiple Results into a single Result of array.
+ *
+ * This is an alias for all() provided for naming clarity.
+ * The name 'combineResults' makes it explicit that we're combining
+ * multiple Result values.
+ *
+ * Returns Ok with an array of all values if all Results are Ok.
+ * Returns the first Err if any Result is Err.
+ * Returns Ok with an empty array if the input array is empty.
+ *
+ * @param results - Array of Results to combine
+ * @returns Ok with array of values if all Results are Ok, or the first Err
+ *
+ * @example
+ * ```typescript
+ * const results = combineResults([
+ *   parseFile('a.tsx'),
+ *   parseFile('b.tsx'),
+ *   parseFile('c.tsx'),
+ * ]);
+ * // Result<[AST, AST, AST], Error>
+ *
+ * if (results.ok) {
+ *   const [astA, astB, astC] = results.value;
+ *   // Process all ASTs
+ * }
+ * ```
+ */
+export function combineResults<T, E>(
+  results: Array<Result<T, E>>
+): Result<T[], E> {
+  return all(results);
 }

@@ -92,3 +92,6 @@ export {
   failedRecovery,
   successfulRecovery,
 } from './error-recovery.js';
+
+// Error Builder (Phase 3.1: Error Handling Ergonomics)
+export { ErrorBuilder, error } from './error-builder.js';

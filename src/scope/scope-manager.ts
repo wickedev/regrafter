@@ -17,6 +17,7 @@ import { type ValidationErrorType, type InternalErrorType } from '../errors/inde
 import type { IScopeManager } from '../interfaces/index.js';
 import { type Result } from '../result/index.js';
 import type { HookUsage } from '../types/internal.js';
+import { extractFunctionName } from '../utils/index.js';
 
 import { createBindingTracker, type BindingTracker } from './components/binding-tracker.js';
 import { createHookTracker, type HookTracker } from './components/hook-tracker.js';
@@ -118,7 +119,7 @@ export class ScopeManager implements IScopeManager {
   isReactComponent(path: NodePath): boolean {
     // For backwards compatibility, we need to implement this method
     // but in practice it's only used during scope tree building which is now delegated
-    const name = this.getFunctionName(path);
+    const name = extractFunctionName(path);
     if (name === null || !/^[A-Z]/.test(name)) {
       return false;
     }
@@ -141,39 +142,6 @@ export class ScopeManager implements IScopeManager {
     return null;
   }
 
-  /**
-   * Get the name of a function
-   */
-  private getFunctionName(path: NodePath): string | null {
-    const node = path.node;
-
-    if (t.isFunctionDeclaration(node) && node.id) {
-      return node.id.name;
-    }
-
-    if (
-      (t.isFunctionExpression(node) || t.isArrowFunctionExpression(node)) &&
-      path.parentPath
-    ) {
-      const parent = path.parentPath.node;
-
-      // const Foo = () => {}
-      if (t.isVariableDeclarator(parent) && t.isIdentifier(parent.id)) {
-        return parent.id.name;
-      }
-
-      // { foo: () => {} }
-      if (t.isObjectProperty(parent) && t.isIdentifier(parent.key)) {
-        return parent.key.name;
-      }
-    }
-
-    if (t.isFunctionExpression(node) && node.id) {
-      return node.id.name;
-    }
-
-    return null;
-  }
 
   /**
    * Check if a function returns JSX
