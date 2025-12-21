@@ -1,6 +1,6 @@
 {
   "name": "regrafter",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Programmatic AST transformation library for relocating React elements with automatic dependency management",
   "type": "module",
   "main": "./dist/cjs/index.js",
